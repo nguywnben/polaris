@@ -72,6 +72,9 @@ setCompactMetricValue(element, 42);
 assert(element.textContent === '42', 'small summary value changed');
 assert(element.title === '', 'stale exact hover value remained');
 assert(!('aria-label' in attributes), 'stale accessible value remained');
+setCompactMetricValue(element, 1250000, {currency: true});
+assert(element.textContent === '$1.25M', 'currency summary did not use USD compact notation');
+assert(element.title === '$1,250,000.00', 'currency summary lost its exact hover value');
 """
         )
 

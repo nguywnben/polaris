@@ -25,12 +25,16 @@ function formatConsoleNumber(value, options = {}) {
 
 function formatConsoleCurrency(value, options = {}) {
     const amount = consoleFiniteNumber(value, {minimum: 0});
+    const requestedCurrency = typeof options.currency === 'string'
+        ? options.currency.trim().toUpperCase()
+        : '';
+    const currency = /^[A-Z]{3}$/.test(requestedCurrency) ? requestedCurrency : 'USD';
     const compact = Boolean(options.compact)
         && amount >= (options.compactThreshold ?? CONSOLE_COMPACT_NUMBER_THRESHOLD);
     const smallAmount = amount > 0 && amount < 0.01;
     return new Intl.NumberFormat(getConsoleNumberLocale(), {
         style: 'currency',
-        currency: options.currency || 'USD',
+        currency,
         ...(compact ? {notation: 'compact', compactDisplay: 'short'} : {}),
         minimumFractionDigits: options.minimumFractionDigits ?? (compact ? 0 : (smallAmount ? 2 : 2)),
         maximumFractionDigits: options.maximumFractionDigits ?? (compact ? 2 : (smallAmount ? 4 : 2)),
