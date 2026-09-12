@@ -74,7 +74,9 @@ function renderSettingsMetadata(metadata) {
     }
     const summary = document.getElementById('settingsApplySummary');
     if (summary) {
-        summary.textContent = t('settings.apply_summary', counts);
+        summary.textContent = t('settings.apply_summary', Object.fromEntries(
+            Object.entries(counts).map(([key, value]) => [key, formatConsoleNumber(value)])
+        ));
     }
 }
 

@@ -460,13 +460,15 @@ function renderPlaygroundMetadata(metadata) {
     replacePlaygroundText(document.getElementById('playgroundMetadataRequestId'), metadata.request_id || '—');
     replacePlaygroundText(document.getElementById('playgroundMetadataRoute'),
         [route.selected_provider, route.selected_model].filter(Boolean).join(' / ') || t('playground.route_unavailable'));
-    replacePlaygroundText(document.getElementById('playgroundMetadataAttempts'), `${route.attempts || 0} / ${route.fallbacks || 0}`);
-    replacePlaygroundText(document.getElementById('playgroundMetadataTokens'), `${usage.input_tokens || 0} / ${usage.output_tokens || 0}`);
-    replacePlaygroundText(document.getElementById('playgroundMetadataDuration'), `${metadata.duration_ms || 0} ms`);
+    replacePlaygroundText(document.getElementById('playgroundMetadataAttempts'),
+        `${formatConsoleNumber(route.attempts)} / ${formatConsoleNumber(route.fallbacks)}`);
+    replacePlaygroundText(document.getElementById('playgroundMetadataTokens'),
+        `${formatConsoleNumber(usage.input_tokens)} / ${formatConsoleNumber(usage.output_tokens)}`);
+    replacePlaygroundText(document.getElementById('playgroundMetadataDuration'), `${formatConsoleNumber(metadata.duration_ms)} ms`);
     replacePlaygroundText(document.getElementById('playgroundMetadataQuality'),
-        `${quality.profile || '—'} · r${quality.policy_revision || 0}`);
+        `${quality.profile || '—'} · r${formatConsoleNumber(quality.policy_revision)}`);
     replacePlaygroundText(document.getElementById('playgroundMetadataCompression'),
-        `${quality.compression_action || '—'} · ${quality.estimated_tokens_before || 0} → ${quality.estimated_tokens_after || 0}`);
+        `${quality.compression_action || '—'} · ${formatConsoleNumber(quality.estimated_tokens_before)} → ${formatConsoleNumber(quality.estimated_tokens_after)}`);
 }
 
 function playgroundResponseError(source, statusCode) {

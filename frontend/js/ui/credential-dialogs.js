@@ -197,7 +197,7 @@ function quotaLevelFromUsedPercentage(usedPercentage) {
 function formatQuotaNumber(value) {
 
     const number = Number(value);
-    return Number.isFinite(number) ? number.toLocaleString(getActiveLocale()) : t('modal.unavailable');
+    return Number.isFinite(number) ? formatConsoleNumber(number) : t('modal.unavailable');
 
 }
 

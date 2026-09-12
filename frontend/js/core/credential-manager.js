@@ -605,7 +605,13 @@ function createCredsManager(type) {
 
             document.getElementById(this.getElementId('PaginationInfo')).textContent =
 
-                t('status_page_info', {page: this.currentPage, total: totalPages, start: startItem, end: endItem, count: this.totalCount});
+                t('status_page_info', {
+                    page: formatConsoleNumber(this.currentPage),
+                    total: formatConsoleNumber(totalPages),
+                    start: formatConsoleNumber(startItem),
+                    end: formatConsoleNumber(endItem),
+                    count: formatConsoleNumber(this.totalCount)
+                });
 
             document.getElementById(this.getElementId('PrevPageBtn')).disabled = this.currentPage <= 1;
 
@@ -689,7 +695,7 @@ function createCredsManager(type) {
 
                 countElement.textContent = activeCount > 0
 
-                    ? t('pool.filters.active', { count: activeCount })
+                    ? t('pool.filters.active', { count: formatConsoleNumber(activeCount) })
 
                     : t('pool.filters.none');
 
@@ -865,9 +871,9 @@ function createCredsManager(type) {
 
             document.getElementById(this.getElementId('SelectedCount')).textContent = allMatching
 
-                ? t('pool.selection.selected_all', {count: selectedCount})
+                ? t('pool.selection.selected_all', {count: formatConsoleNumber(selectedCount)})
 
-                : t('pool.selection.selected_page', {count: selectedCount});
+                : t('pool.selection.selected_page', {count: formatConsoleNumber(selectedCount)});
 
             const batchBtnNames = ['Enable', 'Disable', 'Delete', 'Verify', 'Preview'];
 
@@ -1003,7 +1009,7 @@ function createCredsManager(type) {
 
                     || !this.allMatchingSelection?.token;
 
-                selectAllMatchingButton.textContent = t('pool.selection.select_all_matching', {count: this.totalCount});
+                selectAllMatchingButton.textContent = t('pool.selection.select_all_matching', {count: formatConsoleNumber(this.totalCount)});
 
             }
 
@@ -1121,7 +1127,7 @@ function createCredsManager(type) {
 
             if (itemResults.length > 12) {
 
-                lines.push(t('pool.batch.more_results', {count: itemResults.length - 12}));
+                lines.push(t('pool.batch.more_results', {count: formatConsoleNumber(itemResults.length - 12)}));
 
             }
 
@@ -1179,17 +1185,18 @@ function createCredsManager(type) {
 
             };
 
+            const formattedTargetCount = formatConsoleNumber(targetCount);
             const confirmationMessages = {
 
-                enable: t('confirm_batch_enable', {count: targetCount}),
+                enable: t('confirm_batch_enable', {count: formattedTargetCount}),
 
-                disable: t('confirm_batch_disable', {count: targetCount}),
+                disable: t('confirm_batch_disable', {count: formattedTargetCount}),
 
-                delete: t('confirm_batch_delete', {count: targetCount}),
+                delete: t('confirm_batch_delete', {count: formattedTargetCount}),
 
-                enable_credit: t('confirm_batch_enable_credit', {count: targetCount}),
+                enable_credit: t('confirm_batch_enable_credit', {count: formattedTargetCount}),
 
-                disable_credit: t('confirm_batch_disable_credit', {count: targetCount})
+                disable_credit: t('confirm_batch_disable_credit', {count: formattedTargetCount})
 
             };
 

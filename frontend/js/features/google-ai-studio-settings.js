@@ -116,7 +116,7 @@ async function addGoogleAIStudioCredential(event) {
                 : 'runtime.credential_added_title');
         }
         if (text) {
-            text.textContent = `${data.message} ${t('runtime.models_available', {count: data.model_count})}`;
+            text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(data.model_count)})}`;
         }
         result?.classList.remove('hidden');
         resetProviderTransientSecrets('google-ai-studio.credential');

@@ -128,7 +128,7 @@ function formatVirtualKeyDate(value) {
 }
 
 function formatVirtualKeyNumber(value) {
-    return new Intl.NumberFormat(getActiveLocale(), { maximumFractionDigits: 2 }).format(value);
+    return formatConsoleNumber(value, {maximumFractionDigits: 2});
 }
 
 function formatVirtualKeyLimits(record) {
@@ -524,7 +524,7 @@ async function showVirtualKeyUsage(keyId) {
 }
 
 function renderVirtualKeyUsageWindow(labelKey, usage = {}) {
-    return `<section class="virtual-key-usage-card"><h4>${escapeHtml(t(labelKey))}</h4><dl><div><dt>${escapeHtml(t('access.calls'))}</dt><dd>${escapeHtml(formatVirtualKeyNumber(usage.calls || 0))}</dd></div><div><dt>${escapeHtml(t('access.tokens'))}</dt><dd>${escapeHtml(formatVirtualKeyNumber(usage.total_tokens || 0))}</dd></div><div><dt>${escapeHtml(t('access.spend'))}</dt><dd>$${escapeHtml(formatVirtualKeyNumber(usage.cost_usd || 0))}</dd></div></dl></section>`;
+    return `<section class="virtual-key-usage-card"><h4>${escapeHtml(t(labelKey))}</h4><dl><div><dt>${escapeHtml(t('access.calls'))}</dt><dd>${escapeHtml(formatVirtualKeyNumber(usage.calls || 0))}</dd></div><div><dt>${escapeHtml(t('access.tokens'))}</dt><dd>${escapeHtml(formatVirtualKeyNumber(usage.total_tokens || 0))}</dd></div><div><dt>${escapeHtml(t('access.spend'))}</dt><dd>${escapeHtml(formatConsoleCurrency(usage.cost_usd || 0))}</dd></div></dl></section>`;
 }
 
 function updateVirtualKeySearch(value) {

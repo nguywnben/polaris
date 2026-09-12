@@ -572,7 +572,7 @@ async function saveAuditRetention(event) {
             throw new TypeError('audit-retention-update-shape');
         }
         await loadAuditRetention();
-        if (status) status.textContent = t('audit.retention_updated', { count: payload.removed_events });
+        if (status) status.textContent = t('audit.retention_updated', { count: formatConsoleNumber(payload.removed_events) });
         AuditConsoleState.cursor = null;
         AuditConsoleState.cursorStack = [];
         await loadAuditEvents();

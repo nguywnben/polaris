@@ -5188,7 +5188,7 @@ function t(key, vars = {}) {
 
 function formatCountLabel(count, singular, plural = `${singular}s`) {
     const numericCount = Number(count || 0);
-    const formattedCount = new Intl.NumberFormat(getActiveLocale()).format(numericCount);
+    const formattedCount = formatConsoleNumber(numericCount);
     return `${formattedCount} ${numericCount === 1 ? singular : plural}`;
 }
 

@@ -8,7 +8,6 @@ import subprocess
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 FORMAT_SCRIPT = ROOT / "frontend/js/core/number-format.js"
 
@@ -44,12 +43,15 @@ assert(formatConsoleNumber(9999, {compact: true}) === '9,999', 'small value was 
 assert(formatConsoleNumber(10000, {compact: true}) === '10K', 'threshold value was not compacted');
 assert(formatConsoleNumber(1250000000, {compact: true}) === '1.25B', 'large value lost useful precision');
 assert(formatConsoleNumber(1250000000) === '1,250,000,000', 'exact formatter changed detail values');
+assert(formatConsoleNumber(12.345) === '12.345', 'exact formatter discarded a valid fraction');
 assert(formatConsoleNumber(Number.NaN) === '0', 'invalid value did not use a safe zero');
 locale = 'vi-VN';
 const expectedVietnamese = new Intl.NumberFormat('vi-VN', {
     notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 2
 }).format(1250000000);
 assert(formatConsoleNumber(1250000000, {compact: true}) === expectedVietnamese, 'compact value ignored the active locale');
+delete globalThis.getActiveLocale;
+assert(formatConsoleNumber(1000) === '1,000', 'formatter failed before locale initialization');
 """
         )
 
@@ -81,6 +83,32 @@ assert(formatConsoleCurrency(1250000, {compact: true}) === '$1.25M', 'large cost
 assert(formatConsoleCurrency(-1) === '$0.00', 'negative cost did not use a safe zero');
 """
         )
+
+    def test_console_surfaces_use_summary_or_detail_precision_consistently(self) -> None:
+        dashboard = (ROOT / "frontend/js/features/dashboard.js").read_text(encoding="utf-8")
+        playground = (ROOT / "frontend/js/features/playground.js").read_text(encoding="utf-8")
+        traces = (ROOT / "frontend/js/features/traces.js").read_text(encoding="utf-8")
+        virtual_keys = (ROOT / "frontend/js/features/virtual-keys.js").read_text(
+            encoding="utf-8"
+        )
+        quotas = (ROOT / "frontend/js/ui/credential-dialogs.js").read_text(
+            encoding="utf-8"
+        )
+
+        for element_id in (
+            "totalApiCalls",
+            "totalCostUsd",
+            "totalTokens24h",
+            "distInputTokens",
+            "distOutputTokens",
+            "distCachedTokens",
+            "distReasoningTokens",
+        ):
+            self.assertIn(f"setDashboardSummaryMetric('{element_id}'", dashboard)
+        self.assertIn("formatConsoleNumber(usage.input_tokens", playground)
+        self.assertIn("formatConsoleNumber(trace.total_tokens)", traces)
+        self.assertIn("return formatConsoleNumber(value, {maximumFractionDigits: 2})", virtual_keys)
+        self.assertIn("return Number.isFinite(number) ? formatConsoleNumber(number)", quotas)
 
 
 if __name__ == "__main__":

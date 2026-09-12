@@ -3,27 +3,25 @@
 const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 5;
 
 function formatUsageCost(value) {
-    const amount = Number(value || 0);
-    if (!Number.isFinite(amount) || amount < 0) return '$0.00';
-    return amount.toLocaleString(getActiveLocale(), {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: amount > 0 && amount < 0.01 ? 4 : 2,
-    });
+    return formatConsoleCurrency(value);
 }
 
 function formatUsageNumber(value, options = {}) {
+    return formatConsoleNumber(value, {...options, decimals: options.decimals ?? 0});
+}
 
-    const number = Number(value || 0);
+function setDashboardSummaryMetric(elementId, value, options = {}) {
+    setCompactMetricValue(document.getElementById(elementId), value, options);
+}
 
-    if (!Number.isFinite(number)) return '0';
-
-    return number.toLocaleString(getActiveLocale(), {
-        maximumFractionDigits: options.decimals ?? 0,
-        minimumFractionDigits: options.decimals ?? 0,
-    });
-
+function getDashboardSummaryMetric(value, options = {}) {
+    const metric = getCompactMetricPresentation(value, options);
+    return {
+        text: escapeHtml(metric.display),
+        attributes: metric.compacted
+            ? ` title="${escapeAttribute(metric.exact)}" aria-label="${escapeAttribute(metric.exact)}"`
+            : '',
+    };
 }
 
 function getUsagePeriodConfig(period = AppState.usagePeriod) {
@@ -202,7 +200,7 @@ async function refreshUsageStats(options = {}) {
         const failedCalls = Number(aggData.failed_calls ?? aggData.failed_calls_24h ?? 0);
         const successRate = totalCalls > 0 ? Math.round((successfulCalls / totalCalls) * 100) : 0;
 
-        document.getElementById('totalApiCalls').textContent = formatUsageNumber(totalCalls);
+        setDashboardSummaryMetric('totalApiCalls', totalCalls);
         document.getElementById('successRate24h').textContent = `${successRate}%`;
         document.getElementById('requestOutcomeDetail').textContent = t('dashboard.successful_failed', {
             successful: formatUsageNumber(successfulCalls),
@@ -214,9 +212,9 @@ async function refreshUsageStats(options = {}) {
         document.getElementById('totalFiles').textContent = formatUsageNumber(aggData.total_files);
         document.getElementById('activeFiles').textContent = formatUsageNumber(aggData.active_files);
         document.getElementById('disabledCredentialsDetail').textContent = t('dashboard.disabled_count', {count: formatUsageNumber(aggData.disabled_files)});
-        document.getElementById('totalCostUsd').textContent = formatUsageCost(aggData.total_cost_usd);
+        setDashboardSummaryMetric('totalCostUsd', aggData.total_cost_usd, {currency: true});
         renderPricingSource(aggData.pricing);
-        document.getElementById('totalTokens24h').textContent = formatUsageNumber(aggData.total_tokens ?? aggData.total_tokens_24h);
+        setDashboardSummaryMetric('totalTokens24h', aggData.total_tokens ?? aggData.total_tokens_24h);
         document.getElementById('inputOutputDetail').textContent = t('dashboard.input_output', {
             input: formatUsageNumber(aggData.input_tokens ?? aggData.input_tokens_24h),
             output: formatUsageNumber(aggData.output_tokens ?? aggData.output_tokens_24h)
@@ -291,13 +289,13 @@ async function refreshOperationalHealth() {
         const snapshot = await response.json();
         AppState.operationalHealth = snapshot;
         const red = snapshot.red || {};
-        document.getElementById('sloRequestRate').textContent = formatUsageNumber(red.requests_per_minute, {decimals: 1});
+        setDashboardSummaryMetric('sloRequestRate', red.requests_per_minute, {decimals: 1});
         document.getElementById('sloErrorRate').textContent = `${(Number(red.error_rate || 0) * 100).toFixed(1)}%`;
         document.getElementById('sloErrorCount').textContent = t('slo.errors_of_requests', {errors: formatUsageNumber(red.errors), requests: formatUsageNumber(red.requests)});
         document.getElementById('sloP95').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
         document.getElementById('dashboardP95Latency').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
         const exhaustion = Object.values(snapshot.exhaustion || {}).reduce((total, value) => total + Number(value || 0), 0);
-        document.getElementById('sloExhaustion').textContent = formatUsageNumber(exhaustion);
+        setDashboardSummaryMetric('sloExhaustion', exhaustion);
         setOperationalHealthStatus(snapshot.status);
         renderOperationalRoutes(snapshot.routes || []);
     } catch (error) {
@@ -689,6 +687,8 @@ function renderUsageProviderSummary() {
         const credentialLabel = provider.credentials > 0
             ? t(provider.credentials === 1 ? 'dashboard.active_credentials_count' : 'dashboard.active_credentials_count_plural', {count: formatUsageNumber(provider.credentials)})
             : t('dashboard.no_active_credentials');
+        const callMetric = getDashboardSummaryMetric(provider.calls);
+        const tokenMetric = getDashboardSummaryMetric(provider.totalTokens);
 
         return `
             <article class="usage-provider-item">
@@ -700,9 +700,9 @@ function renderUsageProviderSummary() {
                     </div>
                 </div>
                 <dl class="usage-provider-metrics">
-                    <div><dt>${escapeHtml(t('requests'))}</dt><dd>${formatUsageNumber(provider.calls)}</dd></div>
+                    <div><dt>${escapeHtml(t('requests'))}</dt><dd${callMetric.attributes}>${callMetric.text}</dd></div>
                     <div><dt>${escapeHtml(t('success'))}</dt><dd>${provider.calls > 0 ? `${successRate}%` : escapeHtml(t('dashboard.no_traffic'))}</dd></div>
-                    <div><dt>${escapeHtml(t('tokens'))}</dt><dd>${formatUsageNumber(provider.totalTokens)}</dd></div>
+                    <div><dt>${escapeHtml(t('tokens'))}</dt><dd${tokenMetric.attributes}>${tokenMetric.text}</dd></div>
                 </dl>
             </article>
         `;
@@ -725,15 +725,10 @@ function renderTokenDistribution(aggData = {}) {
     const cachedPct = totalCalculated > 0 ? ((cachedTokens / totalCalculated) * 100).toFixed(1) : '0.0';
     const reasoningPct = totalCalculated > 0 ? ((reasoningTokens / totalCalculated) * 100).toFixed(1) : '0.0';
 
-    const inputEl = document.getElementById('distInputTokens');
-    const outputEl = document.getElementById('distOutputTokens');
-    const cachedEl = document.getElementById('distCachedTokens');
-    const reasoningEl = document.getElementById('distReasoningTokens');
-
-    if (inputEl) inputEl.textContent = formatUsageNumber(inputTokens);
-    if (outputEl) outputEl.textContent = formatUsageNumber(outputTokens);
-    if (cachedEl) cachedEl.textContent = formatUsageNumber(cachedTokens);
-    if (reasoningEl) reasoningEl.textContent = formatUsageNumber(reasoningTokens);
+    setDashboardSummaryMetric('distInputTokens', inputTokens);
+    setDashboardSummaryMetric('distOutputTokens', outputTokens);
+    setDashboardSummaryMetric('distCachedTokens', cachedTokens);
+    setDashboardSummaryMetric('distReasoningTokens', reasoningTokens);
 
     const inputPctEl = document.getElementById('distInputPct');
     const outputPctEl = document.getElementById('distOutputPct');
@@ -778,7 +773,11 @@ function renderTimelineChart(timeline = []) {
     const maxRequests = Math.max(...timeline.map(slot => slot.requests || 0));
     const chartScale = Math.max(maxRequests, 1);
     if (maxInfo) {
-        maxInfo.textContent = t('dashboard.peak_requests', {count: formatUsageNumber(maxRequests)});
+        const metric = getCompactMetricPresentation(maxRequests);
+        maxInfo.textContent = t('dashboard.peak_requests', {count: metric.display});
+        maxInfo.title = metric.compacted
+            ? t('dashboard.peak_requests', {count: metric.exact})
+            : '';
     }
 
     wrapper.innerHTML = timeline.map((slot) => {
@@ -886,6 +885,7 @@ function renderProviderHealthMatrix() {
 
     container.innerHTML = relevantProviders.map(p => {
         const traffic = trafficMap.get(p.id) || { calls: 0, successful: 0, failed: 0, hasCooldown: false };
+        const callMetric = getDashboardSummaryMetric(traffic.calls);
         let status = 'idle';
         let statusText = t('dashboard.status_idle');
         let badgeClass = 'badge-idle';
@@ -912,7 +912,7 @@ function renderProviderHealthMatrix() {
                     <span class="health-badge ${badgeClass}">${escapeHtml(statusText)}</span>
                 </div>
                 <div class="health-item-stats">
-                    <span>${escapeHtml(t('requests'))}: <strong>${formatUsageNumber(traffic.calls)}</strong></span>
+                    <span>${escapeHtml(t('requests'))}: <strong${callMetric.attributes}>${callMetric.text}</strong></span>
                     <span>${escapeHtml(t('success'))}: <strong>${traffic.calls > 0 ? Math.round((traffic.successful / traffic.calls) * 100) + '%' : '-'}</strong></span>
                 </div>
             </div>

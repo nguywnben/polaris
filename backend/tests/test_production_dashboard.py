@@ -21,6 +21,7 @@ ROOT = BACKEND_DIR.parent
 DASHBOARD_FRAGMENT = ROOT / "frontend/fragments/pages/dashboard.html"
 DASHBOARD_SCRIPT = ROOT / "frontend/js/features/dashboard.js"
 DASHBOARD_STYLES = ROOT / "frontend/css/observability.css"
+NUMBER_FORMAT_SCRIPT = ROOT / "frontend/js/core/number-format.js"
 
 
 class ProductionDashboardContractTests(unittest.TestCase):
@@ -35,7 +36,9 @@ class ProductionDashboardContractTests(unittest.TestCase):
         harness = f"""
 const fs = require('fs');
 const vm = require('vm');
+const numberSource = fs.readFileSync({json.dumps(str(NUMBER_FORMAT_SCRIPT))}, 'utf8');
 const source = fs.readFileSync({json.dumps(str(DASHBOARD_SCRIPT))}, 'utf8');
+vm.runInThisContext(numberSource);
 vm.runInThisContext(source + `\n;globalThis.__renderDashboardTimeline = renderTimelineChart;`);
 function assert(condition, message) {{ if (!condition) throw new Error(message); }}
 {assertions}

@@ -30,7 +30,7 @@ async function addOllamaCredential(event) {
         }
         if (text) {
             const count = Number(data.model_count) || 0;
-            text.textContent = `${data.message} ${t('runtime.models_available', {count})}`;
+            text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(count)})}`;
         }
         document.getElementById('ollamaSaveResult')?.classList.remove('hidden');
         resetProviderTransientSecrets('ollama.credential');

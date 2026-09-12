@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MANAGER_SOURCE = ROOT / "frontend/js/core/credential-manager.js"
 CARD_SOURCE = ROOT / "frontend/js/ui/credential-cards.js"
 POOL_HTML = ROOT / "frontend/fragments/pages/pool.html"
+NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
@@ -53,8 +54,11 @@ global.window = {{
 }};
 global.sessionStorage = {{getItem() {{ return null; }}, setItem() {{}}}};
 global.t = (key, values = {{}}) => `${{key}}:${{JSON.stringify(values)}}`;
+global.getActiveLocale = () => 'en-US';
 global.getAuthHeaders = () => ({{}});
+const numberSource = fs.readFileSync({json.dumps(str(NUMBER_FORMAT_SOURCE))}, 'utf8');
 const source = fs.readFileSync({json.dumps(str(MANAGER_SOURCE))}, 'utf8');
+vm.runInThisContext(numberSource);
 vm.runInThisContext(source + '\\n;globalThis.__createCredsManager = createCredsManager;');
 const manager = globalThis.__createCredsManager('primary');
 manager.capabilityByVariant = {{

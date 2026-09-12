@@ -194,7 +194,7 @@ function renderModelBlacklist() {
     if (!list) return;
 
     const entries = Array.isArray(AppState.modelBlacklist) ? AppState.modelBlacklist : [];
-    if (count) count.textContent = t('models.route_count', {count: entries.length});
+    if (count) count.textContent = t('models.route_count', {count: formatConsoleNumber(entries.length)});
     if (clearButton) clearButton.classList.toggle('hidden', entries.length === 0);
     list.replaceChildren();
 
@@ -237,7 +237,7 @@ function renderModelBlacklist() {
         status.textContent = 'HTTP 404';
         const occurrences = document.createElement('span');
         const failureCount = Math.max(1, Number(entry.failure_count || 1));
-        occurrences.textContent = t('models.occurrence_count', {count: failureCount});
+        occurrences.textContent = t('models.occurrence_count', {count: formatConsoleNumber(failureCount)});
         const lastSeen = document.createElement('span');
         lastSeen.textContent = t('models.last_seen', {time: formatModelBlacklistTime(entry.last_seen_at)});
         metadata.append(status, occurrences, lastSeen);

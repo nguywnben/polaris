@@ -109,7 +109,7 @@ function showAnthropicCredentialSaveResult(kind, data) {
         : 'runtime.credential_added_title');
     if (text) {
         const count = Number(data.model_count) || 0;
-        text.textContent = `${data.message} ${t('runtime.models_available', {count})}`;
+        text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(count)})}`;
     }
     document.getElementById(`${prefix}SaveResult`)?.classList.remove('hidden');
 }

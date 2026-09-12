@@ -289,7 +289,7 @@ function buildPoolImportResultHtml(data) {
                 <div class="message-result-section-title">${escapeHtml(t('runtime.summary'))}</div>
                 <div class="upload-result-details">
                     ${fileResults}
-                    ${hiddenCount ? `<div class="upload-result-message">${escapeHtml(t('upload.more_results', {count: hiddenCount}))}</div>` : ''}
+                    ${hiddenCount ? `<div class="upload-result-message">${escapeHtml(t('upload.more_results', {count: formatConsoleNumber(hiddenCount)}))}</div>` : ''}
                 </div>
             </div>
         `

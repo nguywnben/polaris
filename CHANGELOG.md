@@ -14,6 +14,9 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Changed
 
+- Standardized locale-aware console metrics: high-level values at 10,000 and above now use
+  compact notation with exact hover and assistive labels, while detailed views retain grouped
+  full-precision values and small USD costs keep sub-cent precision.
 - Rebalanced the supported product around one worker and one replica: SQLite remains the Core
   default, PostgreSQL and team OIDC remain Advanced opt-ins, and MongoDB remains Compatibility.
 - Unified console spacing, advisory copy, empty support-tier rendering, responsive coverage, and

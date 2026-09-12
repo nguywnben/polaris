@@ -155,7 +155,7 @@ function restoreTraceSafeFilters() {
 function setTraceStatus(key, variables = {}) { if (traceElement('traceStatus')) traceElement('traceStatus').textContent = key ? t(key, variables) : ''; }
 function traceText(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
 function formatTraceDate(value) { try { return new Intl.DateTimeFormat(getActiveLocale(), { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)); } catch (_error) { return t('trace.unknown'); } }
-function formatTraceCost(value) { return new Intl.NumberFormat(getActiveLocale(), { style: 'currency', currency: 'USD', maximumFractionDigits: 6 }).format(value); }
+function formatTraceCost(value) { return formatConsoleCurrency(value, {maximumFractionDigits: 6}); }
 
 function renderTraces() {
     const list = traceElement('traceList');
@@ -169,7 +169,7 @@ function renderTraces() {
         primary.append(traceText('code', 'trace-card-protocol', trace.protocol), traceText('time', '', formatTraceDate(trace.started_at)), traceText('span', `trace-outcome trace-outcome-${trace.outcome}`, trace.outcome));
         const route = [trace.selected_provider || t('trace.unknown'), trace.requested_model || t('trace.unknown')].join(' · ');
         const metadata = traceText('div', 'trace-card-meta', '');
-        metadata.append(traceText('span', '', route), traceText('code', '', `${t('trace.request_id')}: ${trace.request_id}`), traceText('span', '', `${trace.duration_ms} ms · ${trace.total_tokens} ${t('trace.tokens_short')} · ${formatTraceCost(trace.cost_usd)}`));
+        metadata.append(traceText('span', '', route), traceText('code', '', `${t('trace.request_id')}: ${trace.request_id}`), traceText('span', '', `${formatConsoleNumber(trace.duration_ms)} ms · ${formatConsoleNumber(trace.total_tokens)} ${t('trace.tokens_short')} · ${formatTraceCost(trace.cost_usd)}`));
         const button = traceText('button', 'btn btn-secondary btn-small', t('trace.details'));
         button.type = 'button'; button.dataset.uiAction = 'view-trace-detail'; button.dataset.traceId = trace.trace_id;
         card.append(primary, metadata, button); item.append(card); list.append(item);
@@ -254,10 +254,10 @@ function changeTracePage(direction) {
 
 function renderTraceDetail(trace) {
     const values = {
-        traceDetailTitle: trace.trace_id, traceDetailStartedAt: formatTraceDate(trace.started_at), traceDetailDuration: `${trace.duration_ms} ms`,
+        traceDetailTitle: trace.trace_id, traceDetailStartedAt: formatTraceDate(trace.started_at), traceDetailDuration: `${formatConsoleNumber(trace.duration_ms)} ms`,
         traceDetailRequestId: trace.request_id, traceDetailProtocol: trace.protocol, traceDetailOutcome: trace.outcome, traceDetailStatusCode: String(trace.status_code),
         traceDetailModel: trace.requested_model || t('trace.unknown'), traceDetailProvider: trace.selected_provider || t('trace.unknown'),
-        traceDetailTokens: `${trace.input_tokens} / ${trace.output_tokens} / ${trace.total_tokens}`, traceDetailCost: formatTraceCost(trace.cost_usd), traceDecisionCount: String(trace.decisions.length)
+        traceDetailTokens: `${formatConsoleNumber(trace.input_tokens)} / ${formatConsoleNumber(trace.output_tokens)} / ${formatConsoleNumber(trace.total_tokens)}`, traceDetailCost: formatTraceCost(trace.cost_usd), traceDecisionCount: formatConsoleNumber(trace.decisions.length)
     };
     for (const [id, value] of Object.entries(values)) if (traceElement(id)) traceElement(id).textContent = value;
     const list = traceElement('traceDecisionList'); list?.replaceChildren();
@@ -356,7 +356,7 @@ async function saveTraceRetention(event) {
     try {
         const response = await fetch('./api/traces/retention', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ retention_days: retentionDays, max_traces: maxTraces }) });
         if (!response.ok) throw new Error('trace-retention-update'); const payload = await response.json(); if (!traceBoundedInteger(payload?.removed_traces, 0, 1000000)) throw new TypeError('trace-retention-update-shape');
-        await loadTraceRetention(); if (status) status.textContent = t('trace.retention_updated', { count: payload.removed_traces }); TraceConsoleState.cursor = null; TraceConsoleState.cursorStack = []; await loadTraces();
+        await loadTraceRetention(); if (status) status.textContent = t('trace.retention_updated', { count: formatConsoleNumber(payload.removed_traces) }); TraceConsoleState.cursor = null; TraceConsoleState.cursorStack = []; await loadTraces();
     } catch (_error) { if (status) status.textContent = t('trace.update_failed'); }
     finally { if (button) button.disabled = false; }
 }

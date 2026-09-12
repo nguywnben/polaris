@@ -159,7 +159,7 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
 
         : `<span>${escapeHtml(providerMeta.name.charAt(0))}</span>`;
 
-    const countLabel = t('credential_count', {count: credentials.length});
+    const countLabel = t('credential_count', {count: formatConsoleNumber(credentials.length)});
 
     section.innerHTML = `
 

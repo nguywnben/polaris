@@ -137,31 +137,29 @@ function qualitySourceLabel(source) {
 
 function renderQualityPolicyMetadata(data) {
     const policy = data.policy;
-    const formatter = new Intl.NumberFormat(getActiveLocale());
     document.getElementById('qualityRuntimeStatus').textContent = data.runtime_active
         ? t('quality.runtime_active')
         : t('quality.runtime_inactive');
     document.getElementById('qualityApplicationMode').textContent = data.application?.restart_required
         ? t('quality.apply_restart')
         : t('quality.apply_live');
-    document.getElementById('qualityRevision').textContent = formatter.format(policy.revision);
+    document.getElementById('qualityRevision').textContent = formatConsoleNumber(policy.revision);
     document.getElementById('qualitySource').textContent = qualitySourceLabel(data.runtime_source);
     document.getElementById('qualityEnvironmentOverrides').textContent = data.environment_overrides?.length
-        ? formatter.format(data.environment_overrides.length)
+        ? formatConsoleNumber(data.environment_overrides.length)
         : t('quality.none');
 }
 
 function renderQualityDraftGuidance() {
     const settings = getQualityDraftSettings();
     const summary = deriveQualityTransformationSummary(settings);
-    const formatter = new Intl.NumberFormat(getActiveLocale());
     const summaryElement = document.getElementById('qualityTransformationSummary');
     if (summaryElement) {
         summaryElement.textContent = summary.code === 'compression_disabled'
             ? t('quality.transform_disabled')
             : t('quality.transform_threshold', {
-                threshold: formatter.format(summary.threshold),
-                target: formatter.format(summary.target)
+                threshold: formatConsoleNumber(summary.threshold),
+                target: formatConsoleNumber(summary.target)
             });
     }
 
@@ -329,11 +327,10 @@ function qualityPreviewDescriptor() {
 
 function renderQualityPreview(data) {
     const decision = data.preview.decision;
-    const formatter = new Intl.NumberFormat(getActiveLocale());
-    document.getElementById('qualityPreviewBefore').textContent = formatter.format(decision.estimated_tokens_before);
-    document.getElementById('qualityPreviewAfter').textContent = formatter.format(decision.estimated_tokens_after);
-    document.getElementById('qualityPreviewSaved').textContent = formatter.format(decision.estimated_tokens_saved);
-    document.getElementById('qualityPreviewRemoved').textContent = formatter.format(
+    document.getElementById('qualityPreviewBefore').textContent = formatConsoleNumber(decision.estimated_tokens_before);
+    document.getElementById('qualityPreviewAfter').textContent = formatConsoleNumber(decision.estimated_tokens_after);
+    document.getElementById('qualityPreviewSaved').textContent = formatConsoleNumber(decision.estimated_tokens_saved);
+    document.getElementById('qualityPreviewRemoved').textContent = formatConsoleNumber(
         data.preview.transformation?.estimated_removed_messages || 0
     );
     document.getElementById('qualityPreviewDecision').textContent = t(`quality.decision_${decision.reason}`);

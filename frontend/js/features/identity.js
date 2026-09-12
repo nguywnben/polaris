@@ -826,7 +826,7 @@ async function advanceIdentityOidcPolicy(element) {
             'identityPageStatus',
             result.revocation_complete === false
                 ? t('identity.policy_advanced_incomplete')
-                : t('identity.policy_advanced', { count: Number(result.revoked_sessions) || 0 }),
+                : t('identity.policy_advanced', { count: formatConsoleNumber(result.revoked_sessions) }),
             result.revocation_complete === false ? 'warning' : 'success'
         );
         identityFocus('#identityOidcAdvance', 'identityPageStatus');

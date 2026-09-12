@@ -122,7 +122,7 @@ function showOpenAICredentialSaveResult(kind, data) {
     }
     if (text) {
         const modelCount = Number(data.model_count) || 0;
-        text.textContent = `${data.message} ${t('runtime.models_available', {count: modelCount})}`;
+        text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(modelCount)})}`;
     }
     result?.classList.remove('hidden');
 }

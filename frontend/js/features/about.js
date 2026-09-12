@@ -88,7 +88,7 @@ function renderAboutCapabilities(capabilities) {
         status.className = 'support-tier-status';
         const counts = Object.fromEntries(ABOUT_STATES.map((state) => [
             state,
-            capabilities.filter((item) => item.tier === tier && item.state === state).length
+            formatConsoleNumber(capabilities.filter((item) => item.tier === tier && item.state === state).length)
         ]));
         status.textContent = t('about.tier_status', counts);
         copy.append(title, description);
