@@ -201,6 +201,8 @@ class CredentialUsageAggregate:
     total_latency_ms: int
     retry_count: int
     cost_nanos: int
+    cache_creation_tokens: int
+    reported_usage_calls: int
 
     def __post_init__(self) -> None:
         _bounded_text(
@@ -394,6 +396,8 @@ class UsageLedgerEntry:
     retry_count: int
     cost_nanos: int
     api_key_id: str
+    cache_creation_tokens: int = 0
+    usage_reported: bool = False
 
     def __post_init__(self) -> None:
         if (
@@ -421,6 +425,7 @@ class UsageLedgerEntry:
             (self.output_tokens, "Usage output tokens"),
             (self.total_tokens, "Usage total tokens"),
             (self.cached_tokens, "Usage cached tokens"),
+            (self.cache_creation_tokens, "Usage cache creation tokens"),
             (self.reasoning_tokens, "Usage reasoning tokens"),
             (self.estimated_input_tokens, "Usage estimated input tokens"),
             (self.estimated_tokens_saved, "Usage estimated tokens saved"),
@@ -429,6 +434,8 @@ class UsageLedgerEntry:
             (self.retry_count, "Usage retry count"),
         ):
             _strict_int(value, label, maximum=9_223_372_036_854_775_807)
+        if type(self.usage_reported) is not bool:
+            raise ValueError("Usage reported flag is invalid.")
         if self.quality_profile not in _QUALITY_PROFILES:
             raise ValueError("Usage quality profile is invalid.")
         _strict_int(
@@ -628,9 +635,30 @@ def _exact_record(record: object, expected: set[str], label: str) -> dict[str, A
 
 
 def usage_entry_from_record(record: object) -> UsageLedgerEntry:
-    values = _exact_record(
-        record, {field.name for field in fields(UsageLedgerEntry)}, "usage entry"
-    )
+    expected = {field.name for field in fields(UsageLedgerEntry)}
+    optional_since_r2 = {"cache_creation_tokens", "usage_reported"}
+    if not isinstance(record, Mapping):
+        raise ValueError("Stored usage entry is invalid.")
+    unknown = set(record) - expected
+    missing = expected - set(record)
+    if unknown or missing - optional_since_r2:
+        raise ValueError("Stored usage entry is invalid.")
+    values = dict(record)
+    values.setdefault("cache_creation_tokens", 0)
+    if "usage_reported" not in values:
+        values["usage_reported"] = bool(
+            values.get("success")
+            and any(
+                type(values.get(field)) is int and values[field] > 0
+                for field in (
+                    "input_tokens",
+                    "output_tokens",
+                    "total_tokens",
+                    "cached_tokens",
+                    "reasoning_tokens",
+                )
+            )
+        )
     try:
         return UsageLedgerEntry(**values)
     except (TypeError, ValueError) as exc:

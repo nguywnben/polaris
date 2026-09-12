@@ -132,6 +132,31 @@ class RequestTraceCollectorTests(unittest.TestCase):
                 collector = RequestTraceCollector("request-123", "gemini_generate")
                 self.assertEqual(collector.complete(status_code=status_code).outcome, outcome)
 
+    def test_recovered_upstream_failure_keeps_final_request_successful(self):
+        collector = RequestTraceCollector("request-123", "openai_chat")
+        collector.record(
+            category="upstream",
+            action="failed",
+            result="failed",
+            reason="provider_error",
+            provider="openai",
+            model="gpt-5",
+            status_code=503,
+        )
+        collector.record(
+            category="upstream",
+            action="succeeded",
+            result="succeeded",
+            reason="completed",
+            provider="xai",
+            model="grok-4",
+            status_code=200,
+        )
+
+        trace = collector.complete(status_code=200)
+
+        self.assertEqual(trace.outcome, "succeeded")
+
 
 class RequestTraceServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_restart_reuses_signing_key_and_retention_is_independent(self):

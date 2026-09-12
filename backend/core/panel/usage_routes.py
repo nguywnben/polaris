@@ -81,7 +81,13 @@ async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(v
         output_tokens = sum(item.get("output_tokens", 0) for item in usage_data.values())
         total_tokens = sum(item.get("total_tokens", 0) for item in usage_data.values())
         cached_tokens = sum(item.get("cached_tokens", 0) for item in usage_data.values())
+        cache_creation_tokens = sum(
+            item.get("cache_creation_tokens", 0) for item in usage_data.values()
+        )
         reasoning_tokens = sum(item.get("reasoning_tokens", 0) for item in usage_data.values())
+        reported_usage_calls = sum(
+            item.get("reported_usage_calls", 0) for item in usage_data.values()
+        )
         estimated_input_tokens = sum(
             item.get("estimated_input_tokens", 0) for item in usage_data.values()
         )
@@ -96,7 +102,7 @@ async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(v
         active_files = credential_counts["active"]
         disabled_files = credential_counts["disabled"]
         avg_calls = assigned_calls / active_files if active_files > 0 else 0.0
-        avg_tokens = total_tokens / successful_calls if successful_calls > 0 else 0.0
+        avg_tokens = total_tokens / reported_usage_calls if reported_usage_calls > 0 else 0.0
 
         return {
             "success": True,
@@ -106,6 +112,9 @@ async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(v
                 "assigned_calls": assigned_calls,
                 "successful_calls": successful_calls,
                 "failed_calls": failed_calls,
+                "total_upstream_attempts": total_calls,
+                "successful_upstream_attempts": successful_calls,
+                "failed_upstream_attempts": failed_calls,
                 "total_calls_24h": total_calls,
                 "assigned_calls_24h": assigned_calls,
                 "successful_calls_24h": successful_calls,
@@ -118,7 +127,10 @@ async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(v
                 "output_tokens": output_tokens,
                 "total_tokens": total_tokens,
                 "cached_tokens": cached_tokens,
+                "cache_creation_tokens": cache_creation_tokens,
                 "reasoning_tokens": reasoning_tokens,
+                "reported_usage_calls": reported_usage_calls,
+                "unreported_successful_calls": max(0, successful_calls - reported_usage_calls),
                 "estimated_input_tokens": estimated_input_tokens,
                 "estimated_tokens_saved": estimated_tokens_saved,
                 "compressed_messages": compressed_messages,
@@ -126,7 +138,9 @@ async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(v
                 "output_tokens_24h": output_tokens,
                 "total_tokens_24h": total_tokens,
                 "cached_tokens_24h": cached_tokens,
+                "cache_creation_tokens_24h": cache_creation_tokens,
                 "reasoning_tokens_24h": reasoning_tokens,
+                "reported_usage_calls_24h": reported_usage_calls,
                 "estimated_input_tokens_24h": estimated_input_tokens,
                 "estimated_tokens_saved_24h": estimated_tokens_saved,
                 "compressed_messages_24h": compressed_messages,

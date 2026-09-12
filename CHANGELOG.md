@@ -34,6 +34,11 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Fixed
 
+- Corrected production usage accounting across retries and streaming: the dashboard now labels
+  provider attempts explicitly, recovered failovers keep the logical request successful, partial
+  streams remain failures, cumulative usage chunks are merged, and token totals no longer count
+  cache reads twice. Anthropic cache writes now use their distinct price when available, while the
+  dashboard exposes incomplete provider-usage coverage instead of presenting missing usage as zero.
 - Restored the frozen R1 API compatibility surface and strengthened default SQLite startup so
   optional database drivers and external services are not loaded unless explicitly selected.
 

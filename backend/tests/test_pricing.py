@@ -76,10 +76,61 @@ class CalculateCostTests(unittest.TestCase):
         expected = (800_000 * 1.25 + 200_000 * 0.31 + 100_000 * 10.0 + 50_000 * 10.0) / 1_000_000
         self.assertAlmostEqual(cost, expected, places=8)
 
+    def test_cost_prices_cache_creation_separately_from_uncached_input(self):
+        table = pricing._PricingTable()
+        table.replace_dynamic(
+            {
+                ("anthropic", "claude-test"): pricing.ModelPricing(
+                    input_per_million=3.0,
+                    output_per_million=15.0,
+                    cache_read_per_million=0.3,
+                    cache_creation_per_million=3.75,
+                )
+            },
+            fetched_at="2026-09-12T00:00:00+00:00",
+        )
+        with patch.object(pricing, "_pricing_table", table):
+            cost = pricing.calculate_cost_usd(
+                "claude-test",
+                provider="anthropic",
+                input_tokens=1_000_000,
+                cached_tokens=200_000,
+                cache_creation_tokens=100_000,
+                output_tokens=100_000,
+            )
+
+        expected = (700_000 * 3.0 + 200_000 * 0.3 + 100_000 * 3.75 + 100_000 * 15.0) / 1_000_000
+        self.assertAlmostEqual(cost, expected, places=8)
+
     def test_cached_tokens_clamped_to_input(self):
         cost_normal = pricing.calculate_cost_usd("gpt-4o", input_tokens=100, cached_tokens=100)
         cost_overflow = pricing.calculate_cost_usd("gpt-4o", input_tokens=100, cached_tokens=5_000)
         self.assertAlmostEqual(cost_normal, cost_overflow, places=10)
+
+    def test_overlapping_cache_classes_are_clamped_to_input(self):
+        table = pricing._PricingTable()
+        table.replace_dynamic(
+            {
+                ("anthropic", "claude-test"): pricing.ModelPricing(
+                    input_per_million=3.0,
+                    output_per_million=15.0,
+                    cache_read_per_million=0.3,
+                    cache_creation_per_million=3.75,
+                )
+            },
+            fetched_at="2026-09-12T00:00:00+00:00",
+        )
+        with patch.object(pricing, "_pricing_table", table):
+            cost = pricing.calculate_cost_usd(
+                "claude-test",
+                provider="anthropic",
+                input_tokens=100,
+                cached_tokens=80,
+                cache_creation_tokens=80,
+            )
+
+        expected = (80 * 0.3 + 20 * 3.75) / 1_000_000
+        self.assertAlmostEqual(cost, expected, places=10)
 
     def test_zero_cost_provider_short_circuits(self):
         cost = pricing.calculate_cost_usd(
@@ -151,6 +202,7 @@ class DynamicPricingTests(unittest.TestCase):
                 "input_cost_per_token": 0.000002,
                 "output_cost_per_token": 0.000008,
                 "cache_read_input_token_cost": 0.0000005,
+                "cache_creation_input_token_cost": 0.0000025,
             },
             "gemini/gemini-new": {
                 "litellm_provider": "gemini",
@@ -164,6 +216,7 @@ class DynamicPricingTests(unittest.TestCase):
 
         self.assertEqual(parsed[("openai", "gpt-new")].input_per_million, 2.0)
         self.assertEqual(parsed[("openai", "gpt-new")].cache_read_per_million, 0.5)
+        self.assertEqual(parsed[("openai", "gpt-new")].cache_creation_per_million, 2.5)
         self.assertEqual(parsed[("gemini", "gemini-new")].output_per_million, 4.0)
 
     def test_catalog_rejects_untrusted_shapes_and_unbounded_prices(self):

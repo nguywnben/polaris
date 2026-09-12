@@ -107,7 +107,9 @@ def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
         "output_tokens": 0,
         "total_tokens": 0,
         "cached_tokens": 0,
+        "cache_creation_tokens": 0,
         "reasoning_tokens": 0,
+        "reported_usage_calls": 0,
         "estimated_input_tokens": 0,
         "estimated_tokens_saved": 0,
         "compressed_messages": 0,
@@ -121,7 +123,9 @@ def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
         "output_tokens_24h": 0,
         "total_tokens_24h": 0,
         "cached_tokens_24h": 0,
+        "cache_creation_tokens_24h": 0,
         "reasoning_tokens_24h": 0,
+        "reported_usage_calls_24h": 0,
         "estimated_input_tokens_24h": 0,
         "estimated_tokens_saved_24h": 0,
         "compressed_messages_24h": 0,
@@ -142,7 +146,9 @@ def _usage_record(
     output_tokens: int,
     total_tokens: int,
     cached_tokens: int,
+    cache_creation_tokens: int,
     reasoning_tokens: int,
+    reported_usage_calls: int,
     estimated_input_tokens: int,
     estimated_tokens_saved: int,
     compressed_messages: int,
@@ -167,7 +173,9 @@ def _usage_record(
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "cached_tokens": cached_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
         "reasoning_tokens": reasoning_tokens,
+        "reported_usage_calls": reported_usage_calls,
         "estimated_input_tokens": estimated_input_tokens,
         "estimated_tokens_saved": estimated_tokens_saved,
         "compressed_messages": compressed_messages,
@@ -184,7 +192,9 @@ def _usage_record(
             "output_tokens_24h": output_tokens,
             "total_tokens_24h": total_tokens,
             "cached_tokens_24h": cached_tokens,
+            "cache_creation_tokens_24h": cache_creation_tokens,
             "reasoning_tokens_24h": reasoning_tokens,
+            "reported_usage_calls_24h": reported_usage_calls,
             "estimated_input_tokens_24h": estimated_input_tokens,
             "estimated_tokens_saved_24h": estimated_tokens_saved,
             "compressed_messages_24h": compressed_messages,
@@ -196,7 +206,28 @@ def _usage_record(
     return record
 
 
-def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
+_TOKEN_USAGE_KEYS = frozenset(
+    {
+        "promptTokenCount",
+        "candidatesTokenCount",
+        "totalTokenCount",
+        "cachedContentTokenCount",
+        "cacheCreationTokenCount",
+        "thoughtsTokenCount",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "prompt_tokens",
+        "completion_tokens",
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+        "prompt_tokens_details",
+        "completion_tokens_details",
+    }
+)
+
+
+def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     usage = usage or {}
     prompt_details = usage.get("prompt_tokens_details") or {}
     completion_details = usage.get("completion_tokens_details") or {}
@@ -212,13 +243,28 @@ def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
     cached_tokens = _int_value(
         usage.get(
             "cachedContentTokenCount",
-            usage.get("cache_read_input_tokens", prompt_details.get("cached_tokens")),
+            usage.get(
+                "cached_tokens",
+                usage.get("cache_read_input_tokens", prompt_details.get("cached_tokens")),
+            ),
+        )
+    )
+    cache_creation_tokens = _int_value(
+        usage.get(
+            "cacheCreationTokenCount",
+            usage.get("cache_creation_tokens", usage.get("cache_creation_input_tokens")),
         )
     )
     reasoning_tokens = _int_value(
-        usage.get("thoughtsTokenCount", completion_details.get("reasoning_tokens"))
+        usage.get(
+            "thoughtsTokenCount",
+            usage.get("reasoning_tokens", completion_details.get("reasoning_tokens")),
+        )
     )
     total_tokens = _int_value(usage.get("totalTokenCount", usage.get("total_tokens")))
+    usage_reported = bool(
+        usage.get("usage_reported", any(key in usage for key in _TOKEN_USAGE_KEYS))
+    )
 
     if total_tokens == 0:
         total_tokens = input_tokens + output_tokens + reasoning_tokens
@@ -228,11 +274,38 @@ def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "cached_tokens": cached_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
         "reasoning_tokens": reasoning_tokens,
+        "usage_reported": usage_reported,
     }
 
 
-def extract_token_usage_from_response(value: Any) -> Dict[str, int]:
+def merge_token_usage(
+    current: Optional[Dict[str, Any]], update: Optional[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Merge cumulative usage snapshots emitted across an SSE response."""
+    existing = normalize_token_usage(current)
+    incoming = normalize_token_usage(update)
+    merged = {
+        field: max(existing[field], incoming[field])
+        for field in (
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "cache_creation_tokens",
+            "reasoning_tokens",
+        )
+    }
+    merged["total_tokens"] = max(
+        merged["total_tokens"],
+        merged["input_tokens"] + merged["output_tokens"] + merged["reasoning_tokens"],
+    )
+    merged["usage_reported"] = bool(existing["usage_reported"] or incoming["usage_reported"])
+    return merged
+
+
+def extract_token_usage_from_response(value: Any) -> Dict[str, Any]:
     if value is None:
         return normalize_token_usage(None)
 
@@ -266,7 +339,7 @@ def extract_token_usage_from_response(value: Any) -> Dict[str, int]:
     return normalize_token_usage(usage if isinstance(usage, dict) else {})
 
 
-def extract_token_usage_from_stream_chunk(chunk: Any) -> Dict[str, int]:
+def extract_token_usage_from_stream_chunk(chunk: Any) -> Dict[str, Any]:
     if isinstance(chunk, bytes):
         try:
             chunk = chunk.decode("utf-8")
@@ -321,6 +394,7 @@ async def record_call(
             input_tokens=tokens["input_tokens"],
             output_tokens=tokens["output_tokens"],
             cached_tokens=tokens["cached_tokens"],
+            cache_creation_tokens=tokens["cache_creation_tokens"],
             reasoning_tokens=tokens["reasoning_tokens"],
             provider=provider,
         )
@@ -361,6 +435,8 @@ async def record_call(
             retry_count=_int_value(request_metrics.get("retry_count")),
             cost_nanos=usd_to_nanos(cost_usd),
             api_key_id=str(api_key_id or "")[:64],
+            cache_creation_tokens=tokens["cache_creation_tokens"],
+            usage_reported=bool(success and tokens["usage_reported"]),
         )
         service = get_usage_ledger_service()
         if reservation_id:
@@ -546,7 +622,9 @@ async def _load_stats_for_period(normalized_period: str) -> Dict[str, Dict[str, 
             output_tokens=row.output_tokens,
             total_tokens=row.total_tokens,
             cached_tokens=row.cached_tokens,
+            cache_creation_tokens=row.cache_creation_tokens,
             reasoning_tokens=row.reasoning_tokens,
+            reported_usage_calls=row.reported_usage_calls,
             estimated_input_tokens=row.estimated_input_tokens,
             estimated_tokens_saved=row.estimated_tokens_saved,
             compressed_messages=row.compressed_messages,
@@ -593,8 +671,11 @@ async def get_time_series_stats(period: str = "1d", points: int = 24) -> List[Di
             "timestamp": row.started_at,
             "end_timestamp": row.ended_at,
             "requests": row.requests,
+            "upstream_attempts": row.requests,
             "successful_requests": row.successful_requests,
+            "successful_attempts": row.successful_requests,
             "failed_requests": row.failed_requests,
+            "failed_attempts": row.failed_requests,
             "tokens": row.tokens,
             "cached_tokens": row.cached_tokens,
             "cost_usd": round(nanos_to_usd(row.cost_nanos), 6),

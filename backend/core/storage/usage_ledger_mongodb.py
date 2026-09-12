@@ -763,7 +763,7 @@ class MongoDBUsageLedgerRepository:
         grouped: dict[str, list[int]] = {}
         providers: dict[str, str] = {}
         for entry in entries:
-            totals = grouped.setdefault(entry.credential_ref, [0] * 14)
+            totals = grouped.setdefault(entry.credential_ref, [0] * 16)
             providers[entry.credential_ref] = max(
                 providers.get(entry.credential_ref, ""), entry.provider
             )
@@ -782,6 +782,8 @@ class MongoDBUsageLedgerRepository:
                 entry.latency_ms,
                 entry.retry_count,
                 entry.cost_nanos,
+                entry.cache_creation_tokens,
+                int(entry.success and entry.usage_reported),
             )
             for index, item in enumerate(values):
                 totals[index] = cls._checked(totals[index], item)

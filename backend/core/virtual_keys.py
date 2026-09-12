@@ -1100,6 +1100,7 @@ class VirtualKeyManager:
                 calculate_cost_usd(
                     model,
                     input_tokens=input_tokens,
+                    cache_creation_tokens=input_tokens,
                     output_tokens=output_tokens,
                 )
             )
@@ -1279,6 +1280,7 @@ class VirtualKeyManager:
                 input_tokens=tokens["input_tokens"],
                 output_tokens=tokens["output_tokens"],
                 cached_tokens=tokens["cached_tokens"],
+                cache_creation_tokens=tokens["cache_creation_tokens"],
                 reasoning_tokens=tokens["reasoning_tokens"],
                 provider=provider,
             )

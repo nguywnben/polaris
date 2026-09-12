@@ -192,7 +192,12 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
                     },
                 ],
                 "stop_reason": "tool_use",
-                "usage": {"input_tokens": 10, "output_tokens": 4},
+                "usage": {
+                    "input_tokens": 10,
+                    "output_tokens": 4,
+                    "cache_read_input_tokens": 5,
+                    "cache_creation_input_tokens": 3,
+                },
             }
         )
         stream = anthropic_stream_line_to_gemini(
@@ -201,13 +206,42 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
         parts = response["candidates"][0]["content"]["parts"]
         self.assertEqual(parts[0], {"text": "Done"})
         self.assertEqual(parts[1]["functionCall"]["name"], "run_tests")
-        self.assertEqual(response["usageMetadata"]["totalTokenCount"], 14)
+        self.assertEqual(response["usageMetadata"]["promptTokenCount"], 18)
+        self.assertEqual(response["usageMetadata"]["cachedContentTokenCount"], 5)
+        self.assertEqual(response["usageMetadata"]["cacheCreationTokenCount"], 3)
+        self.assertEqual(response["usageMetadata"]["totalTokenCount"], 22)
         self.assertTrue(stream.startswith("data: "))
         self.assertEqual(
             json.loads(stream.removeprefix("data: ").strip())["candidates"][0]["content"]["parts"][
                 0
             ]["text"],
             "Done",
+        )
+
+    def test_stream_translation_preserves_split_input_output_and_cache_usage(self):
+        message_start = anthropic_stream_line_to_gemini(
+            'data: {"type":"message_start","message":{"usage":{'
+            '"input_tokens":10,"output_tokens":0,"cache_read_input_tokens":5,'
+            '"cache_creation_input_tokens":3}}}'
+        )
+        message_delta = anthropic_stream_line_to_gemini(
+            'data: {"type":"message_delta","usage":{"input_tokens":0,"output_tokens":4}}'
+        )
+
+        start_usage = json.loads(message_start.removeprefix("data: ").strip())["usageMetadata"]
+        delta_usage = json.loads(message_delta.removeprefix("data: ").strip())["usageMetadata"]
+        self.assertEqual(
+            start_usage,
+            {
+                "promptTokenCount": 18,
+                "cachedContentTokenCount": 5,
+                "cacheCreationTokenCount": 3,
+                "totalTokenCount": 18,
+            },
+        )
+        self.assertEqual(
+            delta_usage,
+            {"candidatesTokenCount": 4, "totalTokenCount": 4},
         )
 
 

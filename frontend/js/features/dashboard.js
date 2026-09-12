@@ -31,25 +31,25 @@ function getUsagePeriodConfig(period = AppState.usagePeriod) {
             value: '1d',
             optionLabel: t('one_day'),
             metricLabel: t('dashboard.period_1d'),
-            title: t('dashboard.breakdown_1d'),
+            title: t('dashboard.attempt_breakdown_period', {period: t('dashboard.period_1d')}),
         },
         '7d': {
             value: '7d',
             optionLabel: t('seven_days'),
             metricLabel: t('dashboard.period_7d'),
-            title: t('dashboard.breakdown_7d'),
+            title: t('dashboard.attempt_breakdown_period', {period: t('dashboard.period_7d')}),
         },
         '30d': {
             value: '30d',
             optionLabel: t('thirty_days'),
             metricLabel: t('dashboard.period_30d'),
-            title: t('dashboard.breakdown_30d'),
+            title: t('dashboard.attempt_breakdown_period', {period: t('dashboard.period_30d')}),
         },
         all: {
             value: 'all',
             optionLabel: t('all'),
             metricLabel: t('dashboard.period_all'),
-            title: t('dashboard.breakdown_all'),
+            title: t('dashboard.attempt_breakdown_period', {period: t('dashboard.period_all')}),
         },
     };
 
@@ -67,7 +67,7 @@ function updateUsagePeriodLabels() {
 
     const totalCallsLabel = document.getElementById('totalApiCallsLabel');
 
-    if (totalCallsLabel) totalCallsLabel.textContent = t('dashboard.requests_period', {period: periodConfig.metricLabel});
+    if (totalCallsLabel) totalCallsLabel.textContent = t('dashboard.provider_attempts_period', {period: periodConfig.metricLabel});
 
     const totalTokensLabel = document.getElementById('totalTokensLabel');
 
@@ -83,7 +83,7 @@ function updateUsagePeriodLabels() {
 
     const breakdownDescription = document.getElementById('usageBreakdownDescription');
 
-    if (breakdownDescription) breakdownDescription.textContent = t('dashboard.breakdown_description', {period: periodConfig.metricLabel});
+    if (breakdownDescription) breakdownDescription.textContent = t('dashboard.attempt_breakdown_description', {period: periodConfig.metricLabel});
 
 }
 
@@ -195,19 +195,19 @@ async function refreshUsageStats(options = {}) {
         const aggData = aggregatedData.success ? aggregatedData.data : aggregatedData;
         AppState.dashboardAggregate = aggData;
 
-        const totalCalls = Number(aggData.total_calls ?? aggData.total_calls_24h ?? 0);
-        const successfulCalls = Number(aggData.successful_calls ?? aggData.successful_calls_24h ?? 0);
-        const failedCalls = Number(aggData.failed_calls ?? aggData.failed_calls_24h ?? 0);
+        const totalCalls = Number(aggData.total_upstream_attempts ?? aggData.total_calls ?? 0);
+        const successfulCalls = Number(aggData.successful_upstream_attempts ?? aggData.successful_calls ?? 0);
+        const failedCalls = Number(aggData.failed_upstream_attempts ?? aggData.failed_calls ?? 0);
         const successRate = totalCalls > 0 ? Math.round((successfulCalls / totalCalls) * 100) : 0;
 
         setDashboardSummaryMetric('totalApiCalls', totalCalls);
         document.getElementById('successRate24h').textContent = `${successRate}%`;
-        document.getElementById('requestOutcomeDetail').textContent = t('dashboard.successful_failed', {
+        document.getElementById('requestOutcomeDetail').textContent = t('dashboard.attempts_successful_failed', {
             successful: formatUsageNumber(successfulCalls),
             failed: formatUsageNumber(failedCalls)
         });
         document.getElementById('successRateDetail').textContent = totalCalls > 0
-            ? t('dashboard.requests_succeeded', {successful: formatUsageNumber(successfulCalls), total: formatUsageNumber(totalCalls)})
+            ? t('dashboard.attempts_succeeded', {successful: formatUsageNumber(successfulCalls), total: formatUsageNumber(totalCalls)})
             : t('dashboard.no_traffic_yet');
         document.getElementById('totalFiles').textContent = formatUsageNumber(aggData.total_files);
         document.getElementById('activeFiles').textContent = formatUsageNumber(aggData.active_files);
@@ -215,10 +215,15 @@ async function refreshUsageStats(options = {}) {
         setDashboardSummaryMetric('totalCostUsd', aggData.total_cost_usd, {currency: true});
         renderPricingSource(aggData.pricing);
         setDashboardSummaryMetric('totalTokens24h', aggData.total_tokens ?? aggData.total_tokens_24h);
-        document.getElementById('inputOutputDetail').textContent = t('dashboard.input_output', {
+        const inputOutputValues = {
             input: formatUsageNumber(aggData.input_tokens ?? aggData.input_tokens_24h),
-            output: formatUsageNumber(aggData.output_tokens ?? aggData.output_tokens_24h)
-        });
+            output: formatUsageNumber(aggData.output_tokens ?? aggData.output_tokens_24h),
+            reported: formatUsageNumber(aggData.reported_usage_calls ?? 0),
+            successful: formatUsageNumber(successfulCalls),
+        };
+        document.getElementById('inputOutputDetail').textContent = Number(aggData.unreported_successful_calls || 0) > 0
+            ? t('dashboard.input_output_partial', inputOutputValues)
+            : t('dashboard.input_output', inputOutputValues);
         renderTokenDistribution(aggData);
 
         const statsResponse = await fetch(`./api/usage/stats/page?${usagePeriodQuery}&page_size=100`, { headers: getAuthHeaders() });
@@ -462,13 +467,13 @@ function createUsageTableRow(filename, stats) {
         </td>
 
         <td>
-            <div class="usage-cell-primary">${escapeHtml(t('dashboard.requests_count', {count: formatUsageNumber(calls)}))}</div>
-            <div class="usage-cell-meta">${escapeHtml(t('dashboard.success_count', {count: formatUsageNumber(successfulCalls), failed: formatUsageNumber(failedCalls)}))}</div>
+            <div class="usage-cell-primary">${escapeHtml(t('dashboard.attempts_count', {count: formatUsageNumber(calls)}))}</div>
+            <div class="usage-cell-meta">${escapeHtml(t('dashboard.attempts_success_count', {count: formatUsageNumber(successfulCalls), failed: formatUsageNumber(failedCalls)}))}</div>
         </td>
 
         <td>
             <div class="usage-cell-primary">${successRate}%</div>
-            <div class="usage-cell-meta">${escapeHtml(calls > 0 ? t('dashboard.succeeded_count', {successful: formatUsageNumber(successfulCalls), total: formatUsageNumber(calls)}) : t('dashboard.no_traffic_recorded'))}</div>
+            <div class="usage-cell-meta">${escapeHtml(calls > 0 ? t('dashboard.attempts_succeeded_count', {successful: formatUsageNumber(successfulCalls), total: formatUsageNumber(calls)}) : t('dashboard.no_traffic_recorded'))}</div>
         </td>
 
         <td>
@@ -700,7 +705,7 @@ function renderUsageProviderSummary() {
                     </div>
                 </div>
                 <dl class="usage-provider-metrics">
-                    <div><dt>${escapeHtml(t('requests'))}</dt><dd${callMetric.attributes}>${callMetric.text}</dd></div>
+                    <div><dt>${escapeHtml(t('dashboard.provider_attempts'))}</dt><dd${callMetric.attributes}>${callMetric.text}</dd></div>
                     <div><dt>${escapeHtml(t('success'))}</dt><dd>${provider.calls > 0 ? `${successRate}%` : escapeHtml(t('dashboard.no_traffic'))}</dd></div>
                     <div><dt>${escapeHtml(t('tokens'))}</dt><dd${tokenMetric.attributes}>${tokenMetric.text}</dd></div>
                 </dl>
@@ -717,15 +722,16 @@ function renderTokenDistribution(aggData = {}) {
     const outputTokens = Number(aggData.output_tokens ?? aggData.output_tokens_24h ?? 0);
     const cachedTokens = Number(aggData.cached_tokens ?? aggData.cached_tokens_24h ?? 0);
     const reasoningTokens = Number(aggData.reasoning_tokens ?? aggData.reasoning_tokens_24h ?? 0);
+    const uncachedInputTokens = Math.max(inputTokens - cachedTokens, 0);
 
-    const totalCalculated = inputTokens + outputTokens + cachedTokens + reasoningTokens;
+    const totalCalculated = uncachedInputTokens + outputTokens + cachedTokens + reasoningTokens;
 
-    const inputPct = totalCalculated > 0 ? ((inputTokens / totalCalculated) * 100).toFixed(1) : '0.0';
+    const inputPct = totalCalculated > 0 ? ((uncachedInputTokens / totalCalculated) * 100).toFixed(1) : '0.0';
     const outputPct = totalCalculated > 0 ? ((outputTokens / totalCalculated) * 100).toFixed(1) : '0.0';
     const cachedPct = totalCalculated > 0 ? ((cachedTokens / totalCalculated) * 100).toFixed(1) : '0.0';
     const reasoningPct = totalCalculated > 0 ? ((reasoningTokens / totalCalculated) * 100).toFixed(1) : '0.0';
 
-    setDashboardSummaryMetric('distInputTokens', inputTokens);
+    setDashboardSummaryMetric('distInputTokens', uncachedInputTokens);
     setDashboardSummaryMetric('distOutputTokens', outputTokens);
     setDashboardSummaryMetric('distCachedTokens', cachedTokens);
     setDashboardSummaryMetric('distReasoningTokens', reasoningTokens);
@@ -781,9 +787,9 @@ function renderTimelineChart(timeline = []) {
     }
 
     wrapper.innerHTML = timeline.map((slot) => {
-        const reqs = slot.requests || 0;
-        const success = slot.successful_requests || 0;
-        const failed = slot.failed_requests || 0;
+        const reqs = slot.upstream_attempts ?? slot.requests ?? 0;
+        const success = slot.successful_attempts ?? slot.successful_requests ?? 0;
+        const failed = slot.failed_attempts ?? slot.failed_requests ?? 0;
         const tokens = slot.tokens || 0;
         const heightPct = Math.max(reqs > 0 ? (reqs / chartScale) * 100 : 0, 4);
 

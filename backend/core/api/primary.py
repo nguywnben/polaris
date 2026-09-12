@@ -118,6 +118,7 @@ from core.token_compression import (
 from core.usage_stats import (
     extract_token_usage_from_response,
     extract_token_usage_from_stream_chunk,
+    merge_token_usage,
 )
 from core.xai import (
     build_xai_headers,
@@ -729,7 +730,7 @@ async def _stream_request_upstream(
     for attempt in range(attempt_limit + 1):
         received_content = False
         terminal_received = False
-        stream_token_usage: Dict[str, int] = {}
+        stream_token_usage: Dict[str, Any] = {}
         need_retry = False
         model_route_retry = False
 
@@ -909,8 +910,7 @@ async def _stream_request_upstream(
                     terminal_received = terminal_received or _stream_event_is_terminal(chunk)
 
                     chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
-                    if any(chunk_token_usage.values()):
-                        stream_token_usage = chunk_token_usage
+                    stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
 
                     if isinstance(chunk, bytes):
                         log.debug(f"[provider stream raw] chunk(bytes): {chunk}")

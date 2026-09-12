@@ -45,6 +45,7 @@ class ModelPricing:
     output_per_million: float
     cache_read_per_million: Optional[float] = None
     reasoning_per_million: Optional[float] = None
+    cache_creation_per_million: Optional[float] = None
 
     def effective_cache_read(self) -> float:
         if self.cache_read_per_million is not None:
@@ -57,6 +58,13 @@ class ModelPricing:
             return self.reasoning_per_million
         # Reasoning/thinking tokens are billed as output by every major vendor.
         return self.output_per_million
+
+    def effective_cache_creation(self) -> float:
+        if self.cache_creation_per_million is not None:
+            return self.cache_creation_per_million
+        # Use normal input pricing when the catalog does not publish a distinct
+        # cache-write price; guessing a vendor multiplier would distort billing.
+        return self.input_per_million
 
 
 # Built-in price table (USD per 1M tokens). Longest-prefix match wins.
@@ -85,13 +93,48 @@ BUILTIN_MODEL_PRICING: Dict[str, ModelPricing] = {
     "o4-mini": ModelPricing(1.10, 4.40, 0.275),
     "codex-mini": ModelPricing(1.50, 6.00, 0.375),
     # --- Anthropic Claude ---
-    "claude-opus-4": ModelPricing(15.00, 75.00, 1.50),
-    "claude-sonnet-4": ModelPricing(3.00, 15.00, 0.30),
-    "claude-haiku-4": ModelPricing(0.80, 4.00, 0.08),
-    "claude-3-7-sonnet": ModelPricing(3.00, 15.00, 0.30),
-    "claude-3-5-sonnet": ModelPricing(3.00, 15.00, 0.30),
-    "claude-3-5-haiku": ModelPricing(0.80, 4.00, 0.08),
-    "claude-3-opus": ModelPricing(15.00, 75.00, 1.50),
+    "claude-opus-4": ModelPricing(
+        15.00,
+        75.00,
+        cache_read_per_million=1.50,
+        cache_creation_per_million=18.75,
+    ),
+    "claude-sonnet-4": ModelPricing(
+        3.00,
+        15.00,
+        cache_read_per_million=0.30,
+        cache_creation_per_million=3.75,
+    ),
+    "claude-haiku-4": ModelPricing(
+        0.80,
+        4.00,
+        cache_read_per_million=0.08,
+        cache_creation_per_million=1.00,
+    ),
+    "claude-3-7-sonnet": ModelPricing(
+        3.00,
+        15.00,
+        cache_read_per_million=0.30,
+        cache_creation_per_million=3.75,
+    ),
+    "claude-3-5-sonnet": ModelPricing(
+        3.00,
+        15.00,
+        cache_read_per_million=0.30,
+        cache_creation_per_million=3.75,
+    ),
+    "claude-3-5-haiku": ModelPricing(
+        0.80,
+        4.00,
+        cache_read_per_million=0.08,
+        cache_creation_per_million=1.00,
+    ),
+    "claude-3-opus": ModelPricing(
+        15.00,
+        75.00,
+        cache_read_per_million=1.50,
+        cache_creation_per_million=18.75,
+    ),
     # --- xAI Grok ---
     "grok-4": ModelPricing(3.00, 15.00, 0.75),
     "grok-3-mini": ModelPricing(0.30, 0.50, 0.075),
@@ -203,6 +246,9 @@ class _PricingTable:
                         reasoning_per_million=max(
                             entry.effective_reasoning() for entry in candidates
                         ),
+                        cache_creation_per_million=max(
+                            entry.effective_cache_creation() for entry in candidates
+                        ),
                     )
 
             return self._longest_prefix(BUILTIN_MODEL_PRICING, normalized)
@@ -231,12 +277,16 @@ def _parse_override_entry(entry: Any) -> Optional[ModelPricing]:
             reasoning_per_million=(
                 float(entry["reasoning"]) if entry.get("reasoning") is not None else None
             ),
+            cache_creation_per_million=(
+                float(entry["cache_creation"]) if entry.get("cache_creation") is not None else None
+            ),
         )
         prices = (
             parsed.input_per_million,
             parsed.output_per_million,
             parsed.cache_read_per_million,
             parsed.reasoning_per_million,
+            parsed.cache_creation_per_million,
         )
         if any(value is not None and (not math.isfinite(value) or value < 0) for value in prices):
             return None
@@ -309,13 +359,15 @@ def calculate_cost_usd(
     input_tokens: int = 0,
     output_tokens: int = 0,
     cached_tokens: int = 0,
+    cache_creation_tokens: int = 0,
     reasoning_tokens: int = 0,
     provider: str = "",
 ) -> float:
     """Compute the USD cost of one call from its normalized token counts.
 
     Token semantics follow ``core.usage_stats.normalize_token_usage``:
-    ``cached_tokens`` is the cache-read subset of ``input_tokens`` and
+    ``cached_tokens`` and ``cache_creation_tokens`` are disjoint subsets of
+    ``input_tokens`` and
     ``reasoning_tokens`` is tracked separately from ``output_tokens``.
     Unknown models return ``0.0`` (the ledger records them as unpriced).
     """
@@ -329,12 +381,14 @@ def calculate_cost_usd(
     safe_input = max(0, int(input_tokens or 0))
     safe_output = max(0, int(output_tokens or 0))
     safe_cached = min(max(0, int(cached_tokens or 0)), safe_input)
+    safe_cache_creation = min(max(0, int(cache_creation_tokens or 0)), safe_input - safe_cached)
     safe_reasoning = max(0, int(reasoning_tokens or 0))
-    uncached_input = safe_input - safe_cached
+    uncached_input = safe_input - safe_cached - safe_cache_creation
 
     cost = (
         uncached_input * pricing.input_per_million
         + safe_cached * pricing.effective_cache_read()
+        + safe_cache_creation * pricing.effective_cache_creation()
         + safe_output * pricing.output_per_million
         + safe_reasoning * pricing.effective_reasoning()
     ) / 1_000_000.0

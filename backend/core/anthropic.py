@@ -535,7 +535,10 @@ def anthropic_response_to_gemini(payload: Any) -> Dict[str, Any]:
                 }
             )
     usage = payload.get("usage") or {}
-    input_tokens = int(usage.get("input_tokens") or 0)
+    uncached_input_tokens = int(usage.get("input_tokens") or 0)
+    cached_tokens = int(usage.get("cache_read_input_tokens") or 0)
+    cache_creation_tokens = int(usage.get("cache_creation_input_tokens") or 0)
+    input_tokens = uncached_input_tokens + cached_tokens + cache_creation_tokens
     output_tokens = int(usage.get("output_tokens") or 0)
     return {
         "candidates": [
@@ -549,6 +552,8 @@ def anthropic_response_to_gemini(payload: Any) -> Dict[str, Any]:
             "promptTokenCount": input_tokens,
             "candidatesTokenCount": output_tokens,
             "totalTokenCount": input_tokens + output_tokens,
+            "cachedContentTokenCount": cached_tokens,
+            "cacheCreationTokenCount": cache_creation_tokens,
         },
         "modelVersion": str(payload.get("model") or ""),
     }
@@ -605,12 +610,19 @@ def anthropic_stream_line_to_gemini(line: Any, stream_id: str = "default") -> st
                 }
             )
     elif event_type == "message_start":
-        input_tokens = int(
-            ((event.get("message") or {}).get("usage") or {}).get("input_tokens") or 0
+        message_usage = (event.get("message") or {}).get("usage") or {}
+        uncached_input_tokens = int(message_usage.get("input_tokens") or 0)
+        cached_tokens = int(message_usage.get("cache_read_input_tokens") or 0)
+        cache_creation_tokens = int(message_usage.get("cache_creation_input_tokens") or 0)
+        input_tokens = uncached_input_tokens + cached_tokens + cache_creation_tokens
+        usage.update(
+            {
+                "promptTokenCount": input_tokens,
+                "cachedContentTokenCount": cached_tokens,
+                "cacheCreationTokenCount": cache_creation_tokens,
+                "totalTokenCount": input_tokens,
+            }
         )
-        if input_tokens:
-            usage["promptTokenCount"] = input_tokens
-            usage["totalTokenCount"] = input_tokens
     elif event_type == "message_delta":
         output_tokens = int((event.get("usage") or {}).get("output_tokens") or 0)
         if output_tokens:

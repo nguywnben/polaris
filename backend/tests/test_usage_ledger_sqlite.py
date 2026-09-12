@@ -59,6 +59,8 @@ def _usage(suffix: str = "a", **overrides) -> UsageLedgerEntry:
         "retry_count": 1,
         "cost_nanos": usd_to_nanos("0.25"),
         "api_key_id": KEY_ID,
+        "cache_creation_tokens": 2,
+        "usage_reported": True,
     }
     values.update(overrides)
     return UsageLedgerEntry(**values)
@@ -480,6 +482,8 @@ class SQLiteUsageLedgerTests(unittest.IsolatedAsyncioTestCase):
                 300,
                 3,
                 usd_to_nanos("0.25") + 10,
+                4,
+                1,
             ),
         )
         self.assertEqual([bucket.requests for bucket in buckets], [1, 1])

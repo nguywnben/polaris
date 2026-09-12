@@ -81,6 +81,7 @@ def _pricing_within_bounds(pricing: ModelPricing | None) -> bool:
             pricing.output_per_million,
             pricing.cache_read_per_million,
             pricing.reasoning_per_million,
+            pricing.cache_creation_per_million,
         )
     )
 
@@ -111,12 +112,14 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
         if input_price is None or output_price is None:
             continue
         cache_price = _price_per_million(entry, "cache_read_input_token_cost")
+        cache_creation_price = _price_per_million(entry, "cache_creation_input_token_cost")
         qualified_model = (provider, model)
         model_pricing = ModelPricing(
             input_per_million=input_price,
             output_per_million=output_price,
             cache_read_per_million=cache_price,
             reasoning_per_million=output_price,
+            cache_creation_per_million=cache_creation_price,
         )
         if qualified_model in ambiguous:
             continue
@@ -243,6 +246,7 @@ class DynamicPricingService:
                 "output": price.output_per_million,
                 "cache_read": price.cache_read_per_million,
                 "reasoning": price.reasoning_per_million,
+                "cache_creation": price.cache_creation_per_million,
             }
         payload = {
             "schema_version": PRICING_CACHE_SCHEMA_VERSION,

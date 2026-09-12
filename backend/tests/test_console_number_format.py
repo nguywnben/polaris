@@ -91,12 +91,8 @@ assert(formatConsoleCurrency(-1) === '$0.00', 'negative cost did not use a safe 
         dashboard = (ROOT / "frontend/js/features/dashboard.js").read_text(encoding="utf-8")
         playground = (ROOT / "frontend/js/features/playground.js").read_text(encoding="utf-8")
         traces = (ROOT / "frontend/js/features/traces.js").read_text(encoding="utf-8")
-        virtual_keys = (ROOT / "frontend/js/features/virtual-keys.js").read_text(
-            encoding="utf-8"
-        )
-        quotas = (ROOT / "frontend/js/ui/credential-dialogs.js").read_text(
-            encoding="utf-8"
-        )
+        virtual_keys = (ROOT / "frontend/js/features/virtual-keys.js").read_text(encoding="utf-8")
+        quotas = (ROOT / "frontend/js/ui/credential-dialogs.js").read_text(encoding="utf-8")
 
         for element_id in (
             "totalApiCalls",

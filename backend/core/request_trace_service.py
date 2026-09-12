@@ -65,12 +65,21 @@ def _decode_retention(value: Any) -> RequestTraceRetentionPolicy:
 
 
 def _outcome_for_status(status_code: int, decisions: tuple[RequestDecision, ...]) -> str:
-    if any(
-        decision.category == "upstream" and decision.result == "failed" for decision in decisions
-    ):
-        return "upstream_error"
+    upstream_decisions = tuple(
+        decision for decision in decisions if decision.category == "upstream"
+    )
+    # A failed attempt followed by a successful retry/failover is a successful
+    # logical request. Conversely, a streaming response can have already sent a
+    # 2xx status before its only upstream attempt fails, so status alone is not
+    # sufficient for classifying the final outcome.
     if status_code < 400:
+        if upstream_decisions and not any(
+            decision.result == "succeeded" for decision in upstream_decisions
+        ):
+            return "upstream_error"
         return "succeeded"
+    if any(decision.result == "failed" for decision in upstream_decisions):
+        return "upstream_error"
     if status_code in {401, 403}:
         return "denied"
     if status_code == 429:

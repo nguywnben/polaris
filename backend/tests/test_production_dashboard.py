@@ -148,6 +148,25 @@ assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textC
 """
         )
 
+    def test_token_distribution_does_not_count_cached_input_twice(self):
+        source = self._source(DASHBOARD_SCRIPT)
+
+        self.assertIn(
+            "const uncachedInputTokens = Math.max(inputTokens - cachedTokens, 0);", source
+        )
+        self.assertIn(
+            "const totalCalculated = uncachedInputTokens + outputTokens + cachedTokens + reasoningTokens;",
+            source,
+        )
+
+    def test_usage_summary_labels_provider_attempts_separately_from_logical_requests(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+        source = self._source(DASHBOARD_SCRIPT)
+
+        self.assertIn('data-i18n="dashboard.attempt_success_rate"', fragment)
+        self.assertIn("dashboard.provider_attempts_period", source)
+        self.assertIn("aggData.total_upstream_attempts", source)
+
 
 class BoundedUsageDashboardApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_usage_stats_returns_only_the_requested_bounded_page(self):

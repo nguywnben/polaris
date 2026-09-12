@@ -102,6 +102,27 @@ class UsageLedgerEntryTests(unittest.TestCase):
         self.assertNotIn("request-123", rendered)
         self.assertNotIn(KEY_ID, rendered)
 
+    def test_previous_payload_defaults_new_usage_metadata_without_accepting_unknown_fields(self):
+        record = _usage().to_record()
+        record.pop("cache_creation_tokens")
+        record.pop("usage_reported")
+
+        restored = usage_entry_from_record(record)
+
+        self.assertEqual(restored.cache_creation_tokens, 0)
+        self.assertTrue(restored.usage_reported)
+
+        zero_record = _usage(
+            input_tokens=0,
+            output_tokens=0,
+            total_tokens=0,
+            cached_tokens=0,
+            reasoning_tokens=0,
+        ).to_record()
+        zero_record.pop("cache_creation_tokens")
+        zero_record.pop("usage_reported")
+        self.assertFalse(usage_entry_from_record(zero_record).usage_reported)
+
     def test_stored_record_rejects_unknown_or_missing_fields(self):
         record = _usage().to_record()
         record["unknown"] = "value"

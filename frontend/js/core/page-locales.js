@@ -2515,6 +2515,17 @@ for (const locale of Object.keys(PAGE_LOCALE_TRANSLATIONS)) {
 const PRODUCTION_DASHBOARD_MESSAGES = {
     en: {
         'dashboard.metrics': 'Gateway metrics',
+        'dashboard.provider_attempts': 'Provider attempts',
+        'dashboard.provider_attempts_period': 'Provider attempts {period}',
+        'dashboard.attempt_success_rate': 'Provider attempt success rate',
+        'dashboard.attempts_successful_failed': '{successful} successful / {failed} failed',
+        'dashboard.attempts_succeeded': '{successful} of {total} provider attempts succeeded.',
+        'dashboard.attempts_count': '{count} provider attempts',
+        'dashboard.attempts_success_count': '{count} successful / {failed} failed',
+        'dashboard.attempts_succeeded_count': '{successful} of {total} attempts succeeded',
+        'dashboard.input_output_partial': 'Input {input} / output {output} · usage reported for {reported}/{successful} successful attempts',
+        'dashboard.attempt_breakdown_period': 'Provider attempt breakdown {period}',
+        'dashboard.attempt_breakdown_description': 'Review provider attempts by provider and credential {period}.',
         'dashboard.cost_period': 'Estimated cost {period}',
         'dashboard.cost_recorded_hint': 'Using configured and built-in model prices',
         'dashboard.cost_pricing_current': 'LiteLLM catalog · {count} model prices',
@@ -2537,12 +2548,23 @@ const PRODUCTION_DASHBOARD_MESSAGES = {
         'dashboard.health_matrix_title': 'Provider and credential status',
         'dashboard.health_matrix_description': 'Find unavailable credentials, cooldowns, and providers that need attention.',
         'dashboard.status_issues': 'Needs attention',
-        'dashboard.token_distribution_title': 'Usage and request trend',
-        'dashboard.token_distribution_description': 'Compare request volume with input, output, cached, and reasoning tokens.',
-        'dashboard.timeline_traffic': 'Request volume over time'
+        'dashboard.token_distribution_title': 'Usage and provider attempt trend',
+        'dashboard.token_distribution_description': 'Compare provider attempts with input, output, cached, and reasoning tokens.',
+        'dashboard.timeline_traffic': 'Provider attempts over time'
     },
     vi: {
         'dashboard.metrics': 'Chỉ số gateway',
+        'dashboard.provider_attempts': 'Lần gọi nhà cung cấp',
+        'dashboard.provider_attempts_period': 'Lần gọi nhà cung cấp {period}',
+        'dashboard.attempt_success_rate': 'Tỷ lệ gọi nhà cung cấp thành công',
+        'dashboard.attempts_successful_failed': '{successful} thành công / {failed} thất bại',
+        'dashboard.attempts_succeeded': '{successful} trong tổng số {total} lần gọi đã thành công.',
+        'dashboard.attempts_count': '{count} lần gọi nhà cung cấp',
+        'dashboard.attempts_success_count': '{count} thành công / {failed} thất bại',
+        'dashboard.attempts_succeeded_count': '{successful} trong tổng số {total} lần gọi thành công',
+        'dashboard.input_output_partial': 'Đầu vào {input} / đầu ra {output} · nhà cung cấp báo usage cho {reported}/{successful} lần gọi thành công',
+        'dashboard.attempt_breakdown_period': 'Phân tích lần gọi nhà cung cấp {period}',
+        'dashboard.attempt_breakdown_description': 'Xem các lần gọi theo nhà cung cấp và thông tin xác thực {period}.',
         'dashboard.cost_period': 'Chi phí ước tính {period}',
         'dashboard.cost_recorded_hint': 'Dùng giá đã cấu hình và giá tích hợp sẵn',
         'dashboard.cost_pricing_current': 'Catalog LiteLLM · giá của {count} mô hình',
@@ -2565,9 +2587,9 @@ const PRODUCTION_DASHBOARD_MESSAGES = {
         'dashboard.health_matrix_title': 'Trạng thái nhà cung cấp và thông tin xác thực',
         'dashboard.health_matrix_description': 'Tìm thông tin xác thực không khả dụng, thời gian tạm nghỉ và nhà cung cấp cần xử lý.',
         'dashboard.status_issues': 'Cần xử lý',
-        'dashboard.token_distribution_title': 'Xu hướng sử dụng và yêu cầu',
-        'dashboard.token_distribution_description': 'So sánh lưu lượng yêu cầu với token đầu vào, đầu ra, lưu đệm và suy luận.',
-        'dashboard.timeline_traffic': 'Lưu lượng yêu cầu theo thời gian'
+        'dashboard.token_distribution_title': 'Xu hướng sử dụng và lần gọi nhà cung cấp',
+        'dashboard.token_distribution_description': 'So sánh lần gọi nhà cung cấp với token đầu vào, đầu ra, lưu đệm và suy luận.',
+        'dashboard.timeline_traffic': 'Lần gọi nhà cung cấp theo thời gian'
     }
 };
 

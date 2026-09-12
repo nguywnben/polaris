@@ -662,6 +662,7 @@ class SQLiteUsageLedgerRepository:
             "input_tokens",
             "output_tokens",
             "cached_tokens",
+            "cache_creation_tokens",
             "reasoning_tokens",
             "estimated_input_tokens",
             "estimated_tokens_saved",
@@ -688,6 +689,9 @@ class SQLiteUsageLedgerRepository:
                            {detail_columns},
                            SUM(total_tokens) AS total_tokens,
                            SUM(cost_nanos) AS cost_nanos,
+                           SUM(CASE WHEN success = 1
+                               THEN {self._usage_payload_integer("usage_reported")}
+                               ELSE 0 END) AS reported_usage_calls,
                            MAX(source_rows) AS source_rows
                     FROM committed
                     GROUP BY credential_ref
@@ -716,6 +720,8 @@ class SQLiteUsageLedgerRepository:
                 int(row["latency_ms"]),
                 int(row["retry_count"]),
                 int(row["cost_nanos"]),
+                int(row["cache_creation_tokens"]),
+                int(row["reported_usage_calls"]),
             )
             for row in rows
         ]
@@ -800,12 +806,14 @@ class SQLiteUsageLedgerRepository:
             "input_tokens",
             "output_tokens",
             "cached_tokens",
+            "cache_creation_tokens",
             "reasoning_tokens",
             "estimated_input_tokens",
             "estimated_tokens_saved",
             "compressed_messages",
             "latency_ms",
             "retry_count",
+            "usage_reported",
         }
         if field not in supported:
             raise ValueError("Unsupported usage aggregate field.")

@@ -78,6 +78,33 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
             usage_stats._credential_provider_display_name("xai", "oauth"),
             "Grok Build",
         )
+
+    def test_stream_usage_merge_preserves_split_anthropic_totals(self):
+        start = usage_stats.extract_token_usage_from_stream_chunk(
+            'data: {"usageMetadata":{"promptTokenCount":18,'
+            '"cachedContentTokenCount":5,"cacheCreationTokenCount":3,'
+            '"totalTokenCount":18}}'
+        )
+        delta = usage_stats.extract_token_usage_from_stream_chunk(
+            'data: {"usageMetadata":{"candidatesTokenCount":4,"totalTokenCount":4}}'
+        )
+
+        merged = usage_stats.merge_token_usage(start, delta)
+
+        self.assertEqual(merged["input_tokens"], 18)
+        self.assertEqual(merged["output_tokens"], 4)
+        self.assertEqual(merged["cached_tokens"], 5)
+        self.assertEqual(merged["cache_creation_tokens"], 3)
+        self.assertEqual(merged["total_tokens"], 22)
+        self.assertTrue(merged["usage_reported"])
+
+    def test_usage_provenance_distinguishes_missing_from_explicit_zero(self):
+        self.assertFalse(usage_stats.normalize_token_usage(None)["usage_reported"])
+        self.assertTrue(
+            usage_stats.normalize_token_usage(
+                {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+            )["usage_reported"]
+        )
         self.assertEqual(
             usage_stats._credential_provider_display_name("xai", "api_key"),
             "SpaceXAI Console",
@@ -115,12 +142,30 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(row.input_tokens, 120)
         self.assertEqual(row.output_tokens, 30)
         self.assertEqual(row.total_tokens, 150)
+        self.assertEqual(row.reported_usage_calls, 1)
         self.assertEqual(row.estimated_input_tokens, 100)
         self.assertEqual(row.estimated_tokens_saved, 40)
         self.assertEqual(row.compressed_messages, 6)
         self.assertEqual(row.total_latency_ms, 125)
         self.assertEqual(row.retry_count, 2)
         self.assertEqual((await usage_stats.get_spend_since(0))["cost_usd"], 0.125)
+
+    async def test_aggregate_counts_only_successes_with_provider_reported_usage(self):
+        await usage_stats.record_call(
+            "credential.json",
+            success=True,
+            token_usage=None,
+        )
+        await usage_stats.record_call(
+            "credential.json",
+            success=True,
+            token_usage={"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+        )
+
+        rows = await self.repository.aggregate_credentials()
+
+        self.assertEqual(rows[0].successful_calls, 2)
+        self.assertEqual(rows[0].reported_usage_calls, 1)
 
     async def test_record_call_atomically_settles_durable_budget_reservation(self):
         now = time.time()
