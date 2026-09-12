@@ -61,6 +61,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/core/trace-locales.js",
     "js/core/operational-locales.js",
     "js/core/i18n.js",
+    "js/core/number-format.js",
     "js/core/identity-locales.js",
     "js/core/identity-contract.js",
     "js/core/navigation.js",
