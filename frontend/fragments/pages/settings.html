@@ -32,6 +32,15 @@
                                         <label for="consoleLanguage" data-i18n="display_language">Display language</label>
                                         <select id="consoleLanguage" class="lang-switcher"></select>
                                     </div>
+                                    <div class="form-group">
+                                        <label for="themePreference" data-i18n="theme.label">Theme</label>
+                                        <select id="themePreference" aria-describedby="themePreferenceHint">
+                                            <option value="system" data-i18n="theme.system">System</option>
+                                            <option value="light" data-i18n="theme.light">Light</option>
+                                            <option value="dark" data-i18n="theme.dark">Dark</option>
+                                        </select>
+                                        <span id="themePreferenceHint" class="visually-hidden" data-i18n="theme.hint">Controls the console color scheme on this device.</span>
+                                    </div>
                                 </section>
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.server_access">Server Access</h2>
@@ -68,28 +77,22 @@
                                     <div class="form-group"><label for="retry429Interval" data-i18n="settings.retry_interval">Retry interval in seconds</label><input type="number" id="retry429Interval" data-config-key="retry_429_interval" min="0.01" max="10" step="0.01"></div>
                                 </section>
 
-                                <details class="config-group config-advanced-group" data-settings-tier="advanced">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.runtime_logs">Runtime Logs</strong>
-                                            <small data-i18n="settings.runtime_logs_description">Control server-side verbosity and bounded file retention.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group">
-                                            <label for="runtimeLogLevel" data-i18n="settings.log_level">Log level</label>
-                                            <select id="runtimeLogLevel" data-config-key="log_level">
-                                                <option value="debug" data-i18n="debug">Debug</option>
-                                                <option value="info" data-i18n="info">Info</option>
-                                                <option value="warning" data-i18n="warning">Warning</option>
-                                                <option value="error" data-i18n="error">Error</option>
-                                                <option value="critical" data-i18n="critical">Critical</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group"><label for="runtimeLogMaxMb" data-i18n="settings.log_file_size">Maximum file size in MB</label><input type="number" id="runtimeLogMaxMb" data-config-key="log_max_mb" min="1" max="1024"></div>
-                                        <div class="form-group"><label for="runtimeLogBackupCount" data-i18n="settings.log_backups">Retained backup files</label><input type="number" id="runtimeLogBackupCount" data-config-key="log_backup_count" min="1" max="20"></div>
+                                <section class="config-group" data-settings-tier="advanced">
+                                    <h2 class="card-title" data-i18n="settings.runtime_logs">Runtime Logs</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.runtime_logs_description">Control server-side verbosity and bounded file retention.</p>
+                                    <div class="form-group">
+                                        <label for="runtimeLogLevel" data-i18n="settings.log_level">Log level</label>
+                                        <select id="runtimeLogLevel" data-config-key="log_level">
+                                            <option value="debug" data-i18n="debug">Debug</option>
+                                            <option value="info" data-i18n="info">Info</option>
+                                            <option value="warning" data-i18n="warning">Warning</option>
+                                            <option value="error" data-i18n="error">Error</option>
+                                            <option value="critical" data-i18n="critical">Critical</option>
+                                        </select>
                                     </div>
-                                </details>
+                                    <div class="form-group"><label for="runtimeLogMaxMb" data-i18n="settings.log_file_size">Maximum file size in MB</label><input type="number" id="runtimeLogMaxMb" data-config-key="log_max_mb" min="1" max="1024"></div>
+                                    <div class="form-group"><label for="runtimeLogBackupCount" data-i18n="settings.log_backups">Retained backup files</label><input type="number" id="runtimeLogBackupCount" data-config-key="log_backup_count" min="1" max="20"></div>
+                                </section>
                                 </div>
 
                                 <div class="config-column">
@@ -128,32 +131,20 @@
                                     <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1"></div>
                                 </section>
 
-                                <details class="config-group config-advanced-group" data-settings-tier="compatibility">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.code_assist">Code Assist Compatibility</strong>
-                                            <small data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="text" id="codeAssistEndpoint" data-config-key="code_assist_endpoint"></div>
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-config-key="code_assist_client_id" autocomplete="off"></div>
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><input type="password" id="codeAssistClientSecret" data-config-key="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"></div>
-                                    </div>
-                                </details>
+                                <section class="config-group" data-settings-tier="compatibility">
+                                    <h2 class="card-title" data-i18n="settings.code_assist">Code Assist Compatibility</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</p>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="text" id="codeAssistEndpoint" data-config-key="code_assist_endpoint"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-config-key="code_assist_client_id" autocomplete="off"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><input type="password" id="codeAssistClientSecret" data-config-key="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"></div>
+                                </section>
 
-                                <details class="config-group config-advanced-group" data-settings-tier="compatibility">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.keep_alive">Hosted Keep-Alive</strong>
-                                            <small data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl" data-config-key="keepalive_url"><button type="button" class="btn btn-secondary btn-small config-inline-action" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
-                                        <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" data-config-key="keepalive_interval" min="5" max="86400"></div>
-                                    </div>
-                                </details>
+                                <section class="config-group" data-settings-tier="compatibility">
+                                    <h2 class="card-title" data-i18n="settings.keep_alive">Hosted Keep-Alive</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</p>
+                                    <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl" data-config-key="keepalive_url"><button type="button" class="btn btn-secondary btn-small config-inline-action" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
+                                    <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" data-config-key="keepalive_interval" min="5" max="86400"></div>
+                                </section>
                                 </div>
                             </div>
 

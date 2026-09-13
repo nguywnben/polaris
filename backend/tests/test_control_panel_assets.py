@@ -55,11 +55,15 @@ class ControlPanelAssetTests(unittest.TestCase):
         response = serve_control_panel()
         body = response.body.decode("utf-8")
         frontend_dir = BACKEND_DIR.parent / "frontend"
+        sidebar = (frontend_dir / "fragments" / "layout" / "sidebar.html").read_text(encoding="utf-8")
+        settings = (frontend_dir / "fragments" / "pages" / "settings.html").read_text(encoding="utf-8")
         theme_script = (frontend_dir / "js" / "core" / "theme.js").read_text(encoding="utf-8")
         foundation_styles = (frontend_dir / "css" / "foundation.css").read_text(encoding="utf-8")
 
         self.assertIn('id="themePreference"', body)
         self.assertIn('data-i18n="theme.label"', body)
+        self.assertNotIn('id="themePreference"', sidebar)
+        self.assertIn('id="themePreference"', settings)
         for mode in ("system", "light", "dark"):
             self.assertIn(f'<option value="{mode}"', body)
         self.assertIn("omni_gateway_theme", theme_script)

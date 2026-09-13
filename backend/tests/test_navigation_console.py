@@ -236,17 +236,16 @@ assert(sidebar.inert === true, 'closed drawer remained interactive');
 """
         self._run_javascript_contract(harness)
 
-    def test_advanced_and_compatibility_settings_are_collapsed_out_of_the_primary_journey(
+    def test_all_settings_groups_are_visible_without_disclosure_controls(
         self,
     ) -> None:
         settings = (FRONTEND / "fragments/pages/settings.html").read_text(encoding="utf-8")
 
         self.assertEqual(settings.count('data-settings-tier="advanced"'), 1)
         self.assertEqual(settings.count('data-settings-tier="compatibility"'), 2)
-        self.assertNotRegex(
-            settings,
-            r'<details[^>]+data-settings-tier="(?:advanced|compatibility)"[^>]+open',
-        )
+        self.assertNotIn("<details", settings)
+        self.assertNotIn("<summary", settings)
+        self.assertNotIn("config-advanced-summary", settings)
 
 
 if __name__ == "__main__":

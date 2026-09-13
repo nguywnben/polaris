@@ -383,32 +383,6 @@
     font-size: 12px;
 }
 
-.sidebar-theme-control {
-    display: grid;
-    grid-template-columns: 1fr minmax(0, 112px);
-    align-items: center;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.sidebar-theme-control label {
-    margin: 0;
-}
-
-.sidebar-theme-control select {
-    width: 100%;
-    min-height: 32px;
-    background-position: right 9px center;
-    padding: 4px 30px 4px 9px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background-color: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-}
-
 .dashboard-main {
     flex: 1 1 auto;
     width: calc(100% - var(--sidebar-width));
