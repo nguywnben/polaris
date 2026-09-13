@@ -113,6 +113,17 @@ assert(!write.checked, 'Removing management read must remove management write');
 """
         )
 
+    def test_virtual_key_form_actions_match_the_compact_header_action_rhythm(self):
+        self.assertIn('class="message-modal-footer virtual-key-form-actions"', self.feature)
+        self.assertIn(
+            'type="submit" class="message-modal-btn message-modal-btn-primary btn-compact"',
+            self.feature,
+        )
+        self.assertRegex(
+            self.styles,
+            r"(?s)\.virtual-key-form-actions\s*\{.*?gap:\s*8px",
+        )
+
     def test_create_form_empty_fields_have_localized_placeholders(self):
         placeholders = {
             "name": "access.key_name_placeholder",

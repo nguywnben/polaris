@@ -240,6 +240,10 @@
     max-height: min(70vh, 720px);
 }
 
+.virtual-key-form-actions {
+    gap: 8px;
+}
+
 .virtual-key-form-body label > span,
 .virtual-key-fieldset legend {
     display: block;

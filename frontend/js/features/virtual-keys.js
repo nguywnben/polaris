@@ -306,7 +306,7 @@ function openVirtualKeyForm(record = null) {
                         <label class="form-group"><span>${escapeHtml(t('access.fallback_price'))}</span><input type="number" name="fallback_price_usd_per_million" min="0.000001" max="100000" step="0.01" inputmode="decimal" placeholder="${escapeAttribute(t('access.fallback_price_placeholder'))}" value="${escapeAttribute(virtualKeyOptionalNumber(record?.fallback_price_usd_per_million))}"></label>
                     </div>
                 </div>
-                <div class="message-modal-footer"><button type="button" class="message-modal-btn" data-virtual-key-cancel>${escapeHtml(t('btn_cancel'))}</button><button type="submit" class="message-modal-btn message-modal-btn-primary">${escapeHtml(t(editing ? 'access.save_key' : 'access.create_key'))}</button></div>
+                <div class="message-modal-footer virtual-key-form-actions"><button type="button" class="message-modal-btn" data-virtual-key-cancel>${escapeHtml(t('btn_cancel'))}</button><button type="submit" class="message-modal-btn message-modal-btn-primary btn-compact">${escapeHtml(t(editing ? 'access.save_key' : 'access.create_key'))}</button></div>
             </form>
         </div>
     `;
