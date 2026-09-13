@@ -295,14 +295,13 @@ class ControlPanelAssetTests(unittest.TestCase):
             r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 42px;[^}]*height: 42px;",
         )
         self.assertIn(".provider-workspace-header", provider_styles)
+        self.assertNotIn('class="provider-catalog-search-label"', body)
         self.assertIn(
-            ".provider-catalog-toolbar strong,\n.provider-catalog-search-label",
-            provider_styles,
+            'id="providerCatalogSearch" class="provider-catalog-search" '
+            'aria-label="Find a provider"',
+            body,
         )
-        self.assertRegex(
-            provider_styles,
-            r"(?s)\.provider-catalog-search-group\s*\{[^}]*grid-template-columns: max-content minmax\(220px, 1fr\);[^}]*align-items: center;",
-        )
+        self.assertNotIn(".provider-catalog-search-label", provider_styles)
 
     def test_static_below_field_notes_are_not_rendered(self):
         body = serve_control_panel().body.decode("utf-8")

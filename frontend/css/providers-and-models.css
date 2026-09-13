@@ -12,14 +12,13 @@
 
 .provider-catalog-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(420px, 520px);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
     align-items: center;
     gap: 20px;
     margin-bottom: 14px;
 }
 
-.provider-catalog-toolbar strong,
-.provider-catalog-search-label {
+.provider-catalog-toolbar strong {
     display: block;
     color: var(--text);
     font-size: 15px;
@@ -35,10 +34,7 @@
 }
 
 .provider-catalog-search-group {
-    display: grid;
-    grid-template-columns: max-content minmax(220px, 1fr);
-    align-items: center;
-    gap: 12px;
+    min-width: 0;
 }
 
 .provider-catalog-search {
@@ -388,15 +384,6 @@
 }
 
 @media (max-width: 720px) {
-    .provider-catalog-search-group {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 7px;
-    }
-
-    .provider-catalog-search-label {
-        padding-bottom: 0;
-    }
-
     .device-flow-grid {
         grid-template-columns: minmax(0, 1fr);
     }
