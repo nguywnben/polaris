@@ -1116,7 +1116,7 @@ for _locale, _messages in _SECURITY_BOUNDARY_ROWS.items():
 
 _PANEL_MESSAGE_PATTERNS = (
     (re.compile(r"too many .*attempts", re.IGNORECASE), "panel.rate_limited"),
-    (re.compile(r"setup token", re.IGNORECASE), "panel.setup_token_required"),
+    (re.compile(r"setup[\s_-]*token", re.IGNORECASE), "panel.setup_token_required"),
     (
         re.compile(r"managed by .*(?:environment|environment variable)", re.IGNORECASE),
         "panel.managed_value",

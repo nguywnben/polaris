@@ -94,6 +94,23 @@ class MessageLocalizationTests(unittest.TestCase):
             "Một hoặc nhiều giá trị không hợp lệ. Hãy kiểm tra yêu cầu của từng trường rồi thử lại.",
         )
 
+    def test_setup_token_errors_do_not_translate_as_success(self):
+        with locale_context("vi", enabled=True):
+            payload = translate_payload(
+                {
+                    "detail": (
+                        "Remote setup requires a strong SETUP_TOKEN configured in the "
+                        "service environment. Restart the service after changing it."
+                    )
+                }
+            )
+
+        self.assertEqual(
+            payload["detail"],
+            "Thiết lập ban đầu từ xa yêu cầu SETUP_TOKEN đủ mạnh do người vận hành cấu hình.",
+        )
+        self.assertNotEqual(payload["detail"], "Đã hoàn tất thao tác.")
+
     def test_does_not_translate_technical_payload_values(self):
         with locale_context("vi", enabled=True):
             payload = translate_payload(
