@@ -343,7 +343,7 @@
     background: var(--bg-subtle);
     color: var(--text);
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.55;
     overflow-wrap: anywhere;
     white-space: pre-wrap;

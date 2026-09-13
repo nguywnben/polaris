@@ -286,6 +286,10 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
             styles,
             r"(?s)\.playground-example-toolbar select\s*\{.*?min-height: 30px.*?height: 30px",
         )
+        self.assertRegex(
+            styles,
+            r"(?s)\.playground-example\s*\{[^}]*font-size: 12px",
+        )
 
     def test_message_editor_prioritizes_full_width_content(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")

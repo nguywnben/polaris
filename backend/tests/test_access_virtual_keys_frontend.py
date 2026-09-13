@@ -19,6 +19,7 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
         cls.feature = (FRONTEND / "js/features/virtual-keys.js").read_text(encoding="utf-8")
         cls.navigation = (FRONTEND / "js/core/navigation.js").read_text(encoding="utf-8")
         cls.root = (ROOT / "backend/core/panel/root.py").read_text(encoding="utf-8")
+        cls.styles = (FRONTEND / "css/access.css").read_text(encoding="utf-8")
 
     def _run_client_example_contract(self, assertions: str) -> None:
         node = shutil.which("node")
@@ -128,6 +129,21 @@ assert(powershell.includes(String.fromCharCode(96, 10)), 'PowerShell line contin
 assert(!powershell.includes(String.fromCharCode(32, 92, 10)), 'PowerShell must not use Bash continuation');
 assert(build('openai_chat', 'http://localhost', 'node').includes('client.mjs'), 'Node ESM guidance');
 """
+        )
+
+    def test_client_quickstart_uses_a_balanced_responsive_control_grid(self):
+        self.assertIn('class="btn btn-secondary btn-small" id="copyAccessClientExample"', self.fragment)
+        self.assertRegex(
+            self.styles,
+            r"(?s)\.access-client-header\s*\{.*?display: grid.*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)",
+        )
+        self.assertRegex(
+            self.styles,
+            r"(?s)\.access-client-header\s*>\s*div\s*\{.*?grid-column: 1 / -1",
+        )
+        self.assertRegex(
+            self.styles,
+            r"(?s)@media \(max-width: 600px\).*?\.access-client-header.*?grid-template-columns: minmax\(0, 1fr\)",
         )
 
     def test_secret_cleanup_clears_value_and_removes_secret_node(self):
