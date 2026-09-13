@@ -45,12 +45,15 @@ class SettingsConsoleContractTests(unittest.TestCase):
         self.assertNotIn("c.code_assist_client_secret || ''", source)
         self.assertNotIn(".innerHTML", source)
 
-    def test_settings_use_a_two_column_reading_flow_without_per_field_notes(self) -> None:
+    def test_settings_use_independent_columns_without_per_field_notes(self) -> None:
+        fragment = SETTINGS.read_text(encoding="utf-8")
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
         styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
 
-        self.assertIn(".config-column", styles)
-        self.assertIn("display: contents", styles)
+        self.assertEqual(fragment.count('class="config-column"'), 2)
+        self.assertRegex(styles, r"\.config-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2")
+        self.assertRegex(styles, r"\.config-column\s*\{[^}]*align-content:\s*start")
+        self.assertNotIn("column-count", styles)
         self.assertNotIn("settings-field-meta", source)
 
     def test_page_header_allows_copy_to_shrink_before_actions_wrap(self) -> None:
@@ -98,9 +101,22 @@ class AboutAndIdentityConsoleContractTests(unittest.TestCase):
             "checkUpdateBtn",
             "updateGuideLink",
             "backupGuideLink",
+            "sponsorLink",
         ):
             self.assertIn(f'id="{element_id}"', fragment)
         self.assertNotRegex(fragment, r'id="(?:updateGuideLink|backupGuideLink)"[^>]*\bhidden\b')
+        self.assertRegex(
+            fragment,
+            r'id="sponsorLink"[^>]*href="https://github\.com/sponsors/nguywnben"[^>]*target="_blank"[^>]*rel="noopener noreferrer"',
+        )
+
+    def test_about_cards_flow_in_independent_columns(self) -> None:
+        fragment = ABOUT.read_text(encoding="utf-8")
+        styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
+
+        self.assertEqual(fragment.count('class="about-column"'), 2)
+        self.assertRegex(styles, r"\.about-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*7fr\)\s+minmax\(0,\s*5fr\)")
+        self.assertRegex(styles, r"\.about-column\s*\{[^}]*align-content:\s*start")
 
     def test_about_runtime_validates_and_renders_untrusted_data_as_text(self) -> None:
         source = ABOUT_SCRIPT.read_text(encoding="utf-8")

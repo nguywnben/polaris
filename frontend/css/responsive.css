@@ -22,12 +22,12 @@
         gap: 12px;
     }
 
-    .skeleton-config {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
     .config-column {
         gap: 12px;
+    }
+
+    .skeleton-config {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .config-two-column,
