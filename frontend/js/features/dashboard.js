@@ -168,8 +168,9 @@ async function refreshUsageStats(options = {}) {
         }
 
         const usagePeriod = getUsagePeriodConfig().value;
+        const timezoneOffsetMinutes = new Date().getTimezoneOffset();
 
-        const usagePeriodQuery = `period=${encodeURIComponent(usagePeriod)}`;
+        const usagePeriodQuery = `period=${encodeURIComponent(usagePeriod)}&timezone_offset_minutes=${encodeURIComponent(timezoneOffsetMinutes)}`;
 
         // The aggregate drives every above-the-fold readiness signal. Resolve it
         // before the per-credential table so a populated ledger cannot hold the
@@ -770,6 +771,8 @@ function renderTimelineChart(timeline = []) {
 
     if (!wrapper) return;
 
+    updateTimelineAxisLabels(timeline);
+
     if (!timeline || timeline.length === 0) {
         wrapper.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-muted); font-size:12px;">${escapeHtml(t('dashboard.no_traffic_recorded'))}</div>`;
         if (maxInfo) maxInfo.textContent = '';
@@ -793,13 +796,15 @@ function renderTimelineChart(timeline = []) {
         const tokens = slot.tokens || 0;
         const heightPct = Math.max(reqs > 0 ? (reqs / chartScale) * 100 : 0, 4);
 
-        const timeStr = slot.timestamp ? new Date(slot.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const startTime = formatTimelineTimestamp(slot.timestamp);
+        const endTime = formatTimelineTimestamp(slot.end_timestamp);
+        const timeStr = startTime && endTime ? `${startTime}–${endTime}` : startTime;
 
         return `
             <div class="timeline-bar-col">
                 <div class="timeline-tooltip">
                     <div><strong>${escapeHtml(timeStr)}</strong></div>
-                    <div>${escapeHtml(t('requests'))}: ${formatUsageNumber(reqs)} (${escapeHtml(t('success'))}: ${formatUsageNumber(success)}${failed > 0 ? `, ${escapeHtml(t('failed'))}: ${formatUsageNumber(failed)}` : ''})</div>
+                    <div>${escapeHtml(t('dashboard.provider_attempts'))}: ${formatUsageNumber(reqs)} (${escapeHtml(t('success'))}: ${formatUsageNumber(success)}${failed > 0 ? `, ${escapeHtml(t('failed'))}: ${formatUsageNumber(failed)}` : ''})</div>
                     <div>${escapeHtml(t('tokens'))}: ${formatUsageNumber(tokens)}</div>
                 </div>
                 <div class="timeline-bar-fill" style="height: ${reqs > 0 ? heightPct : 0}%; opacity: ${reqs > 0 ? 1 : 0.2};"></div>
@@ -807,6 +812,36 @@ function renderTimelineChart(timeline = []) {
         `;
     }).join('');
 
+}
+
+function formatTimelineTimestamp(timestamp) {
+    if (timestamp === null || timestamp === undefined || timestamp === '') return '';
+    if (!Number.isFinite(Number(timestamp))) return '';
+    const period = getUsagePeriodConfig().value;
+    const options = period === '1d'
+        ? {hour: '2-digit', minute: '2-digit'}
+        : period === '7d'
+            ? {day: '2-digit', month: '2-digit', hour: '2-digit'}
+            : {day: '2-digit', month: '2-digit'};
+    return new Date(Number(timestamp) * 1000).toLocaleString(getActiveLocale(), options);
+}
+
+function updateTimelineAxisLabels(timeline = []) {
+    const startLabel = document.getElementById('timelineStartLabel');
+    const middleLabel = document.getElementById('timelineMidLabel');
+    const endLabel = document.getElementById('timelineNowLabel');
+    if (!startLabel || !middleLabel || !endLabel) return;
+    if (!Array.isArray(timeline) || timeline.length === 0) {
+        startLabel.textContent = '—';
+        middleLabel.textContent = '—';
+        endLabel.textContent = '—';
+        return;
+    }
+    const middle = timeline[Math.floor(timeline.length / 2)];
+    const last = timeline[timeline.length - 1];
+    startLabel.textContent = formatTimelineTimestamp(timeline[0].timestamp) || '—';
+    middleLabel.textContent = formatTimelineTimestamp(middle.timestamp) || '—';
+    endLabel.textContent = formatTimelineTimestamp(last.end_timestamp) || '—';
 }
 
 function renderProviderHealthMatrix() {

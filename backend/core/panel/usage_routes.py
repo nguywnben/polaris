@@ -20,10 +20,14 @@ router = APIRouter(prefix="/api/usage", tags=["usage"])
 
 
 @router.get("/stats")
-async def get_usage_stats(period: str = Query("1d"), token: str = Depends(verify_panel_token)):
+async def get_usage_stats(
+    period: str = Query("1d"),
+    timezone_offset_minutes: int = Query(0, ge=-840, le=840),
+    token: str = Depends(verify_panel_token),
+):
     try:
         normalized_period = normalize_usage_period(period)
-        data = await get_stats_for_period(normalized_period)
+        data = await get_stats_for_period(normalized_period, timezone_offset_minutes)
         return {
             "success": True,
             "period": get_usage_period_metadata(normalized_period),
@@ -40,10 +44,15 @@ async def get_usage_stats(period: str = Query("1d"), token: str = Depends(verify
 @router.get("/stats/page")
 async def get_usage_stats_page(
     period: str = Query("1d"),
+    timezone_offset_minutes: int = Query(0, ge=-840, le=840),
     page_size: int = Query(100, ge=1, le=200),
     token: str = Depends(verify_panel_token),
 ):
-    result = await get_usage_stats(period=period, token=token)
+    result = await get_usage_stats(
+        period=period,
+        timezone_offset_minutes=timezone_offset_minutes,
+        token=token,
+    )
     if isinstance(result, JSONResponse):
         return result
     ordered = sorted(
@@ -60,13 +69,20 @@ async def get_usage_stats_page(
 
 
 @router.get("/aggregated")
-async def get_aggregated_stats(period: str = Query("1d"), token: str = Depends(verify_panel_token)):
+async def get_aggregated_stats(
+    period: str = Query("1d"),
+    timezone_offset_minutes: int = Query(0, ge=-840, le=840),
+    token: str = Depends(verify_panel_token),
+):
     try:
         normalized_period = normalize_usage_period(period)
-        usage_data = await get_stats_for_period(normalized_period)
+        usage_data = await get_stats_for_period(normalized_period, timezone_offset_minutes)
         credential_counts, timeline = await asyncio.gather(
             get_credential_counts(),
-            get_time_series_stats(normalized_period, points=24),
+            get_time_series_stats(
+                normalized_period,
+                timezone_offset_minutes=timezone_offset_minutes,
+            ),
         )
         total_calls = sum(item["calls"] for item in usage_data.values())
         successful_calls = sum(item.get("successful_calls", 0) for item in usage_data.values())

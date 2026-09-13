@@ -167,6 +167,17 @@ assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textC
         self.assertIn("dashboard.provider_attempts_period", source)
         self.assertIn("aggData.total_upstream_attempts", source)
 
+    def test_timeline_uses_browser_timezone_and_fixed_axis_boundaries(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+        source = self._source(DASHBOARD_SCRIPT)
+
+        self.assertIn("timezone_offset_minutes", source)
+        self.assertIn("new Date().getTimezoneOffset()", source)
+        self.assertIn("updateTimelineAxisLabels(timeline)", source)
+        self.assertIn('id="timelineStartLabel"', fragment)
+        self.assertIn('id="timelineMidLabel"', fragment)
+        self.assertIn('id="timelineNowLabel"', fragment)
+
 
 class BoundedUsageDashboardApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_usage_stats_returns_only_the_requested_bounded_page(self):
@@ -178,9 +189,11 @@ class BoundedUsageDashboardApiTests(unittest.IsolatedAsyncioTestCase):
         with patch(
             "core.panel.usage_routes.get_stats_for_period",
             new=AsyncMock(return_value=rows),
-        ):
-            response = await get_usage_stats_page(period="1d", page_size=2, token="panel")
-            legacy = await get_usage_stats(period="1d", token="panel")
+        ) as stats:
+            response = await get_usage_stats_page(
+                period="1d", timezone_offset_minutes=-420, page_size=2, token="panel"
+            )
+            legacy = await get_usage_stats(period="1d", timezone_offset_minutes=-420, token="panel")
 
         self.assertEqual(legacy["data"], rows)
 
@@ -188,6 +201,8 @@ class BoundedUsageDashboardApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response["page_size"], 2)
         self.assertEqual(response["total_items"], 3)
         self.assertTrue(response["has_more"])
+        self.assertEqual(stats.await_args_list[0].args, ("1d", -420))
+        self.assertEqual(stats.await_args_list[1].args, ("1d", -420))
 
 
 if __name__ == "__main__":

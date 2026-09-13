@@ -6,6 +6,7 @@ import asyncio
 import sys
 import time
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -44,7 +45,7 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
         self.temp_dir.__exit__(None, None, None)
 
     async def test_concurrent_period_reads_share_one_inflight_aggregation(self):
-        async def load(_period):
+        async def load(_period, _timezone_offset_minutes):
             await asyncio.sleep(0.01)
             return {"credential.json": {"calls": 1}}
 
@@ -60,7 +61,56 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
             results = await asyncio.gather(first, second)
 
         self.assertEqual(results[0], results[1])
-        loader.assert_awaited_once_with("1d")
+        loader.assert_awaited_once_with("1d", 0)
+
+    def test_usage_windows_align_to_fixed_browser_clock_boundaries(self):
+        local_timezone = timezone(timedelta(hours=7))
+        now = datetime(2026, 9, 13, 11, 24, tzinfo=local_timezone).timestamp()
+
+        day_start, day_end, day_points = usage_stats.get_usage_time_window(
+            "1d", timezone_offset_minutes=-420, now=now
+        )
+        week_start, week_end, week_points = usage_stats.get_usage_time_window(
+            "7d", timezone_offset_minutes=-420, now=now
+        )
+        month_start, month_end, month_points = usage_stats.get_usage_time_window(
+            "30d", timezone_offset_minutes=-420, now=now
+        )
+        all_start, all_end, all_points = usage_stats.get_usage_time_window(
+            "all", timezone_offset_minutes=-420, now=now
+        )
+
+        self.assertEqual(
+            datetime.fromtimestamp(day_start, local_timezone),
+            datetime(2026, 9, 12, 12, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(
+            datetime.fromtimestamp(day_end, local_timezone),
+            datetime(2026, 9, 13, 12, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(day_points, 24)
+        self.assertEqual(
+            datetime.fromtimestamp(week_start, local_timezone),
+            datetime(2026, 9, 6, 12, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(
+            datetime.fromtimestamp(week_end, local_timezone),
+            datetime(2026, 9, 13, 12, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(week_points, 28)
+        self.assertEqual(
+            datetime.fromtimestamp(month_start, local_timezone),
+            datetime(2026, 8, 15, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(
+            datetime.fromtimestamp(month_end, local_timezone),
+            datetime(2026, 9, 14, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(month_points, 30)
+        self.assertEqual((all_start, all_end, all_points), (month_start, month_end, 30))
+
+        with self.assertRaisesRegex(ValueError, "point count"):
+            usage_stats.get_usage_time_window("1d", points=0, now=now)
 
     def test_provider_display_names_preserve_google_ai_capitalization(self):
         self.assertEqual(

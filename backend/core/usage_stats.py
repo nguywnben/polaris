@@ -33,7 +33,10 @@ USAGE_PERIODS = {
     "30d": {"seconds": 30 * 86400, "label": "Last 30 days"},
     "all": {"seconds": None, "label": "All time"},
 }
-_stats_inflight: Dict[str, asyncio.Task[Dict[str, Dict[str, Any]]]] = {}
+USAGE_TIMELINE_POINTS = {"1d": 24, "7d": 28, "30d": 30, "all": 30}
+ALL_TIME_TIMELINE_SECONDS = 30 * 86400
+MAX_TIMEZONE_OFFSET_MINUTES = 14 * 60
+_stats_inflight: Dict[tuple[str, int], asyncio.Task[Dict[str, Dict[str, Any]]]] = {}
 
 
 def _int_value(value: Any) -> int:
@@ -87,6 +90,41 @@ def get_usage_period_metadata(period: str = "1d") -> Dict[str, str]:
         "value": normalized,
         "label": str(USAGE_PERIODS[normalized]["label"]),
     }
+
+
+def normalize_timezone_offset_minutes(value: Any = 0) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return min(MAX_TIMEZONE_OFFSET_MINUTES, max(-MAX_TIMEZONE_OFFSET_MINUTES, parsed))
+
+
+def get_usage_time_window(
+    period: str = "1d",
+    timezone_offset_minutes: int = 0,
+    *,
+    now: Optional[float] = None,
+    points: Optional[int] = None,
+) -> tuple[float, float, int]:
+    """Return a browser-local, clock-aligned window for dashboard buckets."""
+    normalized_period = normalize_usage_period(period)
+    seconds = USAGE_PERIODS[normalized_period]["seconds"] or ALL_TIME_TIMELINE_SECONDS
+    if points is None:
+        bucket_count = USAGE_TIMELINE_POINTS[normalized_period]
+    elif type(points) is not int or not 1 <= points <= 1_000:
+        raise ValueError("Usage time-series point count is invalid.")
+    else:
+        bucket_count = points
+    bucket_seconds = seconds / bucket_count
+    current = time.time() if now is None else float(now)
+    if not math.isfinite(current) or current < 0:
+        raise ValueError("Usage time-series reference time is invalid.")
+    offset = normalize_timezone_offset_minutes(timezone_offset_minutes) * 60
+    local_current = current - offset
+    aligned_local_end = math.ceil(local_current / bucket_seconds) * bucket_seconds
+    aligned_end = aligned_local_end + offset
+    return aligned_end - seconds, aligned_end, bucket_count
 
 
 def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -573,9 +611,18 @@ async def get_all_credential_filenames() -> List[str]:
         return []
 
 
-async def _load_stats_for_period(normalized_period: str) -> Dict[str, Dict[str, Any]]:
+async def _load_stats_for_period(
+    normalized_period: str, timezone_offset_minutes: int
+) -> Dict[str, Dict[str, Any]]:
     seconds = USAGE_PERIODS[normalized_period]["seconds"]
-    since = time.time() - int(seconds) if seconds is not None else None
+    since = (
+        get_usage_time_window(
+            normalized_period,
+            timezone_offset_minutes=timezone_offset_minutes,
+        )[0]
+        if seconds is not None
+        else None
+    )
     res = {}
 
     metadata_by_filename = await get_credential_usage_metadata()
@@ -636,35 +683,42 @@ async def _load_stats_for_period(normalized_period: str) -> Dict[str, Dict[str, 
     return res
 
 
-async def get_stats_for_period(period: str = "1d") -> Dict[str, Dict[str, Any]]:
+async def get_stats_for_period(
+    period: str = "1d", timezone_offset_minutes: int = 0
+) -> Dict[str, Dict[str, Any]]:
     """Share an in-flight period scan across concurrent dashboard consumers."""
 
     normalized_period = normalize_usage_period(period)
-    task = _stats_inflight.get(normalized_period)
+    normalized_offset = normalize_timezone_offset_minutes(timezone_offset_minutes)
+    cache_key = (normalized_period, normalized_offset if normalized_period != "all" else 0)
+    task = _stats_inflight.get(cache_key)
     if task is None:
-        task = asyncio.create_task(_load_stats_for_period(normalized_period))
-        _stats_inflight[normalized_period] = task
+        task = asyncio.create_task(_load_stats_for_period(normalized_period, normalized_offset))
+        _stats_inflight[cache_key] = task
         task.add_done_callback(
-            lambda completed, key=normalized_period: (
+            lambda completed, key=cache_key: (
                 _stats_inflight.pop(key, None) if _stats_inflight.get(key) is completed else None
             )
         )
     return await asyncio.shield(task)
 
 
-async def get_time_series_stats(period: str = "1d", points: int = 24) -> List[Dict[str, Any]]:
-    """Return time-series aggregated request counts and token volume for charts."""
+async def get_time_series_stats(
+    period: str = "1d",
+    points: Optional[int] = None,
+    timezone_offset_minutes: int = 0,
+) -> List[Dict[str, Any]]:
+    """Return clock-aligned request and token buckets for dashboard charts."""
     normalized_period = normalize_usage_period(period)
-    seconds = USAGE_PERIODS[normalized_period]["seconds"]
-    if seconds is None:
-        seconds = 30 * 86400  # default to 30 days window if 'all'
-
-    now = time.time()
-    since = now - int(seconds)
+    since, until, bucket_count = get_usage_time_window(
+        normalized_period,
+        timezone_offset_minutes=timezone_offset_minutes,
+        points=points,
+    )
     rows = await get_usage_ledger_service().aggregate_time_series(
         since=since,
-        until=now,
-        points=max(1, points),
+        until=until,
+        points=bucket_count,
     )
     return [
         {
