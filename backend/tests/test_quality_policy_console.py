@@ -147,6 +147,20 @@ assert(warnings({
             r".*?margin-top:\s*0",
         )
 
+    def test_switch_copy_preserves_title_and_description_typography(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-policy-grid \.switch-row strong\s*\{"
+            r".*?font-weight:\s*680",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-policy-grid \.switch-row small\s*\{"
+            r".*?font-weight:\s*400",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
