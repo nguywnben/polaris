@@ -71,7 +71,7 @@
                         </section>
                     </div>
 
-                    <section class="card virtual-key-section" aria-labelledby="virtualKeyHeading">
+                    <section class="card virtual-key-section" id="virtualKeySection" aria-labelledby="virtualKeyHeading">
                         <div class="virtual-key-header">
                             <div>
                                 <div class="page-kicker" data-i18n="access.virtual_keys_label">Governed access</div>
@@ -106,6 +106,7 @@
                         <div id="virtualKeyEmptyState" class="virtual-key-empty hidden" role="status">
                             <strong data-i18n="access.no_keys">No virtual keys found</strong>
                             <span data-i18n="access.no_keys_description">Create a least-privilege key or adjust the filters.</span>
+                            <button type="button" class="btn btn-compact" data-ui-action="virtual-key-create" data-i18n="access.create_key">Create key</button>
                         </div>
                     </section>
                 </div>

@@ -127,6 +127,14 @@ function updateModelPoolSummary() {
     );
 }
 
+function updateModelFirstRunState() {
+    const tab = document.getElementById('modelsTab');
+    const firstRun = document.getElementById('modelFirstRun');
+    const isEmpty = Boolean(AppState.modelCatalogLoaded) && AppState.modelCatalog.length === 0;
+    tab?.classList.toggle('is-pristine-empty', isEmpty);
+    if (firstRun) firstRun.hidden = !isEmpty;
+}
+
 function modelRouteHasUnsavedChanges() {
     return JSON.stringify(AppState.selectedModels) !== JSON.stringify(AppState.savedModelSelection)
         || Object.keys(modelRoutingPolicyChanges()).length > 0;
@@ -341,6 +349,7 @@ function renderModelCatalog() {
         return entry.model_id.toLowerCase().includes(query)
             || entry.providers.some(provider => modelProviderMeta(provider).name.toLowerCase().includes(query));
     });
+    updateModelFirstRunState();
     list.replaceChildren();
 
     if (entries.length === 0) {

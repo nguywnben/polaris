@@ -84,6 +84,14 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
         self.assertNotIn("renderModelRouteValidation", source)
         self.assertNotIn(".model-route-validation", styles)
 
+    def test_empty_catalog_uses_a_guided_first_run_state(self) -> None:
+        source = SCRIPT.read_text(encoding="utf-8")
+        fragment = FRAGMENT.read_text(encoding="utf-8")
+
+        self.assertIn('id="modelFirstRun"', fragment)
+        self.assertIn("updateModelFirstRunState()", source)
+        self.assertIn("model-data-only", fragment)
+
     def test_virtual_model_description_stays_close_to_alias(self) -> None:
         styles = STYLES.read_text(encoding="utf-8")
 

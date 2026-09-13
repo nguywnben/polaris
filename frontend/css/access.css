@@ -226,11 +226,23 @@
     display: grid;
     justify-items: center;
     gap: 6px;
-    padding: 36px 20px;
+    padding: 28px 20px;
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius);
     color: var(--text-muted);
     text-align: center;
+}
+
+.virtual-key-section.is-pristine-empty .virtual-key-filters {
+    display: none;
+}
+
+.virtual-key-section.is-pristine-empty .virtual-key-header {
+    margin-bottom: 14px;
+}
+
+.virtual-key-empty .btn {
+    margin-top: 8px;
 }
 
 .virtual-key-empty strong {

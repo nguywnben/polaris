@@ -985,16 +985,13 @@
 
 .config-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: start;
 }
 
 .config-column {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 16px;
+    display: contents;
 }
 
 .settings-retention-group {
@@ -1212,14 +1209,6 @@
     line-height: 1.5;
 }
 
-.settings-field-meta {
-    display: block;
-    margin-top: 6px;
-    color: var(--text-soft);
-    font-size: 11px;
-    line-height: 1.4;
-}
-
 .config-spaced-field {
     margin-top: 14px;
 }
@@ -1308,6 +1297,10 @@
 }
 
 @media (max-width: 760px) {
+    .config-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .about-fact-list > div,
     .support-tier {
         grid-template-columns: minmax(0, 1fr);

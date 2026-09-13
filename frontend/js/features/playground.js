@@ -440,6 +440,12 @@ function initializePlayground() {
     if (!state.hasRun) {
         replacePlaygroundText(document.getElementById('playgroundOutput'), t('playground.empty_prompt'));
     }
+    syncPlaygroundPresentation();
+}
+
+function syncPlaygroundPresentation() {
+    const state = playgroundRuntimeState();
+    document.getElementById('playgroundOutputCard')?.classList.toggle('is-pristine', !state.hasRun);
 }
 
 function setPlaygroundRunning(running) {
@@ -483,7 +489,9 @@ function setPlaygroundOutcome(outcomeKey, type = 'muted') {
 
 function setPlaygroundRunState(runStateKey) {
     playgroundRuntimeState().runStateKey = runStateKey;
-    replacePlaygroundText(document.getElementById('playgroundRunState'), t(runStateKey));
+    const runState = document.getElementById('playgroundRunState');
+    replacePlaygroundText(runState, t(runStateKey));
+    if (runState) runState.hidden = runStateKey === 'playground.ready';
 }
 
 function renderPlaygroundMetadata(metadata) {
@@ -584,6 +592,7 @@ async function runPlayground() {
     renderPlaygroundError('');
     renderPlaygroundMetadata(null);
     state.hasRun = true;
+    syncPlaygroundPresentation();
     replacePlaygroundText(document.getElementById('playgroundOutput'), t('playground.connecting'));
     setPlaygroundOutcome('playground.running', 'warning');
     setPlaygroundRunState('playground.running');

@@ -7,13 +7,20 @@ function aboutBoundedText(value, maximum, fallback = '') {
         : fallback;
 }
 
+function normalizeAboutVersion(value) {
+    const normalized = aboutBoundedText(value, 80, '').trim();
+    return normalized && !/^v?unknown$/i.test(normalized)
+        ? normalized.replace(/^v(?=\d)/i, '')
+        : t('unknown_version');
+}
+
 function validateAboutVersion(payload) {
     if (!payload || payload.success !== true) throw new Error(t('about.load_failed'));
     const source = ['container', 'git', 'development'].includes(payload.source)
         ? payload.source
         : 'development';
     return Object.freeze({
-        version: aboutBoundedText(payload.version, 80, t('unknown_version')),
+        version: normalizeAboutVersion(payload.version),
         revision: aboutBoundedText(payload.full_hash, 128, t('about.not_available')),
         date: aboutBoundedText(payload.date, 80, t('about.not_available')),
         source

@@ -517,6 +517,19 @@ function createCredsManager(type) {
 
             document.getElementById(this.getElementId('StatDisabled')).textContent = this.statsData.disabled;
 
+            this.updateFirstRunState();
+
+        },
+
+        updateFirstRunState() {
+
+            if (this.type !== 'primary') return;
+            const tab = document.getElementById('poolTab');
+            const firstRun = document.getElementById('poolFirstRun');
+            const isEmpty = this.hasLoaded && this.totalCount === 0;
+            tab?.classList.toggle('is-pristine-empty', isEmpty);
+            if (firstRun) firstRun.hidden = !isEmpty;
+
         },
 
         renderList() {

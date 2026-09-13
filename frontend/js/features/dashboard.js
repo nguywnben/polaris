@@ -14,6 +14,14 @@ function setDashboardSummaryMetric(elementId, value, options = {}) {
     setCompactMetricValue(document.getElementById(elementId), value, options);
 }
 
+function setDashboardTrafficState(totalCalls) {
+    const tab = document.getElementById('dashboardTab');
+    const firstRun = document.getElementById('dashboardFirstRun');
+    const hasTraffic = Number(totalCalls || 0) > 0;
+    tab?.classList.toggle('has-no-traffic', !hasTraffic);
+    if (firstRun) firstRun.hidden = hasTraffic;
+}
+
 function getDashboardSummaryMetric(value, options = {}) {
     const metric = getCompactMetricPresentation(value, options);
     return {
@@ -200,6 +208,8 @@ async function refreshUsageStats(options = {}) {
         const successfulCalls = Number(aggData.successful_upstream_attempts ?? aggData.successful_calls ?? 0);
         const failedCalls = Number(aggData.failed_upstream_attempts ?? aggData.failed_calls ?? 0);
         const successRate = totalCalls > 0 ? Math.round((successfulCalls / totalCalls) * 100) : 0;
+
+        setDashboardTrafficState(totalCalls);
 
         setDashboardSummaryMetric('totalApiCalls', totalCalls);
         document.getElementById('successRate24h').textContent = `${successRate}%`;

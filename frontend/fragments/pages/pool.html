@@ -6,20 +6,31 @@
                                 <p class="page-description" data-i18n="pool_description">Manage accounts and API keys from every connected provider. Monitor credential health, routing capacity, and pool backups from one place.</p>
                             </div>
                             <div class="page-actions">
-                                <button type="button" class="btn" data-ui-action="refresh-pool" data-i18n="refresh">Refresh</button>
-                                <button type="button" class="btn btn-secondary" id="poolImportArchiveBtn" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
-                                <button type="button" class="btn btn-secondary" data-ui-action="download-pool" data-i18n="download_zip">Download ZIP</button>
+                                <button type="button" class="btn btn-secondary" data-ui-action="refresh-pool" data-i18n="refresh">Refresh</button>
+                                <button type="button" class="btn" id="poolImportArchiveBtn" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
+                                <button type="button" class="btn btn-secondary pool-data-only" data-ui-action="download-pool" data-i18n="download_zip">Download ZIP</button>
                             </div>
                     </header>
                     <input type="file" id="poolImportArchiveInput" accept=".zip,application/zip" hidden data-ui-change="pool-archive">
 
-                    <div class="stats-container">
+                    <section id="poolFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="status_no_creds">No credentials found</h2>
+                            <p data-i18n="pool_description">Manage accounts and API keys from every connected provider.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
+                        </div>
+                    </section>
+
+                    <div class="stats-container pool-data-only">
                         <div class="stat-item"><span class="stat-number" id="primaryStatTotal">0</span><span class="stat-label" data-i18n="total_credentials">Total credentials</span></div>
                         <div class="stat-item"><span class="stat-number" id="primaryStatNormal">0</span><span class="stat-label" data-i18n="active_credentials">Active credentials</span></div>
                         <div class="stat-item"><span class="stat-number" id="primaryStatDisabled">0</span><span class="stat-label" data-i18n="disabled_credentials">Disabled credentials</span></div>
                     </div>
 
-                    <div class="batch-controls">
+                    <div class="batch-controls pool-data-only">
                         <div class="batch-label">
                             <input type="checkbox" id="primarySelectAllCheckbox" class="select-all-checkbox" data-ui-change="select-all-primary">
                             <label for="primarySelectAllCheckbox" data-i18n="pool.selection.page">Select this page</label>
@@ -35,7 +46,7 @@
                         </div>
                     </div>
 
-                    <section class="credential-filter-panel" aria-labelledby="primaryFiltersTitle">
+                    <section class="credential-filter-panel pool-data-only" aria-labelledby="primaryFiltersTitle">
                         <div class="credential-filter-header">
                             <div>
                                 <h2 id="primaryFiltersTitle" data-i18n="pool.filters.title">Filters</h2>
@@ -155,7 +166,7 @@
                         </details>
                     </section>
 
-                    <div id="primaryCredsListSection">
+                    <div id="primaryCredsListSection" class="pool-data-only">
                         <div id="primaryCredsState" data-page-state-host hidden></div>
                         <div id="primaryCredsLoading" class="skeleton-list" role="status" data-i18n-aria-label="loading_provider_credentials" aria-label="Loading provider credentials" aria-busy="true">
                             <div class="skeleton-item"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line buttons"></div></div>

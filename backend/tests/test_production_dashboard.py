@@ -80,6 +80,15 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             fragment.index('id="operationalHealthCard"'), fragment.index('id="providerHealthCard"')
         )
 
+    def test_zero_traffic_uses_a_guided_first_run_state(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+        source = self._source(DASHBOARD_SCRIPT)
+
+        self.assertIn('id="dashboardFirstRun"', fragment)
+        self.assertIn('class="stat-item dashboard-traffic-only"', fragment)
+        self.assertIn('class="card span-12 chart-card dashboard-traffic-only"', fragment)
+        self.assertIn("setDashboardTrafficState(totalCalls)", source)
+
     def test_dashboard_load_has_a_fixed_request_budget_and_bounded_lists(self):
         source = self._source(DASHBOARD_SCRIPT)
 

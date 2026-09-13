@@ -58,19 +58,12 @@ function renderSettingsMetadata(metadata) {
         field.dataset.settingsGroup = item.group;
         const container = field.closest('.form-group, .switch-row');
         if (!container) continue;
-        container.querySelector('.settings-field-meta')?.remove();
-        const hint = document.createElement('small');
-        hint.className = 'settings-field-meta';
-        const labels = [
-            t(`settings.group_${item.group}`),
-            t(`settings.apply_${item.apply}`)
-        ];
-        if (item.environment_locked) labels.push(t('settings.managed_environment'));
-        if (item.secret && AppState.currentConfig?.[`${item.config_key}_configured`]) {
-            labels.push(t('settings.secret_configured'));
+        container.classList.toggle('is-environment-managed', item.environment_locked);
+        if (item.environment_locked) {
+            field.title = t('settings.managed_environment');
+        } else {
+            field.removeAttribute('title');
         }
-        hint.textContent = labels.join(' · ');
-        container.appendChild(hint);
     }
     const summary = document.getElementById('settingsApplySummary');
     if (summary) {

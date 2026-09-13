@@ -197,7 +197,10 @@ function renderVirtualKeys() {
     const list = document.getElementById('virtualKeyList');
     const empty = document.getElementById('virtualKeyEmptyState');
     if (!list || !empty) return;
+    const section = document.getElementById('virtualKeySection');
+    const isPristineEmpty = VirtualKeyAccessState.records.length === 0;
     const records = visibleVirtualKeys();
+    section?.classList.toggle('is-pristine-empty', isPristineEmpty);
     list.replaceChildren(...records.map(renderVirtualKeyCard));
     empty.classList.toggle('hidden', records.length > 0);
 }

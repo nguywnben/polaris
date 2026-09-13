@@ -625,3 +625,20 @@
         padding: 10px;
     }
 }
+
+@media (max-width: 760px) {
+    .guided-empty-state {
+        min-height: 0;
+        display: grid;
+        padding: 18px;
+    }
+
+    .guided-empty-actions,
+    .guided-empty-actions .btn {
+        width: 100%;
+    }
+
+    #dashboardTab.has-no-traffic #dashboardStats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

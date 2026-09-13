@@ -56,6 +56,12 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         for action in ("create", "refresh", "edit", "usage", "rotate", "revoke"):
             self.assertIn(f"virtual-key-{action}", self.fragment + self.feature)
 
+    def test_empty_key_collection_hides_irrelevant_filters_and_has_a_primary_action(self):
+        self.assertIn('id="virtualKeySection"', self.fragment)
+        self.assertIn('data-ui-action="virtual-key-create"', self.fragment)
+        self.assertIn("is-pristine-empty", self.feature)
+        self.assertIn(".virtual-key-section.is-pristine-empty .virtual-key-filters", self.styles)
+
     def test_form_covers_policy_and_governance_inputs(self):
         for field in (
             "name",

@@ -211,6 +211,16 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
 """
         )
 
+    def test_first_visit_response_is_compact_and_quiet(self) -> None:
+        fragment = FRAGMENT.read_text(encoding="utf-8")
+        source = SCRIPT.read_text(encoding="utf-8")
+        styles = (ROOT / "frontend/css/playground.css").read_text(encoding="utf-8")
+
+        self.assertIn('id="playgroundOutputCard"', fragment)
+        self.assertIn("syncPlaygroundPresentation", source)
+        self.assertIn("playground-output-card.is-pristine", styles)
+        self.assertIn("runState.hidden = runStateKey === 'playground.ready'", source)
+
     def test_response_display_limit_is_byte_bounded_and_cancels_the_run(self) -> None:
         self._run_contract(
             """

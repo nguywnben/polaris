@@ -12,7 +12,17 @@
 
                     <div id="modelCatalogState" data-page-state-host hidden></div>
 
-                    <div class="stats-container model-stats-container">
+                    <section id="modelFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="models.none_available">No provider models are available.</h2>
+                            <p data-i18n="models.selection_description">Select models discovered from enabled provider credentials.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                        </div>
+                    </section>
+
+                    <div class="stats-container model-stats-container model-data-only">
                         <div class="stat-item"><span class="stat-number" id="modelStatAvailable">0</span><span class="stat-label" data-i18n="available_provider_models">Available provider models</span></div>
                         <div class="stat-item"><span class="stat-number" id="modelStatSelected">0</span><span class="stat-label" data-i18n="assigned_models">Models assigned to omway</span></div>
                         <div class="stat-item"><span class="stat-number" id="modelStatUnavailable">0</span><span class="stat-label" data-i18n="unavailable_selections">Unavailable selections</span></div>
@@ -23,7 +33,7 @@
                         <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div></div>
                     </div>
 
-                    <div id="modelPoolWorkspace" class="model-pool-grid hidden">
+                    <div id="modelPoolWorkspace" class="model-pool-grid model-data-only hidden">
                         <section class="card model-pool-card">
                             <div class="model-pool-heading">
                                 <div>

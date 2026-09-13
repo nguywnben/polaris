@@ -20,12 +20,23 @@
 
                     <div id="dashboardUsageState" data-page-state-host hidden></div>
 
+                    <section id="dashboardFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="dashboard.no_traffic_yet">No traffic yet</h2>
+                            <p data-i18n="dashboard.recent_empty">No requests have been recorded yet.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="playground" data-i18n="playground.label">Playground</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                        </div>
+                    </section>
+
                     <div class="stats-container" id="dashboardStats" data-i18n-aria-label="dashboard.metrics" aria-label="Gateway metrics" aria-busy="true">
                         <div class="stat-item">
                             <span class="stat-number" id="totalApiCalls">0</span>
                             <span class="stat-label"><span id="totalApiCallsLabel" data-i18n-runtime>Provider attempts in the last 24 hours</span><span class="stat-detail" id="requestOutcomeDetail" data-i18n-runtime>0 successful / 0 failed</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="successRate24h">0%</span>
                             <span class="stat-label"><span data-i18n="dashboard.attempt_success_rate">Provider attempt success rate</span><span class="stat-detail" id="successRateDetail" data-i18n="dashboard.no_traffic_yet">No traffic yet</span></span>
                         </div>
@@ -33,15 +44,15 @@
                             <span class="stat-number"><span id="activeFiles">0</span>/<span id="totalFiles">0</span></span>
                             <span class="stat-label"><span data-i18n="dashboard.active_total_credentials">Active / total credentials</span><span class="stat-detail" id="disabledCredentialsDetail" data-i18n-runtime>0 disabled</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="totalCostUsd">$0.00</span>
                             <span class="stat-label"><span id="totalCostLabel" data-i18n-runtime>Estimated cost in the last 24 hours</span><span class="stat-detail" id="pricingSourceDetail" data-i18n="dashboard.cost_pricing_fallback">Using configured and built-in model prices</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="totalTokens24h">0</span>
                             <span class="stat-label"><span id="totalTokensLabel" data-i18n-runtime>Tokens in the last 24 hours</span><span class="stat-detail" id="inputOutputDetail" data-i18n-runtime>Input 0 / output 0</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="dashboardP95Latency">—</span>
                             <span class="stat-label"><span data-i18n="dashboard.p95_latency">P95 latency</span><span class="stat-detail" data-i18n="dashboard.last_15_minutes">Last 15 minutes</span></span>
                         </div>
@@ -93,7 +104,7 @@
                             <div class="provider-health-grid" id="providerHealthGrid"><div class="health-grid-loading skeleton-row"><div class="skeleton-cell"></div></div></div>
                         </section>
 
-                        <section class="card span-12 chart-card" id="trafficChartCard">
+                        <section class="card span-12 chart-card dashboard-traffic-only" id="trafficChartCard">
                             <div class="chart-card-header">
                                 <div><h2 class="card-title" data-i18n="dashboard.token_distribution_title">Usage and provider attempt trend</h2><p class="card-copy card-title-copy" data-i18n="dashboard.token_distribution_description">Compare provider attempts with input, output, cached, and reasoning tokens.</p></div>
                                 <div class="chart-legend" id="tokenChartLegend">
@@ -110,7 +121,7 @@
                             </div>
                         </section>
 
-                        <section class="card span-12">
+                        <section class="card span-12 dashboard-traffic-only">
                             <h2 class="card-title" id="usageBreakdownTitle" data-i18n-runtime>Provider attempt breakdown for the last 24 hours</h2>
                             <p class="card-copy card-title-copy" id="usageBreakdownDescription" data-i18n-runtime>Review provider attempts by provider and credential for the last 24 hours.</p>
                             <div class="usage-provider-summary" id="usageProviderSummary" data-i18n-aria-label="provider_activity" aria-label="Provider activity"></div>

@@ -45,6 +45,14 @@ class SettingsConsoleContractTests(unittest.TestCase):
         self.assertNotIn("c.code_assist_client_secret || ''", source)
         self.assertNotIn(".innerHTML", source)
 
+    def test_settings_use_a_two_column_reading_flow_without_per_field_notes(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
+
+        self.assertIn(".config-column", styles)
+        self.assertIn("display: contents", styles)
+        self.assertNotIn("settings-field-meta", source)
+
     def test_blank_secret_is_not_sent_back_as_a_destructive_clear(self) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the Settings UI contract.")
@@ -96,6 +104,11 @@ class AboutAndIdentityConsoleContractTests(unittest.TestCase):
         self.assertIn("loadAboutPage", source)
         self.assertIn("textContent", source)
         self.assertNotIn("innerHTML", source)
+
+    def test_about_normalizes_unknown_build_version(self) -> None:
+        source = ABOUT_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("normalizeAboutVersion", source)
 
     def test_about_hides_support_tiers_without_capabilities(self) -> None:
         source = ABOUT_SCRIPT.read_text(encoding="utf-8")

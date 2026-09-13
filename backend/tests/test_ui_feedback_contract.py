@@ -232,6 +232,14 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
 
         self.assertEqual(parser.nested_fields, [])
 
+    def test_empty_credentials_use_a_guided_pool_state(self) -> None:
+        markup = serve_control_panel().body.decode("utf-8")
+        credential_source = (FRONTEND / "js/core/credential-manager.js").read_text(encoding="utf-8")
+
+        self.assertIn('id="poolFirstRun"', markup)
+        self.assertIn("updateFirstRunState", credential_source)
+        self.assertIn("pool-data-only", markup)
+
     def test_select_controls_balance_text_and_chevron_spacing(self) -> None:
         foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
         styles = (FRONTEND / "css/forms-and-data.css").read_text(encoding="utf-8")
