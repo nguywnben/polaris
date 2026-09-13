@@ -827,8 +827,9 @@ class CredentialStatusModelTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             storage.updated_state[1],
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
         )
+        self.assertIn("enabled state was preserved", payload["message"].lower())
 
     async def test_codex_verification_refreshes_an_expired_access_token_once(self):
         storage = FakeProviderStorage(

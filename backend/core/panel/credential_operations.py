@@ -967,7 +967,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -979,7 +979,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": validation.model_count,
                 "message": (
                     "Google AI Studio API key verified. Provider metadata was "
-                    "refreshed, the credential was enabled, and recorded errors were cleared."
+                    "refreshed, the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1013,7 +1013,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -1025,7 +1025,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{'Grok Build OAuth credential' if credential_type == 'oauth' else 'SpaceXAI Console API key'} "
-                    "verified. Available models were refreshed, the credential was enabled, "
+                    "verified. Available models were refreshed, the enabled state was preserved, "
                     "and recorded errors were cleared."
                 ),
             }
@@ -1079,7 +1079,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         credential_name = (
@@ -1094,7 +1094,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{credential_name} verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1125,7 +1125,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         credential_name = (
@@ -1142,7 +1142,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{credential_name} verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1168,7 +1168,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -1180,7 +1180,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     "Ollama connection verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1245,7 +1245,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
     if project_id or subscription_tier:
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
 
-        state_update = {"disabled": False, "error_codes": []}
+        state_update = {"error_codes": []}
 
         state_update["tier"] = subscription_tier
 
@@ -1255,7 +1255,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.update_credential_state(filename, state_update, mode=mode)
 
         log.info(
-            f"Verified {mode} credential: {filename}. Project ID: {project_id}. Tier: {subscription_tier}. Disabled status removed and error codes cleared."
+            f"Verified {mode} credential: {filename}. Project ID: {project_id}. Tier: {subscription_tier}. Enabled state preserved and error codes cleared."
         )
 
         response_data = {
@@ -1263,7 +1263,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
             "filename": filename,
             "project_id": project_id,
             "subscription_tier": subscription_tier,
-            "message": "Verification complete. Project ID was updated, the credential was re-enabled, and recorded error codes were cleared.",
+            "message": "Verification complete. Project ID was updated, the enabled state was preserved, and recorded error codes were cleared.",
         }
 
         if mode == "primary" and credit_amount is not None:
