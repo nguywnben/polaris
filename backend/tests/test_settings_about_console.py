@@ -53,6 +53,12 @@ class SettingsConsoleContractTests(unittest.TestCase):
         self.assertIn("display: contents", styles)
         self.assertNotIn("settings-field-meta", source)
 
+    def test_page_header_allows_copy_to_shrink_before_actions_wrap(self) -> None:
+        styles = (ROOT / "frontend/css/shell.css").read_text(encoding="utf-8")
+
+        self.assertRegex(styles, r"\.page-header\s*>\s*:first-child\s*\{[^}]*min-width:\s*0")
+        self.assertRegex(styles, r"\.page-header\s*>\s*\.page-actions\s*\{[^}]*flex:\s*0\s+0\s+auto")
+
     def test_blank_secret_is_not_sent_back_as_a_destructive_clear(self) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the Settings UI contract.")
@@ -109,6 +115,35 @@ class AboutAndIdentityConsoleContractTests(unittest.TestCase):
         source = ABOUT_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("normalizeAboutVersion", source)
+
+    def test_about_does_not_prefix_unknown_version_with_v(self) -> None:
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node.js is required for the About UI contract.")
+        source = ABOUT_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+let renderedValue = '';
+globalThis.t = (key) => key === 'unknown_version' ? 'Unknown version' : key;
+globalThis.document = {{
+  getElementById: () => ({{replaceChildren: (...nodes) => {{ renderedValue = nodes[0].children[1].textContent; }}, setAttribute: () => {{}}}}),
+  createElement: () => ({{children: [], append(...nodes) {{ this.children.push(...nodes); }}, textContent: '', className: ''}}),
+  addEventListener: () => {{}}
+}};
+globalThis.AppState = {{}};
+vm.runInThisContext({json.dumps(source)} + `\n;globalThis.contract = {{validateAboutVersion, renderAboutVersion}};`);
+const version = globalThis.contract.validateAboutVersion({{success: true, version: 'unknown', source: 'container'}});
+globalThis.contract.renderAboutVersion(version);
+if (renderedValue !== 'Unknown version') throw new Error(`unexpected version: ${{renderedValue}}`);
+"""
+        result = subprocess.run(
+            [node, "-e", harness],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_about_hides_support_tiers_without_capabilities(self) -> None:
         source = ABOUT_SCRIPT.read_text(encoding="utf-8")

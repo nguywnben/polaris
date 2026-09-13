@@ -516,6 +516,14 @@
     margin-bottom: 28px;
 }
 
+.page-header > :first-child {
+    min-width: 0;
+}
+
+.page-header > .page-actions {
+    flex: 0 0 auto;
+}
+
 .page-kicker {
     color: var(--text-soft);
     font-size: 12px;

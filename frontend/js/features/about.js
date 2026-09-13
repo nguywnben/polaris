@@ -11,7 +11,7 @@ function normalizeAboutVersion(value) {
     const normalized = aboutBoundedText(value, 80, '').trim();
     return normalized && !/^v?unknown$/i.test(normalized)
         ? normalized.replace(/^v(?=\d)/i, '')
-        : t('unknown_version');
+        : null;
 }
 
 function validateAboutVersion(payload) {
@@ -67,7 +67,11 @@ function renderAboutVersion(version) {
     const facts = document.getElementById('aboutBuildFacts');
     if (!facts) return;
     facts.replaceChildren(
-        aboutFact('about.version', `v${version.version}`, true),
+        aboutFact(
+            'about.version',
+            version.version ? `v${version.version}` : t('unknown_version'),
+            true
+        ),
         aboutFact('about.revision', version.revision, true),
         aboutFact('about.build_date', version.date, true),
         aboutFact('about.version_source', t(`about.source_${version.source}`))
