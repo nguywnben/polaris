@@ -53,18 +53,13 @@
     margin: 0;
 }
 
-.audit-filter-wide,
-.audit-filter-hint {
+.audit-filter-wide {
     grid-column: 1 / -1;
 }
 
 .audit-filter-actions {
     justify-content: flex-start;
     align-self: end;
-}
-
-.audit-filter-hint {
-    margin: 0;
 }
 
 .audit-status {
@@ -224,8 +219,7 @@
 @media (max-width: 760px) {
     .audit-filter-grid,
     .audit-detail-grid { grid-template-columns: 1fr; }
-    .audit-filter-wide,
-    .audit-filter-hint { grid-column: auto; }
+    .audit-filter-wide { grid-column: auto; }
     .audit-event-card { grid-template-columns: 1fr; }
     .audit-event-card > .btn { width: 100%; }
     .audit-detail-actions { align-items: stretch; flex-direction: column-reverse; }

@@ -508,8 +508,6 @@ function syncModelRoutingPolicyControls() {
     if (!strategy || !preferred) return;
     strategy.disabled = Boolean(policy.strategy_locked);
     preferred.disabled = strategy.value !== 'priority' || Boolean(policy.preferred_provider_locked);
-    const hint = document.getElementById('modelRoutingStrategyHint');
-    if (hint) hint.textContent = t('models.strategy_hint');
     document.getElementById('modelRoutingLockNotice')?.classList.toggle(
         'hidden',
         !policy.strategy_locked && !policy.preferred_provider_locked

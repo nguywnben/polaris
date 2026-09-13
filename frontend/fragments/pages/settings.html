@@ -30,16 +30,14 @@
                                     <p class="card-copy card-title-copy" data-i18n="language_region_description">Choose the language used by this browser for the console and its management messages.</p>
                                     <div class="form-group">
                                         <label for="consoleLanguage" data-i18n="display_language">Display language</label>
-                                        <select id="consoleLanguage" class="lang-switcher" aria-describedby="consoleLanguageHint"></select>
+                                        <select id="consoleLanguage" class="lang-switcher"></select>
                                     </div>
-                                    <p id="consoleLanguageHint" class="field-hint" data-i18n="language_browser_hint">Your choice is saved in this browser. New browsers start with the closest supported language for their region.</p>
                                 </section>
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.server_access">Server Access</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.server_access_description">Control the network interface used by the service after its next restart.</p>
                                     <div class="form-group"><label for="host" data-i18n="settings.bind_host">Bind host</label><input type="text" id="host" data-config-key="host" placeholder="0.0.0.0"></div>
                                     <div class="form-group"><label for="port" data-i18n="settings.port">Port</label><input type="number" id="port" data-config-key="port" min="1" max="65535" placeholder="4283"></div>
-                                    <p class="field-hint" data-i18n="settings.listener_restart_hint">Listener changes require an application restart. Docker port publishing must be updated separately.</p>
                                 </section>
 
                                 </div>
@@ -90,7 +88,6 @@
                                         </div>
                                         <div class="form-group"><label for="runtimeLogMaxMb" data-i18n="settings.log_file_size">Maximum file size in MB</label><input type="number" id="runtimeLogMaxMb" data-config-key="log_max_mb" min="1" max="1024"></div>
                                         <div class="form-group"><label for="runtimeLogBackupCount" data-i18n="settings.log_backups">Retained backup files</label><input type="number" id="runtimeLogBackupCount" data-config-key="log_backup_count" min="1" max="20"></div>
-                                        <p class="field-hint" data-i18n="settings.log_rotation_hint">Logs rotate automatically when the active file reaches the configured size.</p>
                                     </div>
                                 </details>
                                 </div>
@@ -101,8 +98,6 @@
                                     <p class="card-copy card-title-copy" data-i18n="settings.storage_proxy_description">Set credential storage and outbound network routing.</p>
                                     <div class="form-group"><label for="credentialsDir" data-i18n="settings.credentials_directory">Credentials directory</label><input type="text" id="credentialsDir" data-config-key="credentials_dir"></div>
                                     <div class="form-group"><label for="proxy" data-i18n="settings.outbound_proxy">Outbound proxy</label><input type="text" id="proxy" data-config-key="proxy" placeholder="http://127.0.0.1:7890"></div>
-                                    <p class="field-hint" data-i18n="settings.proxy_hint">Use the proxy when the server cannot reach OAuth or provider APIs directly.</p>
-                                    <p class="field-hint" data-i18n="settings.credentials_restart_hint">Changing the credentials directory requires an application restart.</p>
                                 </section>
 
                                 <section class="config-group">
@@ -131,7 +126,6 @@
                                         </select>
                                     </div>
                                     <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1"></div>
-                                    <p class="field-hint" data-i18n="settings.routing_fallback_hint">If the preferred provider is unavailable or incompatible with a model, routing continues through another healthy provider.</p>
                                 </section>
 
                                 <details class="config-group config-advanced-group" data-settings-tier="compatibility">

@@ -31,7 +31,7 @@
 .activity-filter-grid .form-group { margin: 0; }
 .activity-filter-actions { display: flex; align-items: flex-end; gap: 10px; }
 .activity-filter-request { grid-column: span 2; }
-.activity-filter-hint, .activity-filter-status { grid-column: 1 / -1; margin: 0; }
+.activity-filter-status { grid-column: 1 / -1; margin: 0; }
 .activity-filter-status { min-height: 1.4em; color: var(--text-muted); font-size: 13px; }
 .activity-filter-panel :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .activity-panel { min-width: 0; }
@@ -45,9 +45,8 @@
 .trace-panel-heading { margin-bottom: 18px; }
 .trace-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .trace-filter-grid .form-group, .trace-retention .form-group { margin: 0; }
-.trace-filter-wide, .trace-filter-hint { grid-column: 1 / -1; }
+.trace-filter-wide { grid-column: 1 / -1; }
 .trace-filter-actions { justify-content: flex-start; align-self: end; }
-.trace-filter-hint { margin: 0; }
 .trace-status { color: var(--text-muted); font-size: 13px; }
 .trace-list, .trace-decisions ol { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .trace-card { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .95fr) auto; gap: 16px; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-subtle); }
@@ -89,7 +88,7 @@
 .trace-empty { padding: 28px 14px; border: 1px dashed var(--border); border-radius: var(--radius); color: var(--text-muted); text-align: center; }
 .trace-card button:focus-visible, .trace-detail-dialog button:focus-visible, .trace-filter-grid :focus-visible, .trace-retention :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 @media (max-width: 960px) { .trace-layout { grid-template-columns: 1fr; } .trace-retention { position: static; } }
-@media (max-width: 760px) { .trace-filter-grid, .trace-detail-grid { grid-template-columns: 1fr; } .trace-filter-wide, .trace-filter-hint { grid-column: auto; } .trace-card { grid-template-columns: 1fr; } .trace-card > .btn { width: 100%; } .raw-log-header { flex-direction: column; } .trace-detail-actions { align-items: stretch; flex-direction: column-reverse; } .trace-detail-actions .btn { width: 100%; } }
+@media (max-width: 760px) { .trace-filter-grid, .trace-detail-grid { grid-template-columns: 1fr; } .trace-filter-wide { grid-column: auto; } .trace-card { grid-template-columns: 1fr; } .trace-card > .btn { width: 100%; } .raw-log-header { flex-direction: column; } .trace-detail-actions { align-items: stretch; flex-direction: column-reverse; } .trace-detail-actions .btn { width: 100%; } }
 
 .operational-health-card { margin: 0; }
 .operational-health-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
@@ -117,4 +116,4 @@
     #dashboardTab .operational-health-card, #dashboardTab .recent-activity-card { grid-column: span 12; }
     .slo-red-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 520px) { .activity-filter-grid { grid-template-columns: 1fr; } .activity-filter-request, .activity-filter-hint, .activity-filter-status { grid-column: auto; } .activity-filter-actions, .dashboard-activity-correlation { align-items: stretch; flex-direction: column; } .activity-filter-actions .btn, .dashboard-activity-correlation .btn { width: 100%; } .operational-health-header, .recent-activity-header { flex-direction: column; } .slo-red-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .activity-filter-grid { grid-template-columns: 1fr; } .activity-filter-request, .activity-filter-status { grid-column: auto; } .activity-filter-actions, .dashboard-activity-correlation { align-items: stretch; flex-direction: column; } .activity-filter-actions .btn, .dashboard-activity-correlation .btn { width: 100%; } .operational-health-header, .recent-activity-header { flex-direction: column; } .slo-red-grid { grid-template-columns: 1fr; } }

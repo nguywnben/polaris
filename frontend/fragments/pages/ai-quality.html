@@ -79,7 +79,6 @@
                                         <div class="form-group"><label for="tokenCompressionTarget" data-i18n="settings.compression_target">Target size in tokens</label><input type="number" id="tokenCompressionTarget" min="64" max="1999999" required data-quality-control data-policy-field="token_compression_target"></div>
                                         <div class="form-group"><label for="tokenCompressionMinRecentTurns" data-i18n="settings.recent_turns">Recent turns to preserve</label><input type="number" id="tokenCompressionMinRecentTurns" min="1" max="50" required data-quality-control data-policy-field="token_compression_min_recent_turns"></div>
                                     </div>
-                                    <p class="field-hint quality-safety-copy" data-i18n="quality.structural_only">Mode: structural pruning only. Semantic rewriting is not used.</p>
                                 </section>
 
                                 <section class="config-group">
@@ -89,7 +88,7 @@
                                     <div class="quality-dependent-controls" data-quality-dependency="qualityGuardrailsEnabled">
                                         <label class="switch-row"><input type="checkbox" id="qualityPiiMaskingEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_pii_masking_enabled"><span data-i18n="quality.mask_pii">Mask supported personal data</span></label>
                                         <label class="switch-row"><input type="checkbox" id="qualityInjectionDetectionEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_injection_detection_enabled"><span data-i18n="quality.detect_injection">Block prompt-injection patterns</span></label>
-                                        <div class="form-group"><label for="qualityBlockedKeywords" data-i18n="quality.blocked_keywords">Blocked keywords</label><textarea id="qualityBlockedKeywords" rows="3" maxlength="12900" data-quality-control data-policy-field="guardrails_blocked_keywords" data-i18n-placeholder="quality.blocked_keywords_placeholder" placeholder="One keyword per line or comma-separated"></textarea><p class="field-hint" data-i18n="quality.blocked_keywords_hint">Up to 100 keywords, each no longer than 128 characters.</p></div>
+                                        <div class="form-group"><label for="qualityBlockedKeywords" data-i18n="quality.blocked_keywords">Blocked keywords</label><textarea id="qualityBlockedKeywords" rows="3" maxlength="12900" data-quality-control data-policy-field="guardrails_blocked_keywords" data-i18n-placeholder="quality.blocked_keywords_placeholder" placeholder="One keyword per line or comma-separated"></textarea></div>
                                     </div>
                                 </section>
 
@@ -101,7 +100,6 @@
                                         <div class="form-group"><label for="qualityResponseCacheTtl" data-i18n="quality.cache_ttl">Entry lifetime in seconds</label><input type="number" id="qualityResponseCacheTtl" min="1" max="86400" required data-quality-control data-policy-field="response_cache_ttl_seconds"></div>
                                         <div class="form-group"><label for="qualityResponseCacheMaxEntries" data-i18n="quality.cache_entries">Maximum cached responses</label><input type="number" id="qualityResponseCacheMaxEntries" min="1" max="100000" required data-quality-control data-policy-field="response_cache_max_entries"></div>
                                     </div>
-                                    <p class="field-hint quality-safety-copy" data-i18n="quality.cache_scope">Streaming and non-deterministic requests always bypass this cache.</p>
                                 </section>
                             </div>
 

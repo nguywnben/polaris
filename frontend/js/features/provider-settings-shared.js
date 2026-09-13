@@ -193,8 +193,7 @@ const PROVIDER_FORM_COPY_CONTRACT = Object.freeze([
     {selector: '#providerWorkspaceClaudePlatform .provider-settings-header h2', key: 'advanced_settings', provider: 'Claude Platform'},
     {selector: '#providerWorkspaceOllama .provider-tools-grid .tool-panel:first-child h2', key: 'connection_title', provider: 'Ollama'},
     {selector: '#ollamaCredentialForm label[for="ollamaBaseUrl"]', key: 'endpoint_label'},
-    {selector: '#ollamaCredentialForm .field-optional', key: 'optional'},
-    {selector: '#ollamaCredentialForm > .form-help:not(.provider-field-help)', key: 'ollama_docker_help'}
+    {selector: '#ollamaCredentialForm .field-optional', key: 'optional'}
 ]);
 
 function getProviderFormFields(scope) {
@@ -230,17 +229,7 @@ function applyProviderFormContract() {
             if (definition.secretLifetime === 'submit') {
                 field.placeholder = t(definition.helpKey);
             }
-            let help = document.getElementById(`${definition.id}Help`);
-            if (!help && definition.type !== 'checkbox') {
-                help = document.createElement('p');
-                help.id = `${definition.id}Help`;
-                help.className = 'form-help provider-field-help';
-                field.insertAdjacentElement('afterend', help);
-            }
-            if (!help) return;
-            help.dataset.i18n = definition.helpKey;
-            help.textContent = t(definition.helpKey);
-            field.setAttribute('aria-describedby', help.id);
+            field.removeAttribute('aria-describedby');
         });
     });
 }

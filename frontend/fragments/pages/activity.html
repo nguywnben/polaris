@@ -26,7 +26,6 @@
                             </div>
                             <div class="form-group activity-filter-request"><label for="activityRequestId" data-i18n="trace.request_id">Request ID</label><input id="activityRequestId" name="request_id" maxlength="128" pattern="[A-Za-z0-9._:\-]{1,128}" autocomplete="off" placeholder="req-…"></div>
                             <div class="activity-filter-actions"><button type="submit" class="btn" data-i18n="activity.apply_filters">Apply to Activity</button><button type="button" class="btn btn-secondary" data-ui-action="clear-activity-filters" data-i18n="trace.clear">Clear</button></div>
-                            <p class="field-hint activity-filter-hint" data-i18n="activity.filter_scope">Time, outcome, and request ID follow every view. Provider applies to request traces; actor applies to audit events. Runtime logs use bounded text matching.</p>
                             <p id="activityFilterStatus" class="activity-filter-status" role="status" aria-live="polite"></p>
                         </form>
                     </section>

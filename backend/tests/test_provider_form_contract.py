@@ -140,8 +140,8 @@ class ProviderFormContractTests(unittest.TestCase):
         )
         self.assertIn("field.dataset.secretLifetime", CONTRACT_SOURCE)
         self.assertIn("field.setCustomValidity", CONTRACT_SOURCE)
-        self.assertIn("document.createElement('p')", CONTRACT_SOURCE)
-        self.assertIn("field.insertAdjacentElement('afterend', help)", CONTRACT_SOURCE)
+        self.assertNotIn("provider-field-help", CONTRACT_SOURCE)
+        self.assertNotIn("field.insertAdjacentElement('afterend', help)", CONTRACT_SOURCE)
         self.assertNotIn("localStorage", CONTRACT_SOURCE)
         self.assertNotIn("sessionStorage", CONTRACT_SOURCE)
 
@@ -187,10 +187,10 @@ class ProviderFormContractTests(unittest.TestCase):
         self.assertEqual(label_locales, locales)
         self.assertIn("values.length !== PROVIDER_FORM_LABEL_KEYS.length", LOCALE_SOURCE)
 
-    def test_google_family_fields_expose_contextual_help(self):
+    def test_google_family_fields_do_not_render_below_field_notes(self):
         for field_id in GOOGLE_HELP_FIELDS:
             with self.subTest(field_id=field_id):
-                self.assertIn(f'id="{field_id}Help"', PROVIDER_HTML)
+                self.assertNotIn(f'id="{field_id}Help"', PROVIDER_HTML)
 
         google_script = (ROOT / "frontend/js/features/google-ai-studio-settings.js").read_text(
             encoding="utf-8"

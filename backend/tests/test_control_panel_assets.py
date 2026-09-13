@@ -300,6 +300,31 @@ class ControlPanelAssetTests(unittest.TestCase):
             provider_styles,
         )
 
+    def test_static_below_field_notes_are_not_rendered(self):
+        body = serve_control_panel().body.decode("utf-8")
+        virtual_key_script = read_scripts("features/virtual-keys.js")
+
+        self.assertNotIn('class="form-help', body)
+        for marker in (
+            'data-i18n="setup_token_hint"',
+            'data-i18n="setup_password_hint"',
+            'id="consoleLanguageHint"',
+            'id="modelRoutingStrategyHint"',
+            'class="field-hint trace-filter-hint"',
+            'class="field-hint activity-filter-hint"',
+            'class="field-hint audit-filter-hint"',
+            'class="field-hint quality-safety-copy"',
+            'data-i18n="quality.blocked_keywords_hint"',
+            'data-i18n="settings.listener_restart_hint"',
+            'data-i18n="settings.log_rotation_hint"',
+            'data-i18n="settings.proxy_hint"',
+            'data-i18n="settings.credentials_restart_hint"',
+            'data-i18n="settings.routing_fallback_hint"',
+        ):
+            with self.subTest(marker=marker):
+                self.assertNotIn(marker, body)
+        self.assertNotIn("access.allowed_models_hint", virtual_key_script)
+
     def test_xai_provider_ui_references_existing_assets_and_endpoints(self):
         response = serve_control_panel()
         body = response.body.decode("utf-8")
