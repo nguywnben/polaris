@@ -299,6 +299,10 @@ class ControlPanelAssetTests(unittest.TestCase):
             ".provider-catalog-toolbar strong,\n.provider-catalog-search-label",
             provider_styles,
         )
+        self.assertRegex(
+            provider_styles,
+            r"(?s)\.provider-catalog-search-group\s*\{[^}]*grid-template-columns: max-content minmax\(220px, 1fr\);[^}]*align-items: center;",
+        )
 
     def test_static_below_field_notes_are_not_rendered(self):
         body = serve_control_panel().body.decode("utf-8")
