@@ -32,6 +32,8 @@ CREDENTIAL_OPERATIONS = frozenset(
         "quota",
         "model_discovery",
         "disable",
+        "edit",
+        "reauthenticate",
         "refresh_identity",
         "toggle",
         "delete",
@@ -67,6 +69,7 @@ _COMMON_CREDENTIAL_OPERATIONS = (
     "test",
     "model_discovery",
     "disable",
+    "edit",
     "export",
     "delete",
     "toggle",
@@ -226,7 +229,13 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
         provider_id=GOOGLE_ANTIGRAVITY,
         display_name=_PROVIDER_NAMES[GOOGLE_ANTIGRAVITY],
         credential_type="oauth",
-        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "quota", "credit_mode"),
+        operations=(
+            *_COMMON_CREDENTIAL_OPERATIONS,
+            "refresh",
+            "reauthenticate",
+            "quota",
+            "credit_mode",
+        ),
     ),
     GOOGLE_AI_STUDIO: CredentialVariantCapabilities(
         variant_id=GOOGLE_AI_STUDIO,
@@ -240,7 +249,7 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
         provider_id=XAI,
         display_name=_CREDENTIAL_PROVIDER_NAMES[GROK],
         credential_type="oauth",
-        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "quota"),
+        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "reauthenticate", "quota"),
     ),
     XAI_CONSOLE: CredentialVariantCapabilities(
         variant_id=XAI_CONSOLE,
@@ -254,7 +263,7 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
         provider_id=OPENAI,
         display_name=_CREDENTIAL_PROVIDER_NAMES[CODEX],
         credential_type="oauth",
-        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "quota"),
+        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "reauthenticate", "quota"),
     ),
     OPENAI_PLATFORM: CredentialVariantCapabilities(
         variant_id=OPENAI_PLATFORM,
@@ -268,7 +277,7 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
         provider_id=ANTHROPIC,
         display_name=_CREDENTIAL_PROVIDER_NAMES[CLAUDE_CODE],
         credential_type="oauth",
-        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh"),
+        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "reauthenticate"),
     ),
     CLAUDE_PLATFORM: CredentialVariantCapabilities(
         variant_id=CLAUDE_PLATFORM,

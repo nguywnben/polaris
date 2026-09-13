@@ -176,6 +176,34 @@ for (const [locale, label] of Object.entries(CREDENTIAL_ACTION_MORE_LABELS)) {
     PAGE_LOCALE_TRANSLATIONS[locale]['pool.actions.more'] = label;
 }
 
+const CREDENTIAL_LIFECYCLE_LABELS = {
+    en: ['Edit', 'Re-authenticate', 'Environment', 'Display name', 'Leave blank to keep the current key'],
+    'zh-CN': ['编辑', '重新认证', '环境', '显示名称', '留空以保留当前密钥'],
+    'zh-TW': ['編輯', '重新驗證', '環境', '顯示名稱', '留空以保留目前金鑰'],
+    de: ['Bearbeiten', 'Neu authentifizieren', 'Umgebung', 'Anzeigename', 'Leer lassen, um den aktuellen Schlüssel beizubehalten'],
+    es: ['Editar', 'Volver a autenticar', 'Entorno', 'Nombre para mostrar', 'Déjalo vacío para conservar la clave actual'],
+    fr: ['Modifier', 'Se réauthentifier', 'Environnement', 'Nom affiché', 'Laisser vide pour conserver la clé actuelle'],
+    id: ['Edit', 'Autentikasi ulang', 'Lingkungan', 'Nama tampilan', 'Kosongkan untuk mempertahankan kunci saat ini'],
+    it: ['Modifica', 'Autentica di nuovo', 'Ambiente', 'Nome visualizzato', 'Lascia vuoto per mantenere la chiave attuale'],
+    ja: ['編集', '再認証', '環境', '表示名', '現在のキーを保持するには空欄にします'],
+    ko: ['편집', '다시 인증', '환경', '표시 이름', '현재 키를 유지하려면 비워 두세요'],
+    pt: ['Editar', 'Autenticar novamente', 'Ambiente', 'Nome de exibição', 'Deixe em branco para manter a chave atual'],
+    ru: ['Изменить', 'Повторно войти', 'Окружение', 'Отображаемое имя', 'Оставьте пустым, чтобы сохранить текущий ключ'],
+    th: ['แก้ไข', 'ยืนยันตัวตนอีกครั้ง', 'สภาพแวดล้อม', 'ชื่อที่แสดง', 'เว้นว่างเพื่อใช้คีย์ปัจจุบันต่อไป'],
+    tr: ['Düzenle', 'Yeniden doğrula', 'Ortam', 'Görünen ad', 'Mevcut anahtarı korumak için boş bırakın'],
+    vi: ['Chỉnh sửa', 'Xác thực lại', 'Môi trường', 'Tên hiển thị', 'Để trống để giữ nguyên khóa hiện tại']
+};
+
+for (const [locale, labels] of Object.entries(CREDENTIAL_LIFECYCLE_LABELS)) {
+    Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], {
+        credential_edit_action: labels[0],
+        credential_reauthenticate_action: labels[1],
+        credential_badge_environment: labels[2],
+        credential_display_name: labels[3],
+        credential_key_unchanged: labels[4]
+    });
+}
+
 const CREDENTIAL_OPERATION_VALUES = {
     en: [
         'Narrow the selection to 100 credentials or fewer.', 'This operation is not supported by every selected credential type.', 'Verification currently requires an explicit page selection.',

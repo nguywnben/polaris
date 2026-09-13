@@ -9,7 +9,11 @@ from config import (
     get_code_assist_endpoint,
     get_google_ai_studio_api_url,
 )
-from core.anthropic import AnthropicError, refresh_claude_oauth_credential
+from core.anthropic import (
+    AnthropicError,
+    refresh_claude_oauth_credential,
+    validate_anthropic_api_key,
+)
 from core.api.primary import fetch_quota_info
 from core.codex import CodexError, refresh_codex_oauth_credential
 from core.codex_usage import fetch_codex_usage
@@ -36,8 +40,10 @@ from core.credential_fleet_query import (
 from core.credential_manager import credential_manager
 from core.credential_operation_evidence import record_durable_credential_mutation
 from core.google_ai_studio import (
+    GoogleAIStudioError,
     build_api_key_headers,
     build_generation_url,
+    validate_api_key,
 )
 from core.google_oauth_api import Credentials, merge_refreshed_credential_data
 from core.i18n import LocalizedJSONResponse as JSONResponse
@@ -45,10 +51,12 @@ from core.model_pool import ModelPoolError, model_catalog_service, normalize_mod
 from core.models import (
     CredentialBatchOperationResponse,
     CredentialModelTestRequest,
+    CredentialUpdateRequest,
     CredFileActionRequest,
     CredFileBatchActionRequest,
 )
-from core.ollama import OllamaError
+from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
+from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
 from core.pool_import import PoolImportError, restore_pool_archive
 from core.provider_connection_diagnostics import (
     CONNECTION_TEST_TIMEOUT_SECONDS,
@@ -66,14 +74,17 @@ from core.provider_registry import (
     OLLAMA,
     OPENAI,
     XAI,
+    api_key_fingerprint,
+    credential_supports_operation,
     get_credential_provider,
     get_credential_provider_variant,
     get_declared_credential_models,
+    get_static_credential_identity,
     is_api_key_credential,
 )
 from core.storage_adapter import get_storage_adapter
 from core.utils import CODE_ASSIST_USER_AGENT, verify_panel_token
-from core.xai import XaiError, refresh_xai_oauth_credential
+from core.xai import XaiError, refresh_xai_oauth_credential, validate_xai_api_key
 from core.xai_billing import fetch_xai_billing_usage
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from log import log
@@ -109,6 +120,190 @@ async def _get_available_credential_models(credential_data: dict) -> list[str]:
     provider_id = get_credential_provider(credential_data)
     catalog = await model_catalog_service.get_catalog()
     return [entry.model_id for entry in catalog if provider_id in entry.providers]
+
+
+def _editable_credential_fields(credential_data: dict) -> list[str]:
+    if credential_data.get("source") == "environment":
+        return []
+    fields = ["credential_label"]
+    credential_type = str(credential_data.get("credential_type") or "").strip().lower()
+    if credential_type == "api_key":
+        fields.append("api_key")
+    if get_credential_provider(credential_data) == OLLAMA:
+        fields.extend(("api_key", "base_url"))
+    return list(dict.fromkeys(fields))
+
+
+def _credential_configuration_payload(filename: str, credential_data: dict) -> dict:
+    source = "environment" if credential_data.get("source") == "environment" else "managed"
+    provider_id = get_credential_provider(credential_data)
+    fields = _editable_credential_fields(credential_data)
+    payload = {
+        "filename": filename,
+        "provider": provider_id,
+        "provider_variant": get_credential_provider_variant(credential_data),
+        "credential_type": str(credential_data.get("credential_type") or "oauth"),
+        "credential_label": credential_data.get("credential_label"),
+        "source": source,
+        "editable": bool(fields) and credential_supports_operation(credential_data, "edit"),
+        "editable_fields": fields,
+        "can_reauthenticate": (
+            source == "managed" and credential_supports_operation(credential_data, "reauthenticate")
+        ),
+        "has_api_key": bool(credential_data.get("api_key")),
+    }
+    if provider_id == OLLAMA:
+        payload["base_url"] = str(credential_data.get("base_url") or "")
+    return payload
+
+
+async def _validate_credential_update(candidate: dict, changed_fields: set[str]) -> None:
+    provider_id = get_credential_provider(candidate)
+    credential_type = str(candidate.get("credential_type") or "").strip().lower()
+
+    if provider_id == OLLAMA:
+        if changed_fields & {"api_key", "base_url"}:
+            validation = await validate_ollama_connection(
+                str(candidate.get("base_url") or ""),
+                str(candidate.get("api_key") or ""),
+            )
+            candidate["model_ids"] = validation.model_ids
+        return
+
+    if "base_url" in changed_fields:
+        raise HTTPException(
+            status_code=422,
+            detail="The endpoint can only be edited for Ollama connections.",
+        )
+    if "api_key" not in changed_fields:
+        return
+    if credential_type != "api_key":
+        raise HTTPException(
+            status_code=422,
+            detail="OAuth secrets cannot be edited. Re-authenticate the account instead.",
+        )
+
+    api_key = str(candidate.get("api_key") or "")
+    if provider_id == GOOGLE_AI_STUDIO:
+        validation = await validate_api_key(api_key)
+    elif provider_id == XAI:
+        validation = await validate_xai_api_key(api_key)
+    elif provider_id == OPENAI:
+        validation = await validate_openai_api_key(api_key)
+    elif provider_id == ANTHROPIC:
+        validation = await validate_anthropic_api_key(api_key)
+    else:
+        raise HTTPException(status_code=422, detail="This API key type cannot be edited.")
+    candidate["model_ids"] = validation.model_ids
+
+
+@router.get("/configuration/{filename}")
+async def get_credential_configuration(
+    filename: str,
+    token: str = Depends(verify_panel_token),
+    mode: str = "provider",
+):
+    """Return only safe fields needed by the provider-pool edit form."""
+    mode = validate_mode(mode)
+    if mode != "primary":
+        raise HTTPException(status_code=400, detail="Only provider-pool credentials are editable.")
+    filename = validate_credential_filename(filename)
+    storage_adapter = await get_storage_adapter()
+    credential_data = await storage_adapter.get_credential(filename, mode=mode)
+    if not credential_data:
+        raise HTTPException(status_code=404, detail="Credential does not exist.")
+    rejection = reject_unsupported_credential_operation(credential_data, "edit", mode=mode)
+    if rejection:
+        return rejection
+    return JSONResponse(content=_credential_configuration_payload(filename, credential_data))
+
+
+@router.patch("/configuration/{filename}")
+async def update_credential_configuration(
+    filename: str,
+    request: CredentialUpdateRequest,
+    token: str = Depends(verify_panel_token),
+    mode: str = "provider",
+):
+    """Validate and update safe provider-pool credential fields in place."""
+    mode = validate_mode(mode)
+    if mode != "primary":
+        raise HTTPException(status_code=400, detail="Only provider-pool credentials are editable.")
+    filename = validate_credential_filename(filename)
+    storage_adapter = await get_storage_adapter()
+    credential_data = await storage_adapter.get_credential(filename, mode=mode)
+    if not credential_data:
+        raise HTTPException(status_code=404, detail="Credential does not exist.")
+    rejection = reject_unsupported_credential_operation(credential_data, "edit", mode=mode)
+    if rejection:
+        return rejection
+    if credential_data.get("source") == "environment":
+        raise HTTPException(
+            status_code=409,
+            detail="This credential is managed by environment variables and is read-only here.",
+        )
+
+    changed_fields = set(request.model_fields_set)
+    editable_fields = set(_editable_credential_fields(credential_data))
+    unsupported = sorted(changed_fields - editable_fields)
+    if unsupported:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported credential field(s): {', '.join(unsupported)}.",
+        )
+
+    candidate = dict(credential_data)
+    if "credential_label" in changed_fields:
+        candidate["credential_label"] = str(request.credential_label or "").strip()
+    if "api_key" in changed_fields:
+        candidate["api_key"] = request.api_key.get_secret_value().strip() if request.api_key else ""
+    if "base_url" in changed_fields:
+        try:
+            candidate["base_url"] = normalize_ollama_base_url(str(request.base_url or ""))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        await _validate_credential_update(candidate, changed_fields)
+    except (GoogleAIStudioError, XaiError, OpenAIPlatformError, AnthropicError, OllamaError) as exc:
+        raise HTTPException(
+            status_code=getattr(exc, "status_code", 400),
+            detail=public_error_detail(exc),
+        ) from exc
+
+    if changed_fields & {"api_key", "base_url"}:
+        if get_credential_provider(candidate) == OLLAMA:
+            candidate["connection_fingerprint"] = api_key_fingerprint(
+                f"{str(candidate.get('base_url') or '').rstrip('/')}\0"
+                f"{str(candidate.get('api_key') or '')}"
+            )
+        elif is_api_key_credential(candidate):
+            candidate["key_fingerprint"] = api_key_fingerprint(str(candidate.get("api_key") or ""))
+        candidate_identity = get_static_credential_identity(candidate)
+        for other_filename, other_data in (
+            await storage_adapter.get_all_credentials(mode=mode)
+        ).items():
+            if (
+                other_filename != filename
+                and get_static_credential_identity(other_data) == candidate_identity
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Another provider-pool credential already uses this connection.",
+                )
+
+    stored = await storage_adapter.store_credential(filename, candidate, mode=mode)
+    if not stored:
+        raise HTTPException(status_code=500, detail="The credential update could not be stored.")
+    return JSONResponse(
+        content={
+            **_credential_configuration_payload(filename, candidate),
+            "success": True,
+            "changed_fields": sorted(changed_fields),
+            "model_count": len(get_declared_credential_models(candidate)),
+            "message": "Credential settings updated and validated.",
+        }
+    )
 
 
 def _credential_test_failure_response(

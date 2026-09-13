@@ -908,6 +908,104 @@ class CredentialStatusModelTests(unittest.IsolatedAsyncioTestCase):
         fetch_models.assert_awaited_once_with("sk-platform-example-key")
         self.assertEqual(storage.stored_credential[1]["model_ids"], ["gpt-4.1", "gpt-5"])
 
+    async def test_claude_code_verification_preserves_disabled_state(self):
+        credential = {
+            "provider": "anthropic",
+            "credential_type": "oauth",
+            "access_token": "claude-access-token",
+            "refresh_token": "claude-refresh-token",
+            "disabled": True,
+        }
+        storage = FakeProviderStorage(credential)
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.credential_manager.prepare_credential",
+                AsyncMock(return_value=dict(credential)),
+            ) as prepare,
+            patch(
+                "core.panel.credential_operations.fetch_anthropic_model_ids",
+                AsyncMock(return_value=["claude-sonnet-4-6"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common("claude-code-example.json", mode="primary")
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "oauth")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        prepare.assert_awaited_once()
+        fetch_models.assert_awaited_once()
+
+    async def test_claude_platform_verification_preserves_disabled_state(self):
+        credential = {
+            "provider": "anthropic",
+            "credential_type": "api_key",
+            "api_key": "sk-ant-example-key",
+            "disabled": True,
+        }
+        storage = FakeProviderStorage(credential)
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.fetch_anthropic_model_ids",
+                AsyncMock(return_value=["claude-opus-4-1"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common(
+                "claude-platform-example.json", mode="primary"
+            )
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "api_key")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        fetch_models.assert_awaited_once()
+        verified_credential = fetch_models.await_args.args[0]
+        self.assertEqual(verified_credential["api_key"], "sk-ant-example-key")
+
+    async def test_ollama_verification_preserves_disabled_state(self):
+        storage = FakeProviderStorage(
+            {
+                "provider": "ollama",
+                "credential_type": "connection",
+                "base_url": "http://host.docker.internal:11434",
+                "api_key": "optional-secret",
+                "disabled": True,
+            }
+        )
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.fetch_ollama_model_ids",
+                AsyncMock(return_value=["qwen3.5"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common("ollama-example.json", mode="primary")
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "connection")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        fetch_models.assert_awaited_once_with(
+            "http://host.docker.internal:11434", "optional-secret"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

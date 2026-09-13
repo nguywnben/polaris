@@ -65,6 +65,9 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/credentials/verify/{filename}"): _mutation(
         "credential.verify", "credential", "verified"
     ),
+    ("PATCH", "/api/credentials/configuration/{filename}"): _mutation(
+        "credential.update", "credential", "settings_changed"
+    ),
     ("POST", "/api/credentials/configure-preview/{filename}"): _mutation(
         "credential.update", "credential", "settings_changed"
     ),

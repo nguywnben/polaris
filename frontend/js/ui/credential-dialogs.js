@@ -76,6 +76,126 @@ function buildCredentialModelsHtml(context) {
 
 }
 
+function credentialEditField(configuration, field) {
+    return Array.isArray(configuration.editable_fields)
+        && configuration.editable_fields.includes(field);
+}
+
+async function showCredentialEditModal(pathId) {
+    const context = getCredentialModalContext(pathId, AppState.primaryCreds);
+    if (!context.filename || context.manager?.type !== 'primary') return;
+
+    showStatus(t('status_loading_file_content'), 'info');
+    try {
+        const endpoint = `./api/credentials/configuration/${encodeURIComponent(context.filename)}?mode=provider`;
+        const response = await fetch(endpoint, {headers: getAuthHeaders()});
+        const configuration = await response.json().catch(() => ({}));
+        if (!response.ok || !configuration.editable) {
+            throw new Error(configuration.detail || configuration.error || t('unknown_error'));
+        }
+
+        const title = `${t('credential_edit_action')} — ${context.providerName}`;
+        const modal = document.createElement('div');
+        modal.className = 'message-modal-overlay';
+        modal.innerHTML = `
+            <div class="message-modal credential-edit-modal" role="dialog" aria-modal="true" aria-labelledby="credentialEditTitle">
+                <div class="message-modal-header"><h3 id="credentialEditTitle">${escapeHtml(title)}</h3></div>
+                <form data-credential-edit-form>
+                    <div class="message-modal-body credential-edit-form-body">
+                        ${credentialEditField(configuration, 'credential_label') ? `
+                            <label class="message-modal-field">
+                                <span class="message-modal-field-label">${escapeHtml(t('credential_display_name'))}</span>
+                                <input class="message-modal-input" name="credential_label" maxlength="128" required value="${escapeAttribute(configuration.credential_label || '')}">
+                            </label>` : ''}
+                        ${credentialEditField(configuration, 'base_url') ? `
+                            <label class="message-modal-field">
+                                <span class="message-modal-field-label">${escapeHtml(t('provider.form.endpoint_label'))}</span>
+                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" required value="${escapeAttribute(configuration.base_url || '')}">
+                            </label>` : ''}
+                        ${credentialEditField(configuration, 'api_key') ? `
+                            <label class="message-modal-field">
+                                <span class="message-modal-field-label">${escapeHtml(t('api_key'))}</span>
+                                <input class="message-modal-input" name="api_key" type="password" maxlength="4096" autocomplete="new-password" placeholder="${escapeAttribute(t('credential_key_unchanged'))}">
+                            </label>` : ''}
+                        <div class="credential-edit-error hidden" data-credential-edit-error role="alert"></div>
+                    </div>
+                    <div class="message-modal-footer">
+                        <button type="button" class="message-modal-btn" data-credential-edit-cancel>${escapeHtml(t('btn_cancel'))}</button>
+                        <button type="submit" class="message-modal-btn message-modal-btn-primary">${escapeHtml(t('save'))}</button>
+                    </div>
+                </form>
+            </div>`;
+
+        const form = modal.querySelector('[data-credential-edit-form]');
+        const error = modal.querySelector('[data-credential-edit-error]');
+        const submit = form.querySelector('button[type="submit"]');
+        let saving = false;
+        const close = () => {
+            if (!saving) void unmountModal(modal);
+        };
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal || event.target.closest('[data-credential-edit-cancel]')) close();
+        });
+        modal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') close();
+        });
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const values = new FormData(form);
+            const payload = {};
+            const label = String(values.get('credential_label') || '').trim();
+            const baseUrl = String(values.get('base_url') || '').trim();
+            const apiKey = String(values.get('api_key') || '').trim();
+            if (credentialEditField(configuration, 'credential_label')
+                && label !== String(configuration.credential_label || '')) payload.credential_label = label;
+            if (credentialEditField(configuration, 'base_url')
+                && baseUrl !== String(configuration.base_url || '')) payload.base_url = baseUrl;
+            if (credentialEditField(configuration, 'api_key') && apiKey) payload.api_key = apiKey;
+            if (!Object.keys(payload).length) {
+                void unmountModal(modal);
+                return;
+            }
+
+            saving = true;
+            submit.disabled = true;
+            form.setAttribute('aria-busy', 'true');
+            error.classList.add('hidden');
+            try {
+                const saveResponse = await fetch(endpoint, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                const result = await saveResponse.json().catch(() => ({}));
+                if (!saveResponse.ok) throw new Error(result.detail || result.error || t('unknown_error'));
+                saving = false;
+                await unmountModal(modal);
+                showStatus(t('status_action_success', {action: t('credential_edit_action')}), 'success');
+                await context.manager.refresh({preserveContent: true});
+            } catch (saveError) {
+                saving = false;
+                submit.disabled = false;
+                form.removeAttribute('aria-busy');
+                error.textContent = saveError.message || t('unknown_error');
+                error.classList.remove('hidden');
+            }
+        });
+        await mountModal(modal);
+        form.querySelector('input')?.focus();
+    } catch (error) {
+        showStatus(t('status_action_failed', {error: error.message || t('unknown_error')}), 'error');
+    }
+}
+
+function reauthenticateCredential(pathId) {
+    const context = getCredentialModalContext(pathId, AppState.primaryCreds);
+    if (!context.providerVariant || context.credentialSource === 'environment') return;
+    selectProviderWorkspace(context.providerVariant);
+    navigate('/providers', true);
+    document.getElementById(PROVIDER_WORKSPACES[context.providerVariant]?.panelId)
+        ?.scrollIntoView({block: 'start'});
+}
+
 async function showCredentialModels(pathId) {
 
     showStatus(t('runtime.loading_models'), 'info');

@@ -264,6 +264,7 @@ function createCredCard(credInfo, manager) {
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
     const isAntigravity = providerMeta.id === 'google_antigravity';
     const isCodexOAuth = providerMeta.id === 'codex' && credInfo.credential_type === 'oauth';
+    const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
     const supportsQuotaPreview = managerType === 'primary'
         && manager.credentialSupportsOperation(credInfo, 'quota');
@@ -274,6 +275,10 @@ function createCredCard(credInfo, manager) {
     const supportsVerify = manager.credentialSupportsOperation(credInfo, 'verify');
     const supportsTest = manager.credentialSupportsOperation(credInfo, 'test');
     const supportsDelete = manager.credentialSupportsOperation(credInfo, 'delete');
+    const supportsEdit = managerType === 'primary' && isManagedCredential
+        && manager.credentialSupportsOperation(credInfo, 'edit');
+    const supportsReauthenticate = managerType === 'primary' && isManagedCredential
+        && manager.credentialSupportsOperation(credInfo, 'reauthenticate');
     const shouldAutoLoadQuota = supportsQuotaPreview && !AppState.quotaPreviewCache[filename];
 
     if (shouldAutoLoadQuota) {
@@ -319,6 +324,10 @@ function createCredCard(credInfo, manager) {
     }
 
     statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo);
+
+    if (!isManagedCredential) {
+        statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
+    }
 
     if (isAntigravity) {
 
@@ -406,6 +415,8 @@ function createCredCard(credInfo, manager) {
         email: credInfo.user_email || '',
         accountLabel: credInfo.user_email || credInfo.credential_label || '',
         providerName: providerMeta.name,
+        providerVariant: providerMeta.id,
+        credentialSource: credInfo.source || 'managed',
         modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
         subscriptionPlan: isAntigravity ? credInfo.tier : '',
         subscriptionKind: isAntigravity ? 'plan' : '',
@@ -430,6 +441,10 @@ function createCredCard(credInfo, manager) {
     `;
 
     const secondaryActionButtons = `
+
+        ${supportsEdit ? `<button type="button" class="cred-btn" data-credential-command="edit">${t('credential_edit_action')}</button>` : ''}
+
+        ${supportsReauthenticate ? `<button type="button" class="cred-btn" data-credential-command="reauthenticate">${t('credential_reauthenticate_action')}</button>` : ''}
 
         ${supportsExport ? `<button type="button" class="cred-btn download" data-credential-command="download">${t('btn_download')}</button>` : ''}
 
@@ -532,6 +547,8 @@ function createCredCard(credInfo, manager) {
                 else downloadCred(filename);
             }
             if (command === 'quota') await togglePrimaryQuotaDetails(pathId);
+            if (command === 'edit') await showCredentialEditModal(pathId);
+            if (command === 'reauthenticate') reauthenticateCredential(pathId);
             if (command === 'models') await showCredentialModels(pathId);
             if (command === 'preview') await configurePreviewChannel(filename);
             if (command === 'verify') {

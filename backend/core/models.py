@@ -985,6 +985,18 @@ class CredentialModelTestRequest(BaseModel):
     model: str = Field(min_length=1, max_length=200)
 
 
+class CredentialUpdateRequest(BaseModel):
+    credential_label: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    api_key: Optional[SecretStr] = Field(default=None, min_length=1, max_length=4096)
+    base_url: Optional[str] = Field(default=None, min_length=1, max_length=2048)
+
+    @model_validator(mode="after")
+    def require_at_least_one_change(self) -> "CredentialUpdateRequest":
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one credential field to update.")
+        return self
+
+
 class CredFileActionRequest(BaseModel):
     filename: str
     action: str  # enable, disable, delete

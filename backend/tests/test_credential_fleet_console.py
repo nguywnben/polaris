@@ -127,6 +127,22 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertGreater(credit_action, secondary_start)
         self.assertGreater(quota_action, secondary_start)
 
+    def test_cards_expose_safe_edit_and_oauth_reauthentication_actions(self) -> None:
+        cards = CARD_SOURCE.read_text(encoding="utf-8")
+        dialogs = (ROOT / "frontend/js/ui/credential-dialogs.js").read_text(encoding="utf-8")
+
+        self.assertIn("const isManagedCredential", cards)
+        self.assertIn("supportsEdit", cards)
+        self.assertIn("supportsReauthenticate", cards)
+        self.assertIn('data-credential-command="edit"', cards)
+        self.assertIn('data-credential-command="reauthenticate"', cards)
+        self.assertIn("credential_badge_environment", cards)
+        self.assertIn("showCredentialEditModal(pathId)", cards)
+        self.assertIn("reauthenticateCredential(pathId)", cards)
+        self.assertIn("/configuration/", dialogs)
+        self.assertIn("method: 'PATCH'", dialogs)
+        self.assertIn("data-credential-edit-form", dialogs)
+
     def test_explicit_and_all_matching_batches_share_the_100_item_bound(self) -> None:
         self._run_manager_contract(
             """

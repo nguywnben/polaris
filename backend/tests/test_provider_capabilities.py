@@ -49,11 +49,12 @@ class ProviderCapabilityTests(unittest.TestCase):
             "test",
             "model_discovery",
             "disable",
+            "edit",
             "export",
             "delete",
             "toggle",
         }
-        oauth = common | {"refresh"}
+        oauth = common | {"refresh", "reauthenticate"}
         expected_operations = {
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             GOOGLE_AI_STUDIO: common,
@@ -106,11 +107,12 @@ class ProviderCapabilityTests(unittest.TestCase):
             "test",
             "model_discovery",
             "disable",
+            "edit",
             "toggle",
             "delete",
             "export",
         }
-        oauth = common | {"refresh"}
+        oauth = common | {"refresh", "reauthenticate"}
         expected = {
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             GOOGLE_AI_STUDIO: common,
