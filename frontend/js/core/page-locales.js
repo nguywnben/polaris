@@ -2514,6 +2514,7 @@ for (const locale of Object.keys(PAGE_LOCALE_TRANSLATIONS)) {
 
 const PRODUCTION_DASHBOARD_MESSAGES = {
     en: {
+        'dashboard.period_1d': 'today',
         'dashboard.metrics': 'Gateway metrics',
         'dashboard.provider_attempts': 'Provider attempts',
         'dashboard.provider_attempts_period': 'Provider attempts {period}',
@@ -2553,6 +2554,7 @@ const PRODUCTION_DASHBOARD_MESSAGES = {
         'dashboard.timeline_traffic': 'Provider attempts over time'
     },
     vi: {
+        'dashboard.period_1d': 'hôm nay',
         'dashboard.metrics': 'Chỉ số gateway',
         'dashboard.provider_attempts': 'Lần gọi nhà cung cấp',
         'dashboard.provider_attempts_period': 'Lần gọi nhà cung cấp {period}',
@@ -2590,7 +2592,20 @@ const PRODUCTION_DASHBOARD_MESSAGES = {
         'dashboard.token_distribution_title': 'Xu hướng sử dụng và lần gọi nhà cung cấp',
         'dashboard.token_distribution_description': 'So sánh lần gọi nhà cung cấp với token đầu vào, đầu ra, lưu đệm và suy luận.',
         'dashboard.timeline_traffic': 'Lần gọi nhà cung cấp theo thời gian'
-    }
+    },
+    'zh-CN': {'dashboard.period_1d': '今天'},
+    'zh-TW': {'dashboard.period_1d': '今天'},
+    de: {'dashboard.period_1d': 'heute'},
+    es: {'dashboard.period_1d': 'hoy'},
+    fr: {'dashboard.period_1d': 'aujourd’hui'},
+    id: {'dashboard.period_1d': 'hari ini'},
+    it: {'dashboard.period_1d': 'oggi'},
+    ja: {'dashboard.period_1d': '本日'},
+    ko: {'dashboard.period_1d': '오늘'},
+    pt: {'dashboard.period_1d': 'hoje'},
+    ru: {'dashboard.period_1d': 'сегодня'},
+    th: {'dashboard.period_1d': 'วันนี้'},
+    tr: {'dashboard.period_1d': 'bugün'}
 };
 
 for (const locale of Object.keys(PAGE_LOCALE_TRANSLATIONS)) {

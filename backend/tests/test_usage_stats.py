@@ -63,13 +63,46 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[0], results[1])
         loader.assert_awaited_once_with("1d", 0)
 
-    def test_usage_windows_align_to_fixed_browser_clock_boundaries(self):
+    def test_one_day_window_uses_the_current_browser_calendar_day(self):
         local_timezone = timezone(timedelta(hours=7))
         now = datetime(2026, 9, 13, 11, 24, tzinfo=local_timezone).timestamp()
 
         day_start, day_end, day_points = usage_stats.get_usage_time_window(
             "1d", timezone_offset_minutes=-420, now=now
         )
+
+        self.assertEqual(
+            datetime.fromtimestamp(day_start, local_timezone),
+            datetime(2026, 9, 13, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(
+            datetime.fromtimestamp(day_end, local_timezone),
+            datetime(2026, 9, 14, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(day_points, 24)
+
+    def test_one_day_window_at_midnight_does_not_fall_back_to_yesterday(self):
+        local_timezone = timezone(timedelta(hours=7))
+        now = datetime(2026, 9, 13, 0, 0, tzinfo=local_timezone).timestamp()
+
+        day_start, day_end, day_points = usage_stats.get_usage_time_window(
+            "1d", timezone_offset_minutes=-420, now=now
+        )
+
+        self.assertEqual(
+            datetime.fromtimestamp(day_start, local_timezone),
+            datetime(2026, 9, 13, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(
+            datetime.fromtimestamp(day_end, local_timezone),
+            datetime(2026, 9, 14, 0, 0, tzinfo=local_timezone),
+        )
+        self.assertEqual(day_points, 24)
+
+    def test_longer_usage_windows_align_to_fixed_browser_clock_boundaries(self):
+        local_timezone = timezone(timedelta(hours=7))
+        now = datetime(2026, 9, 13, 11, 24, tzinfo=local_timezone).timestamp()
+
         week_start, week_end, week_points = usage_stats.get_usage_time_window(
             "7d", timezone_offset_minutes=-420, now=now
         )
@@ -80,15 +113,6 @@ class UsageStatsTests(unittest.IsolatedAsyncioTestCase):
             "all", timezone_offset_minutes=-420, now=now
         )
 
-        self.assertEqual(
-            datetime.fromtimestamp(day_start, local_timezone),
-            datetime(2026, 9, 12, 12, 0, tzinfo=local_timezone),
-        )
-        self.assertEqual(
-            datetime.fromtimestamp(day_end, local_timezone),
-            datetime(2026, 9, 13, 12, 0, tzinfo=local_timezone),
-        )
-        self.assertEqual(day_points, 24)
         self.assertEqual(
             datetime.fromtimestamp(week_start, local_timezone),
             datetime(2026, 9, 6, 12, 0, tzinfo=local_timezone),

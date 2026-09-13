@@ -177,6 +177,8 @@ assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textC
         self.assertIn('id="timelineStartLabel"', fragment)
         self.assertIn('id="timelineMidLabel"', fragment)
         self.assertIn('id="timelineNowLabel"', fragment)
+        self.assertIn("formatTimelineTimestamp(last.timestamp)", source)
+        self.assertNotIn("`${startTime}–${endTime}`", source)
 
 
 class BoundedUsageDashboardApiTests(unittest.IsolatedAsyncioTestCase):

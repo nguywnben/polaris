@@ -28,7 +28,7 @@ from log import log
 UNASSIGNED_USAGE_FILENAME = "__gateway_unassigned__.json"
 DELETED_USAGE_PREFIX = "__deleted_credential__"
 USAGE_PERIODS = {
-    "1d": {"seconds": 86400, "label": "Last 24 hours"},
+    "1d": {"seconds": 86400, "label": "Today"},
     "7d": {"seconds": 7 * 86400, "label": "Last 7 days"},
     "30d": {"seconds": 30 * 86400, "label": "Last 30 days"},
     "all": {"seconds": None, "label": "All time"},
@@ -122,7 +122,13 @@ def get_usage_time_window(
         raise ValueError("Usage time-series reference time is invalid.")
     offset = normalize_timezone_offset_minutes(timezone_offset_minutes) * 60
     local_current = current - offset
-    aligned_local_end = math.ceil(local_current / bucket_seconds) * bucket_seconds
+    if normalized_period == "1d":
+        # The one-day dashboard is a calendar-day view, not a rolling 24-hour
+        # window. Floor then advance one whole day so exactly 00:00 still selects
+        # the new day instead of ending the previous one.
+        aligned_local_end = (math.floor(local_current / 86400) + 1) * 86400
+    else:
+        aligned_local_end = math.ceil(local_current / bucket_seconds) * bucket_seconds
     aligned_end = aligned_local_end + offset
     return aligned_end - seconds, aligned_end, bucket_count
 

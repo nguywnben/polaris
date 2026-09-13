@@ -35,8 +35,9 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 ### Fixed
 
 - Aligned dashboard usage windows to fixed browser-local clock boundaries and replaced relative
-  timeline placeholders with actual localized timestamps, so loading the page at an arbitrary
-  minute no longer shifts every chart bucket to that minute.
+  timeline placeholders with actual localized timestamps. The one-day view now represents today
+  from 00:00 through 23:00 instead of a rolling 24-hour interval, and tooltips identify one bucket
+  timestamp rather than displaying an interval.
 - Corrected production usage accounting across retries and streaming: the dashboard now labels
   provider attempts explicitly, recovered failovers keep the logical request successful, partial
   streams remain failures, cumulative usage chunks are merged, and token totals no longer count

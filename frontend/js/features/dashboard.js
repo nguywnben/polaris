@@ -796,9 +796,7 @@ function renderTimelineChart(timeline = []) {
         const tokens = slot.tokens || 0;
         const heightPct = Math.max(reqs > 0 ? (reqs / chartScale) * 100 : 0, 4);
 
-        const startTime = formatTimelineTimestamp(slot.timestamp);
-        const endTime = formatTimelineTimestamp(slot.end_timestamp);
-        const timeStr = startTime && endTime ? `${startTime}–${endTime}` : startTime;
+        const timeStr = formatTimelineTimestamp(slot.timestamp);
 
         return `
             <div class="timeline-bar-col">
@@ -841,7 +839,7 @@ function updateTimelineAxisLabels(timeline = []) {
     const last = timeline[timeline.length - 1];
     startLabel.textContent = formatTimelineTimestamp(timeline[0].timestamp) || '—';
     middleLabel.textContent = formatTimelineTimestamp(middle.timestamp) || '—';
-    endLabel.textContent = formatTimelineTimestamp(last.end_timestamp) || '—';
+    endLabel.textContent = formatTimelineTimestamp(last.timestamp) || '—';
 }
 
 function renderProviderHealthMatrix() {
