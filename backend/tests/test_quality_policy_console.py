@@ -118,6 +118,7 @@ assert(warnings({
         self.assertRegex(
             styles,
             r"(?s)\.quality-profile-card\.selected\s*\{"
+            r".*?background:\s*var\(--bg-subtle\)"
             r".*?border-color:\s*var\(--text\)"
             r".*?box-shadow:\s*none",
         )

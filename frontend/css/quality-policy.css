@@ -131,6 +131,7 @@
 }
 
 .quality-profile-card.selected {
+    background: var(--bg-subtle);
     border-color: var(--text);
     box-shadow: none;
     cursor: default;
