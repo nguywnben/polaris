@@ -18,6 +18,7 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
         cls.fragment = (FRONTEND / "fragments/pages/access.html").read_text(encoding="utf-8")
         cls.feature = (FRONTEND / "js/features/virtual-keys.js").read_text(encoding="utf-8")
         cls.navigation = (FRONTEND / "js/core/navigation.js").read_text(encoding="utf-8")
+        cls.locales = (FRONTEND / "js/core/page-locales.js").read_text(encoding="utf-8")
         cls.root = (ROOT / "backend/core/panel/root.py").read_text(encoding="utf-8")
         cls.styles = (FRONTEND / "css/access.css").read_text(encoding="utf-8")
 
@@ -69,6 +70,24 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             "fallback_price_usd_per_million",
         ):
             self.assertIn(field, self.feature)
+
+    def test_create_form_empty_fields_have_localized_placeholders(self):
+        placeholders = {
+            "name": "access.key_name_placeholder",
+            "rpm_limit": "access.rpm_limit_placeholder",
+            "tpm_limit": "access.tpm_limit_placeholder",
+            "budget_daily_usd": "access.daily_budget_placeholder",
+            "budget_monthly_usd": "access.monthly_budget_placeholder",
+            "allowed_models": "access.allowed_models_placeholder",
+            "fallback_price_usd_per_million": "access.fallback_price_placeholder",
+        }
+
+        for field, translation_key in placeholders.items():
+            with self.subTest(field=field):
+                self.assertIn(f'name="{field}"', self.feature)
+                marker = f"placeholder=\"${{escapeAttribute(t('{translation_key}'))}}\""
+                self.assertIn(marker, self.feature)
+                self.assertEqual(self.locales.count(f"'{translation_key}'"), 2)
 
     def test_zero_budget_and_fallback_price_are_visible(self):
         self.assertIn("record.budget_daily_usd !== null", self.feature)

@@ -2435,7 +2435,33 @@ for (const [locale, values] of Object.entries(ACCESS_VIRTUAL_KEY_LOCALE_VALUES))
     );
 }
 
+const ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES = {
+    en: {
+        'access.key_name_placeholder': 'e.g. Personal app',
+        'access.rpm_limit_placeholder': 'Empty means unlimited',
+        'access.tpm_limit_placeholder': 'Empty means unlimited',
+        'access.daily_budget_placeholder': 'Empty means unlimited',
+        'access.monthly_budget_placeholder': 'Empty means unlimited',
+        'access.allowed_models_placeholder': 'One pattern per line, e.g. gemini-2.5-*',
+        'access.fallback_price_placeholder': 'e.g. 10.00'
+    },
+    vi: {
+        'access.key_name_placeholder': 'Ví dụ: Ứng dụng cá nhân',
+        'access.rpm_limit_placeholder': 'Để trống nếu không giới hạn',
+        'access.tpm_limit_placeholder': 'Để trống nếu không giới hạn',
+        'access.daily_budget_placeholder': 'Để trống nếu không giới hạn',
+        'access.monthly_budget_placeholder': 'Để trống nếu không giới hạn',
+        'access.allowed_models_placeholder': 'Mỗi dòng một mẫu, ví dụ: gemini-2.5-*',
+        'access.fallback_price_placeholder': 'Ví dụ: 10.00'
+    }
+};
+
 for (const [locale, messages] of Object.entries(ACCESS_VIRTUAL_KEY_MESSAGES)) {
+    Object.assign(
+        messages,
+        ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES[locale]
+            || ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES.en
+    );
     Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
 }
 
