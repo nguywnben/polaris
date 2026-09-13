@@ -125,6 +125,11 @@ async function loadConfig(options = {}) {
 
             renderSettingsMetadata(metadata);
 
+            const retentionLoaders = [];
+            if (typeof loadTraceRetention === 'function') retentionLoaders.push(loadTraceRetention());
+            if (typeof loadAuditRetention === 'function') retentionLoaders.push(loadAuditRetention());
+            await Promise.all(retentionLoaders);
+
             formElements.forEach(element => element.classList.remove('hidden'));
             clearPageState('configState');
 

@@ -18,6 +18,7 @@ from core.panel.root import serve_control_panel
 ROOT = BACKEND_DIR.parent
 FRONTEND = ROOT / "frontend"
 ACTIVITY_SCRIPT = FRONTEND / "js/features/activity.js"
+ACTIVITY_STYLE = FRONTEND / "css/observability.css"
 
 
 class ActivityConsoleContractTests(unittest.TestCase):
@@ -131,6 +132,34 @@ assert(AppState.activeActivityView === 'audit', 'request pivot did not select ta
         self.assertIn("function activityLogLineMatches", activity)
         self.assertIn("activityLogLineMatches(log)", logs)
         self.assertIn("MAX_ACTIVITY_LOG_FILTER_LENGTH", activity)
+
+    def test_activity_uses_a_compact_two_row_filter_and_flat_tabs(self) -> None:
+        activity = (FRONTEND / "fragments/pages/activity.html").read_text(encoding="utf-8")
+        styles = ACTIVITY_STYLE.read_text(encoding="utf-8")
+
+        for field_class in (
+            "activity-filter-time",
+            "activity-filter-outcome",
+            "activity-filter-provider",
+            "activity-filter-actor",
+            "activity-filter-request",
+        ):
+            self.assertIn(field_class, activity)
+        self.assertIn('data-i18n="activity.from_time"', activity)
+        self.assertIn('data-i18n="activity.to_time"', activity)
+        self.assertIn("grid-template-columns: repeat(12, minmax(0, 1fr))", styles)
+        self.assertIn("border-bottom: 1px solid var(--border)", styles)
+        self.assertIn("background: transparent", styles)
+
+    def test_operational_retention_is_configured_from_settings(self) -> None:
+        traces = (FRONTEND / "fragments/pages/logs.html").read_text(encoding="utf-8")
+        audit = (FRONTEND / "fragments/pages/audit.html").read_text(encoding="utf-8")
+        settings = (FRONTEND / "fragments/pages/settings.html").read_text(encoding="utf-8")
+
+        for form_id in ("traceRetentionForm", "auditRetentionForm"):
+            self.assertNotIn(f'id="{form_id}"', traces)
+            self.assertNotIn(f'id="{form_id}"', audit)
+            self.assertEqual(settings.count(f'id="{form_id}"'), 1)
 
 
 if __name__ == "__main__":

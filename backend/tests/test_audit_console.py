@@ -136,6 +136,13 @@ class AuditConsoleContractTests(unittest.TestCase):
         self.assertIn("@media (max-width: 760px)", source)
         self.assertIn(":focus-visible", source)
 
+    def test_empty_audit_stream_hides_irrelevant_pagination(self):
+        body = serve_control_panel().body.decode("utf-8")
+        source = AUDIT_SCRIPT_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('class="audit-pagination" hidden', body)
+        self.assertIn("pagination.hidden = !AuditConsoleState.events.length", source)
+
 
 if __name__ == "__main__":
     unittest.main()

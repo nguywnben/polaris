@@ -9,19 +9,13 @@
 
 .audit-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 310px);
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     align-items: start;
 }
 
-.audit-main-column {
-    display: grid;
-    gap: 18px;
-    min-width: 0;
-}
-
 .audit-panel {
-    padding: 20px;
+    padding: 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
@@ -39,17 +33,29 @@
 }
 
 .audit-panel-heading {
-    margin-bottom: 18px;
+    margin-bottom: 14px;
+}
+
+.audit-panel-heading .card-title,
+.audit-panel-heading .card-copy {
+    margin: 0;
+}
+
+.audit-panel-heading .card-copy {
+    margin-top: 4px;
 }
 
 .audit-filter-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
 }
 
-.audit-filter-grid .form-group,
-.audit-retention .form-group {
+.audit-filter-grid .form-group {
     margin: 0;
 }
 
@@ -131,15 +137,16 @@
     margin-top: 16px;
 }
 
-.audit-retention {
-    position: sticky;
-    top: 20px;
+.audit-pagination[hidden] {
+    display: none;
 }
 
-.audit-retention form {
-    display: grid;
-    gap: 14px;
-    margin-top: 18px;
+.audit-empty-state {
+    padding: 24px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    text-align: center;
 }
 
 .audit-detail-dialog {
@@ -210,8 +217,7 @@
 }
 
 @media (max-width: 960px) {
-    .audit-layout { grid-template-columns: 1fr; }
-    .audit-retention { position: static; }
+    .audit-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {

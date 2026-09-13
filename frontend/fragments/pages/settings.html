@@ -156,6 +156,23 @@
                                 </details>
                                 </div>
                             </div>
+
+                            <section class="config-group settings-retention-group" aria-labelledby="operationalRetentionHeading">
+                                <h2 id="operationalRetentionHeading" class="card-title" data-i18n="settings.operational_retention">Operational data retention</h2>
+                                <p class="card-copy card-title-copy" data-i18n="settings.operational_retention_description">Set independent age and count limits for request traces and audit events.</p>
+                                <div class="operational-retention-grid">
+                                    <div class="operational-retention-item" aria-labelledby="traceRetentionHeading">
+                                        <h3 id="traceRetentionHeading" data-i18n="trace.retention">Trace retention</h3>
+                                        <p class="card-copy"><span data-i18n="trace.retention_description">Traces are pruned independently when either the age or count limit is exceeded.</span> <span data-i18n="trace.content_free_description">Only allowlisted decisions and numeric usage are stored—never prompts, responses, secrets, or exception text.</span></p>
+                                        <form id="traceRetentionForm" class="operational-retention-form"><div class="form-group"><label for="traceRetentionDays" data-i18n="trace.retention_days">Retention days</label><input type="number" id="traceRetentionDays" required></div><div class="form-group"><label for="traceMaxTraces" data-i18n="trace.max_traces">Maximum traces</label><input type="number" id="traceMaxTraces" required></div><div class="operational-retention-actions"><button id="traceSaveRetention" type="submit" class="btn btn-secondary" data-i18n="trace.save_retention">Save retention</button><p id="traceRetentionStatus" class="field-hint" role="status" aria-live="polite"></p></div></form>
+                                    </div>
+                                    <div class="operational-retention-item" aria-labelledby="auditRetentionHeading">
+                                        <h3 id="auditRetentionHeading" data-i18n="audit.retention">Audit retention</h3>
+                                        <p class="card-copy" data-i18n="audit.retention_description">Events are pruned when either the age or count limit is exceeded.</p>
+                                        <form id="auditRetentionForm" class="operational-retention-form"><div class="form-group"><label for="auditRetentionDays" data-i18n="audit.retention_days">Retention days</label><input type="number" id="auditRetentionDays" required></div><div class="form-group"><label for="auditMaxEvents" data-i18n="audit.max_events">Maximum events</label><input type="number" id="auditMaxEvents" required></div><div class="operational-retention-actions"><button id="auditSaveRetention" type="submit" class="btn btn-secondary" data-i18n="audit.save_retention">Save retention</button><p id="auditRetentionStatus" class="field-hint" role="status" aria-live="polite"></p></div></form>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>

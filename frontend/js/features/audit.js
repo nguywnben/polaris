@@ -287,6 +287,8 @@ function renderAuditEvents() {
         const item = createAuditText('li', 'audit-empty-state', t('audit.empty'));
         list.append(item);
     }
+    const pagination = auditElement('auditPreviousPage')?.closest('.audit-pagination');
+    if (pagination) pagination.hidden = !AuditConsoleState.events.length;
     const previous = auditElement('auditPreviousPage');
     const next = auditElement('auditNextPage');
     if (previous) previous.disabled = AuditConsoleState.loading || !AuditConsoleState.cursorStack.length;
@@ -317,7 +319,7 @@ async function loadAuditEvents() {
         AuditConsoleState.events = page.events;
         AuditConsoleState.nextCursor = page.nextCursor;
         AuditConsoleState.loaded = true;
-        setAuditStatus(page.events.length ? '' : 'audit.empty');
+        setAuditStatus('');
     } catch (_error) {
         if (requestId !== AuditConsoleState.eventRequestId) return;
         AuditConsoleState.events = [];
@@ -368,10 +370,9 @@ async function loadAuditConsole(force = false) {
     if (!auditElement('activityAuditPanel')) return;
     if (!AuditConsoleState.loaded || force) {
         AuditConsoleState.filters = readAuditFilters();
-        await Promise.all([loadAuditEvents(), loadAuditRetention()]);
+        await loadAuditEvents();
     } else {
         renderAuditEvents();
-        renderAuditRetention();
     }
 }
 
@@ -575,7 +576,7 @@ async function saveAuditRetention(event) {
         if (status) status.textContent = t('audit.retention_updated', { count: formatConsoleNumber(payload.removed_events) });
         AuditConsoleState.cursor = null;
         AuditConsoleState.cursorStack = [];
-        await loadAuditEvents();
+        if (AuditConsoleState.loaded) await loadAuditEvents();
     } catch (_error) {
         if (status) status.textContent = t('audit.update_failed');
     } finally {

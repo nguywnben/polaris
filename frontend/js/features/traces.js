@@ -175,6 +175,8 @@ function renderTraces() {
         card.append(primary, metadata, button); item.append(card); list.append(item);
     }
     if (!TraceConsoleState.traces.length && TraceConsoleState.loaded) list.append(traceText('li', 'trace-empty', t('trace.empty')));
+    const pagination = traceElement('tracePreviousPage')?.closest('.trace-pagination');
+    if (pagination) pagination.hidden = !TraceConsoleState.traces.length;
     if (traceElement('tracePreviousPage')) traceElement('tracePreviousPage').disabled = TraceConsoleState.loading || !TraceConsoleState.cursorStack.length;
     if (traceElement('traceNextPage')) traceElement('traceNextPage').disabled = TraceConsoleState.loading || !TraceConsoleState.nextCursor;
     if (traceElement('tracePageNumber')) traceElement('tracePageNumber').textContent = t('trace.page', { page: TraceConsoleState.cursorStack.length + 1 });
@@ -192,7 +194,7 @@ async function loadTraces() {
         const page = normalizeTracePage(await response.json());
         if (!page) throw new TypeError('trace-shape');
         if (requestId !== TraceConsoleState.requestId) return;
-        TraceConsoleState.traces = page.traces; TraceConsoleState.nextCursor = page.nextCursor; TraceConsoleState.loaded = true; setTraceStatus(page.traces.length ? '' : 'trace.empty');
+        TraceConsoleState.traces = page.traces; TraceConsoleState.nextCursor = page.nextCursor; TraceConsoleState.loaded = true; setTraceStatus('');
     } catch (_error) {
         if (requestId !== TraceConsoleState.requestId || controller.signal.aborted) return;
         TraceConsoleState.traces = []; TraceConsoleState.nextCursor = null; TraceConsoleState.loaded = true; setTraceStatus('trace.load_failed');
@@ -221,8 +223,8 @@ async function loadTraceRetention() {
 
 async function loadTraceConsole(force = false) {
     if (!traceElement('activityTracesPanel')) return;
-    if (!TraceConsoleState.loaded || force) { TraceConsoleState.filters = readTraceFilters(); await Promise.all([loadTraces(), loadTraceRetention()]); }
-    else { renderTraces(); renderTraceRetention(); }
+    if (!TraceConsoleState.loaded || force) { TraceConsoleState.filters = readTraceFilters(); await loadTraces(); }
+    else renderTraces();
 }
 
 async function applyTraceFilters(event) {
@@ -241,7 +243,7 @@ function clearTraceFilters({ reload = true } = {}) {
 function refreshTraceConsole() {
     TraceConsoleState.cursor = null; TraceConsoleState.cursorStack = []; TraceConsoleState.nextCursor = null;
     if (!TraceConsoleState.loaded) TraceConsoleState.filters = readTraceFilters();
-    void Promise.all([loadTraces(), loadTraceRetention()]);
+    void loadTraces();
 }
 
 function changeTracePage(direction) {
@@ -356,7 +358,7 @@ async function saveTraceRetention(event) {
     try {
         const response = await fetch('./api/traces/retention', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ retention_days: retentionDays, max_traces: maxTraces }) });
         if (!response.ok) throw new Error('trace-retention-update'); const payload = await response.json(); if (!traceBoundedInteger(payload?.removed_traces, 0, 1000000)) throw new TypeError('trace-retention-update-shape');
-        await loadTraceRetention(); if (status) status.textContent = t('trace.retention_updated', { count: formatConsoleNumber(payload.removed_traces) }); TraceConsoleState.cursor = null; TraceConsoleState.cursorStack = []; await loadTraces();
+        await loadTraceRetention(); if (status) status.textContent = t('trace.retention_updated', { count: formatConsoleNumber(payload.removed_traces) }); TraceConsoleState.cursor = null; TraceConsoleState.cursorStack = []; if (TraceConsoleState.loaded) await loadTraces();
     } catch (_error) { if (status) status.textContent = t('trace.update_failed'); }
     finally { if (button) button.disabled = false; }
 }

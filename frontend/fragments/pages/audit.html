@@ -7,20 +7,14 @@
                         <div class="page-actions">
                             <button type="button" class="btn btn-secondary" data-ui-action="export-audit" data-export-format="jsonl" data-i18n="audit.export_jsonl">Export JSONL</button>
                             <button type="button" class="btn btn-secondary" data-ui-action="export-audit" data-export-format="csv" data-i18n="audit.export_csv">Export CSV</button>
-                            <button type="button" class="btn" data-ui-action="refresh-audit" data-i18n="audit.refresh">Refresh</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="refresh-audit" data-i18n="audit.refresh">Refresh</button>
                         </div>
                     </header>
 
                     <div class="audit-layout">
-                        <div class="audit-main-column">
-                            <section class="audit-panel" aria-labelledby="auditFilterHeading">
-                                <div class="audit-panel-heading">
-                                    <div>
-                                        <h2 id="auditFilterHeading" class="card-title" data-i18n="audit.filters">Filters</h2>
-                                        <p class="card-copy" data-i18n="activity.audit_filters_description">Refine audit evidence by action, target, and fingerprints after applying the shared investigation filters.</p>
-                                    </div>
-                                </div>
-                                <form id="auditFilterForm" class="audit-filter-grid">
+                            <section class="audit-panel" aria-labelledby="auditEventsHeading">
+                                <div class="audit-panel-heading"><div><h2 id="auditEventsHeading" class="card-title" data-i18n="audit.events">Event stream</h2><p class="card-copy" data-i18n="activity.audit_filters_description">Refine audit evidence by action, target, and fingerprints after applying the shared investigation filters.</p></div><span id="auditEventStatus" class="audit-status" role="status" aria-live="polite"></span></div>
+                                <form id="auditFilterForm" class="audit-filter-grid" data-i18n-aria-label="audit.filters" aria-label="Filters">
                                     <div class="form-group">
                                         <label for="auditAction" data-i18n="audit.action">Action</label>
                                         <input id="auditAction" name="actions" list="auditActionOptions" maxlength="64" autocomplete="off" placeholder="credential.update">
@@ -59,32 +53,13 @@
                                         <button type="button" class="btn btn-secondary" data-ui-action="clear-audit-filters" data-i18n="audit.clear">Clear</button>
                                     </div>
                                 </form>
-                            </section>
-
-                            <section class="audit-panel" aria-labelledby="auditEventsHeading">
-                                <div class="audit-panel-heading">
-                                    <h2 id="auditEventsHeading" class="card-title" data-i18n="audit.events">Event stream</h2>
-                                    <span id="auditEventStatus" class="audit-status" role="status" aria-live="polite"></span>
-                                </div>
                                 <ol id="auditEventList" class="audit-event-list" aria-live="polite" aria-busy="false"></ol>
-                                <div class="audit-pagination">
+                                <div class="audit-pagination" hidden>
                                     <button id="auditPreviousPage" type="button" class="btn btn-secondary" data-ui-action="audit-previous-page" disabled data-i18n="audit.previous">Previous</button>
                                     <span id="auditPageNumber" data-i18n="audit.page">Page 1</span>
                                     <button id="auditNextPage" type="button" class="btn btn-secondary" data-ui-action="audit-next-page" disabled data-i18n="audit.next">Next</button>
                                 </div>
                             </section>
-                        </div>
-
-                        <aside class="audit-panel audit-retention" aria-labelledby="auditRetentionHeading">
-                            <h2 id="auditRetentionHeading" class="card-title" data-i18n="audit.retention">Retention policy</h2>
-                            <p class="card-copy" data-i18n="audit.retention_description">Events are pruned when either the age or count limit is exceeded.</p>
-                            <form id="auditRetentionForm">
-                                <div class="form-group"><label for="auditRetentionDays" data-i18n="audit.retention_days">Retention days</label><input type="number" id="auditRetentionDays" required></div>
-                                <div class="form-group"><label for="auditMaxEvents" data-i18n="audit.max_events">Maximum events</label><input type="number" id="auditMaxEvents" required></div>
-                                <button id="auditSaveRetention" type="submit" class="btn" data-i18n="audit.save_retention">Save retention</button>
-                                <p id="auditRetentionStatus" class="field-hint" role="status" aria-live="polite"></p>
-                            </form>
-                        </aside>
                     </div>
 
                     <dialog id="auditDetailDialog" class="audit-detail-dialog" aria-labelledby="auditDetailTitle">

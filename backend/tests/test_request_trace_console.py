@@ -93,6 +93,12 @@ class RequestTraceConsoleContractTests(unittest.TestCase):
         self.assertIn("@media (max-width: 760px)", TRACE_STYLE)
         self.assertIn(":focus-visible", TRACE_STYLE)
 
+    def test_empty_trace_stream_hides_irrelevant_pagination(self):
+        body = serve_control_panel().body.decode("utf-8")
+
+        self.assertIn('class="trace-pagination" hidden', body)
+        self.assertIn("pagination.hidden = !TraceConsoleState.traces.length", TRACE_SCRIPT)
+
 
 if __name__ == "__main__":
     unittest.main()
