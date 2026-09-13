@@ -63,6 +63,19 @@ single-item mutations, export, quota, verification, tests, and batch planning.
 not declared for the current shared provider pool. They cannot be invoked through the Wave 2 fleet
 service until a variant explicitly earns support through contract and failure-path tests.
 
+### Provider-pool lifecycle normalization (2026-09-13)
+
+The shared Pool now declares `edit` for all nine variants and `reauthenticate` for the four OAuth
+variants. Editing is deliberately narrow: every managed entry can change its display name, API-key
+entries can rotate a key only after native provider validation, and Ollama can change its endpoint
+or optional key only after validating the complete resulting connection. OAuth secrets use the
+provider authorization flow instead of an in-place secret editor. Environment-owned entries remain
+visible but read-only.
+
+Verification is diagnostic rather than an enable action. A successful verification refreshes model
+metadata and clears recorded errors while preserving the prior enabled or disabled state. This
+prevents a routine check from silently returning an intentionally disabled credential to routing.
+
 ### Wave 2 batch boundary
 
 The initial fleet implementation accepts 1–100 explicit targets. Deletion and batches of 20 or
