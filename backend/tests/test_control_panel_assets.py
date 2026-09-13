@@ -264,6 +264,17 @@ class ControlPanelAssetTests(unittest.TestCase):
             dashboard_script,
         )
 
+    def test_dashboard_time_range_text_does_not_share_select_hover_state(self):
+        body = serve_control_panel().body.decode("utf-8")
+
+        self.assertIn('<div class="dashboard-range-control">', body)
+        self.assertNotIn('<label class="dashboard-range-control"', body)
+        self.assertIn(
+            '<select id="usagePeriodSelect" class="filter-select" '
+            'aria-label="Time range" data-i18n-aria-label="time_range"',
+            body,
+        )
+
     def test_provider_catalog_uses_pagination(self):
         response = serve_control_panel()
         body = response.body.decode("utf-8")

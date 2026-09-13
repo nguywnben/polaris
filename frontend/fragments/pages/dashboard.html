@@ -6,15 +6,15 @@
                             <p class="page-description" data-i18n="dashboard_description">See whether the gateway is ready, what needs attention, and how traffic is performing.</p>
                         </div>
                         <div class="page-actions">
-                            <label class="dashboard-range-control" for="usagePeriodSelect">
+                            <div class="dashboard-range-control">
                                 <span data-i18n="time_range">Time range</span>
-                                <select id="usagePeriodSelect" class="filter-select" data-ui-change="usage-period">
+                                <select id="usagePeriodSelect" class="filter-select" aria-label="Time range" data-i18n-aria-label="time_range" data-ui-change="usage-period">
                                     <option value="1d" data-i18n="one_day">1 day</option>
                                     <option value="7d" data-i18n="seven_days">7 days</option>
                                     <option value="30d" data-i18n="thirty_days">30 days</option>
                                     <option value="all" data-i18n="all">All</option>
                                 </select>
-                            </label>
+                            </div>
                         </div>
                     </header>
 
