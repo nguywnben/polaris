@@ -84,6 +84,14 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
         self.assertNotIn("renderModelRouteValidation", source)
         self.assertNotIn(".model-route-validation", styles)
 
+    def test_virtual_model_description_stays_close_to_alias(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"\.model-pool-heading\s+\.model-alias-title\s*\{[^}]*margin:\s*3px 0 0;",
+        )
+
     def test_playground_handoff_is_bounded_and_contains_no_secret(self) -> None:
         self._run_contract(
             """
