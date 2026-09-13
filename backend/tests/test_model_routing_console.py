@@ -60,7 +60,6 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
         fragment = FRAGMENT.read_text(encoding="utf-8")
 
         for element_id in (
-            "modelRouteValidation",
             "modelRoutingStrategy",
             "modelPreferredProvider",
             "validateModelRouteBtn",
@@ -74,6 +73,16 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
         self.assertIn("headers['If-Match'] = AppState.modelPoolRevision", source)
         self.assertIn("model_route_conflict", source)
         self.assertIn("./api/model-routes/omway/validate", source)
+
+    def test_route_state_uses_compact_badge_without_redundant_validation_panel(self) -> None:
+        source = SCRIPT.read_text(encoding="utf-8")
+        fragment = FRAGMENT.read_text(encoding="utf-8")
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertIn('id="modelPoolStatus"', fragment)
+        self.assertNotIn('id="modelRouteValidation"', fragment)
+        self.assertNotIn("renderModelRouteValidation", source)
+        self.assertNotIn(".model-route-validation", styles)
 
     def test_playground_handoff_is_bounded_and_contains_no_secret(self) -> None:
         self._run_contract(

@@ -63,52 +63,6 @@ function deriveModelRouteState(selectedModels, catalog) {
     };
 }
 
-function modelRouteIssueText(issue) {
-    const key = {
-        invalid_model_selection: 'models.issue_invalid_selection',
-        model_not_discovered: 'models.issue_not_discovered',
-        model_temporarily_unavailable: 'models.issue_temporarily_unavailable',
-        route_has_no_models: 'models.issue_no_models',
-        route_has_no_available_model: 'models.issue_no_available_model'
-    }[issue?.code] || 'models.issue_invalid_selection';
-    return t(key, {model: issue?.model_id || ''});
-}
-
-function renderModelRouteValidation(validation = AppState.modelRouteValidation) {
-    const container = document.getElementById('modelRouteValidation');
-    if (!container || !validation) return;
-    const status = ['ready', 'degraded', 'unavailable', 'draft'].includes(validation.status)
-        ? validation.status
-        : 'unavailable';
-    const title = document.getElementById('modelRouteValidationTitle');
-    const summary = document.getElementById('modelRouteValidationSummary');
-    const issues = document.getElementById('modelRouteValidationIssues');
-    container.hidden = false;
-    container.className = `model-route-validation ${status}`;
-    const titleKey = {
-        ready: 'models.ready',
-        degraded: 'models.degraded',
-        unavailable: 'models.unavailable',
-        draft: 'models.not_configured'
-    }[status];
-    if (title) title.textContent = t(titleKey);
-    if (summary) {
-        summary.textContent = t('models.validation_summary', {
-            available: validation.summary?.available_models || 0,
-            selected: validation.summary?.selected_models || 0,
-            routes: validation.summary?.provider_routes || 0
-        });
-    }
-    if (issues) {
-        issues.replaceChildren(...(validation.issues || []).map(issue => {
-            const item = document.createElement('li');
-            item.textContent = modelRouteIssueText(issue);
-            return item;
-        }));
-        issues.hidden = !(validation.issues || []).length;
-    }
-}
-
 function appendModelProviderBadges(container, providers) {
     const values = Array.isArray(providers) ? providers : [];
     if (values.length === 0) {
@@ -429,7 +383,6 @@ function renderModelCatalog() {
 
 function updateRouteDraftValidation() {
     AppState.modelRouteValidation = deriveModelRouteState(AppState.selectedModels, AppState.modelCatalog);
-    renderModelRouteValidation();
     updateModelPoolSummary();
 }
 
@@ -584,7 +537,6 @@ async function loadModelCatalog(forceRefresh = false, options = {}) {
         AppState.modelRoutingPolicy = data.routing_policy || {strategy: 'balanced', preferred_provider: ''};
         clearPageState('modelCatalogState');
         populateModelRoutingPolicy();
-        renderModelRouteValidation();
         renderSelectedModels();
         renderModelCatalog();
         renderModelBlacklist();
@@ -623,7 +575,6 @@ async function validateModelRoute(options = {}) {
         }
         if (JSON.stringify(selectedModels) !== JSON.stringify(AppState.selectedModels)) return null;
         AppState.modelRouteValidation = data.validation || deriveModelRouteState(selectedModels, AppState.modelCatalog);
-        renderModelRouteValidation();
         updateModelPoolSummary();
         if (options.announce) {
             showStatus(
@@ -670,7 +621,6 @@ async function saveModelPool() {
             }
             if (failure.validation) {
                 AppState.modelRouteValidation = failure.validation;
-                renderModelRouteValidation();
             }
             throw new Error(failure.message);
         }

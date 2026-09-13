@@ -487,55 +487,6 @@
     line-height: 1.5;
 }
 
-.model-route-validation {
-    display: grid;
-    gap: 6px;
-    margin: 14px 0;
-    padding: 12px 14px;
-    color: var(--text-muted);
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 12px;
-    line-height: 1.45;
-}
-
-.model-route-validation[hidden] {
-    display: none;
-}
-
-.model-route-validation.ready {
-    background: var(--success-bg);
-    border-color: #cce8d2;
-}
-
-.model-route-validation.degraded {
-    background: var(--warning-bg);
-    border-color: #f0dfaa;
-}
-
-.model-route-validation.unavailable,
-.model-route-validation.draft {
-    background: var(--danger-bg);
-    border-color: #f0c9c6;
-}
-
-.model-route-validation strong {
-    color: var(--text);
-    font-size: 13px;
-}
-
-.model-route-validation p,
-.model-route-validation ul {
-    margin: 0;
-}
-
-.model-route-validation ul {
-    display: grid;
-    gap: 4px;
-    padding-left: 18px;
-}
-
 .model-routing-policy {
     min-width: 0;
     margin: 0 0 18px;
