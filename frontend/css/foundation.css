@@ -13,9 +13,7 @@
     --control-hover: #f4f4f4;
     --control-hover-border: #d8d8d8;
     --field-hover-border: var(--control-hover-border);
-    --field-focus-border: #1a73e8;
-    --field-focus-ring: rgba(26, 115, 232, 0.16);
-    --field-invalid-ring: rgba(179, 38, 30, 0.14);
+    --field-focus-border: var(--accent);
     --accent: #111111;
     --accent-hover: #2f2f2f;
     --accent-contrast: #ffffff;
@@ -54,9 +52,6 @@
     --border-strong: #474747;
     --control-hover: #292929;
     --control-hover-border: #505050;
-    --field-focus-border: #8ab4f8;
-    --field-focus-ring: rgba(138, 180, 248, 0.22);
-    --field-invalid-ring: rgba(242, 139, 130, 0.2);
     --accent: #f1f1f1;
     --accent-hover: #ffffff;
     --accent-contrast: #111111;

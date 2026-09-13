@@ -945,7 +945,7 @@ textarea {
 ):focus {
     border-color: var(--field-focus-border);
     background-color: var(--surface);
-    box-shadow: 0 0 0 3px var(--field-focus-ring);
+    box-shadow: none;
 }
 
 :where(
@@ -966,7 +966,7 @@ select:open {
     border-color: var(--field-focus-border);
     background-color: var(--surface);
     background-image: var(--select-chevron-open);
-    box-shadow: 0 0 0 3px var(--field-focus-ring);
+    box-shadow: none;
 }
 
 :where(
@@ -995,7 +995,7 @@ select:open {
     textarea
 ):user-invalid:focus {
     border-color: var(--danger);
-    box-shadow: 0 0 0 3px var(--field-invalid-ring);
+    box-shadow: none;
 }
 
 input:disabled,

@@ -225,13 +225,10 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
         foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
         styles = (FRONTEND / "css/forms-and-data.css").read_text(encoding="utf-8")
 
-        for token in (
-            "--field-focus-border:",
-            "--field-focus-ring:",
-            "--field-invalid-ring:",
-            "--select-chevron-open:",
-        ):
+        for token in ("--field-focus-border: var(--accent);", "--select-chevron-open:"):
             self.assertIn(token, foundation)
+        self.assertNotIn("--field-focus-ring:", foundation)
+        self.assertNotIn("--field-invalid-ring:", foundation)
 
         for selector in (
             "input:not([type])",
@@ -243,8 +240,16 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
             self.assertIn(selector, styles)
 
         self.assertIn("background-image: var(--select-chevron-open)", styles)
-        self.assertIn("box-shadow: 0 0 0 3px var(--field-focus-ring)", styles)
-        self.assertIn("box-shadow: 0 0 0 3px var(--field-invalid-ring)", styles)
+        self.assertNotIn("box-shadow: 0 0 0 3px var(--field-focus-ring)", styles)
+        self.assertNotIn("box-shadow: 0 0 0 3px var(--field-invalid-ring)", styles)
+        self.assertRegex(
+            styles,
+            r"\):focus\s*\{[^}]*border-color:\s*var\(--field-focus-border\);[^}]*box-shadow:\s*none;",
+        )
+        self.assertRegex(
+            styles,
+            r"select:open\s*\{[^}]*border-color:\s*var\(--field-focus-border\);[^}]*box-shadow:\s*none;",
+        )
         self.assertNotIn("input:focus,\nselect:focus,\ntextarea:focus", styles)
 
     def test_page_styles_do_not_override_shared_field_focus_state(self) -> None:
