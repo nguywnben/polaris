@@ -372,7 +372,7 @@ const PROVIDER_WORKSPACES = {
     }
 };
 
-const PROVIDER_CATALOG_PAGE_SIZE = 6;
+const PROVIDER_CATALOG_PAGE_SIZE = 8;
 let providerCatalogCurrentPage = 1;
 let providerCatalogSearchQuery = '';
 

@@ -282,10 +282,18 @@ class ControlPanelAssetTests(unittest.TestCase):
             self.assertIn(element_id, body)
         self.assertIn("provider-workspace-header", body)
         self.assertIn("change-provider-catalog-page", body)
-        self.assertIn("PROVIDER_CATALOG_PAGE_SIZE = 6", navigation_script)
+        self.assertIn("PROVIDER_CATALOG_PAGE_SIZE = 8", navigation_script)
         self.assertIn("function changeProviderCatalogPage(delta)", navigation_script)
         self.assertIn("function updateProviderCatalogPagination()", navigation_script)
-        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", provider_styles)
+        self.assertIn("grid-template-columns: repeat(4, minmax(0, 1fr))", provider_styles)
+        self.assertRegex(
+            provider_styles,
+            r"(?s)\.provider-catalog \.provider-hero-card\s*\{[^}]*min-height: 154px;[^}]*padding: 14px;",
+        )
+        self.assertRegex(
+            provider_styles,
+            r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 42px;[^}]*height: 42px;",
+        )
         self.assertIn(".provider-workspace-header", provider_styles)
         self.assertIn(
             ".provider-catalog-toolbar strong,\n.provider-catalog-search-label",
