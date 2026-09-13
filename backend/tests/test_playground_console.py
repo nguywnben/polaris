@@ -75,6 +75,8 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn('data-ui-action="playground-cancel"', fragment)
         self.assertNotIn('data-ui-action="playground-clear"', fragment)
         self.assertNotIn('data-ui-action="playground-open-quality"', fragment)
+        self.assertIn('<option value="curl">cURL (Bash)</option>', fragment)
+        self.assertIn('<option value="powershell">PowerShell</option>', fragment)
         self.assertIn('<option value="node">Node.js SDK</option>', fragment)
 
         navigation = (ROOT / "frontend/js/features/navigation.js").read_text(encoding="utf-8")
@@ -117,12 +119,15 @@ assert(emptyMessageError === 'playground.error_empty_message', 'empty messages m
 const draft = {protocol: 'openai_chat', model: 'omway', stream: false,
     timeoutSeconds: 30, system: '', messages: [{role: 'user', content: "What's new?"}],
     temperature: null, topP: null, maxTokens: 256};
-for (const format of ['curl', 'python', 'node']) {
-    const text = example(draft, format, 'http://127.0.0.1:4283');
-    assert(text.includes('<YOUR_OMNI_GATEWAY_KEY>'), `missing placeholder in ${format}`);
-    assert(!text.includes('session-token') && !text.includes('AIza'), `secret in ${format}`);
-}
+        for (const format of ['curl', 'powershell', 'python', 'node']) {
+            const text = example(draft, format, 'http://127.0.0.1:4283');
+            assert(text.includes('<YOUR_OMNI_GATEWAY_KEY>'), `missing placeholder in ${format}`);
+            assert(!text.includes('session-token') && !text.includes('AIza'), `secret in ${format}`);
+        }
 assert(example(draft, 'curl', 'http://127.0.0.1:4283').includes('/v1/chat/completions'), 'chat URL');
+const powershell = example(draft, 'powershell', 'http://localhost');
+assert(powershell.startsWith('curl.exe '), 'PowerShell must invoke curl.exe explicitly');
+assert(powershell.includes(String.fromCharCode(96, 10)), 'PowerShell line continuation');
 assert(example({...draft, protocol: 'openai_responses'}, 'python', 'http://localhost').includes('client.responses.create'), 'Responses SDK');
 assert(example({...draft, protocol: 'anthropic_messages'}, 'python', 'http://localhost').includes('Anthropic('), 'Anthropic SDK');
 const gemini = example({...draft, protocol: 'gemini', system: 'Be concise.'}, 'python', 'http://localhost');
@@ -135,6 +140,27 @@ assert(example({...draft, protocol: 'anthropic_messages'}, 'node', 'http://local
 const nodeGemini = example({...draft, protocol: 'gemini', system: 'Be concise.'}, 'node', 'http://localhost');
 assert(nodeGemini.includes('new GoogleGenAI') && nodeGemini.includes('generateContent'), 'Node Gemini SDK');
 assert(nodeGemini.includes('systemInstruction'), 'Node Gemini system instruction');
+"""
+        )
+
+    def test_python_stream_examples_consume_events_and_keep_anthropic_sampling_compatible(self) -> None:
+        self._run_contract(
+            """
+const base = {model: 'omway', stream: true, timeoutSeconds: 30, system: '',
+    messages: [{role: 'user', content: 'Hello'}], temperature: null, topP: null,
+    maxTokens: 256};
+for (const protocol of ['openai_chat', 'openai_responses', 'anthropic_messages']) {
+    const text = example({...base, protocol}, 'python', 'http://localhost');
+    assert(text.includes('for event in response:'), `${protocol} must consume stream events`);
+}
+const geminiStream = example({...base, protocol: 'gemini'}, 'python', 'http://localhost');
+assert(geminiStream.includes('for chunk in response:'), 'Gemini must consume stream chunks');
+const anthropicSampling = example({...base, protocol: 'anthropic_messages', stream: false,
+    temperature: 0.4, topP: 0.8}, 'python', 'http://localhost');
+assert(anthropicSampling.includes('extra_body'), 'Anthropic sampling must use SDK extra_body');
+assert(anthropicSampling.includes('request.pop("temperature")'), 'temperature moved from typed params');
+assert(anthropicSampling.includes('request.pop("top_p")'), 'top_p moved from typed params');
+assert(example({...base, protocol: 'openai_chat'}, 'node', 'http://localhost').includes('client.mjs'), 'Node ESM guidance');
 """
         )
 

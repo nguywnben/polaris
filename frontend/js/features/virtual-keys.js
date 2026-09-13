@@ -6,7 +6,7 @@ const VirtualKeyAccessState = {
     status: ''
 };
 
-const ACCESS_CLIENT_KEY_PLACEHOLDER = 'YOUR_OMNI_VIRTUAL_KEY';
+const ACCESS_CLIENT_KEY_PLACEHOLDER = '<YOUR_OMNI_VIRTUAL_KEY>';
 
 function loadAccessPage() {
     renderAccessClientExample();
@@ -21,10 +21,14 @@ function buildAccessClientExample(
     const baseUrl = String(origin || '').replace(/\/$/, '');
     const examples = {
         curl: {
-            openai: `curl "${baseUrl}/v1/chat/completions" \\
+            openai_chat: `curl "${baseUrl}/v1/chat/completions" \\
   -H "Authorization: Bearer ${ACCESS_CLIENT_KEY_PLACEHOLDER}" \\
   -H "Content-Type: application/json" \\
   -d '{"model":"omway","messages":[{"role":"user","content":"Hello"}]}'`,
+            openai_responses: `curl "${baseUrl}/v1/responses" \\
+  -H "Authorization: Bearer ${ACCESS_CLIENT_KEY_PLACEHOLDER}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"omway","input":"Hello"}'`,
             anthropic: `curl "${baseUrl}/v1/messages" \\
   -H "x-api-key: ${ACCESS_CLIENT_KEY_PLACEHOLDER}" \\
   -H "anthropic-version: 2023-06-01" \\
@@ -35,25 +39,46 @@ function buildAccessClientExample(
   -H "Content-Type: application/json" \\
   -d '{"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}'`
         },
+        powershell: {
+            openai_chat: `curl.exe '${baseUrl}/v1/chat/completions' \`
+  -H 'Authorization: Bearer ${ACCESS_CLIENT_KEY_PLACEHOLDER}' \`
+  -H 'Content-Type: application/json' \`
+  --data-raw '{"model":"omway","messages":[{"role":"user","content":"Hello"}]}'`,
+            openai_responses: `curl.exe '${baseUrl}/v1/responses' \`
+  -H 'Authorization: Bearer ${ACCESS_CLIENT_KEY_PLACEHOLDER}' \`
+  -H 'Content-Type: application/json' \`
+  --data-raw '{"model":"omway","input":"Hello"}'`,
+            anthropic: `curl.exe '${baseUrl}/v1/messages' \`
+  -H 'x-api-key: ${ACCESS_CLIENT_KEY_PLACEHOLDER}' \`
+  -H 'anthropic-version: 2023-06-01' \`
+  -H 'Content-Type: application/json' \`
+  --data-raw '{"model":"omway","max_tokens":256,"messages":[{"role":"user","content":"Hello"}]}'`,
+            gemini: `curl.exe '${baseUrl}/v1beta/models/omway:generateContent' \`
+  -H 'x-goog-api-key: ${ACCESS_CLIENT_KEY_PLACEHOLDER}' \`
+  -H 'Content-Type: application/json' \`
+  --data-raw '{"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}'`
+        },
         python: {
-            openai: `from openai import OpenAI\n\nclient = OpenAI(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", base_url="${baseUrl}/v1")\nresponse = client.chat.completions.create(model="omway", messages=[{"role": "user", "content": "Hello"}])\nprint(response)`,
-            anthropic: `from anthropic import Anthropic\n\nclient = Anthropic(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", base_url="${baseUrl}")\nresponse = client.messages.create(model="omway", max_tokens=256, messages=[{"role": "user", "content": "Hello"}])\nprint(response)`,
-            gemini: `from google import genai\nfrom google.genai import types\n\nclient = genai.Client(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", http_options=types.HttpOptions(base_url="${baseUrl}"))\nresponse = client.models.generate_content(model="omway", contents="Hello")\nprint(response)`
+            openai_chat: `# pip install openai\nfrom openai import OpenAI\n\nclient = OpenAI(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", base_url="${baseUrl}/v1")\nresponse = client.chat.completions.create(model="omway", messages=[{"role": "user", "content": "Hello"}])\nprint(response)`,
+            openai_responses: `# pip install openai\nfrom openai import OpenAI\n\nclient = OpenAI(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", base_url="${baseUrl}/v1")\nresponse = client.responses.create(model="omway", input="Hello")\nprint(response)`,
+            anthropic: `# pip install anthropic\nfrom anthropic import Anthropic\n\nclient = Anthropic(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", base_url="${baseUrl}")\nresponse = client.messages.create(model="omway", max_tokens=256, messages=[{"role": "user", "content": "Hello"}])\nprint(response)`,
+            gemini: `# pip install google-genai\nfrom google import genai\nfrom google.genai import types\n\nclient = genai.Client(api_key="${ACCESS_CLIENT_KEY_PLACEHOLDER}", http_options=types.HttpOptions(base_url="${baseUrl}"))\nresponse = client.models.generate_content(model="omway", contents="Hello")\nprint(response)`
         },
         node: {
-            openai: `import OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst response = await client.chat.completions.create({ model: "omway", messages: [{ role: "user", content: "Hello" }] });\nconsole.log(response);`,
-            anthropic: `import Anthropic from "@anthropic-ai/sdk";\n\nconst client = new Anthropic({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", baseURL: "${baseUrl}" });\nconst response = await client.messages.create({ model: "omway", max_tokens: 256, messages: [{ role: "user", content: "Hello" }] });\nconsole.log(response);`,
-            gemini: `import { GoogleGenAI } from "@google/genai";\n\nconst client = new GoogleGenAI({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", httpOptions: { baseUrl: "${baseUrl}" } });\nconst response = await client.models.generateContent({ model: "omway", contents: "Hello" });\nconsole.log(response);`
+            openai_chat: `// npm install openai\n// ESM: save as client.mjs, then run: node client.mjs\nimport OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst response = await client.chat.completions.create({ model: "omway", messages: [{ role: "user", content: "Hello" }] });\nconsole.log(response);`,
+            openai_responses: `// npm install openai\n// ESM: save as client.mjs, then run: node client.mjs\nimport OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst response = await client.responses.create({ model: "omway", input: "Hello" });\nconsole.log(response);`,
+            anthropic: `// npm install @anthropic-ai/sdk\n// ESM: save as client.mjs, then run: node client.mjs\nimport Anthropic from "@anthropic-ai/sdk";\n\nconst client = new Anthropic({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", baseURL: "${baseUrl}" });\nconst response = await client.messages.create({ model: "omway", max_tokens: 256, messages: [{ role: "user", content: "Hello" }] });\nconsole.log(response);`,
+            gemini: `// npm install @google/genai\n// ESM: save as client.mjs, then run: node client.mjs\nimport { GoogleGenAI } from "@google/genai";\n\nconst client = new GoogleGenAI({ apiKey: "${ACCESS_CLIENT_KEY_PLACEHOLDER}", httpOptions: { baseUrl: "${baseUrl}" } });\nconst response = await client.models.generateContent({ model: "omway", contents: "Hello" });\nconsole.log(response);`
         }
     };
     const selected = examples[format] || examples.curl;
-    return selected[protocol] || selected.openai;
+    return selected[protocol] || selected.openai_chat;
 }
 
 function renderAccessClientExample(protocol = document.getElementById('accessProtocol')?.value) {
     const output = document.getElementById('accessClientExample');
     if (!output) return '';
-    const example = buildAccessClientExample(protocol || 'openai');
+    const example = buildAccessClientExample(protocol || 'openai_chat');
     output.textContent = example;
     return example;
 }

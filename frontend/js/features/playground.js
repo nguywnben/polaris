@@ -118,6 +118,10 @@ function shellSingleQuoted(value) {
     return `'${String(value).replace(/'/g, `'"'"'`)}'`;
 }
 
+function powershellSingleQuoted(value) {
+    return `'${String(value).replace(/'/g, "''")}'`;
+}
+
 function pythonJsonLiteral(value) {
     return JSON.stringify(JSON.stringify(value));
 }
@@ -139,26 +143,41 @@ function buildPlaygroundExample(draft, format = 'curl', origin = '') {
             `  -d ${shellSingleQuoted(JSON.stringify(payload))}`
         ].join('\n');
     }
+    if (format === 'powershell') {
+        const headers = boundary.protocol === 'anthropic_messages'
+            ? [`x-api-key: ${PLAYGROUND_KEY_PLACEHOLDER}`, 'anthropic-version: 2023-06-01']
+            : boundary.protocol === 'gemini'
+                ? [`x-goog-api-key: ${PLAYGROUND_KEY_PLACEHOLDER}`]
+                : [`Authorization: Bearer ${PLAYGROUND_KEY_PLACEHOLDER}`];
+        const continuation = '`';
+        return [
+            `curl.exe ${powershellSingleQuoted(baseUrl + playgroundPublicPath(boundary))} ${continuation}`,
+            ...headers.map(header => `  -H ${powershellSingleQuoted(header)} ${continuation}`),
+            `  -H 'Content-Type: application/json' ${continuation}`,
+            `  --data-raw ${powershellSingleQuoted(JSON.stringify(payload))}`
+        ].join('\n');
+    }
     if (format === 'node') {
         const requestLiteral = JSON.stringify(payload, null, 2);
         const printResponse = boundary.stream
             ? 'for await (const event of response) console.log(event);'
             : 'console.log(response);';
         if (boundary.protocol === 'anthropic_messages') {
-            return `import Anthropic from "@anthropic-ai/sdk";\n\nconst client = new Anthropic({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}" });\nconst request = ${requestLiteral};\nconst response = await client.messages.create(request);\n${printResponse}`;
+            return `// npm install @anthropic-ai/sdk\n// ESM: save as client.mjs, then run: node client.mjs\nimport Anthropic from "@anthropic-ai/sdk";\n\nconst client = new Anthropic({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}" });\nconst request = ${requestLiteral};\nconst response = await client.messages.create(request);\n${printResponse}`;
         }
         if (boundary.protocol === 'gemini') {
             const method = boundary.stream ? 'generateContentStream' : 'generateContent';
-            return `import { GoogleGenAI } from "@google/genai";\n\nconst client = new GoogleGenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", httpOptions: { baseUrl: "${baseUrl}" } });\nconst request = ${requestLiteral};\nconst response = await client.models.${method}({\n  model: ${JSON.stringify(boundary.model)},\n  contents: request.contents,\n  config: {\n    ...request.generationConfig,\n    ...(request.systemInstruction ? { systemInstruction: request.systemInstruction } : {})\n  }\n});\n${printResponse}`;
+            return `// npm install @google/genai\n// ESM: save as client.mjs, then run: node client.mjs\nimport { GoogleGenAI } from "@google/genai";\n\nconst client = new GoogleGenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", httpOptions: { baseUrl: "${baseUrl}" } });\nconst request = ${requestLiteral};\nconst response = await client.models.${method}({\n  model: ${JSON.stringify(boundary.model)},\n  contents: request.contents,\n  config: {\n    ...request.generationConfig,\n    ...(request.systemInstruction ? { systemInstruction: request.systemInstruction } : {})\n  }\n});\n${printResponse}`;
         }
         const method = boundary.protocol === 'openai_responses'
             ? 'responses.create'
             : 'chat.completions.create';
-        return `import OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst request = ${requestLiteral};\nconst response = await client.${method}(request);\n${printResponse}`;
+        return `// npm install openai\n// ESM: save as client.mjs, then run: node client.mjs\nimport OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst request = ${requestLiteral};\nconst response = await client.${method}(request);\n${printResponse}`;
     }
     const requestLiteral = pythonJsonLiteral(payload);
     if (boundary.protocol === 'anthropic_messages') {
-        return `import json\nfrom anthropic import Anthropic\n\nclient = Anthropic(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", base_url="${baseUrl}")\nrequest = json.loads(${requestLiteral})\nresponse = client.messages.create(**request)\nprint(response)`;
+        const consume = boundary.stream ? 'for event in response:\n    print(event)' : 'print(response)';
+        return `# pip install anthropic\nimport json\nfrom anthropic import Anthropic\n\nclient = Anthropic(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", base_url="${baseUrl}")\nrequest = json.loads(${requestLiteral})\nsampling = {}\nif "temperature" in request:\n    sampling["temperature"] = request.pop("temperature")\nif "top_p" in request:\n    sampling["top_p"] = request.pop("top_p")\nif sampling:\n    request["extra_body"] = sampling\nresponse = client.messages.create(**request)\n${consume}`;
     }
     if (boundary.protocol === 'gemini') {
         const method = boundary.stream ? 'generate_content_stream' : 'generate_content';
@@ -170,10 +189,12 @@ function buildPlaygroundExample(draft, format = 'curl', origin = '') {
             sdkConfig.system_instruction = boundary.request.systemInstruction.parts[0].text;
         }
         const configLiteral = pythonJsonLiteral(sdkConfig);
-        return `import json\nfrom google import genai\nfrom google.genai import types\n\nclient = genai.Client(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", http_options=types.HttpOptions(base_url="${baseUrl}"))\nrequest = json.loads(${requestLiteral})\nconfig = types.GenerateContentConfig(**json.loads(${configLiteral}))\nresponse = client.models.${method}(model=${JSON.stringify(boundary.model)}, contents=request["contents"], config=config)\nprint(response)`;
+        const consume = boundary.stream ? 'for chunk in response:\n    print(chunk)' : 'print(response)';
+        return `# pip install google-genai\nimport json\nfrom google import genai\nfrom google.genai import types\n\nclient = genai.Client(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", http_options=types.HttpOptions(base_url="${baseUrl}"))\nrequest = json.loads(${requestLiteral})\nconfig = types.GenerateContentConfig(**json.loads(${configLiteral}))\nresponse = client.models.${method}(model=${JSON.stringify(boundary.model)}, contents=request["contents"], config=config)\n${consume}`;
     }
     const method = boundary.protocol === 'openai_responses' ? 'responses.create' : 'chat.completions.create';
-    return `import json\nfrom openai import OpenAI\n\nclient = OpenAI(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", base_url="${baseUrl}/v1")\nrequest = json.loads(${requestLiteral})\nresponse = client.${method}(**request)\nprint(response)`;
+    const consume = boundary.stream ? 'for event in response:\n    print(event)' : 'print(response)';
+    return `# pip install openai\nimport json\nfrom openai import OpenAI\n\nclient = OpenAI(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", base_url="${baseUrl}/v1")\nrequest = json.loads(${requestLiteral})\nresponse = client.${method}(**request)\n${consume}`;
 }
 
 function decodePlaygroundMetadataHeader(value) {

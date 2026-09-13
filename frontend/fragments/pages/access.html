@@ -48,15 +48,17 @@
                                 <label class="access-client-protocol" for="accessProtocol">
                                     <span data-i18n="playground.protocol">Protocol</span>
                                     <select id="accessProtocol" data-ui-change="access-client-protocol">
-                                        <option value="openai" data-i18n-technical>OpenAI</option>
-                                        <option value="anthropic" data-i18n-technical>Anthropic</option>
+                                        <option value="openai_chat" data-i18n-technical>OpenAI Chat Completions</option>
+                                        <option value="openai_responses" data-i18n-technical>OpenAI Responses</option>
+                                        <option value="anthropic" data-i18n-technical>Anthropic Messages</option>
                                         <option value="gemini" data-i18n-technical>Google GenAI</option>
                                     </select>
                                 </label>
                                 <label class="access-client-protocol" for="accessClientFormat">
                                     <span data-i18n="playground.example_format">Format</span>
                                     <select id="accessClientFormat" data-ui-change="access-client-format" data-i18n-technical>
-                                        <option value="curl">cURL</option>
+                                        <option value="curl">cURL (Bash)</option>
+                                        <option value="powershell">PowerShell</option>
                                         <option value="python" data-compatibility-signatures="OpenAI(base_url, api_key); Anthropic(base_url, api_key); genai.Client(api_key, http_options)">Python SDK</option>
                                         <option value="node" data-compatibility-signatures="new OpenAI({ baseURL, apiKey }); new Anthropic({ baseURL, apiKey }); new GoogleGenAI({ apiKey, httpOptions })">Node.js SDK</option>
                                     </select>

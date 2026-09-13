@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -16,6 +19,28 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
         cls.feature = (FRONTEND / "js/features/virtual-keys.js").read_text(encoding="utf-8")
         cls.navigation = (FRONTEND / "js/core/navigation.js").read_text(encoding="utf-8")
         cls.root = (ROOT / "backend/core/panel/root.py").read_text(encoding="utf-8")
+
+    def _run_client_example_contract(self, assertions: str) -> None:
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node.js is required for the Access client example contract.")
+        harness = f"""
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync({json.dumps(str(FRONTEND / 'js/features/virtual-keys.js'))}, 'utf8');
+vm.runInThisContext(source + `\n;globalThis.__buildAccessClientExample = buildAccessClientExample;`);
+const build = globalThis.__buildAccessClientExample;
+function assert(condition, message) {{ if (!condition) throw new Error(message); }}
+{assertions}
+"""
+        result = subprocess.run(
+            [node, "-e", harness],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_access_page_exposes_complete_lifecycle_controls(self):
         for control_id in (
@@ -77,11 +102,33 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
         ):
             self.assertIn(f'id="{control_id}"', self.fragment)
         self.assertIn("renderAccessClientExample", self.feature)
-        self.assertIn("YOUR_OMNI_VIRTUAL_KEY", self.feature)
-        for format_name in ("curl", "python", "node"):
+        self.assertIn("<YOUR_OMNI_VIRTUAL_KEY>", self.feature)
+        self.assertIn('<option value="openai_chat"', self.fragment)
+        self.assertIn('<option value="openai_responses"', self.fragment)
+        self.assertIn('cURL (Bash)', self.fragment)
+        self.assertIn('<option value="powershell">PowerShell</option>', self.fragment)
+        for format_name in ("curl", "powershell", "python", "node"):
             self.assertIn(f"{format_name}:", self.feature)
         self.assertNotIn("document.getElementById('apiKey').value", self.feature)
         self.assertNotIn("client-route-card", self.fragment)
+
+    def test_client_quickstart_covers_every_protocol_and_shell(self):
+        self._run_client_example_contract(
+            """
+for (const format of ['curl', 'powershell', 'python', 'node']) {
+    for (const protocol of ['openai_chat', 'openai_responses', 'anthropic', 'gemini']) {
+        const text = build(protocol, 'http://127.0.0.1:4283', format);
+        assert(text.includes('<YOUR_OMNI_VIRTUAL_KEY>'), `${format}/${protocol} placeholder`);
+    }
+}
+assert(build('openai_responses', 'http://localhost', 'curl').includes('/v1/responses'), 'Responses route');
+const powershell = build('openai_chat', 'http://localhost', 'powershell');
+assert(powershell.startsWith('curl.exe '), 'PowerShell must invoke curl.exe explicitly');
+assert(powershell.includes(String.fromCharCode(96, 10)), 'PowerShell line continuation');
+assert(!powershell.includes(String.fromCharCode(32, 92, 10)), 'PowerShell must not use Bash continuation');
+assert(build('openai_chat', 'http://localhost', 'node').includes('client.mjs'), 'Node ESM guidance');
+"""
+        )
 
     def test_secret_cleanup_clears_value_and_removes_secret_node(self):
         self.assertIn("secretInput.value = ''", self.feature)
