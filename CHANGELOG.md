@@ -6,6 +6,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Added
 
+- Added protocol-aware Node.js SDK examples to Playground alongside cURL and Python.
 - Added automatic model-pricing synchronization with a validated last-known-good snapshot and
   manual `model_pricing.json` precedence, so newly priced models do not require an Omni Gateway
   release while inference remains available during catalog outages.

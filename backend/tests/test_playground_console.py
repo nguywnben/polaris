@@ -75,6 +75,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn('data-ui-action="playground-cancel"', fragment)
         self.assertNotIn('data-ui-action="playground-clear"', fragment)
         self.assertNotIn('data-ui-action="playground-open-quality"', fragment)
+        self.assertIn('<option value="node">Node.js SDK</option>', fragment)
 
         navigation = (ROOT / "frontend/js/features/navigation.js").read_text(encoding="utf-8")
         source = SCRIPT.read_text(encoding="utf-8")
@@ -116,7 +117,7 @@ assert(emptyMessageError === 'playground.error_empty_message', 'empty messages m
 const draft = {protocol: 'openai_chat', model: 'omway', stream: false,
     timeoutSeconds: 30, system: '', messages: [{role: 'user', content: "What's new?"}],
     temperature: null, topP: null, maxTokens: 256};
-for (const format of ['curl', 'python']) {
+for (const format of ['curl', 'python', 'node']) {
     const text = example(draft, format, 'http://127.0.0.1:4283');
     assert(text.includes('<YOUR_OMNI_GATEWAY_KEY>'), `missing placeholder in ${format}`);
     assert(!text.includes('session-token') && !text.includes('AIza'), `secret in ${format}`);
@@ -127,6 +128,13 @@ assert(example({...draft, protocol: 'anthropic_messages'}, 'python', 'http://loc
 const gemini = example({...draft, protocol: 'gemini', system: 'Be concise.'}, 'python', 'http://localhost');
 assert(gemini.includes('genai.Client') && gemini.includes('types.GenerateContentConfig'), 'Gemini SDK');
 assert(gemini.includes('system_instruction'), 'Gemini system instruction');
+const nodeChat = example(draft, 'node', 'http://localhost');
+assert(nodeChat.includes('new OpenAI') && nodeChat.includes('chat.completions.create'), 'Node OpenAI Chat SDK');
+assert(example({...draft, protocol: 'openai_responses'}, 'node', 'http://localhost').includes('responses.create'), 'Node Responses SDK');
+assert(example({...draft, protocol: 'anthropic_messages'}, 'node', 'http://localhost').includes('new Anthropic'), 'Node Anthropic SDK');
+const nodeGemini = example({...draft, protocol: 'gemini', system: 'Be concise.'}, 'node', 'http://localhost');
+assert(nodeGemini.includes('new GoogleGenAI') && nodeGemini.includes('generateContent'), 'Node Gemini SDK');
+assert(nodeGemini.includes('systemInstruction'), 'Node Gemini system instruction');
 """
         )
 
@@ -243,6 +251,14 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
         self.assertIn(
             ":where(button, a, input, select, textarea, summary):focus-visible",
             (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8"),
+        )
+
+    def test_client_example_format_matches_the_compact_action_height(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"(?s)\.playground-example-toolbar select\s*\{.*?min-height: 30px.*?height: 30px",
         )
 
     def test_message_editor_prioritizes_full_width_content(self) -> None:

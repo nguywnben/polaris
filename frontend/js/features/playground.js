@@ -139,6 +139,23 @@ function buildPlaygroundExample(draft, format = 'curl', origin = '') {
             `  -d ${shellSingleQuoted(JSON.stringify(payload))}`
         ].join('\n');
     }
+    if (format === 'node') {
+        const requestLiteral = JSON.stringify(payload, null, 2);
+        const printResponse = boundary.stream
+            ? 'for await (const event of response) console.log(event);'
+            : 'console.log(response);';
+        if (boundary.protocol === 'anthropic_messages') {
+            return `import Anthropic from "@anthropic-ai/sdk";\n\nconst client = new Anthropic({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}" });\nconst request = ${requestLiteral};\nconst response = await client.messages.create(request);\n${printResponse}`;
+        }
+        if (boundary.protocol === 'gemini') {
+            const method = boundary.stream ? 'generateContentStream' : 'generateContent';
+            return `import { GoogleGenAI } from "@google/genai";\n\nconst client = new GoogleGenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", httpOptions: { baseUrl: "${baseUrl}" } });\nconst request = ${requestLiteral};\nconst response = await client.models.${method}({\n  model: ${JSON.stringify(boundary.model)},\n  contents: request.contents,\n  config: {\n    ...request.generationConfig,\n    ...(request.systemInstruction ? { systemInstruction: request.systemInstruction } : {})\n  }\n});\n${printResponse}`;
+        }
+        const method = boundary.protocol === 'openai_responses'
+            ? 'responses.create'
+            : 'chat.completions.create';
+        return `import OpenAI from "openai";\n\nconst client = new OpenAI({ apiKey: "${PLAYGROUND_KEY_PLACEHOLDER}", baseURL: "${baseUrl}/v1" });\nconst request = ${requestLiteral};\nconst response = await client.${method}(request);\n${printResponse}`;
+    }
     const requestLiteral = pythonJsonLiteral(payload);
     if (boundary.protocol === 'anthropic_messages') {
         return `import json\nfrom anthropic import Anthropic\n\nclient = Anthropic(api_key="${PLAYGROUND_KEY_PLACEHOLDER}", base_url="${baseUrl}")\nrequest = json.loads(${requestLiteral})\nresponse = client.messages.create(**request)\nprint(response)`;

@@ -325,6 +325,10 @@
 .playground-example-toolbar select {
     width: auto;
     min-width: 130px;
+    min-height: 30px;
+    height: 30px;
+    padding: 3px 32px 3px 11px;
+    background-position: right 11px center;
 }
 
 .playground-example {
