@@ -45,6 +45,29 @@ class _AccessibilitySmokeParser(HTMLParser):
                 self.unlabelled_pagination += 1
 
 
+class _NestedStandardFieldParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.label_depth = 0
+        self.nested_fields: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        if tag == "label":
+            self.label_depth += 1
+            return
+        if (
+            self.label_depth
+            and tag in {"input", "select", "textarea"}
+            and values.get("type") not in {"checkbox", "radio"}
+        ):
+            self.nested_fields.append(values.get("id") or tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "label" and self.label_depth:
+            self.label_depth -= 1
+
+
 class UiFeedbackContractTests(unittest.TestCase):
     def _run_javascript_contract(self, source: str) -> None:
         node = shutil.which("node")
@@ -194,19 +217,20 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
         )
 
         self.assertNotRegex(styles, r"overflow-x:\s*auto")
-        badge_rule = re.search(r"\.status-badge\s*\{(?P<body>.*?)\}", styles, re.DOTALL)
+        badge_rule = re.search(
+            r"^\.status-badge\s*\{(?P<body>.*?)\}",
+            styles,
+            re.DOTALL | re.MULTILINE,
+        )
         self.assertIsNotNone(badge_rule)
         self.assertIn("width: fit-content", badge_rule.group("body"))
         self.assertIn("max-width: 100%", badge_rule.group("body"))
 
-    def test_wrapping_form_labels_keep_visible_space_before_controls(self) -> None:
-        styles = (FRONTEND / "css/forms-and-data.css").read_text(encoding="utf-8")
+    def test_standard_field_labels_are_siblings_not_hover_wrappers(self) -> None:
+        parser = _NestedStandardFieldParser()
+        parser.feed(serve_control_panel().body.decode("utf-8"))
 
-        self.assertIn("label.form-group > span:first-child", styles)
-        self.assertRegex(
-            styles,
-            r"label\.form-group\s*>\s*span:first-child\s*\{[^}]*margin-bottom:\s*8px",
-        )
+        self.assertEqual(parser.nested_fields, [])
 
     def test_select_controls_balance_text_and_chevron_spacing(self) -> None:
         foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")

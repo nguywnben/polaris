@@ -1064,10 +1064,6 @@ textarea[readonly] {
     margin-bottom: 0;
 }
 
-label.form-group > span:first-child {
-    display: block;
-    margin-bottom: 8px;
-}
 
 .switch-row {
     display: flex;

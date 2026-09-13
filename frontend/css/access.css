@@ -29,6 +29,11 @@
     font-weight: 650;
 }
 
+.access-client-protocol label,
+.virtual-key-filter-field label {
+    margin: 0;
+}
+
 .access-client-example {
     display: grid;
     gap: 12px;

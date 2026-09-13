@@ -94,9 +94,9 @@
                                 <button type="button" class="icon-button" data-ui-action="identity-create-close" data-i18n-aria-label="identity.close" aria-label="Close">×</button>
                             </div>
                             <div class="identity-dialog-body">
-                                <label class="form-group" for="identityCreateIssuer"><span data-i18n="identity.issuer">Issuer</span><input id="identityCreateIssuer" name="issuer" type="url" required maxlength="2048" autocomplete="off"></label>
-                                <label class="form-group" for="identityCreateSubject"><span data-i18n="identity.subject">Subject</span><input id="identityCreateSubject" name="subject" required maxlength="255" autocomplete="off"></label>
-                                <label class="form-group" for="identityCreateRole"><span data-i18n="identity.role">Role</span><select id="identityCreateRole" name="role" required><option value="viewer" data-i18n-technical>viewer</option><option value="operator" data-i18n-technical>operator</option><option value="security_admin" data-i18n-technical>security_admin</option><option id="identityCreateOwnerOption" value="owner" data-i18n-technical>owner</option></select></label>
+                                <div class="form-group"><label for="identityCreateIssuer" data-i18n="identity.issuer">Issuer</label><input id="identityCreateIssuer" name="issuer" type="url" required maxlength="2048" autocomplete="off"></div>
+                                <div class="form-group"><label for="identityCreateSubject" data-i18n="identity.subject">Subject</label><input id="identityCreateSubject" name="subject" required maxlength="255" autocomplete="off"></div>
+                                <div class="form-group"><label for="identityCreateRole" data-i18n="identity.role">Role</label><select id="identityCreateRole" name="role" required><option value="viewer" data-i18n-technical>viewer</option><option value="operator" data-i18n-technical>operator</option><option value="security_admin" data-i18n-technical>security_admin</option><option id="identityCreateOwnerOption" value="owner" data-i18n-technical>owner</option></select></div>
                                 <p id="identityCreateStatus" class="identity-section-status" role="status" aria-live="polite"></p>
                             </div>
                             <div class="identity-dialog-actions">

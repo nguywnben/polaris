@@ -40,8 +40,8 @@
                             <fieldset class="model-routing-policy">
                                 <legend data-i18n="models.credential_strategy">Credential strategy</legend>
                                 <div class="model-routing-policy-grid">
-                                    <label class="form-group" for="modelRoutingStrategy">
-                                        <span data-i18n="settings.credential_selection">Credential selection</span>
+                                    <div class="form-group">
+                                        <label for="modelRoutingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
                                         <select id="modelRoutingStrategy" data-ui-change="model-routing-strategy">
                                             <option value="balanced" data-i18n="settings.balanced">Balanced</option>
                                             <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
@@ -49,11 +49,11 @@
                                             <option value="least_latency" data-i18n="settings.least_latency">Least latency</option>
                                             <option value="lowest_cost" data-i18n="settings.lowest_cost">Lowest cost</option>
                                         </select>
-                                    </label>
-                                    <label class="form-group" for="modelPreferredProvider" id="modelPreferredProviderGroup">
-                                        <span data-i18n="settings.preferred_provider">Preferred provider</span>
+                                    </div>
+                                    <div class="form-group" id="modelPreferredProviderGroup">
+                                        <label for="modelPreferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
                                         <select id="modelPreferredProvider" data-ui-change="model-routing-strategy"><option value="" data-i18n="settings.automatic">Automatic</option></select>
-                                    </label>
+                                    </div>
                                 </div>
                                 <p class="field-hint hidden" id="modelRoutingLockNotice" data-i18n="quality.environment_managed">Managed by the runtime environment.</p>
                             </fieldset>

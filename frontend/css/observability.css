@@ -1,9 +1,9 @@
 .activity-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 22px;
     margin-bottom: 22px;
     padding: 0;
-    overflow-x: auto;
     border: 0;
     border-bottom: 1px solid var(--border);
     border-radius: 0;

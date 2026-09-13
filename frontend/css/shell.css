@@ -393,6 +393,10 @@
     font-weight: 600;
 }
 
+.sidebar-theme-control label {
+    margin: 0;
+}
+
 .sidebar-theme-control select {
     width: 100%;
     min-height: 32px;
