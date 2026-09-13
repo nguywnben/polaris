@@ -27,7 +27,7 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
         harness = f"""
 const fs = require('fs');
 const vm = require('vm');
-const source = fs.readFileSync({json.dumps(str(FRONTEND / 'js/features/virtual-keys.js'))}, 'utf8');
+const source = fs.readFileSync({json.dumps(str(FRONTEND / "js/features/virtual-keys.js"))}, 'utf8');
 vm.runInThisContext(source + `\n;globalThis.__buildAccessClientExample = buildAccessClientExample;`);
 const build = globalThis.__buildAccessClientExample;
 function assert(condition, message) {{ if (!condition) throw new Error(message); }}
@@ -106,7 +106,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn("<YOUR_OMNI_VIRTUAL_KEY>", self.feature)
         self.assertIn('<option value="openai_chat"', self.fragment)
         self.assertIn('<option value="openai_responses"', self.fragment)
-        self.assertIn('cURL (Bash)', self.fragment)
+        self.assertIn("cURL (Bash)", self.fragment)
         self.assertIn('<option value="powershell">PowerShell</option>', self.fragment)
         for format_name in ("curl", "powershell", "python", "node"):
             self.assertIn(f"{format_name}:", self.feature)
@@ -132,7 +132,9 @@ assert(build('openai_chat', 'http://localhost', 'node').includes('client.mjs'), 
         )
 
     def test_client_quickstart_uses_a_balanced_responsive_control_grid(self):
-        self.assertIn('class="btn btn-secondary btn-small" id="copyAccessClientExample"', self.fragment)
+        self.assertIn(
+            'class="btn btn-secondary btn-small" id="copyAccessClientExample"', self.fragment
+        )
         self.assertRegex(
             self.styles,
             r"(?s)\.access-client-header\s*\{.*?display: grid.*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)",

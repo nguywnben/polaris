@@ -143,7 +143,9 @@ assert(nodeGemini.includes('systemInstruction'), 'Node Gemini system instruction
 """
         )
 
-    def test_python_stream_examples_consume_events_and_keep_anthropic_sampling_compatible(self) -> None:
+    def test_python_stream_examples_consume_events_and_keep_anthropic_sampling_compatible(
+        self,
+    ) -> None:
         self._run_contract(
             """
 const base = {model: 'omway', stream: true, timeoutSeconds: 30, system: '',
