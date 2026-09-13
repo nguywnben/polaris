@@ -105,6 +105,23 @@ assert(warnings({
             r"(?s)@media \(max-width: 700px\).*?\.quality-explanation-grid.*?grid-template-columns: 1fr",
         )
 
+    def test_profile_cards_use_neutral_selection_and_hover_only_when_unselected(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertNotIn(".quality-profile-card:hover", styles)
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-profile-card:not\(\.selected\):hover\s*\{"
+            r".*?background:\s*var\(--control-hover\)"
+            r".*?border-color:\s*var\(--control-hover-border\)",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-profile-card\.selected\s*\{"
+            r".*?border-color:\s*var\(--text\)"
+            r".*?box-shadow:\s*none",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
