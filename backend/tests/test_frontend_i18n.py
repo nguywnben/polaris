@@ -290,6 +290,19 @@ class FrontendLocaleContractTests(unittest.TestCase):
             with self.subTest(locale=locale):
                 self.assertEqual(catalogs[locale], catalogs["en"])
 
+    def test_page_locale_catalog_executes_without_runtime_failure(self):
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node.js is required for the locale runtime contract.")
+        result = subprocess.run(
+            [node, str(FRONTEND / "js" / "core" / "page-locales.js")],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
     def test_language_control_only_appears_in_settings(self):
         locations = []
         for path in _frontend_sources():

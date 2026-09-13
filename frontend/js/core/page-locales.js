@@ -2183,7 +2183,6 @@ const ACCESS_VIRTUAL_KEY_MESSAGES = {
         'access.daily_budget': 'Daily budget (USD)', 'access.monthly_budget': 'Monthly budget (USD)',
         'access.allowed_models': 'Allowed model patterns', 'access.allowed_models_hint': 'One bounded glob pattern per line. Leave empty to allow every model.',
         'access.management_read': 'Management read', 'access.management_write': 'Management write',
-        'access.management_write_requires_read': 'Also selects management read',
         'access.fallback_price': 'Fallback USD per 1M tokens', 'access.save_key': 'Save key', 'access.scope_required': 'Select at least one scope.',
         'access.key_saved': 'Virtual key saved.', 'access.key_conflict': 'This key changed elsewhere. The current state has been refreshed.',
         'access.key_created_title': 'Virtual key created', 'access.key_rotated_title': 'Virtual key rotated',
@@ -2215,7 +2214,6 @@ const ACCESS_VIRTUAL_KEY_MESSAGES = {
         'access.daily_budget': 'Ngân sách ngày (USD)', 'access.monthly_budget': 'Ngân sách tháng (USD)',
         'access.allowed_models': 'Mẫu mô hình được phép', 'access.allowed_models_hint': 'Mỗi dòng là một mẫu glob có giới hạn. Để trống nếu cho phép mọi mô hình.',
         'access.management_read': 'Đọc dữ liệu quản trị', 'access.management_write': 'Thay đổi dữ liệu quản trị',
-        'access.management_write_requires_read': 'Đồng thời chọn quyền đọc dữ liệu quản trị',
         'access.fallback_price': 'Giá dự phòng USD/1 triệu token', 'access.save_key': 'Lưu khóa', 'access.scope_required': 'Hãy chọn ít nhất một phạm vi quyền.',
         'access.key_saved': 'Đã lưu khóa API ảo.', 'access.key_conflict': 'Khóa đã được thay đổi ở nơi khác. Trạng thái mới nhất đã được tải lại.',
         'access.key_created_title': 'Đã tạo khóa API ảo', 'access.key_rotated_title': 'Đã xoay vòng khóa API ảo',
@@ -2437,8 +2435,9 @@ for (const [locale, values] of Object.entries(ACCESS_VIRTUAL_KEY_LOCALE_VALUES))
     );
 }
 
-const ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES = {
+const ACCESS_VIRTUAL_KEY_SUPPLEMENTAL_MESSAGES = {
     en: {
+        'access.management_write_requires_read': 'Also selects management read',
         'access.key_name_placeholder': 'e.g. Personal app',
         'access.rpm_limit_placeholder': 'Empty means unlimited',
         'access.tpm_limit_placeholder': 'Empty means unlimited',
@@ -2448,6 +2447,7 @@ const ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES = {
         'access.fallback_price_placeholder': 'e.g. 10.00'
     },
     vi: {
+        'access.management_write_requires_read': 'Đồng thời chọn quyền đọc dữ liệu quản trị',
         'access.key_name_placeholder': 'Ví dụ: Ứng dụng cá nhân',
         'access.rpm_limit_placeholder': 'Để trống nếu không giới hạn',
         'access.tpm_limit_placeholder': 'Để trống nếu không giới hạn',
@@ -2461,8 +2461,8 @@ const ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES = {
 for (const [locale, messages] of Object.entries(ACCESS_VIRTUAL_KEY_MESSAGES)) {
     Object.assign(
         messages,
-        ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES[locale]
-            || ACCESS_VIRTUAL_KEY_PLACEHOLDER_MESSAGES.en
+        ACCESS_VIRTUAL_KEY_SUPPLEMENTAL_MESSAGES[locale]
+            || ACCESS_VIRTUAL_KEY_SUPPLEMENTAL_MESSAGES.en
     );
     Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
 }
