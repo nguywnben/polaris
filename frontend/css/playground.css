@@ -67,7 +67,16 @@
 .playground-stream-control {
     min-height: 46px;
     margin: 0;
-    align-self: end;
+    align-self: start;
+}
+
+.playground-stream-control > input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 3px;
+}
+
+.playground-stream-control > input[type="checkbox"]:focus {
+    box-shadow: none;
 }
 
 .playground-stream-control > span,

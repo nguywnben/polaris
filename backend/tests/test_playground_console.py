@@ -229,6 +229,22 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
         self.assertIn("white-space: pre-wrap", styles)
         self.assertIn(".playground-stream-control small", styles)
 
+    def test_stream_control_aligns_with_its_row_label_without_mouse_focus_halo(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"(?s)\.playground-stream-control\s*\{.*?align-self: start",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.playground-stream-control\s*>\s*input\[type=\"checkbox\"\]:focus\s*\{.*?box-shadow: none",
+        )
+        self.assertIn(
+            ":where(button, a, input, select, textarea, summary):focus-visible",
+            (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8"),
+        )
+
     def test_message_editor_prioritizes_full_width_content(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
         styles = STYLES.read_text(encoding="utf-8")
