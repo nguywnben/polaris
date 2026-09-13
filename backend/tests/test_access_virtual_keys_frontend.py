@@ -29,8 +29,9 @@ class AccessVirtualKeyFrontendTests(unittest.TestCase):
 const fs = require('fs');
 const vm = require('vm');
 const source = fs.readFileSync({json.dumps(str(FRONTEND / "js/features/virtual-keys.js"))}, 'utf8');
-vm.runInThisContext(source + `\n;globalThis.__buildAccessClientExample = buildAccessClientExample;`);
+vm.runInThisContext(source + `\n;globalThis.__buildAccessClientExample = buildAccessClientExample; globalThis.__syncVirtualKeyScopeControl = syncVirtualKeyScopeControl;`);
 const build = globalThis.__buildAccessClientExample;
+const syncScopes = globalThis.__syncVirtualKeyScopeControl;
 function assert(condition, message) {{ if (!condition) throw new Error(message); }}
 {assertions}
 """
@@ -70,6 +71,47 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             "fallback_price_usd_per_million",
         ):
             self.assertIn(field, self.feature)
+
+    def test_virtual_key_header_uses_an_optically_compact_primary_action(self):
+        self.assertIn(
+            'class="btn btn-secondary" data-ui-action="virtual-key-refresh"',
+            self.fragment,
+        )
+        self.assertIn(
+            'class="btn btn-compact" data-ui-action="virtual-key-create"',
+            self.fragment,
+        )
+
+    def test_management_write_scope_explains_and_enforces_read_dependency(self):
+        self.assertIn("t('access.management_write_requires_read')", self.feature)
+        self.assertEqual(
+            self.locales.count("'access.management_write_requires_read'"),
+            2,
+        )
+        self.assertIn("if (input === write && write.checked) read.checked = true;", self.feature)
+        self.assertIn("if (input === read && !read.checked) write.checked = false;", self.feature)
+        self._run_client_example_contract(
+            """
+const read = { checked: false };
+const write = { checked: true };
+const inference = { checked: true };
+const form = {
+    querySelector(selector) {
+        return selector.includes('management:write') ? write : read;
+    }
+};
+read.form = form;
+write.form = form;
+inference.form = form;
+syncScopes(write);
+assert(read.checked, 'Management write must select management read');
+syncScopes(inference);
+assert(write.checked && read.checked, 'Inference scopes must not alter management scopes');
+read.checked = false;
+syncScopes(read);
+assert(!write.checked, 'Removing management read must remove management write');
+"""
+        )
 
     def test_create_form_empty_fields_have_localized_placeholders(self):
         placeholders = {

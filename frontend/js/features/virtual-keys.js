@@ -340,7 +340,12 @@ function virtualKeyScopeOptions(record) {
         ['inference:gemini', 'Google GenAI'],
         ['management:read', t('access.management_read')],
         ['management:write', t('access.management_write')]
-    ].map(([scope, label]) => `<label class="switch-row"><input type="checkbox" class="config-checkbox" name="scopes" value="${escapeAttribute(scope)}" data-ui-change="virtual-key-scope" ${selected.has(scope) ? 'checked' : ''}><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(scope)}</small></span></label>`).join('');
+    ].map(([scope, label]) => {
+        const detail = scope === 'management:write'
+            ? `${scope} · ${t('access.management_write_requires_read')}`
+            : scope;
+        return `<label class="switch-row"><input type="checkbox" class="config-checkbox" name="scopes" value="${escapeAttribute(scope)}" data-ui-change="virtual-key-scope" ${selected.has(scope) ? 'checked' : ''}><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(detail)}</small></span></label>`;
+    }).join('');
 }
 
 function syncVirtualKeyScopeControl(input) {
