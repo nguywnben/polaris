@@ -240,6 +240,8 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
             self.assertIn(selector, styles)
 
         self.assertIn("background-image: var(--select-chevron-open)", styles)
+        self.assertIn(":is(\n    input:not([type]),", styles)
+        self.assertNotIn(":where(\n    input:not([type]),", styles)
         self.assertNotIn("box-shadow: 0 0 0 3px var(--field-focus-ring)", styles)
         self.assertNotIn("box-shadow: 0 0 0 3px var(--field-invalid-ring)", styles)
         self.assertRegex(

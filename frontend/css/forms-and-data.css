@@ -932,7 +932,7 @@ textarea {
     border-radius: var(--radius);
 }
 
-:where(
+:is(
     input:not([type]),
     input[type="text"],
     input[type="password"],
@@ -948,7 +948,7 @@ textarea {
     box-shadow: none;
 }
 
-:where(
+:is(
     input:not([type]),
     input[type="text"],
     input[type="password"],
@@ -969,7 +969,7 @@ select:open {
     box-shadow: none;
 }
 
-:where(
+:is(
     input:not([type]),
     input[type="text"],
     input[type="password"],
@@ -983,7 +983,7 @@ select:open {
     border-color: var(--danger);
 }
 
-:where(
+:is(
     input:not([type]),
     input[type="text"],
     input[type="password"],
