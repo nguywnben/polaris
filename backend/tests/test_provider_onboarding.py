@@ -75,14 +75,26 @@ class ProviderOnboardingContractTests(unittest.TestCase):
         default_header = default_workspace.split('<div class="provider-tools-grid">', 1)[0]
         self.assertIn('id="providerCatalogPagination"', default_header)
 
-    def test_secondary_import_and_settings_are_progressively_disclosed(self) -> None:
+    def test_import_is_always_visible_while_settings_are_progressively_disclosed(self) -> None:
         source = ONBOARDING_SOURCE.read_text(encoding="utf-8")
+        styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
+
+        self.assertIn("function presentProviderImportPanel(panel)", source)
+        self.assertIn("title.dataset.providerStaticLabel = 'import'", source)
+        self.assertNotIn("createProviderDisclosure(importPanel", source)
         self.assertIn("document.createElement('details')", source)
         self.assertIn("provider-secondary-disclosure", source)
-        self.assertIn("kind: 'import'", source)
-        self.assertIn("kind: 'settings'", source)
+        self.assertIn("createProviderDisclosure(settingsPanel", source)
         self.assertIn("details.addEventListener('toggle'", source)
         self.assertIn("loadProviderWorkspaceSettings", source)
+        self.assertIn(".tool-panel.provider-secondary-disclosure", styles)
+        self.assertIn(".provider-disclosure-summary::-webkit-details-marker", styles)
+        self.assertIn(".provider-disclosure-summary::marker", styles)
+        self.assertIn("background-image: var(--select-chevron)", styles)
+        self.assertRegex(
+            styles,
+            r"\.provider-secondary-disclosure\[open\][^{]*\.provider-disclosure-summary::after\s*\{[^}]*transform:\s*rotate\(180deg\)",
+        )
 
     def test_provider_route_no_longer_eager_loads_unrelated_settings(self) -> None:
         provider_loader = NAVIGATION_SOURCE.split("providers: () =>", 1)[1].split(

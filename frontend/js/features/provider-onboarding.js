@@ -135,27 +135,32 @@ async function loadProviderWorkspaceSettings(providerId) {
     return providerSettingsPromises.get(family);
 }
 
-function createProviderDisclosure(panel, {kind, providerId}) {
+function presentProviderImportPanel(panel) {
+    if (!panel) return;
+    panel.classList.add('provider-import-panel');
+    const title = panel.querySelector(':scope > .card-title');
+    if (!title) return;
+    title.dataset.providerStaticLabel = 'import';
+    title.textContent = t('providers.import_credentials');
+}
+
+function createProviderDisclosure(panel, {providerId}) {
     if (!panel || panel.matches('details')) return panel;
     const details = document.createElement('details');
     details.className = `${panel.className} provider-secondary-disclosure`;
-    details.dataset.disclosureKind = kind;
+    details.dataset.disclosureKind = 'settings';
 
     const summary = document.createElement('summary');
     summary.className = 'provider-disclosure-summary';
-    summary.dataset.providerDisclosureLabel = kind;
-    summary.textContent = t(kind === 'import'
-        ? 'providers.import_credentials'
-        : 'providers.advanced_settings');
+    summary.dataset.providerDisclosureLabel = 'settings';
+    summary.textContent = t('providers.advanced_settings');
     details.appendChild(summary);
     while (panel.firstChild) details.appendChild(panel.firstChild);
     panel.replaceWith(details);
 
-    if (kind === 'settings') {
-        details.addEventListener('toggle', () => {
-            if (details.open) void loadProviderWorkspaceSettings(providerId);
-        });
-    }
+    details.addEventListener('toggle', () => {
+        if (details.open) void loadProviderWorkspaceSettings(providerId);
+    });
     return details;
 }
 
@@ -164,12 +169,12 @@ function enhanceProviderWorkspaces() {
         const workspace = document.getElementById(definition.panelId);
         const tools = workspace?.querySelector(':scope > .provider-tools-grid');
         const importPanel = tools?.querySelector(':scope > .tool-panel:nth-child(2)');
-        createProviderDisclosure(importPanel, {kind: 'import', providerId});
+        presentProviderImportPanel(importPanel);
 
         const settingsPanel = workspace?.querySelector(
             '.provider-settings-panel, .provider-advanced-panel'
         );
-        createProviderDisclosure(settingsPanel, {kind: 'settings', providerId});
+        createProviderDisclosure(settingsPanel, {providerId});
     });
 }
 
@@ -187,10 +192,11 @@ function retryProviderCapabilities() {
 }
 
 function refreshProviderOnboardingCopy() {
+    document.querySelectorAll('[data-provider-static-label="import"]').forEach((title) => {
+        title.textContent = t('providers.import_credentials');
+    });
     document.querySelectorAll('[data-provider-disclosure-label]').forEach((summary) => {
-        summary.textContent = t(summary.dataset.providerDisclosureLabel === 'import'
-            ? 'providers.import_credentials'
-            : 'providers.advanced_settings');
+        summary.textContent = t('providers.advanced_settings');
     });
     if (Object.keys(providerCapabilityByVariant).length) renderProviderCapabilityBadges();
     const state = document.getElementById('providerCapabilityStatus')?.dataset.state;
