@@ -62,7 +62,7 @@ class ProviderCapabilityTests(unittest.TestCase):
             XAI_CONSOLE: common,
             CODEX: oauth | {"quota"},
             OPENAI_PLATFORM: common,
-            CLAUDE_CODE: oauth,
+            CLAUDE_CODE: oauth | {"quota"},
             CLAUDE_PLATFORM: common,
             OLLAMA: common,
         }
@@ -120,7 +120,7 @@ class ProviderCapabilityTests(unittest.TestCase):
             XAI_CONSOLE: common,
             CODEX: oauth | {"quota"},
             OPENAI_PLATFORM: common,
-            CLAUDE_CODE: oauth,
+            CLAUDE_CODE: oauth | {"quota"},
             CLAUDE_PLATFORM: common,
             OLLAMA: common,
         }

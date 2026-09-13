@@ -28,7 +28,7 @@ infer support from provider names, credential fields, or another variant of the 
 | SpaceXAI Console | API key | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
 | Codex | OAuth | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | All | Yes | Yes | Yes |
 | OpenAI Platform | API key | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
-| Claude Code | OAuth | Yes | Yes | Yes | Yes | Yes | Yes | No | Yes | All | Yes | Yes | Yes |
+| Claude Code | OAuth | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | All | Yes | Yes | Yes |
 | Claude Platform | API key | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
 | Ollama | Connection | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
 
@@ -51,6 +51,11 @@ Operation meanings:
   rotate the key through their native provider validator; Ollama can change its normalized endpoint
   and optional key after a connection check. OAuth secrets are never exposed or edited in place.
 - `model_discovery` covers reading or refreshing the available model set.
+- `quota` is provider-specific rather than a synthetic universal balance: Google Antigravity
+  reports model windows, Grok Build reports billing periods, Codex reports account rate-limit
+  windows, and Claude Code reports subscription usage windows. Claude Platform, OpenAI Platform,
+  SpaceXAI Console, Google AI Studio, and Ollama do not advertise quota because their credential
+  APIs do not expose an equivalent account view.
 - `disable` governs both disabling and re-enabling a stored credential.
 - `toggle` is the v1 compatibility alias for `disable`; `refresh_identity`, `credit_mode`, and
   `preview_channel` remain compatibility vocabulary and are supported only where explicitly listed.
@@ -94,3 +99,8 @@ runtime environment variables are explicitly read-only in both the API and conso
 Update the variant in `backend/core/provider_registry.py`, add or update its table-driven matrix
 case, and verify both the authenticated capability route and every affected operation route.
 Capabilities must describe behavior that exists now; planned adapter work is not advertised.
+
+Claude Code subscription usage is fetched on demand from the account endpoint used by current
+Claude Code clients. That endpoint can rate-limit and is not a documented public Anthropic API, so
+Omni Gateway caches successful snapshots and 429 responses for three minutes, parses both known
+response shapes, and returns a sanitized temporary error instead of repeatedly probing upstream.

@@ -14,6 +14,7 @@ from core.anthropic import (
     refresh_claude_oauth_credential,
     validate_anthropic_api_key,
 )
+from core.anthropic_usage import fetch_anthropic_oauth_usage
 from core.api.primary import fetch_quota_info
 from core.codex import CodexError, refresh_codex_oauth_credential
 from core.codex_usage import fetch_codex_usage
@@ -1195,15 +1196,63 @@ async def get_credential_quota(
                 }
             )
 
-        if provider_id in {ANTHROPIC, OLLAMA}:
-            provider_name = "Anthropic" if provider_id == ANTHROPIC else "Ollama"
+        if provider_id == OLLAMA:
             return JSONResponse(
                 content={
                     "success": True,
                     "supported": False,
                     "filename": filename,
                     "provider": provider_id,
-                    "message": f"{provider_name} does not expose a compatible account quota view for this credential.",
+                    "message": "Ollama does not expose a compatible account quota view for this credential.",
+                }
+            )
+
+        if provider_id == ANTHROPIC:
+            if is_api_key_credential(credential_data):
+                return JSONResponse(
+                    content={
+                        "success": True,
+                        "supported": False,
+                        "filename": filename,
+                        "provider": provider_id,
+                        "message": (
+                            "Subscription quota is available for Claude Code OAuth "
+                            "credentials only. Claude Platform does not expose this "
+                            "account usage view for API keys."
+                        ),
+                    }
+                )
+
+            async def refresh_anthropic_credential() -> dict:
+                refreshed = await refresh_claude_oauth_credential(credential_data)
+                await storage_adapter.store_credential(filename, refreshed, mode=mode)
+                log.info(f"Claude Code token automatically refreshed: {filename}")
+                return refreshed
+
+            if not (credential_data.get("access_token") or credential_data.get("token")):
+                credential_data = await refresh_anthropic_credential()
+            access_token = credential_data.get("access_token") or credential_data.get("token")
+
+            try:
+                quota_info = await fetch_anthropic_oauth_usage(access_token)
+            except AnthropicError as exc:
+                if exc.status_code == 401 and credential_data.get("refresh_token"):
+                    credential_data = await refresh_anthropic_credential()
+                    access_token = credential_data.get("access_token") or credential_data.get(
+                        "token"
+                    )
+                    quota_info = await fetch_anthropic_oauth_usage(access_token)
+                else:
+                    raise
+
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "supported": True,
+                    "filename": filename,
+                    "provider": provider_id,
+                    "provider_variant": "claude_code",
+                    **quota_info,
                 }
             )
 

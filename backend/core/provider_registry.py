@@ -277,7 +277,7 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
         provider_id=ANTHROPIC,
         display_name=_CREDENTIAL_PROVIDER_NAMES[CLAUDE_CODE],
         credential_type="oauth",
-        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "reauthenticate"),
+        operations=(*_COMMON_CREDENTIAL_OPERATIONS, "refresh", "reauthenticate", "quota"),
     ),
     CLAUDE_PLATFORM: CredentialVariantCapabilities(
         variant_id=CLAUDE_PLATFORM,

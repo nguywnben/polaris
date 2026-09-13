@@ -397,6 +397,8 @@ function buildAccountBillingQuotaHtml(filename, data, context = {}) {
 function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
 
     const windows = Array.isArray(data.windows) ? data.windows : [];
+    const isClaudeCode = data.provider_variant === 'claude_code'
+        || context.providerVariant === 'claude_code';
     const remainingPercentages = windows
         .map((windowData) => Number(windowData.remaining_percentage))
         .filter(Number.isFinite);
@@ -406,7 +408,7 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
     const availableResetCredits = Number(data.reset_credits?.available_count);
     const hasReviewWindows = windows.some((windowData) => String(windowData.id || '').startsWith('review_'));
     const rows = renderMessageResultRows([
-        [t('modal.provider'), context.providerName || 'Codex'],
+        [t('modal.provider'), context.providerName || (isClaudeCode ? 'Claude Code' : 'Codex')],
         context.accountLabel ? [t('modal.account'), context.accountLabel] : [t('modal.credential'), filename],
         [t('modal.plan'), plan || t('modal.unknown')],
         [t('modal.usage_windows'), windows.length],
@@ -414,8 +416,10 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
         Number.isFinite(availableResetCredits)
             ? [t('modal.reset_credits'), Math.max(0, availableResetCredits)]
             : null,
-        [t('modal.standard_limit'), data.limit_reached ? t('modal.reached') : t('modal.available')],
-        hasReviewWindows
+        typeof data.limit_reached === 'boolean'
+            ? [t('modal.standard_limit'), data.limit_reached ? t('modal.reached') : t('modal.available')]
+            : null,
+        hasReviewWindows && typeof data.review_limit_reached === 'boolean'
             ? [t('modal.code_review_limit'), data.review_limit_reached ? t('modal.reached') : t('modal.available')]
             : null,
     ].filter(Boolean));
@@ -448,7 +452,7 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
 
     return `
         <div class="message-result-panel">
-            <div class="message-result-intro">${escapeHtml(t('modal.codex_quota_intro'))}</div>
+            <div class="message-result-intro">${escapeHtml(t(isClaudeCode ? 'modal.claude_quota_intro' : 'modal.codex_quota_intro'))}</div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.quota_summary'))}</div>
                 <div class="message-result-summary">${rows}</div>

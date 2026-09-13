@@ -1490,6 +1490,28 @@ for (const [locale, values] of Object.entries(CREDENTIAL_MODAL_VALUES)) {
     Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], Object.fromEntries(CREDENTIAL_MODAL_KEYS.map((key, index) => [key, values[index]])));
 }
 
+const CLAUDE_QUOTA_INTRO_LABELS = {
+    en: 'Subscription usage reported by Claude Code for the selected OAuth credential.',
+    'zh-CN': 'Claude Code 为所选 OAuth 凭据报告的订阅用量。',
+    'zh-TW': 'Claude Code 為所選 OAuth 憑證回報的訂閱用量。',
+    de: 'Von Claude Code gemeldete Abonnementnutzung für den ausgewählten OAuth-Zugang.',
+    es: 'Uso de la suscripción comunicado por Claude Code para la credencial OAuth seleccionada.',
+    fr: 'Utilisation de l’abonnement communiquée par Claude Code pour l’identifiant OAuth sélectionné.',
+    id: 'Penggunaan langganan yang dilaporkan Claude Code untuk kredensial OAuth yang dipilih.',
+    it: 'Utilizzo dell’abbonamento comunicato da Claude Code per la credenziale OAuth selezionata.',
+    ja: '選択した OAuth 認証情報について Claude Code が報告したサブスクリプション使用量です。',
+    ko: '선택한 OAuth 자격 증명에 대해 Claude Code가 보고한 구독 사용량입니다.',
+    pt: 'Uso da assinatura informado pelo Claude Code para a credencial OAuth selecionada.',
+    ru: 'Использование подписки, сообщённое Claude Code для выбранных учётных данных OAuth.',
+    th: 'การใช้งานแพ็กเกจที่ Claude Code รายงานสำหรับข้อมูลรับรอง OAuth ที่เลือก',
+    tr: 'Seçili OAuth kimlik bilgisi için Claude Code tarafından bildirilen abonelik kullanımı.',
+    vi: 'Hạn mức gói thuê bao do Claude Code báo cáo cho tài khoản OAuth đã chọn.',
+};
+
+for (const [locale, label] of Object.entries(CLAUDE_QUOTA_INTRO_LABELS)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['modal.claude_quota_intro'] = label;
+}
+
 const PROVIDER_AUTHORIZATION_KEYS = [
     'provider.authorization_code',
     'provider.authorization_code_placeholder',

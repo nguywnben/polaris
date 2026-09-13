@@ -551,6 +551,9 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("t('modal.lowest_billing_preview'", dialog_script)
         self.assertIn("data?.quota_type === 'account_rate_limits'", dialog_script)
         self.assertIn("t('modal.usage_windows')", dialog_script)
+        self.assertIn("data.provider_variant === 'claude_code'", dialog_script)
+        self.assertIn("'modal.claude_quota_intro'", dialog_script)
+        self.assertIn("typeof data.limit_reached === 'boolean'", dialog_script)
 
     def test_subscription_plans_are_rendered_as_credential_badges(self):
         card_script = read_scripts("ui/credential-cards.js")
