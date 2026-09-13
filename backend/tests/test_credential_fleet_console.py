@@ -38,7 +38,7 @@ class TestElement {{
 const elements = new Map();
 for (const suffix of [
     'SelectedCount', 'BatchEnableBtn', 'BatchDisableBtn', 'BatchDeleteBtn',
-    'BatchEnableCreditBtn', 'BatchDisableCreditBtn', 'BatchVerifyBtn',
+    'BatchVerifyBtn',
     'SelectAllCheckbox', 'SelectAllMatchingBtn', 'ClearSelectionBtn'
 ]) elements.set(`primary${{suffix}}`, new TestElement());
 global.document = {{
@@ -92,6 +92,12 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertNotIn('id="selectAllPrimaryCheckbox"', html)
 
     def test_mixed_selection_hides_provider_specific_actions(self) -> None:
+        html = POOL_HTML.read_text(encoding="utf-8")
+
+        self.assertNotIn('data-batch-action="enable_credit"', html)
+        self.assertNotIn('data-batch-action="disable_credit"', html)
+        self.assertNotIn('id="primaryBatchEnableCreditBtn"', html)
+        self.assertNotIn('id="primaryBatchDisableCreditBtn"', html)
         self._run_manager_contract(
             """
 manager.data = {a: {provider_variant: 'common'}, b: {provider_variant: 'credit'}};
@@ -99,10 +105,27 @@ manager.selectedFiles = new Set(['a', 'b']);
 manager.updateBatchControls();
 assert(elements.get('primaryBatchEnableBtn').disabled === false, 'common enable disabled');
 assert(elements.get('primaryBatchDeleteBtn').disabled === false, 'common delete disabled');
-assert(elements.get('primaryBatchEnableCreditBtn').hidden === true, 'invalid credit action shown');
-assert(elements.get('primaryBatchDisableCreditBtn').hidden === true, 'invalid credit action shown');
+assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hidden');
 """
         )
+
+    def test_card_actions_separate_standard_and_provider_specific_operations(self) -> None:
+        source = CARD_SOURCE.read_text(encoding="utf-8")
+
+        self.assertIn('class="cred-actions-primary"', source)
+        self.assertIn('class="cred-actions-secondary"', source)
+        self.assertIn("supportsCreditMode", source)
+        self.assertIn("supportsQuotaPreview", source)
+        primary_start = source.index("const primaryActionButtons")
+        secondary_start = source.index("const secondaryActionButtons")
+        test_action = source.index('data-credential-command="test"')
+        credit_action = source.index('data-credential-command="enable_credit"')
+        quota_action = source.index('data-credential-command="quota"')
+        self.assertLess(primary_start, secondary_start)
+        self.assertGreater(test_action, primary_start)
+        self.assertLess(test_action, secondary_start)
+        self.assertGreater(credit_action, secondary_start)
+        self.assertGreater(quota_action, secondary_start)
 
     def test_explicit_and_all_matching_batches_share_the_100_item_bound(self) -> None:
         self._run_manager_contract(

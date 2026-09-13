@@ -152,6 +152,30 @@ const CREDENTIAL_OPERATION_KEYS = [
     'pool.batch.outcome.invalid', 'pool.batch.outcome.duplicate', 'pool.batch.outcome.timed_out', 'pool.batch.outcome.failed'
 ];
 
+const CREDENTIAL_ACTION_KEYS = ['pool.actions.more'];
+
+const CREDENTIAL_ACTION_MORE_LABELS = {
+    en: 'More actions',
+    'zh-CN': '更多操作',
+    'zh-TW': '更多操作',
+    de: 'Weitere Aktionen',
+    es: 'Más acciones',
+    fr: 'Plus d’actions',
+    id: 'Tindakan lainnya',
+    it: 'Altre azioni',
+    ja: 'その他の操作',
+    ko: '추가 작업',
+    pt: 'Mais ações',
+    ru: 'Другие действия',
+    th: 'การดำเนินการเพิ่มเติม',
+    tr: 'Diğer işlemler',
+    vi: 'Thao tác khác'
+};
+
+for (const [locale, label] of Object.entries(CREDENTIAL_ACTION_MORE_LABELS)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['pool.actions.more'] = label;
+}
+
 const CREDENTIAL_OPERATION_VALUES = {
     en: [
         'Narrow the selection to 100 credentials or fewer.', 'This operation is not supported by every selected credential type.', 'Verification currently requires an explicit page selection.',

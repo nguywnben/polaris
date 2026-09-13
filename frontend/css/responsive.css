@@ -523,11 +523,8 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .cred-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .cred-actions .cred-btn {
+    .cred-actions .cred-btn,
+    .cred-actions-secondary summary {
         min-height: 44px;
     }
 

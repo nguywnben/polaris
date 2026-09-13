@@ -411,7 +411,7 @@ function createCredCard(credInfo, manager) {
         subscriptionKind: isAntigravity ? 'plan' : '',
     };
 
-    const actionButtons = `
+    const primaryActionButtons = `
 
         ${supportsDisable ? (status.disabled
 
@@ -421,7 +421,15 @@ function createCredCard(credInfo, manager) {
 
         ) : ''}
 
+        ${supportsTest ? `<button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>` : ''}
+
         <button type="button" class="cred-btn view" data-credential-command="view" title="${escapeAttribute(t('btn_view_content_title'))}">${t('btn_view_content')}</button>
+
+        ${supportsDelete ? `<button type="button" class="cred-btn delete" data-credential-command="delete">${t('action_delete')}</button>` : ''}
+
+    `;
+
+    const secondaryActionButtons = `
 
         ${supportsExport ? `<button type="button" class="cred-btn download" data-credential-command="download">${t('btn_download')}</button>` : ''}
 
@@ -441,11 +449,7 @@ function createCredCard(credInfo, manager) {
 
         ${supportsVerify ? `<button type="button" class="cred-btn" data-credential-command="verify" title="${escapeAttribute(t('btn_verify_id_title'))}">${t('btn_verify_id')}</button>` : ''}
 
-        ${supportsTest ? `<button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>` : ''}
-
         <button type="button" class="cred-btn" data-credential-command="errors" title="${escapeAttribute(t('btn_view_errors_title'))}">${t('btn_view_errors')}</button>
-
-        ${supportsDelete ? `<button type="button" class="cred-btn delete" data-credential-command="delete">${t('action_delete')}</button>` : ''}
 
     `;
 
@@ -476,7 +480,13 @@ function createCredCard(credInfo, manager) {
 
         </div>
 
-        <div class="cred-actions">${actionButtons}</div>
+        <div class="cred-actions">
+            <div class="cred-actions-primary">${primaryActionButtons}</div>
+            <details class="cred-actions-secondary">
+                <summary>${t('pool.actions.more')}</summary>
+                <div class="cred-actions-secondary-grid">${secondaryActionButtons}</div>
+            </details>
+        </div>
 
     `;
 

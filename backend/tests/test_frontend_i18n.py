@@ -340,6 +340,7 @@ class FrontendLocaleContractTests(unittest.TestCase):
             "UPDATE_GUIDE_KEYS",
             "CREDENTIAL_FLEET_KEYS",
             "CREDENTIAL_OPERATION_KEYS",
+            "CREDENTIAL_ACTION_KEYS",
             "CREDENTIAL_TIER_KEYS",
             "IDENTITY_KEYS",
             "AUDIT_KEYS",
