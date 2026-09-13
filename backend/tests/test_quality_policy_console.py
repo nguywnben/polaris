@@ -123,6 +123,30 @@ assert(warnings({
             r".*?box-shadow:\s*none",
         )
 
+    def test_quality_controls_have_clear_precedence_and_consistent_spacing(self) -> None:
+        styles = STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-precedence-list\s*\{"
+            r".*?grid-template-columns:\s*1fr"
+            r".*?list-style-position:\s*outside",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-precedence-list li\s*\{.*?color:\s*var\(--text\)",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-policy-grid > \.config-group > \.switch-row \+ \.form-group\s*\{"
+            r".*?margin-top:\s*16px",
+        )
+        self.assertRegex(
+            styles,
+            r"(?s)\.quality-dependent-controls \.switch-row\s*\{"
+            r".*?margin-top:\s*0",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

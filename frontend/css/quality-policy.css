@@ -49,11 +49,16 @@
 
 .quality-precedence-list {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 6px;
-    margin: 0 0 9px;
-    padding: 0;
-    list-style-position: inside;
+    margin: 0 0 10px;
+    padding-left: 20px;
+    list-style-position: outside;
+}
+
+.quality-precedence-list li {
+    padding-left: 2px;
+    color: var(--text);
 }
 
 .quality-warning-panel {
@@ -179,9 +184,12 @@
     min-width: 0;
 }
 
-.quality-policy-grid .switch-row + .switch-row,
-.quality-dependent-controls .switch-row:first-child {
+.quality-policy-grid > .config-group > .switch-row + .switch-row {
     margin-top: 12px;
+}
+
+.quality-policy-grid > .config-group > .switch-row + .form-group {
+    margin-top: 16px;
 }
 
 .quality-policy-grid .switch-row span {
@@ -207,6 +215,7 @@
 
 .quality-dependent-controls .form-group,
 .quality-dependent-controls .switch-row {
+    margin-top: 0;
     margin-bottom: 0;
 }
 
