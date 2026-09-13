@@ -88,6 +88,7 @@ function setProviderCapabilityStatus(state, error = null) {
     const retry = document.getElementById('providerCapabilityRetryBtn');
     if (!container || !text || !retry) return;
     container.dataset.state = state;
+    container.classList.toggle('hidden', state === 'ready');
     retry.classList.toggle('hidden', state !== 'failed');
     if (state === 'loading') text.textContent = t('providers.capabilities_loading');
     if (state === 'ready') {

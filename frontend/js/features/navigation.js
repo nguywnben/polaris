@@ -484,6 +484,11 @@ function selectProviderWorkspace(providerId, focusSelector = false) {
         panel?.classList.toggle('hidden', !isActive);
     });
 
+    const paginationContainer = document.getElementById('providerCatalogPagination');
+    const activeHeader = document.getElementById(selected.panelId)
+        ?.querySelector(':scope > .provider-workspace-header');
+    if (paginationContainer) activeHeader?.append(paginationContainer);
+
     if (focusSelector) {
         const selector = document.getElementById(selected.selectorId);
         selector?.focus();

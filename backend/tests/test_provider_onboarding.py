@@ -58,6 +58,23 @@ class ProviderOnboardingContractTests(unittest.TestCase):
         self.assertIn('id="providerCapabilityStatus"', PROVIDER_HTML)
         self.assertIn('data-ui-action="retry-provider-capabilities"', PROVIDER_HTML)
 
+    def test_ready_capability_status_is_silent_and_pagination_follows_active_heading(
+        self,
+    ) -> None:
+        onboarding = ONBOARDING_SOURCE.read_text(encoding="utf-8")
+        navigation = (ROOT / "frontend/js/features/navigation.js").read_text(encoding="utf-8")
+
+        self.assertIn("container.classList.toggle('hidden', state === 'ready')", onboarding)
+        self.assertIn("activeHeader?.append(paginationContainer)", navigation)
+        self.assertIn(
+            'class="provider-workspace-header">\n'
+            '                            <div class="provider-workspace-heading">',
+            PROVIDER_HTML,
+        )
+        default_workspace = PROVIDER_HTML.split('id="providerWorkspaceGoogleAntigravity"', 1)[1]
+        default_header = default_workspace.split('<div class="provider-tools-grid">', 1)[0]
+        self.assertIn('id="providerCatalogPagination"', default_header)
+
     def test_secondary_import_and_settings_are_progressively_disclosed(self) -> None:
         source = ONBOARDING_SOURCE.read_text(encoding="utf-8")
         self.assertIn("document.createElement('details')", source)

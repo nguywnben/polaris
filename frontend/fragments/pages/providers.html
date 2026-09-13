@@ -150,12 +150,6 @@
                         <span id="providerCapabilityStatusText" data-i18n="providers.capabilities_loading">Loading supported connection capabilities...</span>
                         <button type="button" class="btn btn-secondary btn-small hidden" id="providerCapabilityRetryBtn" data-ui-action="retry-provider-capabilities" data-i18n="providers.retry">Retry</button>
                     </div>
-                    <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
-                        <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
-                        <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
-                        <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
-                    </div>
-
                     <section class="provider-workspace hidden" id="providerWorkspaceGrok" role="tabpanel" aria-labelledby="providerSelectorGrok">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
@@ -639,6 +633,11 @@
                                     <p>Authorize accounts, import credential archives, and manage provider-specific behavior.</p>
                                     <a class="provider-site-link" href="https://antigravity.google/" target="_blank" rel="noreferrer">https://antigravity.google/</a>
                                 </div>
+                            </div>
+                            <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
+                                <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
+                                <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
+                                <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
                             </div>
                         </div>
                         <div class="provider-tools-grid">
