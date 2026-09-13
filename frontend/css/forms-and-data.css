@@ -886,11 +886,13 @@ label {
     margin-bottom: 7px;
 }
 
+input:not([type]),
 input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="url"],
 input[type="search"],
+input[type="datetime-local"],
 select,
 textarea {
     width: 100%;
@@ -901,6 +903,7 @@ textarea {
     color: var(--text);
     padding: 8px 13px;
     outline: 0;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
 select {
@@ -912,11 +915,13 @@ select {
     padding: 8px 38px 8px 13px;
 }
 
+input:not([type]):not(:disabled):not(.disabled):not(:focus):hover,
 input[type="text"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="password"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="number"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="url"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="search"]:not(:disabled):not(.disabled):not(:focus):hover,
+input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus):hover,
 select:not(:disabled):not(.disabled):not(:focus):hover,
 textarea:not(:disabled):not(.disabled):not(:focus):hover {
     border-color: var(--field-hover-border);
@@ -927,11 +932,70 @@ textarea {
     border-radius: var(--radius);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+:where(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):focus {
+    border-color: var(--field-focus-border);
+    background-color: var(--surface);
+    box-shadow: 0 0 0 3px var(--field-focus-ring);
+}
+
+:where(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):focus-visible {
+    outline: 0;
+}
+
+select:open {
+    border-color: var(--field-focus-border);
+    background-color: var(--surface);
+    background-image: var(--select-chevron-open);
+    box-shadow: 0 0 0 3px var(--field-focus-ring);
+}
+
+:where(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):user-invalid:not(:focus) {
+    border-color: var(--danger);
+}
+
+:where(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):user-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--field-invalid-ring);
 }
 
 input:disabled,
@@ -944,7 +1008,9 @@ input.disabled,
 select.disabled,
 textarea.disabled,
 .env-locked {
+    border-color: var(--border);
     background-color: var(--bg-subtle);
+    box-shadow: none;
     color: var(--text-muted);
     -webkit-text-fill-color: var(--text-muted);
     opacity: 1;

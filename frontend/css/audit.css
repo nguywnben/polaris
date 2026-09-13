@@ -204,9 +204,7 @@
 }
 
 .audit-event-card button:focus-visible,
-.audit-detail-dialog button:focus-visible,
-.audit-filter-grid :focus-visible,
-.audit-retention :focus-visible {
+.audit-detail-dialog button:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
 }

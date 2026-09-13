@@ -183,8 +183,8 @@
     border-top: 1px solid var(--border);
 }
 
-.identity-panel :focus-visible,
-.identity-dialog :focus-visible {
+.identity-panel :where(button, a, summary):focus-visible,
+.identity-dialog :where(button, a, summary):focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
 }

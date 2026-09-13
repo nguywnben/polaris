@@ -221,6 +221,54 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
         self.assertIn("background-size: 12px 8px", body)
         self.assertIn("padding: 8px 38px 8px 13px", body)
 
+    def test_form_controls_share_complete_interaction_states(self) -> None:
+        foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
+        styles = (FRONTEND / "css/forms-and-data.css").read_text(encoding="utf-8")
+
+        for token in (
+            "--field-focus-border:",
+            "--field-focus-ring:",
+            "--field-invalid-ring:",
+            "--select-chevron-open:",
+        ):
+            self.assertIn(token, foundation)
+
+        for selector in (
+            "input:not([type])",
+            'input[type="datetime-local"]',
+            "select:open",
+            ":user-invalid",
+            ":focus-visible",
+        ):
+            self.assertIn(selector, styles)
+
+        self.assertIn("background-image: var(--select-chevron-open)", styles)
+        self.assertIn("box-shadow: 0 0 0 3px var(--field-focus-ring)", styles)
+        self.assertIn("box-shadow: 0 0 0 3px var(--field-invalid-ring)", styles)
+        self.assertNotIn("input:focus,\nselect:focus,\ntextarea:focus", styles)
+
+    def test_page_styles_do_not_override_shared_field_focus_state(self) -> None:
+        page_styles = "\n".join(
+            (FRONTEND / path).read_text(encoding="utf-8")
+            for path in (
+                "css/identity.css",
+                "css/audit.css",
+                "css/observability.css",
+            )
+        )
+
+        for broad_override in (
+            ".identity-panel :focus-visible",
+            ".identity-dialog :focus-visible",
+            ".audit-filter-grid :focus-visible",
+            ".audit-retention :focus-visible",
+            ".activity-filter-panel :focus-visible",
+            ".trace-filter-grid :focus-visible",
+            ".trace-retention :focus-visible",
+            ".recent-activity-card :focus-visible",
+        ):
+            self.assertNotIn(broad_override, page_styles)
+
     def test_pages_do_not_use_standalone_advisory_panels(self) -> None:
         fragments = "\n".join(
             path.read_text(encoding="utf-8")

@@ -13,6 +13,9 @@
     --control-hover: #f4f4f4;
     --control-hover-border: #d8d8d8;
     --field-hover-border: var(--control-hover-border);
+    --field-focus-border: #1a73e8;
+    --field-focus-ring: rgba(26, 115, 232, 0.16);
+    --field-invalid-ring: rgba(179, 38, 30, 0.14);
     --accent: #111111;
     --accent-hover: #2f2f2f;
     --accent-contrast: #ffffff;
@@ -30,6 +33,7 @@
     --skeleton-strong: #e4e4e4;
     --focus-ring: #1a73e8;
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23111111' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23111111' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --topbar-bg: rgba(255, 255, 255, 0.96);
     --overlay: rgba(0, 0, 0, 0.28);
     --sidebar-width: 248px;
@@ -50,6 +54,9 @@
     --border-strong: #474747;
     --control-hover: #292929;
     --control-hover-border: #505050;
+    --field-focus-border: #8ab4f8;
+    --field-focus-ring: rgba(138, 180, 248, 0.22);
+    --field-invalid-ring: rgba(242, 139, 130, 0.2);
     --accent: #f1f1f1;
     --accent-hover: #ffffff;
     --accent-contrast: #111111;
@@ -67,6 +74,7 @@
     --skeleton-strong: #363636;
     --focus-ring: #8ab4f8;
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23f4f4f4' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --select-chevron-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 7 5-5 5 5' fill='none' stroke='%23f4f4f4' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --topbar-bg: rgba(18, 18, 18, 0.96);
     --overlay: rgba(0, 0, 0, 0.58);
     --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.34);
