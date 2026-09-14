@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCKERHUB_IMAGE: nguywnben/polaris
+  DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || 'nguywnben/polaris' }}
   GHCR_IMAGE: ghcr.io/nguywnben/polaris
   # Keep the former image coordinates available during the public rename window.
   LEGACY_DOCKERHUB_IMAGE: nguywnben/omni-gateway

@@ -112,7 +112,7 @@ class ProductRebrandContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("DOCKERHUB_IMAGE: nguywnben/polaris", workflow)
+        self.assertIn("DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || 'nguywnben/polaris' }}", workflow)
         self.assertIn("GHCR_IMAGE: ghcr.io/nguywnben/polaris", workflow)
         self.assertIn("LEGACY_DOCKERHUB_IMAGE: nguywnben/omni-gateway", workflow)
         self.assertIn("LEGACY_GHCR_IMAGE: ghcr.io/nguywnben/omni-gateway", workflow)
