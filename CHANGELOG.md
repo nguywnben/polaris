@@ -9,12 +9,20 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- Complete contextual interface catalogs for all 15 supported languages, including exact
+  provider authorization/import instructions and localized field hints.
+- Regression checks for missing translations, interpolation variables, provider-copy fidelity,
+  language switching, and nonblank normal-weight placeholders.
 - Live setup-password checklist for length, character variety, blocked common passwords,
   and confirmation, grouped below both password fields and matching the server policy
   without imposing composition rules.
 
 ### Fixed
 
+- Late translations now override old English defaults in the live translator. Provider auto-copy
+  no longer overwrites explicitly localized labels or caches placeholders in a previous language.
+- Text inputs and textareas have contextual placeholders at normal weight; configured OAuth
+  secret fields keep an appropriate hint after settings load.
 - Session inventory uses Unix-anchored timestamps instead of displaying dates in 1970,
   while session expiration remains based on monotonic elapsed time.
 - Activity tabs wrap on narrow screens instead of creating a horizontal scroller.
