@@ -1,8 +1,13 @@
 # Changelog
 
-All notable user-facing changes are documented in this file. Polaris follows [Semantic Versioning](https://semver.org/). The historical `0.x` beta series allowed breaking changes; compatibility changes after `1.0.0` require an appropriate major version.
+All notable user-facing changes are documented in this file. Polaris follows
+[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta.1` after the
+project-wide rename; earlier product tags remain below for release provenance. Breaking
+changes are permitted throughout the Polaris `0.x` beta series.
 
 ## [Unreleased]
+
+## [0.1.0-beta.1] - 2026-09-14
 
 ### Added
 
@@ -440,7 +445,8 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta.1...HEAD
+[0.1.0-beta.1]: https://github.com/nguywnben/polaris/compare/v1.4.0...v0.1.0-beta.1
 [1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2

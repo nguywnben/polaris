@@ -7,7 +7,7 @@ databases, Kubernetes, multiple workers, or multiple replicas.
 
 ## Before You Begin
 
-1. Choose an exact release such as `1.5.0` or a registry digest. The updater rejects untagged
+1. Choose an exact release such as `0.1.0-beta.1` or a registry digest. The updater rejects untagged
    images, `latest`, and `edge`.
 2. Keep the same root `.env`, Compose files, project name, and `DATA_VOLUME` used by the running
    deployment. Preflight compares the rendered environment and `HOST_PORT` with the active

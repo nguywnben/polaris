@@ -5,9 +5,9 @@ standalone topology—one application worker and one replica—through Docker Co
 one named volume. Do not add Redis, an external database, or the advanced override during the
 first installation.
 
-The commands below use the current `1.5.0` release. For a later release, replace both occurrences
-of `v1.5.0`/`1.5.0` with the same exact stable version; do not use `latest` or `edge` for a
-production install.
+The commands below use the current `0.1.0-beta.1` release, which is a prerelease. For a later
+release, replace both occurrences of `v0.1.0-beta.1`/`0.1.0-beta.1` with the same exact version; do
+not use `latest` or `edge` for a production install.
 
 ## 1. Check the host
 
@@ -37,7 +37,7 @@ continuing:
 Use a release tag so the checked-out Compose file and the image version stay reproducible:
 
 ```text
-git clone --branch v1.5.0 --depth 1 https://github.com/nguywnben/polaris.git
+git clone --branch v0.1.0-beta.1 --depth 1 https://github.com/nguywnben/polaris.git
 cd polaris
 ```
 

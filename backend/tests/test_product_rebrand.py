@@ -115,7 +115,7 @@ class ProductRebrandContractTests(unittest.TestCase):
         self.assertIn("github.com/nguywnben/polaris", readme)
         self.assertIn("hub.docker.com/r/nguywnben/polaris", readme)
         self.assertIn("ghcr.io/nguywnben/polaris", readme)
-        self.assertIn("${IMAGE:-nguywnben/polaris:latest}", compose)
+        self.assertIn("${IMAGE:-nguywnben/polaris:0.1.0-beta.1}", compose)
         self.assertIn("${DATA_VOLUME:-polaris-data}", compose)
         self.assertIn("IMAGE=nguywnben/polaris:", compose_environment)
         self.assertIn("DATA_VOLUME=polaris-data", compose_environment)

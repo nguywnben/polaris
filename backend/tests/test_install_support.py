@@ -109,7 +109,10 @@ class InstallSupportContractTests(unittest.TestCase):
                 "SETUP_TOKEN",
             },
         )
-        self.assertRegex(values["IMAGE"], r"^nguywnben/polaris:\d+\.\d+\.\d+$")
+        self.assertRegex(
+            values["IMAGE"],
+            r"^nguywnben/polaris:\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$",
+        )
         self.assertEqual(values["IMAGE"], f"nguywnben/polaris:{DEFAULT_APPLICATION_VERSION}")
         self.assertEqual(values["HOST_PORT"], "4283")
         self.assertEqual(values["DATA_VOLUME"], "polaris-data")

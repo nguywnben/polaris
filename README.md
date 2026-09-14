@@ -121,7 +121,7 @@ checks through the first authenticated Dashboard; its
 Linux, macOS, and architecture status without implying unsupported ARM64 coverage.
 
 The default profile needs no external service and stores all application data in the
-`polaris-data` named volume. Its minimal environment template pins release `1.5.0`; production
+`polaris-data` named volume. Its minimal environment template pins release `0.1.0-beta.1`; production
 updates use the encrypted, health-checked [Compose update and rollback guide](docs/updating.md).
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.

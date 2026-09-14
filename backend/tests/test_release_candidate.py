@@ -1,4 +1,4 @@
-"""Release metadata and maintained-documentation contracts for 1.5.0."""
+"""Release metadata and maintained-documentation contracts for 0.1.0-beta.1."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pathlib import Path
 from backend.app_version import DEFAULT_APPLICATION_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
-RELEASE_VERSION = "1.5.0"
-RELEASE_DATE = "2026-09-12"
+RELEASE_VERSION = "0.1.0-beta.1"
+RELEASE_DATE = "2026-09-14"
 MAINTAINED_DOCUMENTS = (
     ROOT / "README.md",
     ROOT / "SECURITY.md",

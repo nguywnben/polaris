@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${IMAGE:-nguywnben/polaris:latest}
+    image: ${IMAGE:-nguywnben/polaris:0.1.0-beta.1}
     pull_policy: missing
     restart: unless-stopped
     init: true
