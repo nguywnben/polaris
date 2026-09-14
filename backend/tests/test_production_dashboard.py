@@ -99,6 +99,51 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn("routes.slice(0, 10)", source)
         self.assertIn("traces.slice(0, DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE)", source)
 
+    def test_empty_guidance_prioritizes_provider_connection_only_for_an_empty_pool(self):
+        self._run_state_contract("""
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, dataset: {}, classList: {toggle() {}}, textContent: ''});
+    return elements.get(id);
+}};
+globalThis.t = key => key;
+globalThis.AppState = {dashboardAggregate: {total_files: 0}};
+setDashboardTrafficState(0);
+assert(elements.get('dashboardStartAction').dataset.tab === 'providers', 'Empty pool must start with providers');
+AppState.dashboardAggregate.total_files = 2;
+setDashboardTrafficState(0);
+assert(elements.get('dashboardStartAction').dataset.tab === 'playground', 'Existing credentials must not be described as a fresh install');
+setDashboardTrafficState(4);
+assert(elements.get('dashboardFirstRun').hidden, 'Populated traffic hides guidance');
+""")
+
+    def test_health_without_samples_does_not_claim_zero_latency_or_error_rate(self):
+        self._run_state_contract("""
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, textContent: '', dataset: {}, setAttribute() {},
+        querySelector() { return {textContent: ''}; }, replaceChildren() {},
+        insertRow() { return {insertCell() {return {};}, dataset: {}}; }});
+    return elements.get(id);
+}};
+globalThis.AppState = {};
+document.querySelector = () => ({textContent: ''});
+globalThis.getAuthHeaders = () => ({});
+globalThis.t = key => key;
+globalThis.getActiveLocale = () => 'vi-VN';
+globalThis.setDashboardSummaryMetric = (id, value) => { document.getElementById(id).textContent = String(value); };
+globalThis.fetch = async () => ({ok: true, json: async () => ({status: 'no_data', red: {requests: 0, p95_duration_ms: 0}, routes: []})});
+(async () => {
+    await refreshOperationalHealth();
+    assert(elements.get('sloP95').textContent === '—', 'No samples cannot mean 0 ms');
+    assert(elements.get('sloErrorRate').textContent === '—', 'No samples cannot mean 0% errors');
+    assert(!elements.get('operationalHealthEmpty').hidden, 'Show compact no-sample explanation');
+    globalThis.fetch = async () => ({ok: false, status: 503});
+    await refreshOperationalHealth();
+    assert(elements.get('operationalHealthEmpty').textContent === 'slo.load_failed', 'Unavailable is not empty or critical traffic');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+""")
+
     def test_primary_metrics_precede_secondary_dashboard_queries(self):
         source = self._source(DASHBOARD_SCRIPT)
         refresh_body = source.split("async function refreshUsageStats", 1)[1].split(
@@ -151,6 +196,7 @@ const maxInfo = { textContent: '' };
 globalThis.document = { getElementById: (id) => id === 'timelineBarsWrapper' ? wrapper : maxInfo };
 globalThis.t = (_key, values = {}) => String(values.count ?? '');
 globalThis.escapeHtml = (value) => String(value);
+globalThis.escapeAttribute = (value) => String(value);
 globalThis.getActiveLocale = () => 'en-US';
 globalThis.__renderDashboardTimeline([{ requests: 0, successful_requests: 0, failed_requests: 0, tokens: 0 }]);
 assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textContent}`);

@@ -16,6 +16,32 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_filtered_empty_results_do_not_hide_filter_controls(self) -> None:
+        self._run_manager_contract("""
+const tab = {classList: {toggle(name, value) {this[name] = value;}}};
+const firstRun = {hidden: true};
+elements.set('poolTab', tab);
+elements.set('poolFirstRun', firstRun);
+manager.hasLoaded = true;
+manager.totalCount = 0;
+manager.updateFirstRunState();
+assert(firstRun.hidden === false, 'An unfiltered empty pool needs onboarding');
+for (const definition of Object.values(manager.getFilterDefinitions())) {
+    manager[definition.state] = 'filtered-value';
+    manager.updateFirstRunState();
+    assert(firstRun.hidden === true, 'Filtered zero results are not an empty pool');
+    assert(tab.classList['is-pristine-empty'] === false, 'Filters must remain accessible');
+    manager[definition.state] = 'all';
+}
+manager.hasLoaded = false;
+manager.updateFirstRunState();
+assert(firstRun.hidden === true, 'Loading is not an empty pool');
+""")
+
+    def test_load_errors_are_outside_the_data_only_region(self) -> None:
+        html = POOL_HTML.read_text(encoding="utf-8")
+        self.assertLess(html.index('id="primaryCredsState"'), html.index('id="poolFirstRun"'))
+
     def _run_manager_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         if node is None:

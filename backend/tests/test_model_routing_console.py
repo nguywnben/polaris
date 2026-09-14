@@ -15,6 +15,29 @@ STYLES = ROOT / "frontend/css/providers-and-models.css"
 
 
 class ModelRoutingConsoleTests(unittest.TestCase):
+    def test_empty_catalog_keeps_existing_route_and_failure_workspaces(self) -> None:
+        self._run_contract("""
+const tab = {classList: {toggle(name, value) {this[name] = value;}}};
+const firstRun = {hidden: true};
+global.document = {getElementById: id => id === 'modelsTab' ? tab : firstRun};
+global.AppState = {modelCatalogLoaded: true, modelCatalog: [], selectedModels: [],
+    modelPoolConfigured: false, modelBlacklist: []};
+updateModelFirstRunState();
+assert(!firstRun.hidden, 'A fresh empty catalog needs onboarding');
+for (const [key, value] of [['modelPoolConfigured', true], ['selectedModels', ['saved-model']],
+    ['modelBlacklist', [{model_id: 'failed-model'}]]]) {
+    const previous = AppState[key];
+    AppState[key] = value;
+    updateModelFirstRunState();
+    assert(firstRun.hidden, 'Existing route or failure data must stay accessible: ' + key);
+    assert(!tab.classList['is-pristine-empty'], 'Workspace must not be hidden');
+    AppState[key] = previous;
+}
+AppState.modelCatalogLoaded = false;
+updateModelFirstRunState();
+assert(firstRun.hidden, 'Loading is not an empty catalog');
+""")
+
     def _run_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the model routing DOM contract.")

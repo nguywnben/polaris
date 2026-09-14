@@ -113,6 +113,27 @@ assert(emptyMessageError === 'playground.error_empty_message', 'empty messages m
 """
         )
 
+    def test_run_button_announces_pending_and_restores_its_action(self) -> None:
+        self._run_contract("""
+globalThis.AppState = {};
+globalThis.t = key => key;
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {disabled: false, dataset: {}, textContent: '',
+        setAttribute(name, value) {this[name] = value;}, removeAttribute(name) {delete this[name];}});
+    return elements.get(id);
+}, querySelectorAll: () => []};
+globalThis.renderPlaygroundMessages = () => {};
+setPlaygroundRunning(true);
+const run = elements.get('playgroundRun');
+assert(run.textContent === 'playground.running', 'Pending action must be visible on the button');
+assert(run.disabled && run['aria-busy'] === 'true', 'Pending submit is disabled and announced');
+assert(!elements.get('playgroundCancel').disabled, 'Cancellation remains available');
+setPlaygroundRunning(false);
+assert(run.textContent === 'playground.run' && !run.disabled, 'Submit recovers after completion');
+assert(!run['aria-busy'], 'Busy state cleared');
+""")
+
     def test_copy_examples_are_protocol_accurate_and_never_contain_a_real_key(self) -> None:
         self._run_contract(
             """

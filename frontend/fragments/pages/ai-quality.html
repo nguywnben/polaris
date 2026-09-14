@@ -1,7 +1,6 @@
                 <div id="qualityTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="quality.label">AI Quality</div>
                             <h1 class="page-title" data-i18n="quality.title">AI Quality Policy</h1>
                             <p class="page-description" data-i18n="quality.description">Choose a governed quality profile, inspect its effective controls, and preview context impact before saving.</p>
                         </div>
@@ -61,46 +60,51 @@
                                 </div>
                             </fieldset>
 
+                            <p id="qualityControlsHint" class="field-hint quality-controls-hint" aria-live="polite"></p>
+
                             <div class="quality-policy-grid">
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="quality.response_integrity">Response integrity</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="quality.response_integrity_copy">Control instruction compatibility, reasoning visibility, and recovery from truncated output.</p>
-                                    <label class="switch-row"><input type="checkbox" id="compatibilityModeEnabled" class="config-checkbox" data-quality-control data-policy-field="compatibility_mode_enabled"><span data-i18n="settings.flatten_instructions">Flatten system instructions for compatibility</span></label>
-                                    <label class="switch-row"><input type="checkbox" id="returnThoughtsToFrontend" class="config-checkbox" data-quality-control data-policy-field="return_thoughts_to_frontend"><span data-i18n="settings.return_reasoning">Return reasoning content when available</span></label>
-                                    <div class="form-group"><label for="antiTruncationMaxAttempts" data-i18n="settings.recovery_attempts">Truncation recovery attempts</label><input type="number" id="antiTruncationMaxAttempts" min="1" max="10" required data-quality-control data-policy-field="anti_truncation_max_attempts"></div>
-                                </section>
+                                <div class="quality-policy-column">
+                                    <section class="config-group">
+                                        <h2 class="card-title" data-i18n="quality.response_integrity">Response integrity</h2>
+                                        <p class="card-copy card-title-copy" data-i18n="quality.response_integrity_copy">Control instruction compatibility, reasoning visibility, and recovery from truncated output.</p>
+                                        <label class="switch-row"><input type="checkbox" id="compatibilityModeEnabled" class="config-checkbox" data-quality-control data-policy-field="compatibility_mode_enabled"><span data-i18n="settings.flatten_instructions">Flatten system instructions for compatibility</span></label>
+                                        <label class="switch-row"><input type="checkbox" id="returnThoughtsToFrontend" class="config-checkbox" data-quality-control data-policy-field="return_thoughts_to_frontend"><span data-i18n="settings.return_reasoning">Return reasoning content when available</span></label>
+                                        <div class="form-group"><label for="antiTruncationMaxAttempts" data-i18n="settings.recovery_attempts">Truncation recovery attempts</label><input type="number" id="antiTruncationMaxAttempts" min="1" max="10" required data-quality-control data-policy-field="anti_truncation_max_attempts"></div>
+                                    </section>
 
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="settings.context_optimization">Context optimization</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="quality.compression_copy">Prune only complete history prefixes when the estimated context exceeds the threshold.</p>
-                                    <label class="switch-row"><input type="checkbox" id="tokenCompressionEnabled" class="config-checkbox" data-quality-control data-policy-field="token_compression_enabled"><span><strong data-i18n="settings.compress_history">Compress oversized conversation history</strong><small id="qualityCompressionOffMeaning" data-i18n="quality.compression_off_copy">When off, the gateway does not prune or rewrite prompt context. Threshold fields have no effect.</small></span></label>
-                                    <div class="quality-dependent-controls" data-quality-dependency="tokenCompressionEnabled">
-                                        <div class="form-group"><label for="tokenCompressionThreshold" data-i18n="settings.compression_threshold">Compression threshold in tokens</label><input type="number" id="tokenCompressionThreshold" min="128" max="2000000" required data-quality-control data-policy-field="token_compression_threshold"></div>
-                                        <div class="form-group"><label for="tokenCompressionTarget" data-i18n="settings.compression_target">Target size in tokens</label><input type="number" id="tokenCompressionTarget" min="64" max="1999999" required data-quality-control data-policy-field="token_compression_target"></div>
-                                        <div class="form-group"><label for="tokenCompressionMinRecentTurns" data-i18n="settings.recent_turns">Recent turns to preserve</label><input type="number" id="tokenCompressionMinRecentTurns" min="1" max="50" required data-quality-control data-policy-field="token_compression_min_recent_turns"></div>
-                                    </div>
-                                </section>
+                                    <section class="config-group">
+                                        <h2 class="card-title" data-i18n="quality.guardrails">Request guardrails</h2>
+                                        <p class="card-copy card-title-copy" data-i18n="quality.guardrails_copy">Inspect outbound text for injection patterns, blocked terms, and sensitive personal data.</p>
+                                        <label class="switch-row"><input type="checkbox" id="qualityGuardrailsEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_enabled"><span data-i18n="quality.enable_guardrails">Enable request guardrails</span></label>
+                                        <div class="quality-dependent-controls" data-quality-dependency="qualityGuardrailsEnabled">
+                                            <label class="switch-row"><input type="checkbox" id="qualityPiiMaskingEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_pii_masking_enabled"><span data-i18n="quality.mask_pii">Mask supported personal data</span></label>
+                                            <label class="switch-row"><input type="checkbox" id="qualityInjectionDetectionEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_injection_detection_enabled"><span data-i18n="quality.detect_injection">Block prompt-injection patterns</span></label>
+                                            <div class="form-group"><label for="qualityBlockedKeywords" data-i18n="quality.blocked_keywords">Blocked keywords</label><textarea id="qualityBlockedKeywords" rows="3" maxlength="12900" data-quality-control data-policy-field="guardrails_blocked_keywords" data-i18n-placeholder="quality.blocked_keywords_placeholder" placeholder="One keyword per line or comma-separated"></textarea></div>
+                                        </div>
+                                    </section>
+                                </div>
+                                <div class="quality-policy-column">
+                                    <section class="config-group">
+                                        <h2 class="card-title" data-i18n="settings.context_optimization">Context optimization</h2>
+                                        <p class="card-copy card-title-copy" data-i18n="quality.compression_copy">Prune only complete history prefixes when the estimated context exceeds the threshold.</p>
+                                        <label class="switch-row"><input type="checkbox" id="tokenCompressionEnabled" class="config-checkbox" data-quality-control data-policy-field="token_compression_enabled"><span><strong data-i18n="settings.compress_history">Compress oversized conversation history</strong><small id="qualityCompressionOffMeaning" data-i18n="quality.compression_off_copy">When off, the gateway does not prune or rewrite prompt context. Threshold fields have no effect.</small></span></label>
+                                        <div class="quality-dependent-controls" data-quality-dependency="tokenCompressionEnabled">
+                                            <div class="form-group"><label for="tokenCompressionThreshold" data-i18n="settings.compression_threshold">Compression threshold in tokens</label><input type="number" id="tokenCompressionThreshold" min="128" max="2000000" required data-quality-control data-policy-field="token_compression_threshold"></div>
+                                            <div class="form-group"><label for="tokenCompressionTarget" data-i18n="settings.compression_target">Target size in tokens</label><input type="number" id="tokenCompressionTarget" min="64" max="1999999" required data-quality-control data-policy-field="token_compression_target"></div>
+                                            <div class="form-group"><label for="tokenCompressionMinRecentTurns" data-i18n="settings.recent_turns">Recent turns to preserve</label><input type="number" id="tokenCompressionMinRecentTurns" min="1" max="50" required data-quality-control data-policy-field="token_compression_min_recent_turns"></div>
+                                        </div>
+                                    </section>
 
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="quality.guardrails">Request guardrails</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="quality.guardrails_copy">Inspect outbound text for injection patterns, blocked terms, and sensitive personal data.</p>
-                                    <label class="switch-row"><input type="checkbox" id="qualityGuardrailsEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_enabled"><span data-i18n="quality.enable_guardrails">Enable request guardrails</span></label>
-                                    <div class="quality-dependent-controls" data-quality-dependency="qualityGuardrailsEnabled">
-                                        <label class="switch-row"><input type="checkbox" id="qualityPiiMaskingEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_pii_masking_enabled"><span data-i18n="quality.mask_pii">Mask supported personal data</span></label>
-                                        <label class="switch-row"><input type="checkbox" id="qualityInjectionDetectionEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_injection_detection_enabled"><span data-i18n="quality.detect_injection">Block prompt-injection patterns</span></label>
-                                        <div class="form-group"><label for="qualityBlockedKeywords" data-i18n="quality.blocked_keywords">Blocked keywords</label><textarea id="qualityBlockedKeywords" rows="3" maxlength="12900" data-quality-control data-policy-field="guardrails_blocked_keywords" data-i18n-placeholder="quality.blocked_keywords_placeholder" placeholder="One keyword per line or comma-separated"></textarea></div>
-                                    </div>
-                                </section>
-
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="quality.response_cache">Exact response cache</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="quality.response_cache_copy">Reuse only exact matches for non-streaming requests with temperature explicitly set to zero.</p>
-                                    <label class="switch-row"><input type="checkbox" id="qualityResponseCacheEnabled" class="config-checkbox" data-quality-control data-policy-field="response_cache_enabled"><span data-i18n="quality.enable_cache">Enable exact response cache</span></label>
-                                    <div class="quality-dependent-controls" data-quality-dependency="qualityResponseCacheEnabled">
-                                        <div class="form-group"><label for="qualityResponseCacheTtl" data-i18n="quality.cache_ttl">Entry lifetime in seconds</label><input type="number" id="qualityResponseCacheTtl" min="1" max="86400" required data-quality-control data-policy-field="response_cache_ttl_seconds"></div>
-                                        <div class="form-group"><label for="qualityResponseCacheMaxEntries" data-i18n="quality.cache_entries">Maximum cached responses</label><input type="number" id="qualityResponseCacheMaxEntries" min="1" max="100000" required data-quality-control data-policy-field="response_cache_max_entries"></div>
-                                    </div>
-                                </section>
+                                    <section class="config-group">
+                                        <h2 class="card-title" data-i18n="quality.response_cache">Exact response cache</h2>
+                                        <p class="card-copy card-title-copy" data-i18n="quality.response_cache_copy">Reuse only exact matches for non-streaming requests with temperature explicitly set to zero.</p>
+                                        <label class="switch-row"><input type="checkbox" id="qualityResponseCacheEnabled" class="config-checkbox" data-quality-control data-policy-field="response_cache_enabled"><span data-i18n="quality.enable_cache">Enable exact response cache</span></label>
+                                        <div class="quality-dependent-controls" data-quality-dependency="qualityResponseCacheEnabled">
+                                            <div class="form-group"><label for="qualityResponseCacheTtl" data-i18n="quality.cache_ttl">Entry lifetime in seconds</label><input type="number" id="qualityResponseCacheTtl" min="1" max="86400" required data-quality-control data-policy-field="response_cache_ttl_seconds"></div>
+                                            <div class="form-group"><label for="qualityResponseCacheMaxEntries" data-i18n="quality.cache_entries">Maximum cached responses</label><input type="number" id="qualityResponseCacheMaxEntries" min="1" max="100000" required data-quality-control data-policy-field="response_cache_max_entries"></div>
+                                        </div>
+                                    </section>
+                                </div>
                             </div>
 
                             <section class="config-group quality-preview-panel">

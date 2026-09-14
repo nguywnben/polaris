@@ -385,6 +385,7 @@ function updatePlaygroundExample() {
     try {
         const format = document.getElementById('playgroundExampleFormat')?.value || 'curl';
         replacePlaygroundText(target, buildPlaygroundExample(readPlaygroundDraft(), format, window.location.origin));
+        renderPlaygroundValidation('');
     } catch (_error) {
         replacePlaygroundText(target, t('playground.example_incomplete'));
     }
@@ -453,7 +454,13 @@ function setPlaygroundRunning(running) {
     state.running = running;
     const run = document.getElementById('playgroundRun');
     const cancel = document.getElementById('playgroundCancel');
-    if (run) run.disabled = running;
+    if (run) {
+        run.disabled = running;
+        run.dataset.i18n = running ? 'playground.running' : 'playground.run';
+        run.textContent = t(run.dataset.i18n);
+        if (running) run.setAttribute('aria-busy', 'true');
+        else run.removeAttribute('aria-busy');
+    }
     if (cancel) cancel.disabled = !running;
     document.querySelectorAll('#playgroundForm input, #playgroundForm select, #playgroundForm textarea, #playgroundAddMessage, [data-ui-action="playground-remove-message"]').forEach(control => {
         if (control.id !== 'playgroundCancel' && control.id !== 'playgroundRun') control.disabled = running;

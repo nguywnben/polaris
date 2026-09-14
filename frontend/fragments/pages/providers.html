@@ -1,7 +1,6 @@
                 <div id="providersTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="providers">Providers</div>
                             <h1 class="page-title" data-i18n="providers_title">Add Provider Credentials</h1>
                             <p class="page-description" data-i18n="providers_description">Choose a supported provider, authorize an account, or import credential files into the shared routing pool.</p>
                         </div>
@@ -9,8 +8,7 @@
 
                     <div class="provider-catalog-toolbar" role="search">
                         <div>
-                            <strong id="providerCatalogTitle" data-i18n="providers.catalog">Provider Catalog</strong>
-                            <p data-i18n="providers.catalog_description">Choose a connection type, then add credentials to the shared routing pool.</p>
+                            <h2 id="providerCatalogTitle" data-i18n="providers.catalog">Provider Catalog</h2>
                         </div>
                         <div class="provider-catalog-search-group">
                             <input type="search" id="providerCatalogSearch" class="provider-catalog-search" aria-label="Find a provider" data-i18n-aria-label="providers.find" placeholder="Search providers" data-i18n-placeholder="providers.search" autocomplete="off" data-ui-input="provider-catalog-search">
@@ -23,7 +21,6 @@
                                 <img src="/frontend/assets/providers/google-antigravity-logo.png" alt="Google Antigravity" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Google Antigravity</strong>
                                 <p data-i18n="providers.antigravity_description">Connect Google Antigravity accounts through OAuth or import existing credential archives.</p>
                             </div>
@@ -39,7 +36,6 @@
                                 <img src="/frontend/assets/providers/google-ai-studio-logo.png" alt="Google AI Studio" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">Google AI Studio</strong>
                                 <p data-i18n="providers.ai_studio_description">Add Gemini API keys for native Google model access and automatic provider fallback.</p>
                             </div>
@@ -55,7 +51,6 @@
                                 <img src="/frontend/assets/providers/grok-build-logo.png" alt="Grok Build" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Grok Build</strong>
                                 <p data-i18n="providers.grok_description">Connect a Grok Build account through OAuth and route its available models through the shared pool.</p>
                             </div>
@@ -71,7 +66,6 @@
                                 <img src="/frontend/assets/providers/spacexai-console-logo.png" alt="SpaceXAI Console" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">SpaceXAI Console</strong>
                                 <p data-i18n="providers.spacexai_description">Add SpaceXAI Console API keys for direct Grok Build model access and automatic provider fallback.</p>
                             </div>
@@ -87,7 +81,6 @@
                                 <img src="/frontend/assets/providers/codex-logo.png" alt="Codex" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Codex</strong>
                                 <p data-i18n="providers.codex_description">Authorize a ChatGPT account with the OpenAI device flow and route Codex models through the pool.</p>
                             </div>
@@ -103,7 +96,6 @@
                                 <img src="/frontend/assets/providers/openai-platform-logo.png" alt="OpenAI Platform" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">OpenAI Platform</strong>
                                 <p data-i18n="providers.openai_description">Validate OpenAI API keys, discover available models, and route requests through the shared pool.</p>
                             </div>
@@ -116,7 +108,6 @@
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorClaudeCode" role="tab" aria-label="Claude Code" aria-selected="false" aria-controls="providerWorkspaceClaudeCode" data-ui-action="select-provider" data-provider="claude_code" data-provider-name="Claude Code">
                             <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-code-logo.png" alt="Claude Code" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Claude Code</strong>
                                 <p data-i18n="providers.claude_code_description">Authorize an Anthropic account and route its available Claude models through the shared pool.</p>
                             </div>
@@ -126,7 +117,6 @@
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorClaudePlatform" role="tab" aria-label="Claude Platform" aria-selected="false" aria-controls="providerWorkspaceClaudePlatform" data-ui-action="select-provider" data-provider="claude_platform" data-provider-name="Claude Platform">
                             <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-platform-logo.png" alt="Claude Platform" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">Claude Platform</strong>
                                 <p data-i18n="providers.claude_platform_description">Add Anthropic API keys, discover available Claude models, and route requests through the pool.</p>
                             </div>
@@ -136,7 +126,6 @@
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorOllama" role="tab" aria-label="Ollama" aria-selected="false" aria-controls="providerWorkspaceOllama" data-ui-action="select-provider" data-provider="ollama" data-provider-name="Ollama">
                             <div class="provider-logo-frame"><img src="/frontend/assets/providers/ollama-logo.png" alt="Ollama" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.model_server">Model Server</div>
                                 <strong class="provider-name">Ollama</strong>
                                 <p data-i18n="providers.ollama_description">Connect local, remote, or cloud Ollama endpoints and route every model they expose.</p>
                             </div>
@@ -145,6 +134,11 @@
                     </div>
 
                     <p id="providerCatalogEmpty" class="provider-catalog-empty hidden" aria-live="polite" data-i18n="providers.no_matches">No providers match your search.</p>
+                    <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
+                        <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
+                        <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
+                        <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
+                    </div>
                     <div class="provider-capability-status" id="providerCapabilityStatus" data-state="loading" role="status" aria-live="polite">
                         <span id="providerCapabilityStatusText" data-i18n="providers.capabilities_loading">Loading supported connection capabilities...</span>
                         <button type="button" class="btn btn-secondary btn-small hidden" id="providerCapabilityRetryBtn" data-ui-action="retry-provider-capabilities" data-i18n="providers.retry">Retry</button>
@@ -631,16 +625,11 @@
                                     <a class="provider-site-link" href="https://antigravity.google/" target="_blank" rel="noreferrer">https://antigravity.google/</a>
                                 </div>
                             </div>
-                            <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
-                                <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
-                                <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
-                                <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
-                            </div>
                         </div>
                         <div class="provider-tools-grid">
                         <section class="tool-panel">
                             <h2 class="card-title">Google Antigravity OAuth</h2>
-                            <p class="card-copy provider-tool-copy">Generate an authorization link and save the account directly into the active pool.</p>
+                            <p class="card-copy provider-tool-copy" data-i18n="providers.oauth_intro">Generate an authorization link and save the account directly into the active pool.</p>
                             <div class="page-actions">
                                 <button type="button" class="btn" id="getPrimaryAuthBtn">Get provider authentication link</button>
                             </div>
@@ -721,7 +710,7 @@
                             <div class="provider-settings-header">
                                 <div>
                                     <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google Antigravity">Google Antigravity Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.</p>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.antigravity_settings_hint">Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-antigravity-settings">Save</button>
@@ -738,14 +727,14 @@
                             <div id="antigravitySettingsForm" class="provider-settings-grid hidden">
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="oauth_client">OAuth Client</h3>
-                                    <p class="card-copy provider-tool-copy">Manage the OAuth application used for Google Antigravity authorization.</p>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.oauth_client_hint">Manage the OAuth application used for Google Antigravity authorization.</p>
                                     <div class="form-group"><label for="antigravityOauthClientId">Client ID</label><input type="text" id="antigravityOauthClientId" autocomplete="off" required></div>
                                     <div class="form-group"><label for="antigravityOauthClientSecret">Client secret</label><input type="password" id="antigravityOauthClientSecret" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-bwignore="true" required></div>
                                 </section>
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="upstream_endpoints">Upstream Endpoints</h3>
-                                    <p class="card-copy provider-tool-copy">Configure provider and Google API hosts used by Google Antigravity requests.</p>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.google_hosts_hint">Configure provider and Google API hosts used by Google Antigravity requests.</p>
                                     <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="url" id="antigravityApiUrl" autocomplete="url" required></div>
                                     <div class="form-group"><label for="antigravityOauthUrl">OAuth API</label><input type="url" id="antigravityOauthUrl" autocomplete="url" required></div>
                                     <div class="form-group"><label for="antigravityGoogleApisUrl">Google APIs</label><input type="url" id="antigravityGoogleApisUrl" autocomplete="url" required></div>
@@ -755,7 +744,7 @@
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="protocol_behavior">Protocol Behavior</h3>
-                                    <p class="card-copy provider-tool-copy">Tune headers, streaming conversion, and retry credential switching.</p>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.protocol_hint">Tune headers, streaming conversion, and retry credential switching.</p>
                                     <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
                                     <div class="form-group"><label for="antigravityPayloadUserAgent" data-provider-form-copy="payload_user_agent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
                                     <label class="switch-row"><input type="checkbox" id="antigravityStreamToNonstream" class="config-checkbox"><span data-provider-form-copy="stream_to_nonstream">Collect streaming responses for non-stream clients</span></label>

@@ -20,6 +20,20 @@ function setDashboardTrafficState(totalCalls) {
     const hasTraffic = Number(totalCalls || 0) > 0;
     tab?.classList.toggle('has-no-traffic', !hasTraffic);
     if (firstRun) firstRun.hidden = hasTraffic;
+    const needsProvider = Number(AppState.dashboardAggregate?.total_files) === 0;
+    const guidance = {
+        dashboardStartTitle: needsProvider ? 'dashboard.connect_provider_title' : 'dashboard.no_traffic_yet',
+        dashboardStartCopy: needsProvider ? 'dashboard.connect_provider_copy' : 'dashboard.empty_period_copy',
+        dashboardStartAction: needsProvider ? 'providers' : 'playground.label',
+        dashboardSecondaryAction: needsProvider ? 'playground.label' : 'providers',
+    };
+    for (const [id, key] of Object.entries(guidance)) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        element.dataset.i18n = key;
+        element.textContent = t(key);
+        if (id.endsWith('Action')) element.dataset.tab = key === 'providers' ? 'providers' : 'playground';
+    }
 }
 
 function getDashboardSummaryMetric(value, options = {}) {
@@ -143,7 +157,7 @@ async function refreshUsageStats(options = {}) {
 
     const statsContainer = document.getElementById('dashboardStats');
 
-    const tableWrapper = document.querySelector('#dashboardTab .usage-table-wrapper');
+    const tableWrapper = list?.closest('.usage-table-wrapper');
 
     const preserveContent = options.preserveContent ?? AppState.usageStatsLoaded;
 
@@ -290,7 +304,7 @@ function setOperationalHealthStatus(status) {
     const pill = document.getElementById('sloOverallStatus');
     if (!pill) return;
     const normalized = ['healthy', 'warning', 'critical', 'no_data'].includes(status) ? status : 'critical';
-    pill.className = `health-pill ${normalized === 'healthy' ? 'healthy' : normalized === 'critical' ? 'error' : 'warning'}`;
+    pill.className = `health-pill ${normalized === 'healthy' ? 'healthy' : normalized === 'critical' ? 'error' : normalized === 'no_data' ? 'neutral' : 'warning'}`;
     const label = pill.querySelector('span:last-child');
     if (label) label.textContent = t(`slo.status_${normalized}`);
 }
@@ -306,17 +320,34 @@ async function refreshOperationalHealth() {
         AppState.operationalHealth = snapshot;
         const red = snapshot.red || {};
         setDashboardSummaryMetric('sloRequestRate', red.requests_per_minute, {decimals: 1});
-        document.getElementById('sloErrorRate').textContent = `${(Number(red.error_rate || 0) * 100).toFixed(1)}%`;
+        const hasSamples = Number(red.requests) > 0;
+        document.getElementById('sloErrorRate').textContent = hasSamples
+            ? `${formatUsageNumber(Number(red.error_rate || 0) * 100, {decimals: 1})}%` : '—';
         document.getElementById('sloErrorCount').textContent = t('slo.errors_of_requests', {errors: formatUsageNumber(red.errors), requests: formatUsageNumber(red.requests)});
-        document.getElementById('sloP95').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
-        document.getElementById('dashboardP95Latency').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
+        const latency = hasSamples && red.p95_duration_ms != null ? `${formatUsageNumber(red.p95_duration_ms)} ms` : '—';
+        document.getElementById('sloP95').textContent = latency;
+        document.getElementById('dashboardP95Latency').textContent = latency;
         const exhaustion = Object.values(snapshot.exhaustion || {}).reduce((total, value) => total + Number(value || 0), 0);
         setDashboardSummaryMetric('sloExhaustion', exhaustion);
+        const empty = !hasSamples && exhaustion === 0 && snapshot.status === 'no_data';
+        document.getElementById('operationalHealthMetrics').hidden = empty;
+        document.getElementById('operationalHealthRoutes').hidden = empty;
+        const emptyNote = document.getElementById('operationalHealthEmpty');
+        emptyNote.hidden = !empty;
+        emptyNote.textContent = t('slo.no_data');
         setOperationalHealthStatus(snapshot.status);
         renderOperationalRoutes(snapshot.routes || []);
     } catch (error) {
         AppState.operationalHealth = {status: 'critical', unavailable: true};
         setOperationalHealthStatus('critical');
+        const statusLabel = document.querySelector('#sloOverallStatus span:last-child');
+        if (statusLabel) statusLabel.textContent = t('slo.load_failed');
+        document.getElementById('operationalHealthMetrics').hidden = true;
+        document.getElementById('operationalHealthRoutes').hidden = true;
+        document.getElementById('dashboardP95Latency').textContent = '—';
+        const emptyNote = document.getElementById('operationalHealthEmpty');
+        emptyNote.hidden = false;
+        emptyNote.textContent = t('slo.load_failed');
         const rows = document.getElementById('sloRouteRows');
         if (rows) {
             rows.replaceChildren();
@@ -394,7 +425,7 @@ function renderOperationalRoutes(routes) {
         [
             route.route,
             formatUsageNumber(route.requests),
-            `${(Number(route.error_rate || 0) * 100).toFixed(1)}%`,
+            `${formatUsageNumber(Number(route.error_rate || 0) * 100, {decimals: 1})}%`,
             `${formatUsageNumber(route.p95_duration_ms)} ms`,
         ].forEach((value) => {
             const cell = row.insertCell();
@@ -799,7 +830,7 @@ function renderTimelineChart(timeline = []) {
             : '';
     }
 
-    wrapper.innerHTML = timeline.map((slot) => {
+    wrapper.innerHTML = timeline.map((slot, index) => {
         const reqs = slot.upstream_attempts ?? slot.requests ?? 0;
         const success = slot.successful_attempts ?? slot.successful_requests ?? 0;
         const failed = slot.failed_attempts ?? slot.failed_requests ?? 0;
@@ -809,7 +840,7 @@ function renderTimelineChart(timeline = []) {
         const timeStr = formatTimelineTimestamp(slot.timestamp);
 
         return `
-            <div class="timeline-bar-col">
+            <div class="timeline-bar-col${index >= timeline.length / 2 ? ' timeline-bar-end' : ''}" tabindex="0" role="img" aria-label="${escapeAttribute(`${timeStr}: ${t('dashboard.provider_attempts')} ${formatUsageNumber(reqs)}, ${t('success')} ${formatUsageNumber(success)}, ${t('failed')} ${formatUsageNumber(failed)}, ${t('tokens')} ${formatUsageNumber(tokens)}`)}">
                 <div class="timeline-tooltip">
                     <div><strong>${escapeHtml(timeStr)}</strong></div>
                     <div>${escapeHtml(t('dashboard.provider_attempts'))}: ${formatUsageNumber(reqs)} (${escapeHtml(t('success'))}: ${formatUsageNumber(success)}${failed > 0 ? `, ${escapeHtml(t('failed'))}: ${formatUsageNumber(failed)}` : ''})</div>
@@ -922,9 +953,12 @@ function renderProviderHealthMatrix() {
     }
 
     if (relevantProviders.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 18px 12px; grid-column: 1 / -1;">${escapeHtml(t('dashboard.no_traffic_yet'))}</div>`;
+        container.innerHTML = `<p class="dashboard-empty-note">${escapeHtml(t('dashboard.provider_status_empty'))}</p>`;
+        document.querySelector('#providerHealthCard .health-matrix-legend').hidden = true;
         return;
     }
+
+    document.querySelector('#providerHealthCard .health-matrix-legend').hidden = false;
 
     relevantProviders.sort((a, b) => {
         const aIdx = providerOrder.indexOf(a.id);

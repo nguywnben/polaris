@@ -4,8 +4,7 @@
     gap: 1px;
     margin-bottom: 16px;
     overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-block: 1px solid var(--border);
     background: var(--border);
 }
 
@@ -14,14 +13,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin: 16px 0;
+    align-items: start;
 }
 
 .quality-explanation-card {
     min-width: 0;
     padding: 15px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-subtle);
+    border-top: 1px solid var(--border);
 }
 
 .quality-explanation-card h2,
@@ -90,12 +88,10 @@
 }
 
 .quality-runtime-bar strong {
-    overflow: hidden;
     color: var(--text);
     font-size: 13px;
     font-weight: 680;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 .quality-profile-section {
@@ -121,7 +117,9 @@
 .quality-profile-card {
     position: relative;
     min-width: 0;
-    min-height: 118px;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 10px;
     padding: 16px;
     cursor: pointer;
     border: 1px solid var(--border);
@@ -143,10 +141,10 @@
 }
 
 .quality-profile-card input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--text);
 }
 
 .quality-profile-card:has(input:focus-visible) {
@@ -177,18 +175,30 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 16px;
-    align-items: stretch;
+    align-items: start;
+}
+
+.quality-policy-column {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+
+.quality-controls-hint {
+    margin: 0 0 20px;
+    max-width: 85ch;
+    line-height: 1.6;
 }
 
 .quality-policy-grid .config-group {
     min-width: 0;
 }
 
-.quality-policy-grid > .config-group > .switch-row + .switch-row {
+.quality-policy-grid .config-group > .switch-row + .switch-row {
     margin-top: 12px;
 }
 
-.quality-policy-grid > .config-group > .switch-row + .form-group {
+.quality-policy-grid .config-group > .switch-row + .form-group {
     margin-top: 16px;
 }
 
@@ -218,6 +228,15 @@
 .quality-dependent-controls .switch-row {
     margin-top: 0;
     margin-bottom: 0;
+}
+
+.quality-dependent-controls[data-quality-dependency="tokenCompressionEnabled"],
+.quality-dependent-controls[data-quality-dependency="qualityResponseCacheEnabled"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-dependent-controls[data-quality-dependency="tokenCompressionEnabled"] > :last-child {
+    grid-column: 1 / -1;
 }
 
 .quality-preview-panel {
@@ -255,10 +274,12 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-top: 18px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-subtle);
+    padding: 16px 0 0;
+    border-top: 1px solid var(--border);
+}
+
+#qualityTab input[type="checkbox"] {
+    accent-color: var(--text);
 }
 
 .quality-preview-result > div span,
@@ -301,6 +322,14 @@
     .quality-preview-inputs,
     .quality-preview-result {
         grid-template-columns: 1fr;
+    }
+
+    .quality-runtime-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .quality-dependent-controls[data-quality-dependency] {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .quality-precedence-list {

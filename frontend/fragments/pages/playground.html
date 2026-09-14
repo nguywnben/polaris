@@ -1,7 +1,6 @@
                 <div id="playgroundTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="playground.label">Playground</div>
                             <h1 class="page-title" data-i18n="playground.title">Test the Gateway</h1>
                             <p class="page-description" data-i18n="playground.description">Send one bounded request through the same routing and quality path used by compatible clients.</p>
                         </div>
@@ -14,7 +13,6 @@
                                     <h2 class="card-title" data-i18n="playground.request_title">Request</h2>
                                     <p class="card-copy" id="playgroundProtocolHint" data-i18n="playground.protocol_hint">Use an OpenAI Chat-shaped request.</p>
                                 </div>
-                                <span id="playgroundMessageCount" class="status-badge muted" aria-live="polite">1 / 32</span>
                             </div>
 
                             <div class="playground-control-grid">
@@ -45,7 +43,10 @@
 
                             <div class="playground-messages-heading">
                                 <div>
-                                    <h3 data-i18n="playground.messages">Messages</h3>
+                                    <div class="playground-messages-title">
+                                        <h3 data-i18n="playground.messages">Messages</h3>
+                                        <span id="playgroundMessageCount" class="status-badge muted" aria-live="polite">1 / 32</span>
+                                    </div>
                                     <p data-i18n="playground.messages_hint">Up to 32 messages and 512 KiB of text in this tab.</p>
                                 </div>
                                 <button type="button" class="btn btn-secondary btn-small" id="playgroundAddMessage" data-ui-action="playground-add-message" data-i18n="playground.add_message">Add message</button>

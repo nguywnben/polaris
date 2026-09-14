@@ -1,7 +1,6 @@
                 <div id="modelsTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="models">Models</div>
                             <h1 class="page-title" data-i18n="models_title">Routing Models</h1>
                             <p class="page-description" data-i18n="models_description">Build a stable virtual model from models currently available across the active provider pool.</p>
                         </div>
@@ -14,11 +13,12 @@
 
                     <section id="modelFirstRun" class="guided-empty-state" role="status" hidden>
                         <div>
-                            <h2 data-i18n="models.none_available">No provider models are available.</h2>
-                            <p data-i18n="models.selection_description">Select models discovered from enabled provider credentials.</p>
+                            <h2 data-i18n="models.empty_title">No models yet</h2>
+                            <p data-i18n="models.empty_copy">Connect a provider account or API key first. If you already have credentials, check that they are enabled and have discovered models.</p>
                         </div>
                         <div class="guided-empty-actions">
-                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="pool.add_credential">Add credentials</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool" data-i18n="models.manage_credentials">Manage credentials</button>
                         </div>
                     </section>
 
@@ -37,7 +37,6 @@
                         <section class="card model-pool-card">
                             <div class="model-pool-heading">
                                 <div>
-                                    <div class="provider-eyebrow" data-i18n="models.virtual_model">Virtual Model</div>
                                     <h2 class="card-title model-alias-title" data-i18n-technical>polaris</h2>
                                 </div>
                                 <span class="status-badge muted" id="modelPoolStatus" data-i18n="models.not_configured">Not configured</span>

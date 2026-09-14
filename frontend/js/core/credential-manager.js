@@ -521,12 +521,16 @@ function createCredsManager(type) {
 
         },
 
+        hasActiveFilters() {
+            return Object.values(this.getFilterDefinitions()).some(definition => this[definition.state] !== 'all');
+        },
+
         updateFirstRunState() {
 
             if (this.type !== 'primary') return;
             const tab = document.getElementById('poolTab');
             const firstRun = document.getElementById('poolFirstRun');
-            const isEmpty = this.hasLoaded && this.totalCount === 0;
+            const isEmpty = this.hasLoaded && this.totalCount === 0 && !this.hasActiveFilters();
             tab?.classList.toggle('is-pristine-empty', isEmpty);
             if (firstRun) firstRun.hidden = !isEmpty;
 
@@ -543,7 +547,7 @@ function createCredsManager(type) {
 
             if (entries.length === 0) {
 
-                const msg = this.totalCount === 0 ? t('status_no_creds') : t('status_no_filter_data');
+                const msg = this.totalCount === 0 && !this.hasActiveFilters() ? t('status_no_creds') : t('status_no_filter_data');
 
                 list.classList.add('is-empty');
 

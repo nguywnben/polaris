@@ -167,6 +167,13 @@ function createProviderDisclosure(panel, {providerId}) {
 function enhanceProviderWorkspaces() {
     Object.entries(PROVIDER_ONBOARDING_VARIANTS).forEach(([providerId, definition]) => {
         const workspace = document.getElementById(definition.panelId);
+        const descriptionKey = document.getElementById(definition.selectorId)
+            ?.querySelector('.provider-summary p')?.dataset.i18n;
+        const introduction = workspace?.querySelector('.provider-workspace-heading p');
+        if (descriptionKey && introduction) {
+            introduction.dataset.i18n = descriptionKey;
+            introduction.textContent = t(descriptionKey);
+        }
         const tools = workspace?.querySelector(':scope > .provider-tools-grid');
         const importPanel = tools?.querySelector(':scope > .tool-panel:nth-child(2)');
         presentProviderImportPanel(importPanel);

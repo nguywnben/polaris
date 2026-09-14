@@ -1,6 +1,6 @@
 .playground-workspace {
     display: grid;
-    grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: start;
 }
@@ -46,6 +46,22 @@
     margin: 0;
     color: var(--text);
     font-size: 14px;
+}
+
+.playground-messages-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.playground-messages-heading {
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.playground-messages-heading > .btn,
+.playground-section-heading > .status-badge {
+    flex-shrink: 0;
 }
 
 .playground-control-grid,
@@ -94,16 +110,18 @@
 
 .playground-messages {
     display: grid;
-    gap: 10px;
+    gap: 16px;
 }
 
 .playground-message {
     display: grid;
     gap: 12px;
-    padding: 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
+    min-width: 0;
+}
+
+.playground-message + .playground-message {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
 }
 
 .playground-message-header,
@@ -145,6 +163,7 @@
 .playground-message textarea {
     width: 100%;
     min-width: 0;
+    font-weight: 400;
 }
 
 .playground-message .playground-message-role select {
@@ -182,10 +201,8 @@
 }
 
 .playground-parameters {
-    margin-top: 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
 }
 
 .playground-parameters > summary,
@@ -205,9 +222,12 @@
 }
 
 .playground-parameter-grid {
-    padding: 0 14px 14px;
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
+    padding: 8px 0 16px;
+}
+
+.playground-parameters > summary {
+    padding-right: 0;
+    padding-left: 0;
 }
 
 .playground-run-actions {
@@ -243,15 +263,12 @@
 }
 
 .playground-output-card.is-pristine .playground-output {
-    min-height: 176px;
+    min-height: 200px;
     display: grid;
     place-items: center;
     color: var(--text-muted);
     text-align: center;
-}
-
-.playground-output-card.is-pristine > .field-hint {
-    display: none;
+    font-family: inherit;
 }
 
 .playground-output:focus-visible,
@@ -281,10 +298,8 @@
 
 .playground-metadata-grid > div {
     min-width: 0;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-subtle);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
 }
 
 .playground-metadata-grid dt {
@@ -325,6 +340,7 @@
 
 .playground-example-toolbar {
     justify-content: flex-start;
+    flex-wrap: wrap;
     margin-top: 12px;
 }
 
@@ -364,7 +380,7 @@
 
 @media (max-width: 1080px) {
     .playground-workspace {
-        grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -380,6 +396,17 @@
 }
 
 @media (max-width: 600px) {
+    .playground-stream-control {
+        min-height: 44px;
+    }
+
+    .playground-message .playground-message-role select,
+    .playground-message-remove,
+    .playground-example-toolbar select {
+        min-height: 44px;
+        height: 44px;
+    }
+
     .playground-control-grid,
     .playground-parameter-grid,
     .playground-metadata-grid {

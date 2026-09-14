@@ -1,7 +1,6 @@
                 <div id="dashboardTab" class="tab-content active">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="dashboard">Overview</div>
                             <h1 class="page-title" data-i18n="dashboard_title">Polaris Dashboard</h1>
                             <p class="page-description" data-i18n="dashboard_description">See whether the gateway is ready, what needs attention, and how traffic is performing.</p>
                         </div>
@@ -22,12 +21,12 @@
 
                     <section id="dashboardFirstRun" class="guided-empty-state" role="status" hidden>
                         <div>
-                            <h2 data-i18n="dashboard.no_traffic_yet">No traffic yet</h2>
-                            <p data-i18n="dashboard.recent_empty">No requests have been recorded yet.</p>
+                            <h2 id="dashboardStartTitle" data-i18n="dashboard.no_traffic_yet">No traffic yet</h2>
+                            <p id="dashboardStartCopy" data-i18n="dashboard.recent_empty">No requests have been recorded yet.</p>
                         </div>
                         <div class="guided-empty-actions">
-                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="playground" data-i18n="playground.label">Playground</button>
-                            <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                            <button id="dashboardStartAction" type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                            <button id="dashboardSecondaryAction" type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="playground" data-i18n="playground.label">Playground</button>
                         </div>
                     </section>
 
@@ -59,37 +58,37 @@
                     </div>
 
                     <div class="dashboard-grid">
-                        <section class="card span-7 operational-health-card" id="operationalHealthCard" aria-busy="true">
+                        <section class="card span-12 operational-health-card" id="operationalHealthCard" aria-busy="true">
                             <div class="operational-health-header">
                                 <div>
-                                    <div class="page-kicker" data-i18n="dashboard.request_health_kicker">Last 15 minutes</div>
                                     <h2 class="card-title" data-i18n="dashboard.request_health_title">Request health</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="dashboard.request_health_description">Requests, errors, latency, route failures, and capacity warnings.</p>
+                                    <p class="card-copy card-title-copy" data-i18n="dashboard.last_15_minutes">Last 15 minutes</p>
                                 </div>
                                 <span class="health-pill warning" id="sloOverallStatus" role="status"><span class="status-dot"></span><span data-i18n="slo.loading">Loading</span></span>
                             </div>
-                            <div class="slo-red-grid" aria-live="polite">
+                            <p id="operationalHealthEmpty" class="dashboard-empty-note" role="status" hidden></p>
+                            <div id="operationalHealthMetrics" class="slo-red-grid" aria-live="polite">
                                 <div class="slo-metric"><span data-i18n="slo.rate">Request rate</span><strong id="sloRequestRate">—</strong><small data-i18n="slo.per_minute">per minute</small></div>
                                 <div class="slo-metric"><span data-i18n="slo.error_rate">Error rate</span><strong id="sloErrorRate">—</strong><small id="sloErrorCount">—</small></div>
                                 <div class="slo-metric"><span data-i18n="dashboard.p95_latency">P95 latency</span><strong id="sloP95">—</strong><small data-i18n="dashboard.last_15_minutes">Last 15 minutes</small></div>
                                 <div class="slo-metric"><span data-i18n="dashboard.capacity_alerts">Capacity alerts</span><strong id="sloExhaustion">—</strong><small data-i18n="dashboard.bounded_health_sample">Bounded health sample</small></div>
                             </div>
-                            <div class="slo-route-health">
+                            <div id="operationalHealthRoutes" class="slo-route-health">
                                 <h3 data-i18n="slo.route_health">Model-route health</h3>
                                 <div class="usage-table-wrapper"><table class="usage-table slo-route-table"><thead><tr><th scope="col" data-i18n="slo.route">Route</th><th scope="col" data-i18n="requests">Requests</th><th scope="col" data-i18n="slo.error_rate">Error rate</th><th scope="col" data-i18n="dashboard.p95_latency">P95 latency</th></tr></thead><tbody id="sloRouteRows"><tr><td colspan="4" data-i18n="slo.loading">Loading</td></tr></tbody></table></div>
                             </div>
                         </section>
 
-                        <section class="card span-5 recent-activity-card" id="recentActivityCard" aria-busy="true">
+                        <section class="card span-6 recent-activity-card" id="recentActivityCard" aria-busy="true">
                             <div class="recent-activity-header">
-                                <div><div class="page-kicker" data-i18n="dashboard.recent_kicker">Latest requests</div><h2 class="card-title" data-i18n="dashboard.recent_title">Recent activity</h2></div>
+                                <h2 class="card-title" data-i18n="dashboard.recent_title">Recent activity</h2>
                                 <button type="button" class="btn btn-secondary btn-small" data-ui-action="switch-tab" data-tab="activity" data-i18n="dashboard.view_all_activity">View all</button>
                             </div>
                             <p class="card-copy card-title-copy" data-i18n="dashboard.recent_description">Inspect the latest outcomes without retaining prompt or response content.</p>
                             <ol class="dashboard-activity-list" id="recentActivityList" aria-live="polite"><li class="dashboard-activity-empty" data-i18n="dashboard.recent_loading">Loading recent activity…</li></ol>
                         </section>
 
-                        <section class="card span-12 health-matrix-card" id="providerHealthCard">
+                        <section class="card span-6 health-matrix-card" id="providerHealthCard">
                             <div class="health-matrix-header">
                                 <div>
                                     <h2 class="card-title" data-i18n="dashboard.health_matrix_title">Provider and credential status</h2>

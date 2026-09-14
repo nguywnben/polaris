@@ -130,7 +130,11 @@ function updateModelPoolSummary() {
 function updateModelFirstRunState() {
     const tab = document.getElementById('modelsTab');
     const firstRun = document.getElementById('modelFirstRun');
-    const isEmpty = Boolean(AppState.modelCatalogLoaded) && AppState.modelCatalog.length === 0;
+    const isEmpty = Boolean(AppState.modelCatalogLoaded)
+        && AppState.modelCatalog.length === 0
+        && !AppState.modelPoolConfigured
+        && !AppState.selectedModels?.length
+        && !AppState.modelBlacklist?.length;
     tab?.classList.toggle('is-pristine-empty', isEmpty);
     if (firstRun) firstRun.hidden = !isEmpty;
 }
@@ -276,13 +280,26 @@ async function clearModelBlacklist() {
     }
 }
 
-function createModelOrderButton(label, symbol, disabled, handler) {
+function createModelOrderButton(label, iconPath, disabled, handler) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'model-order-button';
     button.setAttribute('aria-label', label);
     button.title = label;
-    button.textContent = symbol;
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('width', '16');
+    icon.setAttribute('height', '16');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('stroke', 'currentColor');
+    icon.setAttribute('stroke-width', '1.8');
+    icon.setAttribute('stroke-linecap', 'round');
+    icon.setAttribute('stroke-linejoin', 'round');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconPath);
+    icon.appendChild(path);
+    button.appendChild(icon);
     button.disabled = disabled;
     button.addEventListener('click', handler);
     return button;
@@ -329,9 +346,9 @@ function renderSelectedModels() {
         const actions = document.createElement('div');
         actions.className = 'model-order-actions';
         actions.append(
-            createModelOrderButton(t('models.move_up'), '↑', index === 0, () => moveSelectedModel(index, -1)),
-            createModelOrderButton(t('models.move_down'), '↓', index === AppState.selectedModels.length - 1, () => moveSelectedModel(index, 1)),
-            createModelOrderButton(t('models.remove_selected'), '×', false, () => removeSelectedModel(modelId))
+            createModelOrderButton(t('models.move_up'), 'M12 19V5m-6 6 6-6 6 6', index === 0, () => moveSelectedModel(index, -1)),
+            createModelOrderButton(t('models.move_down'), 'M12 5v14m-6-6 6 6 6-6', index === AppState.selectedModels.length - 1, () => moveSelectedModel(index, 1)),
+            createModelOrderButton(t('models.remove_selected'), 'm6 6 12 12M6 18 18 6', false, () => removeSelectedModel(modelId))
         );
 
         item.append(order, details, actions);
