@@ -57,7 +57,9 @@ Core provider behavior is release-blocking through deterministic contracts inste
 - Put the service behind TLS and verify secure cookies and forwarded-header configuration.
 - Back up the persistent data directory before upgrading an existing instance.
 - Record the previous image digest for rollback.
-- Confirm the version tag publishes `latest` and semantic-version tags, while a default-branch build publishes `edge` without moving `latest`.
+- Confirm a stable version tag publishes `latest` and semantic-version tags. A prerelease tag must
+  publish only its prerelease semantic tag, while a default-branch build publishes `edge` without
+  moving `latest`.
 - When upgrading a beta deployment, perform the documented [1.0 upgrade](upgrading-to-1.0.md) against a copy of the existing data.
 
 ## Release Steps
@@ -65,7 +67,7 @@ Core provider behavior is release-blocking through deterministic contracts inste
 1. Move completed entries from `Unreleased` to the target version in `CHANGELOG.md`.
 2. Confirm `DEFAULT_APPLICATION_VERSION` matches the release tag.
 3. Rebase on `origin/main` and rerun every automated gate.
-4. Tag the verified commit with an annotated `vX.Y.Z` tag.
+4. Tag the verified commit with an annotated `vX.Y.Z` or `vX.Y.Z-prerelease` tag.
 5. Let GitHub Actions publish the container and verify its digest.
 6. Confirm GitHub Actions created the release from the matching changelog section before announcing it.
 7. Pull the published image by digest, rerun liveness/readiness and SDK smoke checks, and record the digest in the release notes or deployment record.

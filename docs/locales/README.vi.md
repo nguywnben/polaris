@@ -109,7 +109,7 @@ xác thực. [Ma trận hỗ trợ cài đặt](../installation.md#support-matri
 Linux, macOS và kiến trúc CPU; tài liệu không ngầm tuyên bố hỗ trợ ARM64.
 
 Profile mặc định không cần dịch vụ bên ngoài, đồng thời lưu toàn bộ dữ liệu ứng dụng trong volume
-`polaris-data`. Mẫu môi trường tối thiểu ghim bản phát hành `1.5.0`; việc cập nhật
+`polaris-data`. Mẫu môi trường tối thiểu ghim bản phát hành `0.1.0-beta.1`; việc cập nhật
 production phải theo [quy trình cập nhật và rollback Compose](../updating.md). Chỉ bật lưu trữ ngoài,
 Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanced.yml` sau khi bản cài
 đặt cơ bản đã hoạt động tốt.
