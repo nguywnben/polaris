@@ -97,9 +97,7 @@ class ProductRebrandContractTests(unittest.TestCase):
         installation = (ROOT / "docs" / "installation.md").read_text(encoding="utf-8")
         updater = (ROOT / "tools" / "compose_update.py").read_text(encoding="utf-8")
         environment_example = (ROOT / ".env.example").read_text(encoding="utf-8")
-        audit_service = (ROOT / "backend" / "core" / "audit_service.py").read_text(
-            encoding="utf-8"
-        )
+        audit_service = (ROOT / "backend" / "core" / "audit_service.py").read_text(encoding="utf-8")
 
         self.assertIn('DEFAULT_XAI_USER_AGENT = "grok-cli/polaris"', configuration)
         self.assertIn('DEFAULT_CLAUDE_USER_AGENT = "claude-cli/polaris"', configuration)
