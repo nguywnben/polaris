@@ -131,8 +131,18 @@ class SQLiteCredentialPoolMutationTests(unittest.IsolatedAsyncioTestCase):
                         )
 
                     self.assertEqual({first["action"], second["action"]}, {"created", "skipped"})
+                    created = next(
+                        result for result in (first, second) if result["action"] == "created"
+                    )
+                    skipped = next(
+                        result for result in (first, second) if result["action"] == "skipped"
+                    )
+                    self.assertEqual(skipped["filename"], created["filename"])
                     self.assertEqual(
-                        await first_storage.list_credentials("primary"), ["first.json"]
+                        await first_storage.list_credentials("primary"), [created["filename"]]
+                    )
+                    self.assertEqual(
+                        await second_storage.list_credentials("primary"), [created["filename"]]
                     )
                 finally:
                     await first_storage.close()
