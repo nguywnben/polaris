@@ -2,6 +2,14 @@ import asyncio
 import os
 from typing import Any, Optional
 
+from core.configuration_schema import (
+    CONFIGURATION_FIELDS,
+    ConfigurationError,
+    parse_environment,
+    validate_stored_configuration,
+)
+from core.governance_coordination import GovernanceGenerationObserver
+from core.routing_coordination import GOVERNANCE_SCOPE_CONFIG
 from dotenv import load_dotenv
 from log import log
 from paths import DEFAULT_CREDENTIALS_DIR, PROJECT_ROOT
@@ -12,6 +20,7 @@ load_dotenv(PROJECT_ROOT / ".env", override=False)
 _config_cache: dict[str, Any] = {}
 _config_initialized = False
 _config_lock = asyncio.Lock()
+_config_generation = GovernanceGenerationObserver(GOVERNANCE_SCOPE_CONFIG)
 
 LEGACY_ENV_RENAMES = {
     "API_URL": "ANTIGRAVITY_API_URL",
@@ -26,11 +35,22 @@ LEGACY_ENV_RENAMES = {
     "ANTIGRAVITY_SWITCH_CREDENTIAL": "SWITCH_CREDENTIAL_ENABLED",
 }
 
+REMOVED_ENVIRONMENT_ERRORS = {"PASSWORD": "PANEL_PASSWORD"}
+
+LEGACY_STORED_KEY_RENAMES = {
+    "password": "panel_password",
+    "client_id": "antigravity_client_id",
+    "client_secret": "antigravity_client_secret",
+    "api_url": "antigravity_api_url",
+}
+
+REMOVED_STORED_KEYS = frozenset({"api_password", *LEGACY_STORED_KEY_RENAMES})
+
 # Client Configuration
 
 
 AUTO_DISABLE_ERROR_CODES = [403]
-API_KEY_PREFIX = "sk-ogw-"
+API_KEY_PREFIX = "sk-polaris-"
 DEFAULT_CODE_ASSIST_CLIENT_ID = (
     "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
 )
@@ -47,7 +67,7 @@ DEFAULT_XAI_API_URL = "https://api.x.ai/v1"
 DEFAULT_XAI_OAUTH_API_URL = "https://cli-chat-proxy.grok.com/v1"
 DEFAULT_XAI_OAUTH_ISSUER = "https://auth.x.ai"
 DEFAULT_XAI_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
-DEFAULT_XAI_USER_AGENT = "grok-cli/omni-gateway"
+DEFAULT_XAI_USER_AGENT = "grok-cli/polaris"
 DEFAULT_OPENAI_API_URL = "https://api.openai.com/v1"
 DEFAULT_CODEX_API_URL = "https://chatgpt.com/backend-api/codex"
 DEFAULT_CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage"
@@ -58,67 +78,13 @@ DEFAULT_ANTHROPIC_API_URL = "https://api.anthropic.com/v1"
 DEFAULT_CLAUDE_OAUTH_AUTHORIZE_URL = "https://claude.ai/oauth/authorize"
 DEFAULT_CLAUDE_OAUTH_TOKEN_URL = "https://api.anthropic.com/v1/oauth/token"
 DEFAULT_CLAUDE_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-DEFAULT_CLAUDE_USER_AGENT = "claude-cli/omni-gateway"
+DEFAULT_CLAUDE_USER_AGENT = "claude-cli/polaris"
 
 
 ENV_MAPPINGS = {
-    "CODE_ASSIST_ENDPOINT": "code_assist_endpoint",
-    "CREDENTIALS_DIR": "credentials_dir",
-    "PROXY": "proxy",
-    "OAUTH_URL": "oauth_url",
-    "GOOGLE_APIS_URL": "google_apis_url",
-    "RESOURCE_MANAGER_URL": "resource_manager_url",
-    "SERVICE_USAGE_URL": "service_usage_url",
-    "ANTIGRAVITY_API_URL": "antigravity_api_url",
-    "GOOGLE_AI_STUDIO_API_URL": "google_ai_studio_api_url",
-    "XAI_API_URL": "xai_api_url",
-    "XAI_OAUTH_API_URL": "xai_oauth_api_url",
-    "XAI_OAUTH_ISSUER": "xai_oauth_issuer",
-    "XAI_CLIENT_ID": "xai_client_id",
-    "XAI_USER_AGENT": "xai_user_agent",
-    "OPENAI_API_URL": "openai_api_url",
-    "CODEX_API_URL": "codex_api_url",
-    "CODEX_USAGE_URL": "codex_usage_url",
-    "CODEX_AUTH_BASE": "codex_auth_base",
-    "CODEX_CLIENT_ID": "codex_client_id",
-    "CODEX_USER_AGENT": "codex_user_agent",
-    "ANTHROPIC_API_URL": "anthropic_api_url",
-    "CLAUDE_OAUTH_AUTHORIZE_URL": "claude_oauth_authorize_url",
-    "CLAUDE_OAUTH_TOKEN_URL": "claude_oauth_token_url",
-    "CLAUDE_CLIENT_ID": "claude_client_id",
-    "CLAUDE_USER_AGENT": "claude_user_agent",
-    "CODE_ASSIST_CLIENT_ID": "code_assist_client_id",
-    "CODE_ASSIST_CLIENT_SECRET": "code_assist_client_secret",
-    "ANTIGRAVITY_CLIENT_ID": "antigravity_client_id",
-    "ANTIGRAVITY_CLIENT_SECRET": "antigravity_client_secret",
-    "ANTIGRAVITY_USER_AGENT": "antigravity_user_agent",
-    "ANTIGRAVITY_PAYLOAD_USER_AGENT": "antigravity_payload_user_agent",
-    "AUTO_DISABLE": "auto_disable_enabled",
-    "AUTO_DISABLE_ERROR_CODES": "auto_disable_error_codes",
-    "RETRY_429_MAX_RETRIES": "retry_429_max_retries",
-    "RETRY_429_ENABLED": "retry_429_enabled",
-    "RETRY_429_INTERVAL": "retry_429_interval",
-    "ANTI_TRUNCATION_MAX_ATTEMPTS": "anti_truncation_max_attempts",
-    "TOKEN_COMPRESSION_ENABLED": "token_compression_enabled",
-    "TOKEN_COMPRESSION_THRESHOLD": "token_compression_threshold",
-    "TOKEN_COMPRESSION_TARGET": "token_compression_target",
-    "TOKEN_COMPRESSION_MIN_RECENT_TURNS": "token_compression_min_recent_turns",
-    "ROUTING_STRATEGY": "routing_strategy",
-    "PREFERRED_PROVIDER": "preferred_provider",
-    "UPSTREAM_TIMEOUT_SECONDS": "upstream_timeout_seconds",
-    "LOG_LEVEL": "log_level",
-    "LOG_MAX_MB": "log_max_mb",
-    "LOG_BACKUP_COUNT": "log_backup_count",
-    "COMPATIBILITY_MODE": "compatibility_mode_enabled",
-    "RETURN_THOUGHTS_TO_FRONTEND": "return_thoughts_to_frontend",
-    "STREAM_TO_NONSTREAM": "stream_to_nonstream",
-    "SWITCH_CREDENTIAL_ENABLED": "switch_credential_enabled",
-    "HOST": "host",
-    "PORT": "port",
-    "API_KEY": "api_key",
-    "PANEL_PASSWORD": "panel_password",
-    "KEEPALIVE_URL": "keepalive_url",
-    "KEEPALIVE_INTERVAL": "keepalive_interval",
+    field.env_name: field.config_key
+    for field in CONFIGURATION_FIELDS
+    if field.config_key is not None
 }
 
 
@@ -131,10 +97,18 @@ async def init_config():
     async with _config_lock:
         if _config_initialized:
             return
-        if os.getenv("PASSWORD") and not os.getenv("PANEL_PASSWORD"):
-            raise RuntimeError(
-                "PASSWORD is no longer supported. Rename it to PANEL_PASSWORD before startup."
-            )
+        try:
+            environment = parse_environment(os.environ)
+        except ConfigurationError as exc:
+            raise RuntimeError(f"Invalid environment configuration: {exc}") from exc
+        for warning in environment.warnings:
+            log.warning(warning)
+        for removed_name, replacement in REMOVED_ENVIRONMENT_ERRORS.items():
+            if os.getenv(removed_name) and not os.getenv(replacement):
+                raise RuntimeError(
+                    f"{removed_name} is no longer supported. "
+                    f"Rename it to {replacement} before startup."
+                )
 
         for legacy_name, replacement in LEGACY_ENV_RENAMES.items():
             if os.getenv(legacy_name) and not os.getenv(replacement):
@@ -149,14 +123,8 @@ async def init_config():
             storage_adapter = await get_storage_adapter()
             values = await storage_adapter.get_all_config()
 
-            stored_migrations = {
-                "password": "panel_password",
-                "client_id": "antigravity_client_id",
-                "client_secret": "antigravity_client_secret",
-                "api_url": "antigravity_api_url",
-            }
             migrated = False
-            for legacy_key, canonical_key in stored_migrations.items():
+            for legacy_key, canonical_key in LEGACY_STORED_KEY_RENAMES.items():
                 legacy_value = values.get(legacy_key)
                 if legacy_value and not values.get(canonical_key):
                     saved = await storage_adapter.set_config(canonical_key, legacy_value)
@@ -168,17 +136,7 @@ async def init_config():
                     log.info(f"Migrated legacy configuration key {legacy_key} to {canonical_key}.")
                     migrated = True
 
-            legacy_keys = [
-                key
-                for key in (
-                    "password",
-                    "api_password",
-                    "client_id",
-                    "client_secret",
-                    "api_url",
-                )
-                if key in values
-            ]
+            legacy_keys = [key for key in REMOVED_STORED_KEYS if key in values]
             for key in legacy_keys:
                 deleted = await storage_adapter.delete_config(key)
                 if not deleted:
@@ -187,7 +145,10 @@ async def init_config():
             if migrated or legacy_keys:
                 values = await storage_adapter.get_all_config()
 
-            _config_cache = values
+            try:
+                _config_cache = validate_stored_configuration(values)
+            except ConfigurationError as exc:
+                raise RuntimeError(f"Invalid stored configuration: {exc}") from exc
             _config_initialized = True
         except Exception:
             _config_cache = {}
@@ -203,12 +164,19 @@ async def reload_config():
 
         storage_adapter = await get_storage_adapter()
 
-        if hasattr(storage_adapter._backend, "reload_config_cache"):
-            await storage_adapter._backend.reload_config_cache()
+        await storage_adapter.reload_config_cache()
 
         values = await storage_adapter.get_all_config()
-        _config_cache = values
+        try:
+            _config_cache = validate_stored_configuration(values)
+        except ConfigurationError as exc:
+            raise RuntimeError(f"Invalid stored configuration: {exc}") from exc
         _config_initialized = True
+
+
+def set_cached_config_value(key: str, value: Any) -> None:
+    """Synchronize a successfully persisted value with the single-worker runtime cache."""
+    _config_cache[key] = value
 
 
 def _get_cached_config(key: str, default: Any = None) -> Any:
@@ -228,12 +196,13 @@ def trust_proxy_headers_enabled() -> bool:
 async def get_config_value(key: str, default: Any = None, env_var: Optional[str] = None) -> Any:
     """Get configuration value with priority: ENV > Storage > default."""
 
+    await _config_generation.synchronize(reload_config)
     if not _config_initialized:
         await init_config()
 
     # Priority 1: Environment variable
     if env_var and os.getenv(env_var):
-        return os.getenv(env_var)
+        return os.environ[env_var]
 
     # Priority 2: Memory cache
     value = _get_cached_config(key)
@@ -324,7 +293,7 @@ async def get_retry_429_interval() -> float:
     return float(await get_config_value("retry_429_interval", 1))
 
 
-async def get_anti_truncation_max_attempts() -> int:
+async def get_legacy_anti_truncation_max_attempts() -> int:
     """
     Get maximum attempts for anti-truncation continuation.
 
@@ -332,14 +301,26 @@ async def get_anti_truncation_max_attempts() -> int:
     Database config key: anti_truncation_max_attempts
     Default: 3
     """
-    env_value = os.getenv("ANTI_TRUNCATION_MAX_ATTEMPTS")
-    if env_value:
-        try:
-            return int(env_value)
-        except ValueError:
-            pass
+    return _coerce_bounded_int(
+        await get_config_value("anti_truncation_max_attempts", 3, "ANTI_TRUNCATION_MAX_ATTEMPTS"),
+        3,
+        1,
+        10,
+    )
 
-    return int(await get_config_value("anti_truncation_max_attempts", 3))
+
+async def get_anti_truncation_max_attempts() -> int:
+    """Return the effective policy value, falling back to the legacy value safely."""
+    try:
+        from core.quality_policy_runtime import get_effective_quality_settings
+
+        return int((await get_effective_quality_settings())["anti_truncation_max_attempts"])
+    except Exception as exc:
+        log.error(
+            f"Quality policy anti-truncation resolution failed ({type(exc).__name__}); "
+            "using the legacy value."
+        )
+        return await get_legacy_anti_truncation_max_attempts()
 
 
 def _coerce_bool(value: Any, default: bool) -> bool:
@@ -362,7 +343,7 @@ def _coerce_bounded_int(value: Any, default: int, minimum: int, maximum: int) ->
     return min(maximum, max(minimum, parsed))
 
 
-async def get_token_compression_config() -> dict[str, Any]:
+async def get_legacy_token_compression_config() -> dict[str, Any]:
     """Return validated settings for bounded conversation-history compression."""
     enabled = _coerce_bool(
         await get_config_value("token_compression_enabled", True, "TOKEN_COMPRESSION_ENABLED"),
@@ -402,7 +383,36 @@ async def get_token_compression_config() -> dict[str, Any]:
     }
 
 
-async def get_response_cache_config() -> dict[str, Any]:
+async def get_token_compression_config() -> dict[str, Any]:
+    """Return effective compression settings; disable compression on policy failure."""
+    try:
+        from core.quality_policy_runtime import resolve_request_quality_policy
+
+        resolved = await resolve_request_quality_policy()
+        compression = resolved["effective_settings"]["compression"]
+        return {
+            "enabled": compression["enabled"],
+            "threshold_tokens": compression["threshold_tokens"],
+            "target_tokens": compression["target_tokens"],
+            "min_recent_turns": compression["min_recent_turns"],
+            "quality_profile": resolved["policy"]["profile"],
+            "quality_policy_revision": resolved["policy"]["revision"],
+        }
+    except Exception as exc:
+        log.error(
+            f"Quality policy compression resolution failed ({type(exc).__name__}); "
+            "compression is disabled for this request."
+        )
+        legacy = await get_legacy_token_compression_config()
+        return {
+            **legacy,
+            "enabled": False,
+            "quality_profile": "unavailable",
+            "quality_policy_revision": 0,
+        }
+
+
+async def get_legacy_response_cache_config() -> dict[str, Any]:
     """Return settings for the exact-match response cache."""
     enabled = _coerce_bool(
         await get_config_value("response_cache_enabled", False, "RESPONSE_CACHE_ENABLED"),
@@ -423,7 +433,22 @@ async def get_response_cache_config() -> dict[str, Any]:
     return {"enabled": enabled, "ttl_seconds": ttl_seconds, "max_entries": max_entries}
 
 
-async def get_guardrails_config() -> dict[str, Any]:
+async def get_response_cache_config() -> dict[str, Any]:
+    """Return effective cache settings; bypass the cache on policy failure."""
+    try:
+        from core.quality_policy_runtime import get_effective_quality_settings
+
+        return dict((await get_effective_quality_settings())["response_cache"])
+    except Exception as exc:
+        log.error(
+            f"Quality policy response-cache resolution failed ({type(exc).__name__}); "
+            "the cache is bypassed for this request."
+        )
+        legacy = await get_legacy_response_cache_config()
+        return {**legacy, "enabled": False}
+
+
+async def get_legacy_guardrails_config() -> dict[str, Any]:
     """Return settings for the pre-call guardrails pipeline."""
     enabled = _coerce_bool(
         await get_config_value("guardrails_enabled", False, "GUARDRAILS_ENABLED"),
@@ -458,6 +483,13 @@ async def get_guardrails_config() -> dict[str, Any]:
         "injection_detection_enabled": injection_detection,
         "blocked_keywords": blocked_keywords,
     }
+
+
+async def get_guardrails_config() -> dict[str, Any]:
+    """Return effective guardrails; callers must fail closed if resolution fails."""
+    from core.quality_policy_runtime import get_effective_quality_settings
+
+    return dict((await get_effective_quality_settings())["guardrails"])
 
 
 async def get_telemetry_config() -> dict[str, Any]:
@@ -616,20 +648,44 @@ async def get_code_assist_endpoint() -> str:
     )
 
 
-async def get_compatibility_mode_enabled() -> bool:
-    env_value = os.getenv("COMPATIBILITY_MODE")
-    if env_value:
-        return env_value.lower() in ("true", "1", "yes", "on")
+async def get_legacy_compatibility_mode_enabled() -> bool:
+    return _coerce_bool(
+        await get_config_value("compatibility_mode_enabled", False, "COMPATIBILITY_MODE"),
+        False,
+    )
 
-    return bool(await get_config_value("compatibility_mode_enabled", False))
+
+async def get_compatibility_mode_enabled() -> bool:
+    try:
+        from core.quality_policy_runtime import get_effective_quality_settings
+
+        return bool((await get_effective_quality_settings())["compatibility_mode"])
+    except Exception as exc:
+        log.error(
+            f"Quality policy compatibility resolution failed ({type(exc).__name__}); "
+            "using the legacy value."
+        )
+        return await get_legacy_compatibility_mode_enabled()
+
+
+async def get_legacy_return_thoughts_to_frontend() -> bool:
+    return _coerce_bool(
+        await get_config_value("return_thoughts_to_frontend", True, "RETURN_THOUGHTS_TO_FRONTEND"),
+        True,
+    )
 
 
 async def get_return_thoughts_to_frontend() -> bool:
-    env_value = os.getenv("RETURN_THOUGHTS_TO_FRONTEND")
-    if env_value:
-        return env_value.lower() in ("true", "1", "yes", "on")
+    try:
+        from core.quality_policy_runtime import get_effective_quality_settings
 
-    return bool(await get_config_value("return_thoughts_to_frontend", True))
+        return bool((await get_effective_quality_settings())["return_reasoning"])
+    except Exception as exc:
+        log.error(
+            f"Quality policy reasoning resolution failed ({type(exc).__name__}); "
+            "using the legacy value."
+        )
+        return await get_legacy_return_thoughts_to_frontend()
 
 
 async def get_stream_to_nonstream() -> bool:

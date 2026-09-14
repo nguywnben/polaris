@@ -1,9 +1,9 @@
+import asyncio
 import json
+import math
 import os
-import sqlite3
-import threading
+import secrets
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.pricing import calculate_cost_usd
@@ -15,42 +15,28 @@ from core.provider_registry import (
     get_provider_display_name,
     normalize_provider_id,
 )
-from log import log
-from paths import DEFAULT_CREDENTIALS_DIR
-
-db_lock = threading.Lock()
-db_path = str(
-    Path(os.getenv("CREDENTIALS_DIR", str(DEFAULT_CREDENTIALS_DIR))).expanduser() / "usage_stats.db"
+from core.quality_decision import normalize_quality_decision
+from core.usage_ledger import (
+    USAGE_LEDGER_SCHEMA_VERSION,
+    UsageLedgerEntry,
+    nanos_to_usd,
+    usd_to_nanos,
 )
+from core.usage_ledger_service import get_usage_ledger_service
+from log import log
+
 UNASSIGNED_USAGE_FILENAME = "__gateway_unassigned__.json"
 DELETED_USAGE_PREFIX = "__deleted_credential__"
 USAGE_PERIODS = {
-    "1d": {"seconds": 86400, "label": "Last 24 hours"},
+    "1d": {"seconds": 86400, "label": "Today"},
     "7d": {"seconds": 7 * 86400, "label": "Last 7 days"},
     "30d": {"seconds": 30 * 86400, "label": "Last 30 days"},
     "all": {"seconds": None, "label": "All time"},
 }
-
-
-TOKEN_COLUMNS = {
-    "request_id": "TEXT DEFAULT ''",
-    "model": "TEXT DEFAULT ''",
-    "provider": "TEXT DEFAULT ''",
-    "status_code": "INTEGER DEFAULT 200",
-    "success": "INTEGER DEFAULT 1",
-    "input_tokens": "INTEGER DEFAULT 0",
-    "output_tokens": "INTEGER DEFAULT 0",
-    "total_tokens": "INTEGER DEFAULT 0",
-    "cached_tokens": "INTEGER DEFAULT 0",
-    "reasoning_tokens": "INTEGER DEFAULT 0",
-    "estimated_input_tokens": "INTEGER DEFAULT 0",
-    "estimated_tokens_saved": "INTEGER DEFAULT 0",
-    "compressed_messages": "INTEGER DEFAULT 0",
-    "latency_ms": "INTEGER DEFAULT 0",
-    "retry_count": "INTEGER DEFAULT 0",
-    "cost_usd": "REAL DEFAULT 0",
-    "api_key_id": "TEXT DEFAULT ''",
-}
+USAGE_TIMELINE_POINTS = {"1d": 24, "7d": 28, "30d": 30, "all": 30}
+ALL_TIME_TIMELINE_SECONDS = 30 * 86400
+MAX_TIMEZONE_OFFSET_MINUTES = 14 * 60
+_stats_inflight: Dict[tuple[str, int], asyncio.Task[Dict[str, Dict[str, Any]]]] = {}
 
 
 def _int_value(value: Any) -> int:
@@ -106,6 +92,47 @@ def get_usage_period_metadata(period: str = "1d") -> Dict[str, str]:
     }
 
 
+def normalize_timezone_offset_minutes(value: Any = 0) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return min(MAX_TIMEZONE_OFFSET_MINUTES, max(-MAX_TIMEZONE_OFFSET_MINUTES, parsed))
+
+
+def get_usage_time_window(
+    period: str = "1d",
+    timezone_offset_minutes: int = 0,
+    *,
+    now: Optional[float] = None,
+    points: Optional[int] = None,
+) -> tuple[float, float, int]:
+    """Return a browser-local, clock-aligned window for dashboard buckets."""
+    normalized_period = normalize_usage_period(period)
+    seconds = USAGE_PERIODS[normalized_period]["seconds"] or ALL_TIME_TIMELINE_SECONDS
+    if points is None:
+        bucket_count = USAGE_TIMELINE_POINTS[normalized_period]
+    elif type(points) is not int or not 1 <= points <= 1_000:
+        raise ValueError("Usage time-series point count is invalid.")
+    else:
+        bucket_count = points
+    bucket_seconds = seconds / bucket_count
+    current = time.time() if now is None else float(now)
+    if not math.isfinite(current) or current < 0:
+        raise ValueError("Usage time-series reference time is invalid.")
+    offset = normalize_timezone_offset_minutes(timezone_offset_minutes) * 60
+    local_current = current - offset
+    if normalized_period == "1d":
+        # The one-day dashboard is a calendar-day view, not a rolling 24-hour
+        # window. Floor then advance one whole day so exactly 00:00 still selects
+        # the new day instead of ending the previous one.
+        aligned_local_end = (math.floor(local_current / 86400) + 1) * 86400
+    else:
+        aligned_local_end = math.ceil(local_current / bucket_seconds) * bucket_seconds
+    aligned_end = aligned_local_end + offset
+    return aligned_end - seconds, aligned_end, bucket_count
+
+
 def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
     provider_id = normalize_provider_id(metadata.get("provider") or GOOGLE_ANTIGRAVITY)
     return {
@@ -124,7 +151,9 @@ def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
         "output_tokens": 0,
         "total_tokens": 0,
         "cached_tokens": 0,
+        "cache_creation_tokens": 0,
         "reasoning_tokens": 0,
+        "reported_usage_calls": 0,
         "estimated_input_tokens": 0,
         "estimated_tokens_saved": 0,
         "compressed_messages": 0,
@@ -138,7 +167,9 @@ def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
         "output_tokens_24h": 0,
         "total_tokens_24h": 0,
         "cached_tokens_24h": 0,
+        "cache_creation_tokens_24h": 0,
         "reasoning_tokens_24h": 0,
+        "reported_usage_calls_24h": 0,
         "estimated_input_tokens_24h": 0,
         "estimated_tokens_saved_24h": 0,
         "compressed_messages_24h": 0,
@@ -159,7 +190,9 @@ def _usage_record(
     output_tokens: int,
     total_tokens: int,
     cached_tokens: int,
+    cache_creation_tokens: int,
     reasoning_tokens: int,
+    reported_usage_calls: int,
     estimated_input_tokens: int,
     estimated_tokens_saved: int,
     compressed_messages: int,
@@ -184,7 +217,9 @@ def _usage_record(
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "cached_tokens": cached_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
         "reasoning_tokens": reasoning_tokens,
+        "reported_usage_calls": reported_usage_calls,
         "estimated_input_tokens": estimated_input_tokens,
         "estimated_tokens_saved": estimated_tokens_saved,
         "compressed_messages": compressed_messages,
@@ -201,7 +236,9 @@ def _usage_record(
             "output_tokens_24h": output_tokens,
             "total_tokens_24h": total_tokens,
             "cached_tokens_24h": cached_tokens,
+            "cache_creation_tokens_24h": cache_creation_tokens,
             "reasoning_tokens_24h": reasoning_tokens,
+            "reported_usage_calls_24h": reported_usage_calls,
             "estimated_input_tokens_24h": estimated_input_tokens,
             "estimated_tokens_saved_24h": estimated_tokens_saved,
             "compressed_messages_24h": compressed_messages,
@@ -213,7 +250,28 @@ def _usage_record(
     return record
 
 
-def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
+_TOKEN_USAGE_KEYS = frozenset(
+    {
+        "promptTokenCount",
+        "candidatesTokenCount",
+        "totalTokenCount",
+        "cachedContentTokenCount",
+        "cacheCreationTokenCount",
+        "thoughtsTokenCount",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "prompt_tokens",
+        "completion_tokens",
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+        "prompt_tokens_details",
+        "completion_tokens_details",
+    }
+)
+
+
+def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     usage = usage or {}
     prompt_details = usage.get("prompt_tokens_details") or {}
     completion_details = usage.get("completion_tokens_details") or {}
@@ -229,13 +287,28 @@ def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
     cached_tokens = _int_value(
         usage.get(
             "cachedContentTokenCount",
-            usage.get("cache_read_input_tokens", prompt_details.get("cached_tokens")),
+            usage.get(
+                "cached_tokens",
+                usage.get("cache_read_input_tokens", prompt_details.get("cached_tokens")),
+            ),
+        )
+    )
+    cache_creation_tokens = _int_value(
+        usage.get(
+            "cacheCreationTokenCount",
+            usage.get("cache_creation_tokens", usage.get("cache_creation_input_tokens")),
         )
     )
     reasoning_tokens = _int_value(
-        usage.get("thoughtsTokenCount", completion_details.get("reasoning_tokens"))
+        usage.get(
+            "thoughtsTokenCount",
+            usage.get("reasoning_tokens", completion_details.get("reasoning_tokens")),
+        )
     )
     total_tokens = _int_value(usage.get("totalTokenCount", usage.get("total_tokens")))
+    usage_reported = bool(
+        usage.get("usage_reported", any(key in usage for key in _TOKEN_USAGE_KEYS))
+    )
 
     if total_tokens == 0:
         total_tokens = input_tokens + output_tokens + reasoning_tokens
@@ -245,11 +318,38 @@ def normalize_token_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
         "cached_tokens": cached_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
         "reasoning_tokens": reasoning_tokens,
+        "usage_reported": usage_reported,
     }
 
 
-def extract_token_usage_from_response(value: Any) -> Dict[str, int]:
+def merge_token_usage(
+    current: Optional[Dict[str, Any]], update: Optional[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Merge cumulative usage snapshots emitted across an SSE response."""
+    existing = normalize_token_usage(current)
+    incoming = normalize_token_usage(update)
+    merged = {
+        field: max(existing[field], incoming[field])
+        for field in (
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "cache_creation_tokens",
+            "reasoning_tokens",
+        )
+    }
+    merged["total_tokens"] = max(
+        merged["total_tokens"],
+        merged["input_tokens"] + merged["output_tokens"] + merged["reasoning_tokens"],
+    )
+    merged["usage_reported"] = bool(existing["usage_reported"] or incoming["usage_reported"])
+    return merged
+
+
+def extract_token_usage_from_response(value: Any) -> Dict[str, Any]:
     if value is None:
         return normalize_token_usage(None)
 
@@ -283,7 +383,7 @@ def extract_token_usage_from_response(value: Any) -> Dict[str, int]:
     return normalize_token_usage(usage if isinstance(usage, dict) else {})
 
 
-def extract_token_usage_from_stream_chunk(chunk: Any) -> Dict[str, int]:
+def extract_token_usage_from_stream_chunk(chunk: Any) -> Dict[str, Any]:
     if isinstance(chunk, bytes):
         try:
             chunk = chunk.decode("utf-8")
@@ -311,35 +411,7 @@ def extract_token_usage_from_stream_chunk(chunk: Any) -> Dict[str, int]:
     return extract_token_usage_from_response(payload)
 
 
-def init_db():
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS usage_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    filename TEXT NOT NULL,
-                    timestamp REAL NOT NULL
-                );
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON usage_logs(timestamp);")
-            existing_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(usage_logs)").fetchall()
-            }
-            for column_name, column_type in TOKEN_COLUMNS.items():
-                if column_name not in existing_columns:
-                    conn.execute(f"ALTER TABLE usage_logs ADD COLUMN {column_name} {column_type};")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_usage_filename ON usage_logs(filename);")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_usage_model ON usage_logs(model);")
-            conn.commit()
-        except Exception as e:
-            log.error(f"Failed to initialize usage database: {e}")
-        finally:
-            conn.close()
-
-
-def record_call(
+async def record_call(
     filename: str,
     *,
     model: str = "",
@@ -350,80 +422,86 @@ def record_call(
     request_metrics: Optional[Dict[str, Any]] = None,
     request_id: str = "",
     api_key_id: str = "",
-):
+    cost_override_usd: Optional[float] = None,
+    durable_reservation_id: str = "",
+) -> bool:
     filename = os.path.basename(filename)
     if not filename:
-        return
+        return False
 
     tokens = normalize_token_usage(token_usage)
     request_metrics = request_metrics or {}
-    cost_usd = calculate_cost_usd(
-        model,
-        input_tokens=tokens["input_tokens"],
-        output_tokens=tokens["output_tokens"],
-        cached_tokens=tokens["cached_tokens"],
-        reasoning_tokens=tokens["reasoning_tokens"],
-        provider=provider,
-    )
-    init_db()
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            conn.execute(
-                """
-                INSERT INTO usage_logs (
-                    filename,
-                    timestamp,
-                    request_id,
-                    model,
-                    provider,
-                    status_code,
-                    success,
-                    input_tokens,
-                    output_tokens,
-                    total_tokens,
-                    cached_tokens,
-                    reasoning_tokens,
-                    estimated_input_tokens,
-                    estimated_tokens_saved,
-                    compressed_messages,
-                    latency_ms,
-                    retry_count,
-                    cost_usd,
-                    api_key_id
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    filename,
-                    time.time(),
-                    str(request_id or "")[:128],
-                    model or "",
-                    provider or "",
-                    _int_value(status_code or 200),
-                    1 if success else 0,
-                    tokens["input_tokens"],
-                    tokens["output_tokens"],
-                    tokens["total_tokens"],
-                    tokens["cached_tokens"],
-                    tokens["reasoning_tokens"],
-                    _int_value(request_metrics.get("estimated_input_tokens")),
-                    _int_value(request_metrics.get("estimated_tokens_saved")),
-                    _int_value(request_metrics.get("compressed_messages")),
-                    _int_value(request_metrics.get("latency_ms")),
-                    _int_value(request_metrics.get("retry_count")),
-                    float(cost_usd),
-                    str(api_key_id or "")[:64],
-                ),
+    quality_decision = normalize_quality_decision(request_metrics)
+    if cost_override_usd is None:
+        cost_usd = calculate_cost_usd(
+            model,
+            input_tokens=tokens["input_tokens"],
+            output_tokens=tokens["output_tokens"],
+            cached_tokens=tokens["cached_tokens"],
+            cache_creation_tokens=tokens["cache_creation_tokens"],
+            reasoning_tokens=tokens["reasoning_tokens"],
+            provider=provider,
+        )
+    else:
+        cost_usd = float(cost_override_usd)
+        if not math.isfinite(cost_usd) or cost_usd < 0:
+            raise ValueError("Cost override must be a finite non-negative amount.")
+    try:
+        occurred_at = time.time()
+        reservation_id = str(durable_reservation_id or "")
+        event_id = (
+            f"use_{reservation_id[4:]}"
+            if reservation_id.startswith("qrs_") and len(reservation_id) == 36
+            else f"use_{secrets.token_hex(16)}"
+        )
+        entry = UsageLedgerEntry(
+            schema_version=USAGE_LEDGER_SCHEMA_VERSION,
+            event_id=event_id,
+            occurred_at=occurred_at,
+            credential_ref=filename,
+            request_id=str(request_id or "")[:128],
+            model=model or "",
+            provider=provider or "",
+            status_code=_int_value(status_code or 200),
+            success=bool(success),
+            input_tokens=tokens["input_tokens"],
+            output_tokens=tokens["output_tokens"],
+            total_tokens=tokens["total_tokens"],
+            cached_tokens=tokens["cached_tokens"],
+            reasoning_tokens=tokens["reasoning_tokens"],
+            estimated_input_tokens=_int_value(request_metrics.get("estimated_input_tokens")),
+            estimated_tokens_saved=_int_value(request_metrics.get("estimated_tokens_saved")),
+            compressed_messages=_int_value(request_metrics.get("compressed_messages")),
+            quality_profile=str(quality_decision["quality_profile"]),
+            quality_policy_revision=int(quality_decision["quality_policy_revision"]),
+            compression_reason=str(quality_decision["compression_reason"]),
+            latency_ms=_int_value(request_metrics.get("latency_ms")),
+            retry_count=_int_value(request_metrics.get("retry_count")),
+            cost_nanos=usd_to_nanos(cost_usd),
+            api_key_id=str(api_key_id or "")[:64],
+            cache_creation_tokens=tokens["cache_creation_tokens"],
+            usage_reported=bool(success and tokens["usage_reported"]),
+        )
+        service = get_usage_ledger_service()
+        if reservation_id:
+            result = await service.commit_reservation(
+                reservation_id,
+                entry,
+                transitioned_at=max(occurred_at, time.time()),
             )
-            conn.commit()
-        except Exception as e:
-            log.error(f"Failed to record call in database for {filename}: {e}")
-        finally:
-            conn.close()
+            if result.overspent:
+                log.warning("Durable budget settlement exceeded its reserved estimate.")
+            return result.committed or result.idempotent
+        appended = await service.append_usage(entry)
+        return appended.inserted or appended.idempotent
+    except Exception as exc:
+        log.error(f"Failed to record usage call: {type(exc).__name__}")
+        return False
 
 
-def retire_credential_usage(filename: str, provider: Any, *, credential_type: Any = "") -> int:
+async def retire_credential_usage(
+    filename: str, provider: Any, *, credential_type: Any = ""
+) -> int:
     """Detach historical usage from a deleted credential without losing totals."""
     source_filename = os.path.basename(str(filename or ""))
     if (
@@ -440,26 +518,17 @@ def retire_credential_usage(filename: str, provider: Any, *, credential_type: An
         }
     )
     anonymous_filename = deleted_usage_filename(provider_id, credential_type)
-    init_db()
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            cursor = conn.execute(
-                """
-                UPDATE usage_logs
-                SET filename = ?, provider = ?
-                WHERE filename = ?
-                """,
-                (anonymous_filename, provider_id, source_filename),
-            )
-            changed = max(0, int(cursor.rowcount or 0))
-            conn.commit()
+    changed = 0
+    while True:
+        batch = await get_usage_ledger_service().retire_credential(
+            source_filename,
+            anonymous_filename,
+            provider=provider_id,
+            limit=1_000,
+        )
+        changed += batch
+        if batch < 1_000:
             return changed
-        except Exception as e:
-            log.error(f"Failed to anonymize historical credential usage: {e}")
-            return 0
-        finally:
-            conn.close()
 
 
 async def get_credential_counts() -> Dict[str, int]:
@@ -548,11 +617,18 @@ async def get_all_credential_filenames() -> List[str]:
         return []
 
 
-async def get_stats_for_period(period: str = "1d") -> Dict[str, Dict[str, Any]]:
-    init_db()
-    normalized_period = normalize_usage_period(period)
+async def _load_stats_for_period(
+    normalized_period: str, timezone_offset_minutes: int
+) -> Dict[str, Dict[str, Any]]:
     seconds = USAGE_PERIODS[normalized_period]["seconds"]
-    since = time.time() - int(seconds) if seconds is not None else None
+    since = (
+        get_usage_time_window(
+            normalized_period,
+            timezone_offset_minutes=timezone_offset_minutes,
+        )[0]
+        if seconds is not None
+        else None
+    )
     res = {}
 
     metadata_by_filename = await get_credential_usage_metadata()
@@ -562,245 +638,146 @@ async def get_stats_for_period(period: str = "1d") -> Dict[str, Dict[str, Any]]:
         metadata = metadata_by_filename.get(name, {})
         res[name] = _empty_usage_record(metadata)
 
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            where_clause = "WHERE timestamp >= ?" if since is not None else ""
-            params = (since,) if since is not None else ()
-            cursor = conn.execute(
-                f"""
-                SELECT
-                    filename,
-                    COUNT(*),
-                    COALESCE(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END), 0),
-                    COALESCE(SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END), 0),
-                    COALESCE(SUM(input_tokens), 0),
-                    COALESCE(SUM(output_tokens), 0),
-                    COALESCE(SUM(total_tokens), 0),
-                    COALESCE(SUM(cached_tokens), 0),
-                    COALESCE(SUM(reasoning_tokens), 0),
-                    COALESCE(SUM(estimated_input_tokens), 0),
-                    COALESCE(SUM(estimated_tokens_saved), 0),
-                    COALESCE(SUM(compressed_messages), 0),
-                    COALESCE(SUM(latency_ms), 0),
-                    COALESCE(SUM(retry_count), 0),
-                    COALESCE(MAX(NULLIF(provider, '')), ''),
-                    COALESCE(SUM(cost_usd), 0)
-                FROM usage_logs
-                {where_clause}
-                GROUP BY filename
-                """,
-                params,
+    rows = await get_usage_ledger_service().aggregate_credentials(since=since)
+    for row in rows:
+        filename = row.credential_ref
+        existing = res.get(filename, {})
+        is_deleted = is_deleted_usage_filename(filename)
+        is_historical = filename != UNASSIGNED_USAGE_FILENAME and filename not in active_filenames
+        if is_historical:
+            raw_provider = row.provider or GOOGLE_ANTIGRAVITY
+            credential_type = (
+                "api_key"
+                if raw_provider in {"google_ai_studio", "openai_platform", "xai_console"}
+                else "oauth"
+                if raw_provider in {"grok", "openai"}
+                else ""
             )
-            for row in cursor.fetchall():
-                filename = str(row[0] or "")
-                existing = res.get(filename, {})
-                is_deleted = is_deleted_usage_filename(filename)
-                is_historical = (
-                    filename != UNASSIGNED_USAGE_FILENAME and filename not in active_filenames
-                )
-                if is_historical:
-                    raw_provider = str(row[14] or GOOGLE_ANTIGRAVITY)
-                    credential_type = (
-                        "api_key"
-                        if raw_provider in {"google_ai_studio", "openai_platform", "xai_console"}
-                        else "oauth"
-                        if raw_provider in {"grok", "openai"}
-                        else ""
-                    )
-                    provider_id = normalize_provider_id(raw_provider)
-                    existing = {
-                        "user_email": "",
-                        "credential_label": (
-                            "Deleted credential" if is_deleted else "Unavailable credential"
-                        ),
-                        "provider": provider_id,
-                        "provider_name": _credential_provider_display_name(
-                            raw_provider, credential_type
-                        ),
-                        "credential_type": credential_type,
-                        "is_deleted": is_deleted,
-                        "is_historical": True,
-                    }
-                res[filename] = _usage_record(
-                    existing=existing,
-                    provider=row[14],
-                    calls=row[1],
-                    successful_calls=row[2],
-                    failed_calls=row[3],
-                    input_tokens=row[4],
-                    output_tokens=row[5],
-                    total_tokens=row[6],
-                    cached_tokens=row[7],
-                    reasoning_tokens=row[8],
-                    estimated_input_tokens=row[9],
-                    estimated_tokens_saved=row[10],
-                    compressed_messages=row[11],
-                    total_latency_ms=row[12],
-                    retry_count=row[13],
-                    cost_usd=row[15],
-                )
-        except Exception as e:
-            log.error(f"Failed to fetch usage stats for {normalized_period}: {e}")
-        finally:
-            conn.close()
+            provider_id = normalize_provider_id(raw_provider)
+            existing = {
+                "user_email": "",
+                "credential_label": "Deleted credential"
+                if is_deleted
+                else "Unavailable credential",
+                "provider": provider_id,
+                "provider_name": _credential_provider_display_name(raw_provider, credential_type),
+                "credential_type": credential_type,
+                "is_deleted": is_deleted,
+                "is_historical": True,
+            }
+        res[filename] = _usage_record(
+            existing=existing,
+            provider=row.provider,
+            calls=row.calls,
+            successful_calls=row.successful_calls,
+            failed_calls=row.failed_calls,
+            input_tokens=row.input_tokens,
+            output_tokens=row.output_tokens,
+            total_tokens=row.total_tokens,
+            cached_tokens=row.cached_tokens,
+            cache_creation_tokens=row.cache_creation_tokens,
+            reasoning_tokens=row.reasoning_tokens,
+            reported_usage_calls=row.reported_usage_calls,
+            estimated_input_tokens=row.estimated_input_tokens,
+            estimated_tokens_saved=row.estimated_tokens_saved,
+            compressed_messages=row.compressed_messages,
+            total_latency_ms=row.total_latency_ms,
+            retry_count=row.retry_count,
+            cost_usd=nanos_to_usd(row.cost_nanos),
+        )
 
     return res
 
 
-async def get_time_series_stats(period: str = "1d", points: int = 24) -> List[Dict[str, Any]]:
-    """Return time-series aggregated request counts and token volume for charts."""
-    init_db()
+async def get_stats_for_period(
+    period: str = "1d", timezone_offset_minutes: int = 0
+) -> Dict[str, Dict[str, Any]]:
+    """Share an in-flight period scan across concurrent dashboard consumers."""
+
     normalized_period = normalize_usage_period(period)
-    seconds = USAGE_PERIODS[normalized_period]["seconds"]
-    if seconds is None:
-        seconds = 30 * 86400  # default to 30 days window if 'all'
-
-    now = time.time()
-    since = now - int(seconds)
-    step = seconds / max(1, points)
-
-    time_slots = []
-    for i in range(points):
-        slot_start = since + (i * step)
-        slot_end = slot_start + step
-        time_slots.append(
-            {
-                "timestamp": slot_start,
-                "end_timestamp": slot_end,
-                "requests": 0,
-                "successful_requests": 0,
-                "failed_requests": 0,
-                "tokens": 0,
-                "cached_tokens": 0,
-                "cost_usd": 0.0,
-            }
-        )
-
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            cursor = conn.execute(
-                """
-                SELECT
-                    timestamp,
-                    success,
-                    COALESCE(total_tokens, 0),
-                    COALESCE(cached_tokens, 0),
-                    COALESCE(cost_usd, 0)
-                FROM usage_logs
-                WHERE timestamp >= ?
-                ORDER BY timestamp ASC
-                """,
-                (since,),
+    normalized_offset = normalize_timezone_offset_minutes(timezone_offset_minutes)
+    cache_key = (normalized_period, normalized_offset if normalized_period != "all" else 0)
+    task = _stats_inflight.get(cache_key)
+    if task is None:
+        task = asyncio.create_task(_load_stats_for_period(normalized_period, normalized_offset))
+        _stats_inflight[cache_key] = task
+        task.add_done_callback(
+            lambda completed, key=cache_key: (
+                _stats_inflight.pop(key, None) if _stats_inflight.get(key) is completed else None
             )
-            for row in cursor.fetchall():
-                ts = float(row[0])
-                success = int(row[1]) == 1
-                tokens = int(row[2] or 0)
-                cached = int(row[3] or 0)
+        )
+    return await asyncio.shield(task)
 
-                idx = int((ts - since) / step)
-                if 0 <= idx < points:
-                    time_slots[idx]["requests"] += 1
-                    if success:
-                        time_slots[idx]["successful_requests"] += 1
-                    else:
-                        time_slots[idx]["failed_requests"] += 1
-                    time_slots[idx]["tokens"] += tokens
-                    time_slots[idx]["cached_tokens"] += cached
-                    time_slots[idx]["cost_usd"] = round(
-                        time_slots[idx]["cost_usd"] + float(row[4] or 0.0), 6
-                    )
-        except Exception as e:
-            log.error(f"Failed to calculate time series stats: {e}")
-        finally:
-            conn.close()
 
-    return time_slots
+async def get_time_series_stats(
+    period: str = "1d",
+    points: Optional[int] = None,
+    timezone_offset_minutes: int = 0,
+) -> List[Dict[str, Any]]:
+    """Return clock-aligned request and token buckets for dashboard charts."""
+    normalized_period = normalize_usage_period(period)
+    since, until, bucket_count = get_usage_time_window(
+        normalized_period,
+        timezone_offset_minutes=timezone_offset_minutes,
+        points=points,
+    )
+    rows = await get_usage_ledger_service().aggregate_time_series(
+        since=since,
+        until=until,
+        points=bucket_count,
+    )
+    return [
+        {
+            "timestamp": row.started_at,
+            "end_timestamp": row.ended_at,
+            "requests": row.requests,
+            "upstream_attempts": row.requests,
+            "successful_requests": row.successful_requests,
+            "successful_attempts": row.successful_requests,
+            "failed_requests": row.failed_requests,
+            "failed_attempts": row.failed_requests,
+            "tokens": row.tokens,
+            "cached_tokens": row.cached_tokens,
+            "cost_usd": round(nanos_to_usd(row.cost_nanos), 6),
+        }
+        for row in rows
+    ]
 
 
 async def get_stats_24h() -> Dict[str, Dict[str, Any]]:
     return await get_stats_for_period("1d")
 
 
-def get_provider_metrics() -> List[Dict[str, Any]]:
-    """Return all-time per-provider aggregates for the /metrics endpoint.
-
-    Synchronous by design: call via ``asyncio.to_thread`` from handlers.
-    """
-    init_db()
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            cursor = conn.execute(
-                """
-                SELECT
-                    COALESCE(NULLIF(provider, ''), 'unknown'),
-                    COUNT(*),
-                    COALESCE(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END), 0),
-                    COALESCE(SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END), 0),
-                    COALESCE(SUM(total_tokens), 0),
-                    COALESCE(SUM(cost_usd), 0),
-                    COALESCE(SUM(latency_ms), 0)
-                FROM usage_logs
-                GROUP BY COALESCE(NULLIF(provider, ''), 'unknown')
-                """
-            )
-            return [
-                {
-                    "provider": str(row[0]),
-                    "calls": _int_value(row[1]),
-                    "successful_calls": _int_value(row[2]),
-                    "failed_calls": _int_value(row[3]),
-                    "total_tokens": _int_value(row[4]),
-                    "cost_usd": round(float(row[5] or 0.0), 6),
-                    "total_latency_ms": _int_value(row[6]),
-                }
-                for row in cursor.fetchall()
-            ]
-        except Exception as exc:
-            log.error(f"Failed to compute provider metrics: {exc}")
-            return []
-        finally:
-            conn.close()
+async def get_provider_metrics() -> List[Dict[str, Any]]:
+    """Return all-time selected-backend per-provider aggregates."""
+    rows = await get_usage_ledger_service().aggregate_providers()
+    return [
+        {
+            "provider": row.provider,
+            "calls": row.calls,
+            "successful_calls": row.successful_calls,
+            "failed_calls": row.failed_calls,
+            "total_tokens": row.total_tokens,
+            "cost_usd": round(nanos_to_usd(row.cost_nanos), 6),
+            "total_latency_ms": row.total_latency_ms,
+        }
+        for row in rows
+    ]
 
 
-def get_spend_since(since: float, api_key_id: Optional[str] = None) -> Dict[str, Any]:
+async def get_spend_since(since: float, api_key_id: Optional[str] = None) -> Dict[str, Any]:
     """Return the total USD spend and token volume recorded after ``since``.
 
     Used by budget enforcement (per virtual key when ``api_key_id`` is given,
-    gateway-wide otherwise). Synchronous by design: call via
-    ``asyncio.to_thread`` from request handlers.
+    gateway-wide otherwise). Ledger failures propagate instead of becoming zero spend.
     """
-    init_db()
-    where = "WHERE timestamp >= ?"
-    params: tuple = (float(since),)
-    if api_key_id:
-        where += " AND api_key_id = ?"
-        params = (float(since), str(api_key_id))
-
-    with db_lock:
-        conn = sqlite3.connect(db_path)
-        try:
-            row = conn.execute(
-                f"""
-                SELECT
-                    COALESCE(SUM(cost_usd), 0),
-                    COALESCE(SUM(total_tokens), 0),
-                    COUNT(*)
-                FROM usage_logs
-                {where}
-                """,
-                params,
-            ).fetchone()
-            return {
-                "cost_usd": round(float(row[0] or 0.0), 6),
-                "total_tokens": _int_value(row[1]),
-                "calls": _int_value(row[2]),
-            }
-        except Exception as exc:
-            log.error(f"Failed to compute spend since {since}: {exc}")
-            return {"cost_usd": 0.0, "total_tokens": 0, "calls": 0}
-        finally:
-            conn.close()
+    snapshot = await get_usage_ledger_service().get_spend(
+        since=float(since),
+        api_key_id=str(api_key_id or ""),
+    )
+    return {
+        "cost_usd": round(nanos_to_usd(snapshot.cost_nanos), 6),
+        "total_tokens": snapshot.total_tokens,
+        "calls": snapshot.calls,
+        "available": snapshot.available,
+    }

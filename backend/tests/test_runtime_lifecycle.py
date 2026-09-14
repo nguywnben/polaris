@@ -1,87 +1,161 @@
-"""Runtime lifecycle and singleton initialization contracts."""
-
 from __future__ import annotations
 
-import asyncio
+import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.credential_manager import _CredentialManagerSingleton
-from main import app, lifespan
+from core.identity import configure_oidc_transaction_coordination
+from core.panel.auth_support import reset_authentication_attempt_service
+from core.response_cache import response_cache, response_cache_coordinator
+from core.runtime_lifecycle import RuntimeLifecycle, RuntimeState, close_runtime, initialize_runtime
+from core.runtime_policy import RuntimePolicy
+from core.state_store import InMemoryStateStore
+from core.virtual_keys import virtual_key_manager
 
 
-class CredentialManagerSingletonTests(unittest.IsolatedAsyncioTestCase):
-    async def test_concurrent_initialization_creates_one_manager(self):
-        singleton = _CredentialManagerSingleton()
-        manager = MagicMock()
+class RuntimePolicyTests(unittest.TestCase):
+    def test_default_runtime_is_single_process_and_selects_one_storage_backend(self) -> None:
+        policy = RuntimePolicy.from_environment({})
 
-        async def initialize():
-            await asyncio.sleep(0)
+        self.assertEqual(policy.mode, "standalone")
+        self.assertEqual((policy.workers, policy.replicas), (1, 1))
+        self.assertEqual(policy.durable_backend, "sqlite")
 
-        manager.initialize = AsyncMock(side_effect=initialize)
-        manager.close = AsyncMock()
-
-        with patch("core.credential_manager.CredentialManager", return_value=manager) as factory:
-            instances = await asyncio.gather(
-                singleton._get_or_create(),
-                singleton._get_or_create(),
-                singleton._get_or_create(),
+        with self.assertRaisesRegex(RuntimeError, "standalone"):
+            RuntimePolicy.from_environment({"POLARIS_RUNTIME_MODE": "coordinated"})
+        with self.assertRaisesRegex(RuntimeError, "WORKERS"):
+            RuntimePolicy.from_environment({"WORKERS": "2"})
+        with self.assertRaisesRegex(RuntimeError, "POLARIS_REPLICA_COUNT"):
+            RuntimePolicy.from_environment({"POLARIS_REPLICA_COUNT": "2"})
+        with self.assertRaisesRegex(RuntimeError, "only one external durable backend"):
+            RuntimePolicy.from_environment(
+                {"POSTGRESQL_URI": "postgresql://database", "MONGODB_URI": "mongodb://database"}
             )
 
-        self.assertTrue(all(instance is manager for instance in instances))
-        factory.assert_called_once_with()
-        manager.initialize.assert_awaited_once_with()
 
-        await singleton.close()
-        manager.close.assert_awaited_once_with()
-        self.assertIsNone(singleton._instance)
+class RuntimeLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncTearDown(self) -> None:
+        await close_runtime()
 
-
-class ApplicationLifecycleTests(unittest.IsolatedAsyncioTestCase):
-    async def test_shutdown_closes_manager_and_storage(self):
-        config_module = MagicMock()
-        config_module.init_config = AsyncMock()
-        config_module.get_log_config = AsyncMock(
-            return_value={"level": "info", "max_mb": 10, "backup_count": 3}
+    async def test_runtime_injects_one_in_memory_service_into_process_consumers(self) -> None:
+        singleton = _CredentialManagerSingleton()
+        lifecycle = RuntimeLifecycle(
+            policy=RuntimePolicy.from_environment({}),
+            store_factory=InMemoryStateStore,
         )
-        config_module.has_password_configured = AsyncMock(return_value=True)
 
         with (
-            patch.dict(sys.modules, {"config": config_module}),
-            patch("main.credential_manager._get_or_create", new=AsyncMock()),
-            patch("main.credential_manager.close", new=AsyncMock()) as close_manager,
-            patch("main.close_storage_adapter", new=AsyncMock()) as close_storage,
-            patch("main.keep_alive_service.start", new=AsyncMock()),
-            patch("main.keep_alive_service.stop", new=AsyncMock()) as stop_keep_alive,
-            patch("main.shutdown_all_tasks", new=AsyncMock()) as shutdown_tasks,
+            patch("core.runtime_lifecycle.credential_manager", singleton),
+            patch("core.runtime_lifecycle.configure_governance_coordination") as governance,
+            patch("core.runtime_lifecycle.configure_authentication_attempt_service") as attempts,
+            patch("core.runtime_lifecycle.reset_authentication_attempt_service"),
+            patch("core.runtime_lifecycle.configure_oidc_transaction_coordination") as oidc,
+            patch("core.runtime_lifecycle.configure_device_authorization_service") as device_auth,
+            patch(
+                "core.runtime_lifecycle.configure_credential_batch_coordination_service"
+            ) as batch,
+            patch(
+                "core.runtime_lifecycle.configure_provider_authorization_service"
+            ) as provider_auth,
+            patch("core.runtime_lifecycle.virtual_key_manager.configure_coordination") as quota,
+            patch("core.runtime_lifecycle.virtual_key_manager.reset_coordination"),
+            patch(
+                "core.runtime_lifecycle.response_cache_coordinator.configure_coordination"
+            ) as cache,
         ):
-            async with lifespan(app):
-                pass
+            await lifecycle.start()
 
-        stop_keep_alive.assert_awaited_once_with()
-        shutdown_tasks.assert_awaited_once_with(timeout=10.0)
-        close_manager.assert_awaited_once_with()
-        close_storage.assert_awaited_once_with()
-
-    async def test_configuration_failure_aborts_startup(self):
-        config_module = MagicMock()
-        config_module.init_config = AsyncMock(side_effect=RuntimeError("database secret"))
+        service = lifecycle.coordination_service
+        self.assertIsNotNone(service)
+        self.assertIs(lifecycle.state, RuntimeState.READY)
+        self.assertIs(singleton._routing_coordination._store, service)
+        governance.assert_called_once_with(singleton._routing_coordination)
+        self.assertIs(attempts.call_args.args[0]._coordination, service)
+        oidc.assert_called_once_with(service, fencing_epoch=1)
+        self.assertIs(device_auth.call_args.args[0]._coordination, service)
+        self.assertIs(batch.call_args.args[0]._coordination, service)
+        self.assertIs(provider_auth.call_args.args[0]._coordination, service)
+        quota.assert_called_once_with(service, fencing_epoch=1)
+        cache.assert_called_once_with(singleton._routing_coordination)
+        self.assertEqual(lifecycle.session_initialization_kwargs["fencing_epoch"], 1)
+        self.assertIs(lifecycle.session_initialization_kwargs["coordination"], service)
+        self.assertTrue(await lifecycle.check_ready())
 
         with (
-            patch.dict(sys.modules, {"config": config_module}),
-            patch("main.credential_manager._get_or_create", new=AsyncMock()) as initialize_manager,
+            patch(
+                "core.runtime_lifecycle.reset_authentication_attempt_service",
+                wraps=reset_authentication_attempt_service,
+            ) as close_attempts,
+            patch(
+                "core.runtime_lifecycle.configure_oidc_transaction_coordination",
+                wraps=configure_oidc_transaction_coordination,
+            ) as close_oidc,
+            patch.object(
+                virtual_key_manager,
+                "reset_coordination",
+                wraps=virtual_key_manager.reset_coordination,
+            ) as close_quota,
         ):
-            with self.assertRaisesRegex(RuntimeError, "Configuration initialization failed"):
-                async with lifespan(app):
-                    pass
+            await lifecycle.close()
+        self.assertIs(lifecycle.state, RuntimeState.CLOSED)
+        self.assertIsNone(singleton._routing_coordination)
+        close_attempts.assert_called_once_with()
+        close_oidc.assert_called_once_with(None)
+        close_quota.assert_called_once_with()
 
-        initialize_manager.assert_not_awaited()
+    async def test_failed_probe_is_visible_and_can_recover(self) -> None:
+        lifecycle = RuntimeLifecycle(policy=RuntimePolicy.from_environment({}))
+        with (
+            patch(
+                "core.runtime_lifecycle.credential_manager.configure_routing_coordination",
+                new=AsyncMock(),
+            ),
+            patch("core.runtime_lifecycle.configure_governance_coordination"),
+            patch("core.runtime_lifecycle.configure_authentication_attempt_service"),
+            patch("core.runtime_lifecycle.reset_authentication_attempt_service"),
+            patch("core.runtime_lifecycle.configure_oidc_transaction_coordination"),
+            patch("core.runtime_lifecycle.configure_device_authorization_service"),
+            patch("core.runtime_lifecycle.configure_credential_batch_coordination_service"),
+            patch("core.runtime_lifecycle.configure_provider_authorization_service"),
+            patch("core.runtime_lifecycle.virtual_key_manager.configure_coordination"),
+            patch("core.runtime_lifecycle.virtual_key_manager.reset_coordination"),
+            patch("core.runtime_lifecycle.response_cache_coordinator.configure_coordination"),
+            patch("core.runtime_lifecycle.configure_primary_session_coordinator"),
+        ):
+            await lifecycle.start()
+        service = lifecycle.coordination_service
+        service.read_coordination_time = AsyncMock(side_effect=RuntimeError("private detail"))
+
+        self.assertFalse(await lifecycle.check_ready())
+        self.assertEqual(lifecycle.health_snapshot()["failure_code"], "dependency_unavailable")
+        self.assertNotIn("private detail", repr(lifecycle.health_snapshot()))
+        service.read_coordination_time = AsyncMock(return_value=object())
+        self.assertTrue(await lifecycle.check_ready())
+
+    async def test_close_restores_a_usable_process_local_response_cache(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            await initialize_runtime()
+
+        await close_runtime()
+        response_cache.clear()
+        self.assertTrue(
+            await response_cache_coordinator.set(
+                "after-runtime-close",
+                (b"{}", "application/json"),
+                60,
+            )
+        )
+        self.assertEqual(
+            await response_cache_coordinator.get("after-runtime-close"),
+            (b"{}", "application/json"),
+        )
 
 
 if __name__ == "__main__":

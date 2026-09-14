@@ -18,6 +18,8 @@ if str(TESTS_DIR) not in sys.path:
 import asyncio
 
 from core import virtual_keys
+from core.state_store import InMemoryStateStore
+from core.usage_ledger import BudgetReleaseResult, BudgetReservationDecision
 from core.virtual_keys import (
     VirtualKey,
     VirtualKeyManager,
@@ -30,6 +32,7 @@ from fastapi import HTTPException
 class _FakeStorage:
     def __init__(self):
         self.config = {}
+        self.reload_count = 0
 
     async def get_config(self, key, default=None):
         return self.config.get(key, default)
@@ -38,14 +41,53 @@ class _FakeStorage:
         self.config[key] = value
         return True
 
+    async def reload_config_cache(self):
+        self.reload_count += 1
+
+
+class _FalseValuedQuotaStore(InMemoryStateStore):
+    def __init__(self) -> None:
+        super().__init__(clock=lambda: 1_000.0)
+        self.reserve_epochs: list[int] = []
+        self.commit_epochs: list[int] = []
+        self.release_epochs: list[int] = []
+
+    def __bool__(self) -> bool:
+        return False
+
+    async def reserve_quota(self, request):
+        self.reserve_epochs.append(request.fencing_epoch)
+        return await super().reserve_quota(request)
+
+    async def commit_quota(self, request):
+        self.commit_epochs.append(request.fencing_epoch)
+        return await super().commit_quota(request)
+
+    async def release_quota(self, reservation_id, **kwargs):
+        self.release_epochs.append(kwargs.get("fencing_epoch"))
+        return await super().release_quota(reservation_id, **kwargs)
+
 
 def _patched_manager(storage: _FakeStorage) -> VirtualKeyManager:
-    manager = VirtualKeyManager()
+    ledger = AsyncMock()
+
+    async def reserve(request):
+        return BudgetReservationDecision(True, request.reservation_id)
+
+    ledger.reserve_budget.side_effect = reserve
+    ledger.release_reservation.return_value = BudgetReleaseResult(True)
+    manager = VirtualKeyManager(usage_ledger_service=ledger)
+    manager._test_usage_ledger = ledger
     return manager
 
 
 def _run(coro):
-    return asyncio.get_event_loop_policy().new_event_loop().run_until_complete(coro)
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
 
 class VirtualKeyCrudTests(unittest.TestCase):
@@ -67,7 +109,7 @@ class VirtualKeyCrudTests(unittest.TestCase):
             return record, plaintext
 
         record, plaintext = _run(scenario())
-        self.assertTrue(plaintext.startswith("sk-ogw-vk-"))
+        self.assertTrue(plaintext.startswith("sk-polaris-vk-"))
         self.assertNotIn("key_hash", record)
         stored = self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY]
         self.assertEqual(len(stored), 1)
@@ -105,7 +147,7 @@ class VirtualKeyCrudTests(unittest.TestCase):
         async def scenario():
             _, plaintext = await self.manager.create_key("verify-me")
             good = await self.manager.verify(plaintext)
-            bad = await self.manager.verify("sk-ogw-vk-wrong")
+            bad = await self.manager.verify("sk-polaris-vk-wrong")
             return good, bad
 
         good, bad = _run(scenario())
@@ -124,6 +166,54 @@ class VirtualKeyCrudTests(unittest.TestCase):
         self.assertIsNotNone(record)
         self.assertEqual(record.name, "persisted")
 
+    def test_compression_restriction_round_trips_storage(self):
+        async def scenario():
+            created, plaintext = await self.manager.create_key("quality-restricted")
+            updated = await self.manager.update_key(
+                created["id"],
+                {"compression_policy": "disabled"},
+                expected_revision=created["revision"],
+            )
+            fresh_manager = _patched_manager(self.storage)
+            reloaded = await fresh_manager.verify(plaintext)
+            return updated, reloaded
+
+        updated, reloaded = _run(scenario())
+        self.assertEqual(updated["compression_policy"], "disabled")
+        self.assertEqual(reloaded.compression_policy, "disabled")
+
+    def test_cache_miss_forces_generation_refresh_before_rejecting_key(self):
+        plaintext = "synthetic-cross-replica-token"
+        record = VirtualKey(
+            id="vk_cross_replica",
+            name="cross-replica",
+            key_hash=hash_key(plaintext),
+            key_preview="synthetic...token",
+            enabled=True,
+            created_at=1_000.0,
+        )
+        self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY] = [record.to_storage_dict()]
+        self.manager._loaded = True
+        self.manager._keys_by_hash = {}
+        generation = AsyncMock()
+
+        async def synchronize(invalidate, *, force=False):
+            if force:
+                await invalidate()
+                return True
+            return False
+
+        generation.synchronize.side_effect = synchronize
+        self.manager._generation = generation
+
+        matched = _run(self.manager.verify(plaintext))
+
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.id, "vk_cross_replica")
+        self.assertEqual(self.storage.reload_count, 1)
+        self.assertEqual(generation.synchronize.await_count, 2)
+        self.assertTrue(generation.synchronize.await_args_list[1].kwargs["force"])
+
 
 class VirtualKeyEnforcementTests(unittest.TestCase):
     def _make_key(self, **kwargs) -> VirtualKey:
@@ -131,7 +221,7 @@ class VirtualKeyEnforcementTests(unittest.TestCase):
             id="vk_test",
             name="test",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...abcd",
+            key_preview="sk-polaris-vk-...abcd",
             enabled=True,
             created_at=time.time(),
         )
@@ -139,7 +229,7 @@ class VirtualKeyEnforcementTests(unittest.TestCase):
         return VirtualKey(**defaults)
 
     def setUp(self):
-        self.manager = VirtualKeyManager()
+        self.manager = _patched_manager(_FakeStorage())
         self.manager._loaded = True
 
     def test_disabled_key_rejected_401(self):
@@ -181,45 +271,154 @@ class VirtualKeyEnforcementTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 429)
         self.assertIn("Retry-After", ctx.exception.headers)
 
-    def test_tpm_limit_enforced_after_note_tokens(self):
+    def test_tpm_limit_enforced_from_active_reservations(self):
         record = self._make_key(tpm_limit=1000)
-        self.manager.note_tokens(record.id, 1500)
+
+        async def scenario():
+            body = {
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": "hello"}],
+                "max_tokens": 600,
+            }
+            await self.manager.enforce(record, request_body=body)
+            await self.manager.enforce(record, request_body=body)
+
         with self.assertRaises(HTTPException) as ctx:
-            _run(self.manager.enforce(record))
+            _run(scenario())
         self.assertEqual(ctx.exception.status_code, 429)
 
     def test_budget_exceeded_rejected_429(self):
         record = self._make_key(budget_daily_usd=1.0)
-        with patch(
-            "core.usage_stats.get_spend_since",
-            return_value={"cost_usd": 2.5, "total_tokens": 0, "calls": 3},
-        ):
-            with self.assertRaises(HTTPException) as ctx:
-                _run(self.manager.enforce(record))
+
+        async def reject(request):
+            return BudgetReservationDecision(False, request.reservation_id, reason="daily_budget")
+
+        self.manager._test_usage_ledger.reserve_budget.side_effect = reject
+        with self.assertRaises(HTTPException) as ctx:
+            _run(self.manager.enforce(record))
         self.assertEqual(ctx.exception.status_code, 429)
         self.assertIn("Budget exceeded", ctx.exception.detail)
 
     def test_budget_under_limit_allows_request(self):
         record = self._make_key(budget_daily_usd=10.0)
-        with patch(
-            "core.usage_stats.get_spend_since",
-            return_value={"cost_usd": 2.5, "total_tokens": 0, "calls": 3},
-        ):
-            _run(self.manager.enforce(record))
+        _run(self.manager.enforce(record))
 
-    def test_budget_cache_avoids_repeated_ledger_queries(self):
+    def test_each_budget_admission_uses_atomic_ledger(self):
         record = self._make_key(budget_daily_usd=10.0)
-        with patch(
-            "core.usage_stats.get_spend_since",
-            return_value={"cost_usd": 0.5, "total_tokens": 0, "calls": 1},
-        ) as spend_mock:
 
-            async def scenario():
-                await self.manager.enforce(record)
-                await self.manager.enforce(record)
+        async def scenario():
+            await self.manager.enforce(record)
+            await self.manager.enforce(record)
 
-            _run(scenario())
-        self.assertEqual(spend_mock.call_count, 1)
+        _run(scenario())
+        self.assertEqual(self.manager._test_usage_ledger.reserve_budget.await_count, 2)
+
+    def test_operation_identity_derives_same_durable_reservation_across_replicas(self):
+        record = self._make_key(budget_daily_usd=10.0)
+        other = _patched_manager(_FakeStorage())
+        other._loaded = True
+
+        async def scenario():
+            first_id = await self.manager.enforce(
+                record,
+                operation_id="w4e-0123456789abcdef0123456789abcdef",
+                now=1_000.0,
+            )
+            second_id = await other.enforce(
+                record,
+                operation_id="w4e-0123456789abcdef0123456789abcdef",
+                now=1_000.0,
+            )
+            return first_id, second_id
+
+        first_id, second_id = _run(scenario())
+        self.assertEqual(first_id, second_id)
+        self.assertRegex(first_id, r"^qrs_[0-9a-f]{32}$")
+
+    def test_operation_identity_is_bound_to_virtual_key(self):
+        first = self._make_key(budget_daily_usd=10.0)
+        second = VirtualKey(**{**first.__dict__, "id": "vk_other"})
+        other = _patched_manager(_FakeStorage())
+        other._loaded = True
+
+        async def scenario():
+            return (
+                await self.manager.enforce(first, operation_id="request-1", now=1_000.0),
+                await other.enforce(second, operation_id="request-1", now=1_000.0),
+            )
+
+        first_id, second_id = _run(scenario())
+        self.assertNotEqual(first_id, second_id)
+
+
+class VirtualKeyCoordinationTests(unittest.TestCase):
+    @staticmethod
+    def _record() -> VirtualKey:
+        return VirtualKey(
+            id="vk_shared",
+            name="shared",
+            key_hash="hash",
+            key_preview="preview",
+            enabled=True,
+            created_at=1_000.0,
+            rpm_limit=1,
+        )
+
+    def test_false_valued_store_and_epoch_are_preserved_for_every_transition(self):
+        store = _FalseValuedQuotaStore()
+        manager = VirtualKeyManager(state_store=store, fencing_epoch=1)
+        manager._loaded = True
+        record = self._record()
+
+        async def scenario():
+            reservation = await manager.enforce(record, now=1_000.0)
+            await manager.commit_reservation(
+                reservation,
+                actual_tokens=1,
+                actual_cost_usd=0.0,
+                durable_cost_recorded=False,
+                now=1_000.1,
+            )
+            second = VirtualKeyManager(state_store=store, fencing_epoch=1)
+            second._loaded = True
+            other = VirtualKey(**{**record.__dict__, "id": "vk_other", "rpm_limit": 2})
+            released = await second.enforce(other, now=1_000.2)
+            await second.release_reservation(released, now=1_000.3)
+
+        _run(scenario())
+        self.assertIs(manager._state_store, store)
+        self.assertEqual(store.reserve_epochs, [1, 1])
+        self.assertEqual(store.commit_epochs, [1])
+        self.assertEqual(store.release_epochs, [1])
+
+    def test_two_managers_share_atomic_rate_admission(self):
+        store = InMemoryStateStore(clock=lambda: 1_000.0)
+        first = VirtualKeyManager(state_store=store, fencing_epoch=1)
+        second = VirtualKeyManager(state_store=store, fencing_epoch=1)
+        record = self._record()
+
+        async def scenario():
+            return await asyncio.gather(
+                first.enforce(record, reservation_id="quota-first", now=1_000.0),
+                second.enforce(record, reservation_id="quota-second", now=1_000.0),
+                return_exceptions=True,
+            )
+
+        results = _run(scenario())
+        self.assertEqual(sum(isinstance(result, str) for result in results), 1)
+        rejection = next(result for result in results if isinstance(result, HTTPException))
+        self.assertEqual(rejection.status_code, 429)
+
+    def test_invalid_or_stale_epoch_fails_before_or_closes_admission(self):
+        with self.assertRaises(ValueError):
+            VirtualKeyManager(fencing_epoch=True)
+        manager = VirtualKeyManager(
+            state_store=InMemoryStateStore(clock=lambda: 1_000.0),
+            fencing_epoch=2,
+        )
+        with self.assertRaises(HTTPException) as caught:
+            _run(manager.enforce(self._record(), now=1_000.0))
+        self.assertEqual(caught.exception.status_code, 503)
 
 
 class ExtractRequestedModelTests(unittest.TestCase):

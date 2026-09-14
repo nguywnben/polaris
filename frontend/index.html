@@ -4,34 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="document_title">Omni Gateway Console</title>
+    <title data-i18n="document_title">Polaris Console</title>
     <link rel="icon" href="/frontend/assets/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" href="/frontend/assets/logo.png">
     <link rel="apple-touch-icon" href="/frontend/assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
+    <script src="/frontend/theme.js?v=local"></script>
     <link rel="stylesheet" href="/frontend/console.css?v=local">
 </head>
 
 <body>
+    <a class="skip-link" href="#mainContent" data-i18n="navigation.skip_to_content">Skip to content</a>
     <div id="mobileNavigationOverlay" class="sidebar-overlay" aria-hidden="true" data-ui-action="toggle-mobile-menu"></div>
 
     <!-- include:fragments/auth/login.html -->
     <!-- include:fragments/auth/setup.html -->
 
-    <section id="mainSection" class="dashboard-wrapper hidden" data-i18n-aria-label="dashboard" aria-label="Dashboard">
+    <section id="mainSection" class="dashboard-wrapper hidden" data-i18n-aria-label="document_title" aria-label="Polaris Console">
         <!-- include:fragments/layout/sidebar.html -->
         <!-- include:fragments/layout/mobile-header.html -->
 
-        <main class="dashboard-main">
+        <main id="mainContent" class="dashboard-main" tabindex="-1">
             <div class="dashboard-content-container">
                 <!-- include:fragments/pages/dashboard.html -->
+                <!-- include:fragments/pages/ai-quality.html -->
+                <!-- include:fragments/pages/access.html -->
+                <!-- include:fragments/pages/identity.html -->
                 <!-- include:fragments/pages/pool.html -->
                 <!-- include:fragments/pages/models.html -->
+                <!-- include:fragments/pages/playground.html -->
                 <!-- include:fragments/pages/providers.html -->
                 <!-- include:fragments/pages/settings.html -->
-                <!-- include:fragments/pages/logs.html -->
+                <!-- include:fragments/pages/activity.html -->
                 <!-- include:fragments/pages/about.html -->
                 <!-- include:fragments/layout/footer.html -->
             </div>

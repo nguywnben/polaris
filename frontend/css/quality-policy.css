@@ -1,0 +1,318 @@
+.quality-runtime-bar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--border);
+}
+
+.quality-explanation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.quality-explanation-card {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.quality-explanation-card h2,
+.quality-warning-panel h2 {
+    margin: 0 0 8px;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.quality-explanation-card p,
+.quality-precedence-list,
+.quality-warning-panel ul {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.quality-explanation-card p {
+    margin: 0;
+}
+
+.quality-explanation-card .quality-live-copy {
+    margin-top: 8px;
+}
+
+.quality-precedence-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding-left: 20px;
+    list-style-position: outside;
+}
+
+.quality-precedence-list li {
+    padding-left: 2px;
+    color: var(--text);
+}
+
+.quality-warning-panel {
+    margin: 0 0 16px;
+}
+
+.quality-warning-panel ul {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding-left: 20px;
+}
+
+.quality-runtime-bar > div {
+    min-width: 0;
+    padding: 13px 15px;
+    background: var(--surface);
+}
+
+.quality-runtime-bar span,
+.quality-runtime-bar strong {
+    display: block;
+}
+
+.quality-runtime-bar span {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.quality-runtime-bar strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 680;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quality-profile-section {
+    min-width: 0;
+    margin: 0 0 16px;
+    padding: 0;
+    border: 0;
+}
+
+.quality-profile-section legend {
+    margin-bottom: 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 680;
+}
+
+.quality-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.quality-profile-card {
+    position: relative;
+    min-width: 0;
+    min-height: 118px;
+    padding: 16px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.quality-profile-card:not(.selected):hover {
+    background: var(--control-hover);
+    border-color: var(--control-hover-border);
+}
+
+.quality-profile-card.selected {
+    background: var(--bg-subtle);
+    border-color: var(--text);
+    box-shadow: none;
+    cursor: default;
+}
+
+.quality-profile-card input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.quality-profile-card:has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.quality-profile-card strong,
+.quality-profile-card small {
+    display: block;
+}
+
+.quality-profile-card strong {
+    margin-bottom: 8px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.quality-profile-card small {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.quality-policy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: stretch;
+}
+
+.quality-policy-grid .config-group {
+    min-width: 0;
+}
+
+.quality-policy-grid > .config-group > .switch-row + .switch-row {
+    margin-top: 12px;
+}
+
+.quality-policy-grid > .config-group > .switch-row + .form-group {
+    margin-top: 16px;
+}
+
+.quality-policy-grid .switch-row span {
+    display: grid;
+    gap: 3px;
+}
+
+.quality-policy-grid .switch-row strong {
+    font-weight: 680;
+}
+
+.quality-policy-grid .switch-row small {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.45;
+}
+
+.quality-dependent-controls {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.quality-dependent-controls .form-group,
+.quality-dependent-controls .switch-row {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.quality-preview-panel {
+    margin-bottom: 16px;
+}
+
+.quality-preview-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.quality-preview-heading .card-title-copy {
+    margin-bottom: 0;
+}
+
+.quality-preview-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    align-items: end;
+}
+
+.quality-preview-inputs .form-group,
+.quality-preview-inputs .switch-row {
+    margin-bottom: 0;
+}
+
+.quality-preview-result {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.quality-preview-result > div span,
+.quality-preview-result > div strong {
+    display: block;
+}
+
+.quality-preview-result > div span {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.quality-preview-result > div strong {
+    color: var(--text);
+    font-size: 15px;
+}
+
+.quality-preview-result p {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+    .quality-profile-grid,
+    .quality-runtime-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .quality-policy-grid,
+    .quality-profile-grid,
+    .quality-runtime-bar,
+    .quality-explanation-grid,
+    .quality-preview-inputs,
+    .quality-preview-result {
+        grid-template-columns: 1fr;
+    }
+
+    .quality-precedence-list {
+        grid-template-columns: 1fr;
+    }
+
+    .quality-preview-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .quality-preview-heading .btn {
+        width: 100%;
+    }
+}

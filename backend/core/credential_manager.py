@@ -1,4 +1,5 @@
 import asyncio
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -20,19 +21,25 @@ from core.provider_registry import (
     get_credential_provider_variant,
     is_api_key_credential,
 )
+from core.routing_coordination import RoutingCoordinationAdapter
 from core.routing_decision import RouteDecision
 from core.smart_routing import SmartCredentialRouter
 from core.storage_adapter import get_storage_adapter
 from core.usage_stats import retire_credential_usage
 from log import log
 
+SUCCESS_HINT_FLUSH_INTERVAL_SECONDS = 5.0
+
 
 class CredentialManager:
-    def __init__(self):
+    def __init__(self, *, routing_coordination: Optional[RoutingCoordinationAdapter] = None):
 
         self._initialized = False
         self._storage_adapter = None
-        self._routing = SmartCredentialRouter()
+        self._routing = SmartCredentialRouter(coordination=routing_coordination)
+        self._success_hint_lock = asyncio.Lock()
+        self._success_hint_pending: Dict[Tuple[str, str, str], int] = {}
+        self._success_hint_last_flush: Dict[Tuple[str, str, str], float] = {}
 
     async def _ensure_initialized(self):
         if not self._initialized or self._storage_adapter is None:
@@ -47,9 +54,48 @@ class CredentialManager:
 
     async def close(self):
         log.debug("Closing credential manager.")
+        await self._flush_success_hints()
         await self._routing.reset()
         self._initialized = False
         log.debug("Credential manager closed")
+
+    async def _record_success_hint(
+        self,
+        credential_name: str,
+        *,
+        mode: str,
+        model_name: Optional[str],
+    ) -> None:
+        key = (mode, credential_name, str(model_name or ""))
+        now = time.monotonic()
+        async with self._success_hint_lock:
+            pending = self._success_hint_pending.get(key, 0) + 1
+            last_flush = self._success_hint_last_flush.get(key)
+            if last_flush is not None and now - last_flush < SUCCESS_HINT_FLUSH_INTERVAL_SECONDS:
+                self._success_hint_pending[key] = pending
+                return
+            self._success_hint_pending.pop(key, None)
+            self._success_hint_last_flush[key] = now
+        await self._storage_adapter._backend.record_success(
+            credential_name,
+            model_name=model_name,
+            mode=mode,
+            call_increment=pending,
+        )
+
+    async def _flush_success_hints(self) -> None:
+        async with self._success_hint_lock:
+            pending = tuple(self._success_hint_pending.items())
+            self._success_hint_pending.clear()
+        if self._storage_adapter is None:
+            return
+        for (mode, credential_name, model_name), call_increment in pending:
+            await self._storage_adapter._backend.record_success(
+                credential_name,
+                model_name=model_name or None,
+                mode=mode,
+                call_increment=call_increment,
+            )
 
     async def get_valid_credential(
         self,
@@ -197,7 +243,7 @@ class CredentialManager:
                 )
                 return False
 
-            retire_credential_usage(
+            await retire_credential_usage(
                 credential_name,
                 provider_id,
                 credential_type=credential_data.get("credential_type", ""),
@@ -359,8 +405,14 @@ class CredentialManager:
         await self._ensure_initialized()
         try:
             if success:
-                await self._storage_adapter._backend.record_success(
-                    credential_name, model_name=model_name, mode=mode
+                # Exact request accounting is committed to the durable usage
+                # ledger before the response completes. Credential success fields
+                # are routing/UI hints, so coalesce their exact counter increments
+                # into a bounded write cadence instead of writing every request.
+                await self._record_success_hint(
+                    credential_name,
+                    mode=mode,
+                    model_name=model_name,
                 )
 
             elif error_code:
@@ -618,12 +670,28 @@ class _CredentialManagerSingleton:
     def __init__(self):
         self._instance: Optional[CredentialManager] = None
         self._lock = asyncio.Lock()
+        self._routing_coordination: Optional[RoutingCoordinationAdapter] = None
+
+    async def configure_routing_coordination(
+        self,
+        coordination: Optional[RoutingCoordinationAdapter],
+    ) -> None:
+        """Bind the lifecycle-owned adapter before the singleton initializes."""
+
+        async with self._lock:
+            if self._instance is not None:
+                raise RuntimeError("Credential manager is already initialized.")
+            self._routing_coordination = coordination
 
     async def _get_or_create(self) -> CredentialManager:
         if self._instance is None:
             async with self._lock:
                 if self._instance is None:
-                    manager = CredentialManager()
+                    manager = (
+                        CredentialManager(routing_coordination=self._routing_coordination)
+                        if self._routing_coordination is not None
+                        else CredentialManager()
+                    )
                     await manager.initialize()
                     self._instance = manager
                     log.debug("CredentialManager singleton initialized")
@@ -633,10 +701,10 @@ class _CredentialManagerSingleton:
     async def close(self) -> None:
         """Close and clear the process-local manager instance."""
         async with self._lock:
-            if self._instance is None:
-                return
-            await self._instance.close()
-            self._instance = None
+            if self._instance is not None:
+                await self._instance.close()
+                self._instance = None
+            self._routing_coordination = None
 
     def __getattr__(self, name):
         async def _async_wrapper(*args, **kwargs):

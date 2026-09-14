@@ -1,4 +1,4 @@
-"""Enterprise Guardrails & Safety Engine for Omni Gateway.
+"""Enterprise Guardrails & Safety Engine for Polaris.
 
 Provides:
 - PII Masking (Credit Cards, Emails, SSN, API Keys)

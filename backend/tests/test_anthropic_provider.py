@@ -15,19 +15,36 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.anthropic import (
     ANTHROPIC_REDIRECT_URI,
-    _oauth_flows,
     anthropic_response_to_gemini,
     anthropic_stream_line_to_gemini,
     build_anthropic_headers,
+    complete_claude_oauth,
     create_claude_oauth_url,
     gemini_request_to_anthropic,
     parse_anthropic_model_ids,
 )
+from core.provider_authorization_coordination import (
+    ProviderAuthorizationService,
+    configure_provider_authorization_service,
+)
+from core.state_store import InMemoryStateStore
 
 
 class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
-    def tearDown(self):
-        _oauth_flows.clear()
+    async def asyncSetUp(self) -> None:
+        self.store = InMemoryStateStore()
+        self.authorization_key = b"a" * 32
+        configure_provider_authorization_service(
+            ProviderAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
+
+    async def asyncTearDown(self) -> None:
+        configure_provider_authorization_service(None)
+        await self.store.close()
 
     def test_model_parser_is_bounded_and_deduplicated(self):
         payload = {
@@ -50,7 +67,7 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
         )
         platform = build_anthropic_headers(
             {"credential_type": "api_key", "api_key": "api-secret"},
-            user_agent="omni-gateway/test",
+            user_agent="polaris/test",
         )
         self.assertEqual(oauth["Authorization"], "Bearer oauth-secret")
         self.assertNotIn("x-api-key", oauth)
@@ -71,6 +88,49 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(query["code_challenge_method"], ["S256"])
         self.assertEqual(query["code"], ["true"])
         self.assertEqual(query["state"], [result["state"]])
+        self.assertTrue(result["state"].startswith("claude_"))
+
+    async def test_oauth_completion_can_move_to_another_replica(self):
+        with patch(
+            "core.anthropic.get_claude_client_id",
+            AsyncMock(return_value="public-client-id"),
+        ):
+            authorization = await create_claude_oauth_url()
+
+        configure_provider_authorization_service(
+            ProviderAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
+        exchange = AsyncMock(
+            return_value={
+                "access_token": "access-secret",
+                "refresh_token": "refresh-secret",
+                "expires_in": 3600,
+            }
+        )
+        stored = AsyncMock(return_value={"action": "created", "filename": "claude-account.json"})
+        with (
+            patch("core.anthropic._exchange_claude_token", exchange),
+            patch(
+                "core.anthropic.get_claude_oauth_token_url",
+                AsyncMock(return_value="https://console.anthropic.com/v1/oauth/token"),
+            ),
+            patch(
+                "core.anthropic.fetch_anthropic_model_ids",
+                AsyncMock(return_value=["claude-sonnet-4-6"]),
+            ),
+            patch("core.anthropic.credential_manager.add_primary_credential", stored),
+        ):
+            result = await complete_claude_oauth("authorization-code", authorization["state"])
+
+        exchange_payload = exchange.await_args.args[0]
+        self.assertEqual(exchange_payload["client_id"], "public-client-id")
+        self.assertEqual(len(exchange_payload["code_verifier"]), 128)
+        self.assertEqual(result["model_count"], 1)
+        self.assertNotIn("access_token", result)
 
     def test_request_translation_preserves_system_tools_and_generation_options(self):
         payload = gemini_request_to_anthropic(
@@ -132,7 +192,12 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
                     },
                 ],
                 "stop_reason": "tool_use",
-                "usage": {"input_tokens": 10, "output_tokens": 4},
+                "usage": {
+                    "input_tokens": 10,
+                    "output_tokens": 4,
+                    "cache_read_input_tokens": 5,
+                    "cache_creation_input_tokens": 3,
+                },
             }
         )
         stream = anthropic_stream_line_to_gemini(
@@ -141,13 +206,42 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
         parts = response["candidates"][0]["content"]["parts"]
         self.assertEqual(parts[0], {"text": "Done"})
         self.assertEqual(parts[1]["functionCall"]["name"], "run_tests")
-        self.assertEqual(response["usageMetadata"]["totalTokenCount"], 14)
+        self.assertEqual(response["usageMetadata"]["promptTokenCount"], 18)
+        self.assertEqual(response["usageMetadata"]["cachedContentTokenCount"], 5)
+        self.assertEqual(response["usageMetadata"]["cacheCreationTokenCount"], 3)
+        self.assertEqual(response["usageMetadata"]["totalTokenCount"], 22)
         self.assertTrue(stream.startswith("data: "))
         self.assertEqual(
             json.loads(stream.removeprefix("data: ").strip())["candidates"][0]["content"]["parts"][
                 0
             ]["text"],
             "Done",
+        )
+
+    def test_stream_translation_preserves_split_input_output_and_cache_usage(self):
+        message_start = anthropic_stream_line_to_gemini(
+            'data: {"type":"message_start","message":{"usage":{'
+            '"input_tokens":10,"output_tokens":0,"cache_read_input_tokens":5,'
+            '"cache_creation_input_tokens":3}}}'
+        )
+        message_delta = anthropic_stream_line_to_gemini(
+            'data: {"type":"message_delta","usage":{"input_tokens":0,"output_tokens":4}}'
+        )
+
+        start_usage = json.loads(message_start.removeprefix("data: ").strip())["usageMetadata"]
+        delta_usage = json.loads(message_delta.removeprefix("data: ").strip())["usageMetadata"]
+        self.assertEqual(
+            start_usage,
+            {
+                "promptTokenCount": 18,
+                "cachedContentTokenCount": 5,
+                "cacheCreationTokenCount": 3,
+                "totalTokenCount": 18,
+            },
+        )
+        self.assertEqual(
+            delta_usage,
+            {"candidatesTokenCount": 4, "totalTokenCount": 4},
         )
 
 

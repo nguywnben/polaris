@@ -17,6 +17,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.credential_pool import upsert_credential_by_email
+from core.credential_pool_mutation import CredentialPoolRecord
 from core.google_ai_studio import GoogleAIStudioValidation
 from core.panel.credential_operations import download_all_creds_common
 from core.panel.credentials import download_cred_file, import_pool_credentials
@@ -380,6 +381,7 @@ class AntigravityStorageFilenameTests(unittest.IsolatedAsyncioTestCase):
         storage.list_credentials.return_value = []
         storage.store_credential.return_value = True
         storage.update_credential_state.return_value = True
+        storage.mutate_credential_pool.side_effect = lambda mode, planner: planner(()).result
         credential = {
             "provider": GOOGLE_ANTIGRAVITY,
             "project_id": "shared-project",
@@ -405,10 +407,7 @@ class AntigravityStorageFilenameTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(result["filename"], "google-antigravity-b4c9a289323b21a0.json")
-        self.assertEqual(
-            storage.store_credential.await_args.args[0],
-            "google-antigravity-b4c9a289323b21a0.json",
-        )
+        storage.mutate_credential_pool.assert_awaited_once()
 
     async def test_same_email_is_kept_separately_for_different_providers(self):
         storage = AsyncMock()
@@ -422,6 +421,18 @@ class AntigravityStorageFilenameTests(unittest.IsolatedAsyncioTestCase):
         storage.get_credential_state.return_value = {"user_email": "user@example.com"}
         storage.store_credential.return_value = True
         storage.update_credential_state.return_value = True
+        storage.mutate_credential_pool.side_effect = lambda mode, planner: (
+            planner(
+                (
+                    CredentialPoolRecord(
+                        filename="google-antigravity-existing.json",
+                        credential_data=storage.get_credential.return_value,
+                        user_email="user@example.com",
+                        rotation_order=0,
+                    ),
+                )
+            ).result
+        )
         incoming = {
             "provider": XAI,
             "credential_type": "oauth",
@@ -443,7 +454,7 @@ class AntigravityStorageFilenameTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["action"], "created")
         self.assertEqual(result["filename"], "xai-grok-example.json")
-        storage.delete_credential.assert_not_awaited()
+        storage.mutate_credential_pool.assert_awaited_once()
 
 
 class PoolImportRouteTests(unittest.IsolatedAsyncioTestCase):

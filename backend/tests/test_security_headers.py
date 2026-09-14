@@ -6,7 +6,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -18,14 +18,14 @@ if str(BACKEND_DIR) not in sys.path:
 from main import add_security_headers
 
 
-def build_request(path: str, *, forwarded_proto: str = "") -> Request:
+def build_request(path: str, *, forwarded_proto: str = "", method: str = "GET") -> Request:
     headers = []
     if forwarded_proto:
         headers.append((b"x-forwarded-proto", forwarded_proto.encode()))
     return Request(
         {
             "type": "http",
-            "method": "GET",
+            "method": method,
             "scheme": "http",
             "path": path,
             "headers": headers,
@@ -36,6 +36,25 @@ def build_request(path: str, *, forwarded_proto: str = "") -> Request:
 
 
 class SecurityHeaderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_management_mutation_is_correlated_after_response(self):
+        async def next_handler(_request):
+            return JSONResponse({"ok": False}, status_code=409)
+
+        audit_response = AsyncMock()
+        with patch("main.record_classified_management_response", audit_response):
+            response = await add_security_headers(
+                build_request("/api/config/save", method="POST"),
+                next_handler,
+            )
+
+        self.assertEqual(response.status_code, 409)
+        audit_response.assert_awaited_once()
+        kwargs = audit_response.await_args.kwargs
+        mutation = audit_response.await_args.args[0]
+        self.assertEqual(mutation.action, "config.update")
+        self.assertEqual(kwargs["status_code"], 409)
+        self.assertEqual(kwargs["request_id"], response.headers["x-request-id"])
+
     async def test_dynamic_api_responses_are_not_cached(self):
         async def next_handler(_request):
             return JSONResponse({"ok": True})

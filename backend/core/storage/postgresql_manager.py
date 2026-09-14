@@ -2,10 +2,23 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import asyncpg
+from core.credential_pool_mutation import (
+    CredentialPoolMutation,
+    CredentialPoolMutationError,
+    CredentialPoolPlanner,
+    CredentialPoolRecord,
+    normalize_pool_mode,
+    validate_credential_pool_mutation,
+)
 from log import log
+
+if TYPE_CHECKING:
+    from core.audit import AuditRepository
+    from core.durable_migration_runner import MigrationCheckpointRepository
+    from core.identity.repository import IdentityRepository
 
 
 class PostgreSQLManager:
@@ -55,7 +68,7 @@ class PostgreSQLManager:
                 log.info("PostgreSQL storage initialized")
 
             except Exception as e:
-                log.error(f"Error initializing PostgreSQL: {e}")
+                log.error(f"PostgreSQL initialization failed ({type(e).__name__}).")
                 if self._pool:
                     await self._pool.close()
                     self._pool = None
@@ -220,6 +233,61 @@ class PostgreSQLManager:
         if not self._initialized or not self._pool:
             raise RuntimeError("PostgreSQL manager not initialized")
 
+    async def create_audit_repository(self, *, cursor_signing_key: bytes) -> "AuditRepository":
+        self._ensure_initialized()
+        from .audit_postgresql import PostgreSQLAuditRepository
+
+        repository = PostgreSQLAuditRepository(
+            self._pool,
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_identity_repository(self) -> "IdentityRepository":
+        self._ensure_initialized()
+        from .identity_postgresql import PostgreSQLIdentityRepository
+
+        repository = PostgreSQLIdentityRepository(self._pool)
+        await repository.initialize()
+        return repository
+
+    async def create_migration_checkpoint_repository(
+        self,
+    ) -> "MigrationCheckpointRepository":
+        self._ensure_initialized()
+        from .migration_postgresql import PostgreSQLMigrationCheckpointRepository
+
+        repository = PostgreSQLMigrationCheckpointRepository(self._pool)
+        await repository.initialize()
+        return repository
+
+    async def create_request_trace_repository(self, *, cursor_signing_key: bytes):
+        self._ensure_initialized()
+        from .request_trace_postgresql import PostgreSQLRequestTraceRepository
+
+        repository = PostgreSQLRequestTraceRepository(
+            self._pool,
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_usage_ledger_repository(self):
+        self._ensure_initialized()
+        from paths import DEFAULT_CREDENTIALS_DIR
+
+        from .usage_ledger_postgresql import PostgreSQLUsageLedgerRepository
+        from .usage_legacy_gate import require_external_usage_migration_ready
+
+        credentials_dir = os.getenv("CREDENTIALS_DIR", str(DEFAULT_CREDENTIALS_DIR))
+        await require_external_usage_migration_ready(
+            os.path.join(credentials_dir, "usage_stats.db")
+        )
+        repository = PostgreSQLUsageLedgerRepository(self._pool)
+        await repository.initialize()
+        return repository
+
     def _get_table_name(self, mode: str) -> str:
         if mode == "primary":
             return "primary_credentials"
@@ -373,6 +441,74 @@ class PostgreSQLManager:
         except Exception as e:
             log.error(f"Error storing credential {filename}: {e}")
             return False
+
+    async def mutate_credential_pool(
+        self, mode: str, planner: CredentialPoolPlanner
+    ) -> CredentialPoolMutation:
+        """Apply one pool plan under a transaction-scoped table write gate."""
+        self._ensure_initialized()
+        mode = normalize_pool_mode(mode)
+        table_name = self._get_table_name(mode)
+        if not callable(planner):
+            raise CredentialPoolMutationError("Credential pool planner is invalid.")
+        try:
+            async with self._pool.acquire() as connection:
+                async with connection.transaction():
+                    await connection.execute(f"LOCK TABLE {table_name} IN SHARE ROW EXCLUSIVE MODE")
+                    rows = await connection.fetch(
+                        f"""SELECT filename, credential_data, user_email, rotation_order
+                            FROM {table_name} ORDER BY rotation_order, filename"""
+                    )
+                    records = []
+                    for row in rows:
+                        credential_data = json.loads(row["credential_data"])
+                        if type(credential_data) is not dict:
+                            raise CredentialPoolMutationError(
+                                "Stored credential payload is invalid."
+                            )
+                        records.append(
+                            CredentialPoolRecord(
+                                filename=row["filename"],
+                                credential_data=credential_data,
+                                user_email=row["user_email"],
+                                rotation_order=row["rotation_order"],
+                            )
+                        )
+                    mutation = validate_credential_pool_mutation(planner(tuple(records)))
+                    for filename in mutation.deletes:
+                        await connection.execute(
+                            f"DELETE FROM {table_name} WHERE filename = $1", filename
+                        )
+                    next_order = max((record.rotation_order for record in records), default=-1) + 1
+                    existing_names = {record.filename for record in records}
+                    for write in mutation.writes:
+                        if write.filename in existing_names:
+                            await connection.execute(
+                                f"""UPDATE {table_name}
+                                    SET credential_data = $1, user_email = $2,
+                                        updated_at = EXTRACT(EPOCH FROM NOW())
+                                    WHERE filename = $3""",
+                                json.dumps(write.credential_data),
+                                write.user_email,
+                                write.filename,
+                            )
+                        else:
+                            await connection.execute(
+                                f"""INSERT INTO {table_name}
+                                    (filename, credential_data, user_email, rotation_order, last_success)
+                                    VALUES ($1, $2, $3, $4, $5)""",
+                                write.filename,
+                                json.dumps(write.credential_data),
+                                write.user_email,
+                                next_order,
+                                time.time(),
+                            )
+                            next_order += 1
+                    return mutation
+        except CredentialPoolMutationError:
+            raise
+        except Exception:
+            raise CredentialPoolMutationError("Credential pool mutation failed.") from None
 
     async def get_credential(
         self, filename: str, mode: str = "code_assist"
@@ -1031,10 +1167,15 @@ class PostgreSQLManager:
             return False
 
     async def record_success(
-        self, filename: str, model_name: Optional[str] = None, mode: str = "code_assist"
+        self,
+        filename: str,
+        model_name: Optional[str] = None,
+        mode: str = "code_assist",
+        call_increment: int = 1,
     ) -> None:
         self._ensure_initialized()
         filename = os.path.basename(filename)
+        call_increment = max(1, int(call_increment))
 
         try:
             table_name = self._get_table_name(mode)
@@ -1043,13 +1184,14 @@ class PostgreSQLManager:
                     f"""
                     UPDATE {table_name}
                     SET last_success = EXTRACT(EPOCH FROM NOW()),
-                        call_count = COALESCE(call_count, 0) + 1,
+                        call_count = COALESCE(call_count, 0) + $2,
                         error_codes = '[]',
                         error_messages = '{{}}',
                         updated_at = EXTRACT(EPOCH FROM NOW())
                     WHERE filename = $1
                 """,
                     filename,
+                    call_increment,
                 )
 
                 if model_name:

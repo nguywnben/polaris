@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "variant_id": "google_antigravity",
+      "status_code": 401,
+      "body": {"error": {"status": "UNAUTHENTICATED", "message": "secret body"}},
+      "category": "credential",
+      "provider_code": "unauthenticated",
+      "retryable": false
+    },
+    {
+      "variant_id": "google_ai_studio",
+      "status_code": 403,
+      "body": {"error": {"status": "PERMISSION_DENIED", "message": "secret body"}},
+      "category": "permission",
+      "provider_code": "permission_denied",
+      "retryable": false
+    },
+    {
+      "variant_id": "xai_console",
+      "status_code": 429,
+      "body": {"error": {"code": "rate_limit_exceeded", "message": "secret body"}},
+      "category": "rate_limit",
+      "provider_code": "rate_limit_exceeded",
+      "retryable": true
+    },
+    {
+      "variant_id": "grok",
+      "status_code": 402,
+      "body": {"error": {"code": "insufficient_quota", "message": "secret body"}},
+      "category": "quota",
+      "provider_code": "insufficient_quota",
+      "retryable": false
+    },
+    {
+      "variant_id": "codex",
+      "status_code": 404,
+      "body": {"error": {"code": "model_not_found", "message": "secret body"}},
+      "category": "invalid_model",
+      "provider_code": "model_not_found",
+      "retryable": false
+    },
+    {
+      "variant_id": "openai_platform",
+      "status_code": 503,
+      "body": {"error": {"type": "server_error", "message": "secret body"}},
+      "category": "upstream",
+      "provider_code": "server_error",
+      "retryable": true
+    },
+    {
+      "variant_id": "claude_code",
+      "status_code": 501,
+      "body": {"error": {"type": "unsupported_operation", "message": "secret body"}},
+      "category": "unsupported_operation",
+      "provider_code": "unsupported_operation",
+      "retryable": false
+    },
+    {
+      "variant_id": "claude_platform",
+      "status_code": 403,
+      "body": {"error": {"type": "permission_error", "message": "secret body"}},
+      "category": "permission",
+      "provider_code": "permission_error",
+      "retryable": false
+    },
+    {
+      "variant_id": "ollama",
+      "status_code": 404,
+      "body": {"error": "model is not installed: secret body"},
+      "category": "invalid_model",
+      "provider_code": null,
+      "retryable": false
+    }
+  ]
+}

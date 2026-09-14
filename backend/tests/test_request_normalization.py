@@ -149,7 +149,7 @@ class RequestNormalizationTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.api.primary.get_xai_user_agent",
-                AsyncMock(return_value="grok-cli/omni-gateway"),
+                AsyncMock(return_value="grok-cli/polaris"),
             ),
             patch(
                 "core.api.primary.get_token_compression_config",
@@ -168,7 +168,7 @@ class RequestNormalizationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context.provider_id, "xai")
         self.assertEqual(context.target_url, "https://api.x.ai/v1/chat/completions")
         self.assertEqual(context.headers["Authorization"], "Bearer xai-example-key-value")
-        self.assertEqual(context.headers["User-Agent"], "grok-cli/omni-gateway")
+        self.assertEqual(context.headers["User-Agent"], "grok-cli/polaris")
         self.assertEqual(context.payload["model"], "grok-4")
         self.assertEqual(context.payload["messages"][0]["content"], "Hello")
         self.assertEqual(context.payload["max_tokens"], 256)

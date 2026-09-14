@@ -14,7 +14,6 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.codex import (
-    _device_flows,
     build_codex_headers,
     codex_response_to_gemini,
     codex_stream_line_to_gemini,
@@ -24,11 +23,18 @@ from core.codex import (
     gemini_request_to_codex,
     parse_codex_model_ids,
 )
+from core.device_authorization_coordination import (
+    DeviceAuthorizationError,
+    DeviceAuthorizationService,
+    configure_device_authorization_service,
+    get_device_authorization_service,
+)
 from core.openai_platform import (
     fetch_openai_model_ids,
     parse_openai_model_ids,
 )
 from core.panel.providers.openai import _parse_openai_json
+from core.state_store import InMemoryStateStore
 
 
 class FakeResponse:
@@ -46,8 +52,20 @@ def jwt_with_claims(claims: dict) -> str:
 
 
 class OpenAIProviderTests(unittest.IsolatedAsyncioTestCase):
-    def tearDown(self):
-        _device_flows.clear()
+    async def asyncSetUp(self) -> None:
+        self.store = InMemoryStateStore()
+        self.authorization_key = b"o" * 32
+        configure_device_authorization_service(
+            DeviceAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
+
+    async def asyncTearDown(self) -> None:
+        configure_device_authorization_service(None)
+        await self.store.close()
 
     def test_platform_model_parser_is_bounded_and_deduplicated(self):
         payload = {
@@ -133,6 +151,13 @@ class OpenAIProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
         ):
             started = await create_codex_device_flow()
+            configure_device_authorization_service(
+                DeviceAuthorizationService(
+                    self.store,
+                    key=self.authorization_key,
+                    fencing_epoch=1,
+                )
+            )
             completed = await complete_codex_device_flow(started["flow_id"])
 
         credential = completed["credential"]
@@ -143,7 +168,8 @@ class OpenAIProviderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credential["account_id"], "account-123")
         self.assertEqual(credential["model_ids"], ["gpt-5-codex", "gpt-5.4"])
         self.assertEqual(completed["model_count"], 2)
-        self.assertNotIn(started["flow_id"], _device_flows)
+        with self.assertRaises(DeviceAuthorizationError):
+            await get_device_authorization_service().claim(started["flow_id"], lease_seconds=30)
 
     def test_codex_model_parser_handles_supported_payload_shapes(self):
         models = parse_codex_model_ids(
@@ -236,7 +262,10 @@ class OpenAIProviderTests(unittest.IsolatedAsyncioTestCase):
             result = await complete_codex_device_flow(started["flow_id"])
 
         self.assertTrue(result["pending"])
-        self.assertIn(started["flow_id"], _device_flows)
+        retained = await get_device_authorization_service().claim(
+            started["flow_id"], lease_seconds=30
+        )
+        await get_device_authorization_service().release(retained)
 
     def test_codex_request_uses_responses_tool_contract_and_forces_streaming(self):
         request = gemini_request_to_codex(

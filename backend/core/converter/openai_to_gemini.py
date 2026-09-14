@@ -10,6 +10,7 @@ from core.converter.thought_signature import (
     is_skip_thought_signature_placeholder,
 )
 from core.converter.utils import merge_system_messages
+from core.protocol_contract import validate_gemini_response_part
 from log import log
 from pypinyin import Style, lazy_pinyin
 
@@ -20,14 +21,13 @@ def _convert_usage_metadata(usage_metadata: Dict[str, Any]) -> Optional[Dict[str
 
     prompt_tokens_total = int(usage_metadata.get("promptTokenCount", 0) or 0)
     cached_tokens = int(usage_metadata.get("cachedContentTokenCount", 0) or 0)
-    prompt_tokens = max(prompt_tokens_total - cached_tokens, 0)
-    completion_tokens = int(usage_metadata.get("candidatesTokenCount", 0) or 0)
+    prompt_tokens = prompt_tokens_total
+    reasoning_tokens = int(usage_metadata.get("thoughtsTokenCount", 0) or 0)
+    completion_tokens = int(usage_metadata.get("candidatesTokenCount", 0) or 0) + reasoning_tokens
     raw_total_tokens = int(
         usage_metadata.get(
             "totalTokenCount",
-            prompt_tokens_total
-            + completion_tokens
-            + int(usage_metadata.get("thoughtsTokenCount", 0) or 0),
+            prompt_tokens_total + completion_tokens + reasoning_tokens,
         )
         or 0
     )
@@ -35,13 +35,12 @@ def _convert_usage_metadata(usage_metadata: Dict[str, Any]) -> Optional[Dict[str
     usage = {
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
-        "total_tokens": max(raw_total_tokens - cached_tokens, prompt_tokens + completion_tokens),
+        "total_tokens": max(raw_total_tokens, prompt_tokens + completion_tokens),
     }
 
     if cached_tokens > 0:
         usage["prompt_tokens_details"] = {"cached_tokens": cached_tokens}
 
-    reasoning_tokens = int(usage_metadata.get("thoughtsTokenCount", 0) or 0)
     if reasoning_tokens > 0:
         usage["completion_tokens_details"] = {"reasoning_tokens": reasoning_tokens}
 
@@ -1290,6 +1289,7 @@ def convert_gemini_to_openai_response(
         reasoning_parts = []
 
         for part in parts:
+            validate_gemini_response_part(part)
             if "executableCode" in part:
                 exec_code = part["executableCode"]
                 lang = exec_code.get("language", "python").lower()
@@ -1324,6 +1324,9 @@ def convert_gemini_to_openai_response(
                 content_parts.append(
                     f"![gemini-generated-content](data:{mime_type};base64,{base64_data})"
                 )
+
+            elif "functionCall" in part:
+                pass
 
         if content_parts:
             additional_content = "\n\n".join(content_parts)

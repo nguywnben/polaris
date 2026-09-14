@@ -196,7 +196,7 @@ class ModelBlacklistTests(unittest.IsolatedAsyncioTestCase):
                 "core.panel.model_pools.get_virtual_model_pool",
                 AsyncMock(
                     return_value={
-                        "alias": "omway",
+                        "alias": "polaris",
                         "strategy": "priority_fallback",
                         "selected_models": ["gemini-shared", "gemini-blocked"],
                         "enabled": True,

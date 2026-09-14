@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "gemini_response": {
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "role": "model",
+          "parts": [
+            {"text": "private plan", "thought": true, "thoughtSignature": "signature-12345"},
+            {"text": "It is 30 C."},
+            {
+              "functionCall": {
+                "id": "call_1",
+                "name": "lookup_weather",
+                "args": {"city": "Da Nang"}
+              }
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "cachedContentTokenCount": 3,
+      "candidatesTokenCount": 5,
+      "thoughtsTokenCount": 2,
+      "totalTokenCount": 19
+    },
+    "modelVersion": "fixture-model"
+  },
+  "expected_openai_chat": {
+    "reasoning_content": "private plan",
+    "content": "It is 30 C.",
+    "tool_name": "lookup_weather",
+    "finish_reason": "tool_calls",
+    "prompt_tokens": 12,
+    "cached_tokens": 3,
+    "completion_tokens": 7,
+    "reasoning_tokens": 2,
+    "total_tokens": 19
+  },
+  "expected_openai_responses": {
+    "output_types": ["reasoning", "message", "function_call"],
+    "reasoning_text": "private plan",
+    "output_text": "It is 30 C.",
+    "input_tokens": 12,
+    "output_tokens": 7,
+    "total_tokens": 19
+  },
+  "expected_anthropic": {
+    "thinking": "private plan",
+    "signature": "signature-12345",
+    "text": "It is 30 C.",
+    "tool_name": "lookup_weather",
+    "stop_reason": "tool_use",
+    "input_tokens": 9,
+    "cache_read_input_tokens": 3,
+    "output_tokens": 7
+  },
+  "finish_reasons": [
+    {"gemini": "STOP", "openai": "stop", "anthropic": "end_turn"},
+    {"gemini": "MAX_TOKENS", "openai": "length", "anthropic": "max_tokens"},
+    {"gemini": "SAFETY", "openai": "content_filter", "anthropic": "refusal"},
+    {"gemini": "RECITATION", "openai": "content_filter", "anthropic": "refusal"}
+  ],
+  "errors": [
+    {
+      "protocol": "openai",
+      "status_code": 400,
+      "expected": {
+        "error": {
+          "message": "Invalid fixture input.",
+          "type": "invalid_request_error",
+          "param": null,
+          "code": "invalid_request"
+        }
+      }
+    },
+    {
+      "protocol": "anthropic",
+      "status_code": 429,
+      "expected": {
+        "type": "error",
+        "error": {
+          "type": "rate_limit_error",
+          "message": "Invalid fixture input."
+        }
+      }
+    },
+    {
+      "protocol": "gemini",
+      "status_code": 503,
+      "expected": {
+        "error": {
+          "code": 503,
+          "message": "Invalid fixture input.",
+          "status": "UNAVAILABLE"
+        }
+      }
+    }
+  ]
+}

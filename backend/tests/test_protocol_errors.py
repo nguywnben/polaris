@@ -46,7 +46,7 @@ class ProtocolErrorUnitTests(unittest.IsolatedAsyncioTestCase):
 
     def test_upstream_errors_are_redacted_and_keep_retry_guidance(self):
         response = Response(
-            content=json.dumps({"error": "API key sk-ogw-secret-value is unavailable."}),
+            content=json.dumps({"error": "API key sk-polaris-secret-value is unavailable."}),
             status_code=503,
             media_type="application/json",
             headers={"Retry-After": "5", "X-Unsafe-Upstream": "discard"},
@@ -90,20 +90,20 @@ class ProtocolErrorIntegrationTests(unittest.IsolatedAsyncioTestCase):
         requests = (
             (
                 "/v1/chat/completions",
-                {"model": "omway", "messages": [{"role": "user", "content": "Hi"}]},
+                {"model": "polaris", "messages": [{"role": "user", "content": "Hi"}]},
                 "openai",
             ),
             (
                 "/v1/messages",
                 {
-                    "model": "omway",
+                    "model": "polaris",
                     "max_tokens": 16,
                     "messages": [{"role": "user", "content": "Hi"}],
                 },
                 "anthropic",
             ),
             (
-                "/v1beta/models/omway:generateContent",
+                "/v1beta/models/polaris:generateContent",
                 {"contents": [{"role": "user", "parts": [{"text": "Hi"}]}]},
                 "gemini",
             ),
@@ -132,20 +132,20 @@ class ProtocolErrorIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(replaced.headers["x-request-id"]), 32)
 
     async def test_invalid_payloads_use_protocol_errors_and_http_400(self):
-        with patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-test-key")):
+        with patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-test-key")):
             openai = await self.client.post(
                 "/v1/chat/completions",
-                headers={"Authorization": "Bearer sk-ogw-test-key"},
-                json={"model": "omway"},
+                headers={"Authorization": "Bearer sk-polaris-test-key"},
+                json={"model": "polaris"},
             )
             anthropic = await self.client.post(
                 "/v1/messages",
-                headers={"x-api-key": "sk-ogw-test-key"},
-                json={"model": "omway", "messages": []},
+                headers={"x-api-key": "sk-polaris-test-key"},
+                json={"model": "polaris", "messages": []},
             )
             gemini = await self.client.post(
-                "/v1beta/models/omway:generateContent",
-                headers={"x-goog-api-key": "sk-ogw-test-key"},
+                "/v1beta/models/polaris:generateContent",
+                headers={"x-goog-api-key": "sk-polaris-test-key"},
                 json={},
             )
 
@@ -156,21 +156,21 @@ class ProtocolErrorIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gemini.json()["error"]["status"], "INVALID_ARGUMENT")
 
     async def test_count_tokens_rejects_malformed_json_without_parser_details(self):
-        with patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-test-key")):
+        with patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-test-key")):
             responses = (
                 await self.client.post(
-                    "/v1beta/models/omway:countTokens",
+                    "/v1beta/models/polaris:countTokens",
                     headers={
                         "content-type": "application/json",
-                        "x-goog-api-key": "sk-ogw-test-key",
+                        "x-goog-api-key": "sk-polaris-test-key",
                     },
                     content=b"{invalid",
                 ),
                 await self.client.post(
-                    "/vertex/v1beta/models/omway:countTokens",
+                    "/vertex/v1beta/models/polaris:countTokens",
                     headers={
                         "content-type": "application/json",
-                        "x-goog-api-key": "sk-ogw-test-key",
+                        "x-goog-api-key": "sk-polaris-test-key",
                     },
                     content=b"{invalid",
                 ),

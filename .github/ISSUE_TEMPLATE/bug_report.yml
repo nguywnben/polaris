@@ -1,12 +1,12 @@
 name: Bug report
-description: Report a reproducible Omni Gateway issue.
+description: Report a reproducible Polaris issue.
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Omni Gateway. Please include enough detail to reproduce the behavior.
+        Thanks for helping improve Polaris. Please include enough detail to reproduce the behavior.
 
   - type: checkboxes
     id: checklist
@@ -94,7 +94,7 @@ body:
       placeholder: |
         1. I sent this request...
         2. I expected...
-        3. Omni Gateway returned...
+        3. Polaris returned...
     validations:
       required: true
 

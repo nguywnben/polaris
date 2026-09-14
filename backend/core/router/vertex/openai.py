@@ -5,8 +5,10 @@ from core.models import OpenAIChatCompletionRequest, model_to_dict
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
+    cascade_close_async_iterator,
     prepend_async_item,
     read_first_async_item,
+    sse_heartbeat_bytes,
 )
 from core.utils import authenticate_bearer, get_base_model_from_feature_model
 from fastapi import APIRouter, Depends
@@ -79,11 +81,14 @@ async def chat_completions(
         )
         return JSONResponse(content=openai_response, status_code=status_code)
 
+    owned_streams = []
+
     async def stream_generator():
         from core.api.vertex import stream_request
         from fastapi import Response
 
         stream_gen = stream_request(body=api_request, native=False)
+        owned_streams.append(stream_gen)
         try:
             first_chunk = await read_first_async_item(stream_gen)
         except StopAsyncIteration:
@@ -117,6 +122,11 @@ async def chat_completions(
 
             chunk_str = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
 
+            heartbeat = sse_heartbeat_bytes(chunk_str)
+            if heartbeat is not None:
+                yield heartbeat
+                continue
+
             if not chunk_str.strip():
                 continue
 
@@ -139,4 +149,7 @@ async def chat_completions(
 
         yield "data: [DONE]\n\n".encode("utf-8")
 
-    return await build_streaming_response_or_error(stream_generator(), error_protocol="openai")
+    return await build_streaming_response_or_error(
+        cascade_close_async_iterator(stream_generator(), owned_streams),
+        error_protocol="openai",
+    )

@@ -142,7 +142,7 @@ function buildMessageResultDetails(label, value, options = {}) {
 
     return `
         <details class="message-result-details"${options.open ? ' open' : ''}>
-            <summary>${escapeHtml(label || 'Details')}</summary>
+            <summary>${escapeHtml(label || t('runtime.details'))}</summary>
             <pre>${escapeHtml(text)}</pre>
         </details>
     `;
@@ -162,7 +162,7 @@ function buildApiResultHtml(options = {}) {
     const summaryHtml = options.rows?.length
         ? `
             <div class="message-result-section">
-                <div class="message-result-section-title">${escapeHtml(options.summaryLabel || 'Summary')}</div>
+                <div class="message-result-section-title">${escapeHtml(options.summaryLabel || t('runtime.summary'))}</div>
                 <div class="message-result-summary">${renderMessageResultRows(options.rows)}</div>
             </div>
         `
@@ -173,7 +173,7 @@ function buildApiResultHtml(options = {}) {
         : '';
 
     const detailsHtml = buildMessageResultDetails(
-        options.detailsLabel || 'Details',
+        options.detailsLabel || t('runtime.details'),
         options.details,
         { open: options.detailsOpen }
     );
@@ -192,6 +192,40 @@ function buildApiResultHtml(options = {}) {
 }
 
 function buildCredentialTestErrorHtml(filename, data, response) {
+
+    const diagnostic = data?.diagnostic;
+    if (diagnostic && diagnostic.schema_version === 1 && diagnostic.message) {
+        const category = String(diagnostic.category || t('unknown_error')).replaceAll('_', ' ');
+        const providerStatus = diagnostic.provider_status || data.status_code || response.status;
+        const safeDetails = {
+            schema_version: diagnostic.schema_version,
+            code: diagnostic.code,
+            category: diagnostic.category,
+            retryable: diagnostic.retryable === true,
+            ...(diagnostic.provider_status ? {provider_status: diagnostic.provider_status} : {}),
+            ...(diagnostic.provider_code ? {provider_code: diagnostic.provider_code} : {}),
+        };
+
+        return buildApiResultHtml({
+            intro: diagnostic.message,
+            rows: [
+                [t('table_filename'), filename],
+                [t('provider_diagnostic_category'), category],
+                [t('provider_diagnostic_provider_status'), providerStatus],
+                diagnostic.provider_code
+                    ? [t('provider_diagnostic_provider_code'), diagnostic.provider_code]
+                    : null,
+                data.provider ? [t('provider'), getCredentialProviderMeta(data, 'usage').name] : null,
+                data.model ? [t('modal.model'), data.model] : null,
+            ].filter(Boolean),
+            summaryLabel: t('modal.error_summary'),
+            note: diagnostic.remediation
+                ? `${t('provider_diagnostic_next_step')}: ${diagnostic.remediation}`
+                : '',
+            detailsLabel: t('error_details'),
+            details: safeDetails,
+        });
+    }
 
     let parsedError = null;
     const rawErrorValue = data?.error || data?.detail || data?.message || '';
@@ -218,13 +252,13 @@ function buildCredentialTestErrorHtml(filename, data, response) {
 
     const summaryRows = [
         [t('table_filename'), filename],
-        ['HTTP code', httpCode],
+        [t('http_code_prefix'), httpCode],
         [t('credential_status_label').replace(':', ''), statusText],
-        data.provider ? ['Provider', getCredentialProviderMeta(data, 'usage').name] : null,
-        data.model ? ['Model', data.model] : null,
-        reason ? ['Reason', reason] : null,
-        permission ? ['Permission', permission] : null,
-        resource ? ['Resource', resource] : null,
+        data.provider ? [t('provider'), getCredentialProviderMeta(data, 'usage').name] : null,
+        data.model ? [t('modal.model'), data.model] : null,
+        reason ? [t('modal.reason'), reason] : null,
+        permission ? [t('runtime.permission'), permission] : null,
+        resource ? [t('runtime.resource'), resource] : null,
     ].filter(Boolean);
 
     const troubleshooterHtml = troubleshooterUrl
@@ -232,11 +266,11 @@ function buildCredentialTestErrorHtml(filename, data, response) {
         : '';
 
     return buildApiResultHtml({
-        intro: 'The selected model test did not complete successfully. Review the provider status and error response below.',
+        intro: t('credentials.test_failed', {error: statusText}),
         rows: summaryRows,
-        summaryLabel: 'Failure summary',
+        summaryLabel: t('modal.error_summary'),
         extraHtml: troubleshooterHtml,
-        detailsLabel: 'Error details',
+        detailsLabel: t('error_details'),
         details: rawDetails,
         detailsOpen: true,
     });
@@ -246,25 +280,37 @@ function buildCredentialTestErrorHtml(filename, data, response) {
 function buildCredentialTestResultHtml(filename, data, response, options = {}) {
 
     const logicalStatus = data.status_code || response.status;
-    const isRateLimited = logicalStatus === 429 && data.success === true;
-    const statusMessage = isRateLimited
-        ? t('credential_rate_limited')
+    const diagnostic = data?.diagnostic?.schema_version === 1 ? data.diagnostic : null;
+    const isLimited = logicalStatus === 429 && data.success === true;
+    const statusMessage = isLimited
+        ? (diagnostic?.message || t('credential_rate_limited'))
         : (data.message || t('credential_available'));
 
     return buildApiResultHtml({
-        intro: isRateLimited
-            ? 'The credential responded, but the provider reported a temporary rate limit. The router can continue with another available credential.'
-            : 'The credential completed a live model test successfully.',
+        intro: isLimited
+            ? statusMessage
+            : t('test_successful'),
         rows: [
-            ['Result', isRateLimited ? 'Rate limited' : 'Successful'],
+            [t('status'), isLimited
+                ? String(diagnostic?.category || t('runtime.rate_limited')).replaceAll('_', ' ')
+                : t('success')],
             [t('table_filename'), filename],
-            ['HTTP code', logicalStatus || response.status],
+            [t('http_code_prefix'), logicalStatus || response.status],
             [t('credential_status_label').replace(':', ''), statusMessage],
-            data.provider ? ['Provider', getCredentialProviderMeta(data, 'usage').name] : null,
-            data.model ? ['Model', data.model] : null,
-            options.mode ? ['Mode', options.mode] : null,
+            data.provider ? [t('provider'), getCredentialProviderMeta(data, 'usage').name] : null,
+            data.model ? [t('modal.model'), data.model] : null,
+            options.mode ? [t('runtime.mode'), options.mode] : null,
+            diagnostic?.category
+                ? [t('provider_diagnostic_category'), String(diagnostic.category).replaceAll('_', ' ')]
+                : null,
+            diagnostic?.provider_code
+                ? [t('provider_diagnostic_provider_code'), diagnostic.provider_code]
+                : null,
         ].filter(Boolean),
-        summaryLabel: 'Test summary',
+        summaryLabel: t('modal.model_test_title'),
+        note: diagnostic?.remediation
+            ? `${t('provider_diagnostic_next_step')}: ${diagnostic.remediation}`
+            : '',
     });
 
 }
@@ -281,21 +327,21 @@ function normalizeVerificationMessage(message) {
 function buildCredentialVerificationHtml(filename, data) {
 
     const rows = [
-        ['Result', 'Successful'],
+        [t('status'), t('success')],
         [t('table_filename'), filename],
-        data.project_id ? ['Project ID', data.project_id] : null,
-        data.subscription_tier ? ['Tier', data.subscription_tier] : null,
-        data.credit_amount !== undefined && data.credit_amount !== null ? ['Credit', data.credit_amount] : null,
-        data.provider ? ['Provider', getCredentialProviderMeta({ provider: data.provider }, 'usage').name] : null,
-        Number.isFinite(Number(data.model_count)) ? ['Available models', Number(data.model_count)] : null,
+        data.project_id ? [t('modal.project_id'), data.project_id] : null,
+        data.subscription_tier ? [t('tier'), data.subscription_tier] : null,
+        data.credit_amount !== undefined && data.credit_amount !== null ? [t('credits_label'), data.credit_amount] : null,
+        data.provider ? [t('provider'), getCredentialProviderMeta({ provider: data.provider }, 'usage').name] : null,
+        Number.isFinite(Number(data.model_count)) ? [t('modal.available_models'), Number(data.model_count)] : null,
     ].filter(Boolean);
 
     const detailMessage = normalizeVerificationMessage(data.message);
 
     return buildApiResultHtml({
-        intro: 'The credential was verified and its provider metadata was refreshed.',
+        intro: t('credentials.verified'),
         rows,
-        summaryLabel: 'Verification summary',
+        summaryLabel: t('credential_verification_title'),
         note: detailMessage,
     });
 

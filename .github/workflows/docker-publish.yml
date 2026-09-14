@@ -8,8 +8,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || github.repository }}
-  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+  DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || 'nguywnben/polaris' }}
+  GHCR_IMAGE: ghcr.io/nguywnben/polaris
 
 jobs:
   build-and-push:

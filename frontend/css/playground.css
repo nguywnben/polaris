@@ -1,0 +1,420 @@
+.playground-workspace {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.playground-composer,
+.playground-results,
+.playground-output-card,
+.playground-metadata-card,
+.playground-example-card {
+    min-width: 0;
+}
+
+.playground-results {
+    display: grid;
+    gap: 16px;
+}
+
+.playground-section-heading,
+.playground-messages-heading,
+.playground-example-toolbar,
+.playground-run-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.playground-section-heading,
+.playground-messages-heading {
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.playground-section-heading .card-copy,
+.playground-messages-heading p {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.playground-messages-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.playground-control-grid,
+.playground-parameter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.playground-control-grid {
+    margin-bottom: 14px;
+}
+
+.playground-control-grid .form-group,
+.playground-parameter-grid .form-group {
+    margin-bottom: 0;
+}
+
+.playground-stream-control {
+    min-height: 46px;
+    margin: 0;
+    align-self: start;
+}
+
+.playground-stream-control > input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 3px;
+}
+
+.playground-stream-control > input[type="checkbox"]:focus {
+    box-shadow: none;
+}
+
+.playground-stream-control > span,
+.playground-stream-control strong,
+.playground-stream-control small {
+    display: block;
+}
+
+.playground-stream-control small {
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.playground-messages {
+    display: grid;
+    gap: 10px;
+}
+
+.playground-message {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.playground-message-header,
+.playground-message-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.playground-message-header {
+    justify-content: space-between;
+}
+
+.playground-message-title {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.playground-message-actions {
+    justify-content: flex-end;
+}
+
+.playground-message-role,
+.playground-message-content {
+    min-width: 0;
+    margin: 0;
+}
+
+.playground-message-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.playground-message select,
+.playground-message textarea {
+    width: 100%;
+    min-width: 0;
+}
+
+.playground-message .playground-message-role select {
+    width: 122px;
+    min-height: 30px;
+    height: 30px;
+    padding: 3px 32px 3px 11px;
+    background-position: right 11px center;
+}
+
+.playground-message-content {
+    width: 100%;
+}
+
+.playground-message textarea {
+    min-height: 92px;
+    resize: vertical;
+}
+
+.playground-message-remove {
+    width: auto;
+    min-height: 30px;
+    margin: 0;
+    padding: 3px 10px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.playground-message-remove:not(:disabled):hover,
+.playground-message-remove:not(:disabled):focus-visible {
+    border-color: var(--danger-border-hover);
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.playground-parameters {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.playground-parameters > summary,
+.playground-example-card > summary {
+    min-height: 44px;
+    padding: 12px 14px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 680;
+}
+
+.playground-parameters > summary:focus-visible,
+.playground-example-card > summary:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -3px;
+}
+
+.playground-parameter-grid {
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+}
+
+.playground-run-actions {
+    justify-content: flex-start;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+#playgroundRunState {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.playground-output {
+    width: 100%;
+    min-height: 320px;
+    max-height: 58vh;
+    margin: 0;
+    padding: 14px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: normal;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.playground-output-card.is-pristine .playground-output {
+    min-height: 176px;
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.playground-output-card.is-pristine > .field-hint {
+    display: none;
+}
+
+.playground-output:focus-visible,
+.playground-example:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.playground-output-card > .field-hint {
+    margin-top: 8px;
+}
+
+.playground-output-card > .status {
+    margin-bottom: 12px;
+}
+
+.playground-metadata-card .card-title {
+    margin-bottom: 14px;
+}
+
+.playground-metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.playground-metadata-grid > div {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.playground-metadata-grid dt {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.playground-metadata-grid dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.playground-example-card {
+    padding: 0;
+    overflow: clip;
+}
+
+.playground-example-card[open] > summary {
+    border-bottom: 1px solid var(--border);
+}
+
+.playground-example-card > p,
+.playground-example-card > .playground-example-toolbar,
+.playground-example-card > .playground-example {
+    margin-right: 16px;
+    margin-left: 16px;
+}
+
+.playground-example-card > p {
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.playground-example-toolbar {
+    justify-content: flex-start;
+    margin-top: 12px;
+}
+
+.playground-example-toolbar label {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.playground-example-toolbar select {
+    width: auto;
+    min-width: 130px;
+    min-height: 30px;
+    height: 30px;
+    padding: 3px 32px 3px 11px;
+    background-position: right 11px center;
+}
+
+.playground-example {
+    max-height: 360px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    padding: 14px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 1080px) {
+    .playground-workspace {
+        grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+    }
+}
+
+@media (max-width: 860px) {
+    .playground-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .playground-output {
+        min-height: 260px;
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 600px) {
+    .playground-control-grid,
+    .playground-parameter-grid,
+    .playground-metadata-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .playground-message-header {
+        display: grid;
+    }
+
+    .playground-message-actions {
+        justify-content: stretch;
+    }
+
+    .playground-message-role {
+        flex: 1 1 auto;
+    }
+
+    .playground-message .playground-message-role select {
+        width: 100%;
+    }
+
+    .playground-run-actions,
+    .playground-example-toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #playgroundRunState,
+    .playground-example-toolbar label {
+        grid-column: 1 / -1;
+    }
+
+    .playground-example-toolbar select,
+    .playground-example-toolbar .btn {
+        width: 100%;
+    }
+}

@@ -1,0 +1,130 @@
+                <div id="qualityTab" class="tab-content">
+                    <header class="page-header">
+                        <div>
+                            <div class="page-kicker" data-i18n="quality.label">AI Quality</div>
+                            <h1 class="page-title" data-i18n="quality.title">AI Quality Policy</h1>
+                            <p class="page-description" data-i18n="quality.description">Choose a governed quality profile, inspect its effective controls, and preview context impact before saving.</p>
+                        </div>
+                        <div class="page-actions">
+                            <button type="button" class="btn btn-secondary" data-ui-action="reset-quality-policy" data-i18n="quality.restore_balanced">Restore balanced</button>
+                            <button type="button" class="btn" id="qualitySaveButton" data-ui-action="save-quality-policy" data-i18n="quality.save_policy">Save policy</button>
+                        </div>
+                    </header>
+
+                    <div id="qualityState" data-page-state-host hidden></div>
+
+                    <div id="qualitySection">
+                        <div id="qualityLoading" class="skeleton-config" role="status" data-i18n-aria-label="quality.loading" aria-label="Loading AI quality policy" aria-busy="true">
+                            <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line field"></div><div class="skeleton-line field"></div></div>
+                            <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line field"></div><div class="skeleton-line field"></div></div>
+                        </div>
+
+                        <div id="qualityForm" class="hidden">
+                            <div class="quality-runtime-bar" aria-live="polite">
+                                <div><span data-i18n="quality.runtime_status">Runtime status</span><strong id="qualityRuntimeStatus">—</strong></div>
+                                <div><span data-i18n="quality.application_mode">Application</span><strong id="qualityApplicationMode">—</strong></div>
+                                <div><span data-i18n="quality.revision">Revision</span><strong id="qualityRevision">—</strong></div>
+                                <div><span data-i18n="quality.source">Source</span><strong id="qualitySource">—</strong></div>
+                                <div><span data-i18n="quality.environment_overrides">Environment overrides</span><strong id="qualityEnvironmentOverrides">—</strong></div>
+                            </div>
+
+                            <div class="quality-explanation-grid">
+                                <section class="quality-explanation-card" aria-labelledby="qualityEffectHeading">
+                                    <h2 id="qualityEffectHeading" data-i18n="quality.effect_title">What happens to a request</h2>
+                                    <p id="qualityTransformationSummary">—</p>
+                                    <p class="quality-live-copy" data-i18n="quality.apply_live_copy">A saved policy applies to new requests immediately. No gateway restart is required.</p>
+                                </section>
+                                <section class="quality-explanation-card" aria-labelledby="qualityPrecedenceHeading">
+                                    <h2 id="qualityPrecedenceHeading" data-i18n="quality.precedence_title">Effective precedence</h2>
+                                    <ol id="qualityPrecedence" class="quality-precedence-list">
+                                        <li data-i18n="quality.precedence_environment">Environment ceiling</li>
+                                        <li data-i18n="quality.precedence_global">Saved global policy</li>
+                                        <li data-i18n="quality.precedence_key">Virtual-key restriction</li>
+                                        <li data-i18n="quality.precedence_request">Request header restriction</li>
+                                    </ol>
+                                    <p data-i18n="quality.precedence_copy">A virtual key or request may only inherit or disable compression; neither can re-enable it or change thresholds.</p>
+                                </section>
+                            </div>
+
+                            <section id="qualityPolicyWarnings" class="status warning quality-warning-panel hidden" role="status" aria-live="polite" aria-labelledby="qualityWarningsHeading">
+                                <h2 id="qualityWarningsHeading" data-i18n="quality.warnings_title">Review before saving</h2>
+                                <ul id="qualityPolicyWarningList"></ul>
+                            </section>
+
+                            <fieldset class="quality-profile-section">
+                                <legend data-i18n="quality.choose_profile">Choose an operating profile</legend>
+                                <div class="quality-profile-grid">
+                                    <label class="quality-profile-card"><input type="radio" name="qualityProfile" value="quality" data-ui-change="quality-profile"><span><strong data-i18n="quality.profile_quality">Maximum quality</strong><small data-i18n="quality.profile_quality_copy">Keeps full context, exposes reasoning when available, and favors response recovery.</small></span></label>
+                                    <label class="quality-profile-card"><input type="radio" name="qualityProfile" value="balanced" data-ui-change="quality-profile"><span><strong data-i18n="quality.profile_balanced">Balanced</strong><small data-i18n="quality.profile_balanced_copy">Preserves answer quality while pruning only oversized, structurally safe history.</small></span></label>
+                                    <label class="quality-profile-card"><input type="radio" name="qualityProfile" value="capacity" data-ui-change="quality-profile"><span><strong data-i18n="quality.profile_capacity">Capacity</strong><small data-i18n="quality.profile_capacity_copy">Reduces long contexts earlier and enables exact-response caching for deterministic traffic.</small></span></label>
+                                    <label class="quality-profile-card"><input type="radio" name="qualityProfile" value="custom" data-ui-change="quality-profile"><span><strong data-i18n="quality.profile_custom">Custom</strong><small data-i18n="quality.profile_custom_copy">Unlocks advanced controls for an operator-defined policy.</small></span></label>
+                                </div>
+                            </fieldset>
+
+                            <div class="quality-policy-grid">
+                                <section class="config-group">
+                                    <h2 class="card-title" data-i18n="quality.response_integrity">Response integrity</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="quality.response_integrity_copy">Control instruction compatibility, reasoning visibility, and recovery from truncated output.</p>
+                                    <label class="switch-row"><input type="checkbox" id="compatibilityModeEnabled" class="config-checkbox" data-quality-control data-policy-field="compatibility_mode_enabled"><span data-i18n="settings.flatten_instructions">Flatten system instructions for compatibility</span></label>
+                                    <label class="switch-row"><input type="checkbox" id="returnThoughtsToFrontend" class="config-checkbox" data-quality-control data-policy-field="return_thoughts_to_frontend"><span data-i18n="settings.return_reasoning">Return reasoning content when available</span></label>
+                                    <div class="form-group"><label for="antiTruncationMaxAttempts" data-i18n="settings.recovery_attempts">Truncation recovery attempts</label><input type="number" id="antiTruncationMaxAttempts" min="1" max="10" required data-quality-control data-policy-field="anti_truncation_max_attempts"></div>
+                                </section>
+
+                                <section class="config-group">
+                                    <h2 class="card-title" data-i18n="settings.context_optimization">Context optimization</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="quality.compression_copy">Prune only complete history prefixes when the estimated context exceeds the threshold.</p>
+                                    <label class="switch-row"><input type="checkbox" id="tokenCompressionEnabled" class="config-checkbox" data-quality-control data-policy-field="token_compression_enabled"><span><strong data-i18n="settings.compress_history">Compress oversized conversation history</strong><small id="qualityCompressionOffMeaning" data-i18n="quality.compression_off_copy">When off, the gateway does not prune or rewrite prompt context. Threshold fields have no effect.</small></span></label>
+                                    <div class="quality-dependent-controls" data-quality-dependency="tokenCompressionEnabled">
+                                        <div class="form-group"><label for="tokenCompressionThreshold" data-i18n="settings.compression_threshold">Compression threshold in tokens</label><input type="number" id="tokenCompressionThreshold" min="128" max="2000000" required data-quality-control data-policy-field="token_compression_threshold"></div>
+                                        <div class="form-group"><label for="tokenCompressionTarget" data-i18n="settings.compression_target">Target size in tokens</label><input type="number" id="tokenCompressionTarget" min="64" max="1999999" required data-quality-control data-policy-field="token_compression_target"></div>
+                                        <div class="form-group"><label for="tokenCompressionMinRecentTurns" data-i18n="settings.recent_turns">Recent turns to preserve</label><input type="number" id="tokenCompressionMinRecentTurns" min="1" max="50" required data-quality-control data-policy-field="token_compression_min_recent_turns"></div>
+                                    </div>
+                                </section>
+
+                                <section class="config-group">
+                                    <h2 class="card-title" data-i18n="quality.guardrails">Request guardrails</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="quality.guardrails_copy">Inspect outbound text for injection patterns, blocked terms, and sensitive personal data.</p>
+                                    <label class="switch-row"><input type="checkbox" id="qualityGuardrailsEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_enabled"><span data-i18n="quality.enable_guardrails">Enable request guardrails</span></label>
+                                    <div class="quality-dependent-controls" data-quality-dependency="qualityGuardrailsEnabled">
+                                        <label class="switch-row"><input type="checkbox" id="qualityPiiMaskingEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_pii_masking_enabled"><span data-i18n="quality.mask_pii">Mask supported personal data</span></label>
+                                        <label class="switch-row"><input type="checkbox" id="qualityInjectionDetectionEnabled" class="config-checkbox" data-quality-control data-policy-field="guardrails_injection_detection_enabled"><span data-i18n="quality.detect_injection">Block prompt-injection patterns</span></label>
+                                        <div class="form-group"><label for="qualityBlockedKeywords" data-i18n="quality.blocked_keywords">Blocked keywords</label><textarea id="qualityBlockedKeywords" rows="3" maxlength="12900" data-quality-control data-policy-field="guardrails_blocked_keywords" data-i18n-placeholder="quality.blocked_keywords_placeholder" placeholder="One keyword per line or comma-separated"></textarea></div>
+                                    </div>
+                                </section>
+
+                                <section class="config-group">
+                                    <h2 class="card-title" data-i18n="quality.response_cache">Exact response cache</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="quality.response_cache_copy">Reuse only exact matches for non-streaming requests with temperature explicitly set to zero.</p>
+                                    <label class="switch-row"><input type="checkbox" id="qualityResponseCacheEnabled" class="config-checkbox" data-quality-control data-policy-field="response_cache_enabled"><span data-i18n="quality.enable_cache">Enable exact response cache</span></label>
+                                    <div class="quality-dependent-controls" data-quality-dependency="qualityResponseCacheEnabled">
+                                        <div class="form-group"><label for="qualityResponseCacheTtl" data-i18n="quality.cache_ttl">Entry lifetime in seconds</label><input type="number" id="qualityResponseCacheTtl" min="1" max="86400" required data-quality-control data-policy-field="response_cache_ttl_seconds"></div>
+                                        <div class="form-group"><label for="qualityResponseCacheMaxEntries" data-i18n="quality.cache_entries">Maximum cached responses</label><input type="number" id="qualityResponseCacheMaxEntries" min="1" max="100000" required data-quality-control data-policy-field="response_cache_max_entries"></div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <section class="config-group quality-preview-panel">
+                                <div class="quality-preview-heading">
+                                    <div><h2 class="card-title" data-i18n="quality.preview_title">Impact preview</h2><p class="card-copy card-title-copy" data-i18n="quality.preview_copy">Evaluate bounded request metadata locally in the gateway. No prompt content is sent and no provider is called.</p></div>
+                                    <button type="button" class="btn btn-secondary" id="qualityPreviewButton" data-ui-action="preview-quality-policy" data-i18n="quality.run_preview">Run preview</button>
+                                </div>
+                                <div class="quality-preview-inputs">
+                                    <div class="form-group"><label for="qualityPreviewTokens" data-i18n="quality.estimated_tokens">Estimated input tokens</label><input type="number" id="qualityPreviewTokens" value="40000" min="0" max="2000000" required></div>
+                                    <div class="form-group"><label for="qualityPreviewMessages" data-i18n="quality.message_count">Message count</label><input type="number" id="qualityPreviewMessages" value="24" min="0" max="100000" required></div>
+                                    <div class="form-group"><label for="qualityPreviewTools" data-i18n="quality.tool_count">Tool count</label><input type="number" id="qualityPreviewTools" value="2" min="0" max="10000" required></div>
+                                    <label class="switch-row"><input type="checkbox" id="qualityPreviewSystem" checked><span data-i18n="quality.has_system">Has system instruction</span></label>
+                                    <label class="switch-row"><input type="checkbox" id="qualityPreviewToolPairs" checked><span data-i18n="quality.has_tool_pairs">Has tool-call/result pairs</span></label>
+                                </div>
+                                <div id="qualityPreviewResult" class="quality-preview-result hidden" role="status" aria-live="polite">
+                                    <div><span data-i18n="quality.preview_before">Before</span><strong id="qualityPreviewBefore">—</strong></div>
+                                    <div><span data-i18n="quality.preview_after">After</span><strong id="qualityPreviewAfter">—</strong></div>
+                                    <div><span data-i18n="quality.preview_saved">Estimated saved</span><strong id="qualityPreviewSaved">—</strong></div>
+                                    <div><span data-i18n="quality.preview_removed">Estimated removed messages</span><strong id="qualityPreviewRemoved">—</strong></div>
+                                    <div><span data-i18n="quality.preview_decision">Decision</span><strong id="qualityPreviewDecision">—</strong></div>
+                                    <div><span data-i18n="quality.preview_scope">Transformation scope</span><strong id="qualityPreviewScope">—</strong></div>
+                                    <p id="qualityPreviewProtection"></p>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>

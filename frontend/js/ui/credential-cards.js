@@ -159,7 +159,7 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
 
         : `<span>${escapeHtml(providerMeta.name.charAt(0))}</span>`;
 
-    const countLabel = t('credential_count', {count: credentials.length});
+    const countLabel = t('credential_count', {count: formatConsoleNumber(credentials.length)});
 
     section.innerHTML = `
 
@@ -262,18 +262,23 @@ function createCredCard(credInfo, manager) {
 
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
-    const isGoogleAIStudio = providerMeta.id === 'google_ai_studio';
-    const isXai = ['xai', 'grok', 'xai_console'].includes(providerMeta.id);
-    const isOpenAI = ['codex', 'openai_platform'].includes(providerMeta.id);
-    const isAnthropic = ['claude_code', 'claude_platform'].includes(providerMeta.id);
-    const isOllama = providerMeta.id === 'ollama';
-    const isGrokOAuth = providerMeta.id === 'grok' && credInfo.credential_type !== 'api_key';
-    const isCodexOAuth = providerMeta.id === 'codex' && credInfo.credential_type === 'oauth';
     const isAntigravity = providerMeta.id === 'google_antigravity';
-    const isStaticProvider = isGoogleAIStudio || isXai || isOpenAI || isAnthropic || isOllama;
+    const isCodexOAuth = providerMeta.id === 'codex' && credInfo.credential_type === 'oauth';
+    const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
     const supportsQuotaPreview = managerType === 'primary'
-        && (isAntigravity || isGrokOAuth || isCodexOAuth);
+        && manager.credentialSupportsOperation(credInfo, 'quota');
+    const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
+    const supportsExport = manager.credentialSupportsOperation(credInfo, 'export');
+    const supportsModelDiscovery = manager.credentialSupportsOperation(credInfo, 'model_discovery');
+    const supportsCreditMode = manager.credentialSupportsOperation(credInfo, 'credit_mode');
+    const supportsVerify = manager.credentialSupportsOperation(credInfo, 'verify');
+    const supportsTest = manager.credentialSupportsOperation(credInfo, 'test');
+    const supportsDelete = manager.credentialSupportsOperation(credInfo, 'delete');
+    const supportsEdit = managerType === 'primary' && isManagedCredential
+        && manager.credentialSupportsOperation(credInfo, 'edit');
+    const supportsReauthenticate = managerType === 'primary' && isManagedCredential
+        && manager.credentialSupportsOperation(credInfo, 'reauthenticate');
     const shouldAutoLoadQuota = supportsQuotaPreview && !AppState.quotaPreviewCache[filename];
 
     if (shouldAutoLoadQuota) {
@@ -320,6 +325,10 @@ function createCredCard(credInfo, manager) {
 
     statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo);
 
+    if (!isManagedCredential) {
+        statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
+    }
+
     if (isAntigravity) {
 
         statusBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
@@ -332,7 +341,7 @@ function createCredCard(credInfo, manager) {
             'plan'
         );
 
-    } else if (!isStaticProvider) {
+    } else if (managerType !== 'primary') {
 
         const tier = (credInfo.tier || 'pro').toString().toLowerCase();
 
@@ -406,30 +415,44 @@ function createCredCard(credInfo, manager) {
         email: credInfo.user_email || '',
         accountLabel: credInfo.user_email || credInfo.credential_label || '',
         providerName: providerMeta.name,
+        providerVariant: providerMeta.id,
+        credentialSource: credInfo.source || 'managed',
         modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
         subscriptionPlan: isAntigravity ? credInfo.tier : '',
         subscriptionKind: isAntigravity ? 'plan' : '',
     };
 
-    const actionButtons = `
+    const primaryActionButtons = `
 
-        ${status.disabled
+        ${supportsDisable ? (status.disabled
 
             ? `<button type="button" class="cred-btn enable" data-credential-command="enable">${t('action_enable')}</button>`
 
             : `<button type="button" class="cred-btn disable" data-credential-command="disable">${t('action_disable')}</button>`
 
-        }
+        ) : ''}
+
+        ${supportsTest ? `<button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>` : ''}
 
         <button type="button" class="cred-btn view" data-credential-command="view" title="${escapeAttribute(t('btn_view_content_title'))}">${t('btn_view_content')}</button>
 
-        <button type="button" class="cred-btn download" data-credential-command="download">${t('btn_download')}</button>
+        ${supportsDelete ? `<button type="button" class="cred-btn delete" data-credential-command="delete">${t('action_delete')}</button>` : ''}
 
-        ${isStaticProvider && Number(credInfo.model_count) > 0 ? `<button type="button" class="cred-btn" data-credential-command="models" title="${escapeAttribute(t('btn_view_models_title'))}">${t('btn_view_models')}</button>` : ''}
+    `;
+
+    const secondaryActionButtons = `
+
+        ${supportsEdit ? `<button type="button" class="cred-btn" data-credential-command="edit">${t('credential_edit_action')}</button>` : ''}
+
+        ${supportsReauthenticate ? `<button type="button" class="cred-btn" data-credential-command="reauthenticate">${t('credential_reauthenticate_action')}</button>` : ''}
+
+        ${supportsExport ? `<button type="button" class="cred-btn download" data-credential-command="download">${t('btn_download')}</button>` : ''}
+
+        ${supportsModelDiscovery && Number(credInfo.model_count) > 0 ? `<button type="button" class="cred-btn" data-credential-command="models" title="${escapeAttribute(t('btn_view_models_title'))}">${t('btn_view_models')}</button>` : ''}
 
         ${supportsQuotaPreview ? `<button type="button" class="cred-btn" data-credential-command="quota" title="${escapeAttribute(t('btn_view_quota_title'))}">${t('btn_view_quota')}</button>` : ''}
 
-        ${managerType === 'primary' && isAntigravity ? (credInfo.enable_credit
+        ${managerType === 'primary' && supportsCreditMode ? (credInfo.enable_credit
 
             ? `<button type="button" class="cred-btn" data-credential-command="disable_credit" title="${escapeAttribute(t('btn_disable_credit_title'))}">${t('btn_disable_credit')}</button>`
 
@@ -439,13 +462,9 @@ function createCredCard(credInfo, manager) {
 
         ${managerType !== 'primary' ? `<button type="button" class="cred-btn" data-credential-command="preview" title="${escapeAttribute(t('btn_setup_preview_title'))}">${t('btn_setup_preview')}</button>` : ''}
 
-        <button type="button" class="cred-btn" data-credential-command="verify" title="${escapeAttribute(t('btn_verify_id_title'))}">${t('btn_verify_id')}</button>
-
-        <button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>
+        ${supportsVerify ? `<button type="button" class="cred-btn" data-credential-command="verify" title="${escapeAttribute(t('btn_verify_id_title'))}">${t('btn_verify_id')}</button>` : ''}
 
         <button type="button" class="cred-btn" data-credential-command="errors" title="${escapeAttribute(t('btn_view_errors_title'))}">${t('btn_view_errors')}</button>
-
-        <button type="button" class="cred-btn delete" data-credential-command="delete">${t('action_delete')}</button>
 
     `;
 
@@ -476,7 +495,13 @@ function createCredCard(credInfo, manager) {
 
         </div>
 
-        <div class="cred-actions">${actionButtons}</div>
+        <div class="cred-actions">
+            <div class="cred-actions-primary">${primaryActionButtons}</div>
+            <details class="cred-actions-secondary">
+                <summary>${t('pool.actions.more')}</summary>
+                <div class="cred-actions-secondary-grid">${secondaryActionButtons}</div>
+            </details>
+        </div>
 
     `;
 
@@ -522,6 +547,8 @@ function createCredCard(credInfo, manager) {
                 else downloadCred(filename);
             }
             if (command === 'quota') await togglePrimaryQuotaDetails(pathId);
+            if (command === 'edit') await showCredentialEditModal(pathId);
+            if (command === 'reauthenticate') reauthenticateCredential(pathId);
             if (command === 'models') await showCredentialModels(pathId);
             if (command === 'preview') await configurePreviewChannel(filename);
             if (command === 'verify') {

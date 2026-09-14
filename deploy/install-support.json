@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "canonical": {
+    "deployment": "docker-compose",
+    "compose_file": "deploy/docker-compose.yml",
+    "environment_template": "deploy/compose.env.example",
+    "guide": "docs/installation.md",
+    "workers": 1,
+    "replicas": 1
+  },
+  "architectures": [
+    {
+      "platform": "linux/amd64",
+      "status": "published-supported",
+      "evidence": ".github/workflows/docker-publish.yml"
+    },
+    {
+      "platform": "linux/arm64",
+      "status": "not-published",
+      "evidence": ".github/workflows/docker-publish.yml",
+      "reason": "The complete locked provider dependency stack does not yet have equivalent ARM64 build and runtime evidence."
+    }
+  ],
+  "hosts": [
+    {
+      "id": "windows-docker-desktop-wsl2",
+      "tier": "core",
+      "verification": "local-runtime",
+      "evidence": "docs/evidence/p1.6-supported-install-matrix.md",
+      "prerequisites": [
+        "Docker Desktop with the WSL2 backend",
+        "Linux containers",
+        "Docker Compose v2",
+        "Git"
+      ],
+      "known_differences": [
+        "Use PowerShell syntax when copying the environment template.",
+        "A separately installed user Linux distribution is not required by the canonical Compose path."
+      ]
+    },
+    {
+      "id": "linux-docker-engine",
+      "tier": "core",
+      "verification": "required-ci",
+      "evidence": ".github/workflows/ci.yml#container-smoke",
+      "prerequisites": [
+        "Docker Engine",
+        "Docker Compose v2 plugin",
+        "Git",
+        "Permission to access the Docker daemon"
+      ],
+      "known_differences": [
+        "Docker commands may require sudo when the operator is not authorized through the Docker group.",
+        "Firewall and remote TLS configuration remain the host operator's responsibility."
+      ]
+    },
+    {
+      "id": "macos-docker-desktop",
+      "tier": "core",
+      "verification": "manual-check",
+      "evidence": "docs/installation.md#remaining-macos-manual-check",
+      "prerequisites": [
+        "Docker Desktop",
+        "Docker Compose v2",
+        "Git"
+      ],
+      "known_differences": [
+        "The named data volume is stored inside the Docker Desktop Linux virtual machine.",
+        "Apple Silicon has no native linux/arm64 release image; amd64 emulation is compatibility-only until the manual check is recorded."
+      ]
+    }
+  ],
+  "alternatives": [
+    {
+      "path": "deploy/scripts/install.ps1",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/install.sh",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/macos-install.sh",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/start.bat",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/start.sh",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/termux-install.sh",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/scripts/termux-start.sh",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/render.yaml",
+      "tier": "compatibility"
+    },
+    {
+      "path": "deploy/zeabur.yaml",
+      "tier": "compatibility"
+    }
+  ]
+}

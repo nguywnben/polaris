@@ -1,4 +1,4 @@
-// Omni Gateway management console: core.
+// Polaris management console: core.
 
 const TRANSLATIONS = {
     en: {
@@ -4956,7 +4956,7 @@ const TRANSLATIONS = {
 
 // =====================================================================
 
-const LANGUAGE_STORAGE_KEY = 'omni_gateway_console_locale';
+const LANGUAGE_STORAGE_KEY = 'polaris_console_locale';
 
 // Legacy actions still use generated keys. Keep their fallback concise and
 // intentional until each flow is migrated to a named semantic key.
@@ -5060,13 +5060,27 @@ function getMessageCatalog(locale) {
     };
 }
 
+const MESSAGE_CATALOGS = Object.fromEntries(
+    Object.keys(SUPPORTED_LOCALES).map((locale) => [locale, getMessageCatalog(locale)])
+);
+
+function indexFirstKeyByMessage(catalog) {
+    const index = new Map();
+    Object.entries(catalog).forEach(([key, message]) => {
+        if (!index.has(message)) index.set(message, key);
+    });
+    return index;
+}
+
+const ENGLISH_SEMANTIC_KEYS_BY_MESSAGE = indexFirstKeyByMessage(MESSAGE_CATALOGS.en);
+const ENGLISH_LEGACY_KEYS_BY_MESSAGE = indexFirstKeyByMessage(TRANSLATIONS.en || {});
+
 function translateEnglishSource(source, locale) {
-    const englishMessages = getMessageCatalog('en');
-    const localizedMessages = getMessageCatalog(locale);
-    const semanticKey = Object.keys(englishMessages).find((key) => englishMessages[key] === source);
+    const localizedMessages = MESSAGE_CATALOGS[locale] || MESSAGE_CATALOGS.en;
+    const semanticKey = ENGLISH_SEMANTIC_KEYS_BY_MESSAGE.get(source);
     if (semanticKey && localizedMessages[semanticKey]) return localizedMessages[semanticKey];
 
-    const legacyKey = Object.keys(TRANSLATIONS.en || {}).find((key) => TRANSLATIONS.en[key] === source);
+    const legacyKey = ENGLISH_LEGACY_KEYS_BY_MESSAGE.get(source);
     if (legacyKey && TRANSLATIONS[locale]?.[legacyKey]) return TRANSLATIONS[locale][legacyKey];
     return '';
 }
@@ -5147,26 +5161,12 @@ function detectBrowserLocale() {
 function t(key, vars = {}) {
 
     const lang = getActiveLocale();
-    const localeMessages = {
-        ...(COMMON_UI_TRANSLATIONS[lang] || {}),
-        ...(SETTINGS_LOCALE_TRANSLATIONS[lang] || {}),
-        ...(AUTH_LOCALE_TRANSLATIONS[lang] || {}),
-        ...(DIALOG_LOCALE_TRANSLATIONS[lang] || {}),
-        ...(PAGE_LOCALE_TRANSLATIONS[lang] || {}),
-        ...(SUPPORTED_LOCALES[lang]?.messages || {})
-    };
-    const englishMessages = {
-        ...COMMON_UI_TRANSLATIONS.en,
-        ...SETTINGS_LOCALE_TRANSLATIONS.en,
-        ...AUTH_LOCALE_TRANSLATIONS.en,
-        ...DIALOG_LOCALE_TRANSLATIONS.en,
-        ...PAGE_LOCALE_TRANSLATIONS.en,
-        ...SUPPORTED_LOCALES.en.messages
-    };
+    const localeMessages = MESSAGE_CATALOGS[lang] || MESSAGE_CATALOGS.en;
+    const englishMessages = MESSAGE_CATALOGS.en;
 
     const legacySource = TRANSLATIONS.en && TRANSLATIONS.en[key];
     const semanticAlias = legacySource
-        ? Object.keys(englishMessages).find((semanticKey) => englishMessages[semanticKey] === legacySource)
+        ? ENGLISH_SEMANTIC_KEYS_BY_MESSAGE.get(legacySource)
         : '';
     let text = localeMessages[key]
         || (TRANSLATIONS[lang] && TRANSLATIONS[lang][key])
@@ -5188,7 +5188,7 @@ function t(key, vars = {}) {
 
 function formatCountLabel(count, singular, plural = `${singular}s`) {
     const numericCount = Number(count || 0);
-    const formattedCount = new Intl.NumberFormat(getActiveLocale()).format(numericCount);
+    const formattedCount = formatConsoleNumber(numericCount);
     return `${formattedCount} ${numericCount === 1 ? singular : plural}`;
 }
 
@@ -5403,7 +5403,7 @@ function applyLanguage() {
 
     applyProviderWorkspaceTranslations(lang);
 
-    document.dispatchEvent(new CustomEvent('omni:locale-change', { detail: { locale: lang } }));
+    document.dispatchEvent(new CustomEvent('polaris:locale-change', { detail: { locale: lang } }));
 
 }
 

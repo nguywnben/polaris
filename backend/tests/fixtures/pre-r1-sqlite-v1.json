@@ -1,0 +1,29 @@
+{
+  "fixture_version": 1,
+  "source": "pre-r1-unversioned-credential-store",
+  "credentials": [
+    {
+      "filename": "legacy/path/legacy-account.json",
+      "credential_data": {
+        "type": "authorized_user",
+        "refresh_token": "fixture-only-redacted"
+      }
+    }
+  ],
+  "primary_credentials": [
+    {
+      "filename": "legacy/path/legacy-primary.json",
+      "credential_data": {
+        "type": "api_key",
+        "fixture": "non-secret"
+      }
+    }
+  ],
+  "legacy_config": {
+    "password": "fixture-password-hash",
+    "api_password": "fixture-obsolete-value",
+    "client_id": "fixture-client-id",
+    "client_secret": "fixture-client-secret",
+    "api_url": "https://legacy.example.test"
+  }
+}

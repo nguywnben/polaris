@@ -42,16 +42,17 @@ class VersionInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(body["version"], "1.0.0")
         self.assertEqual(body["full_hash"], "abcdef1234567890")
         self.assertEqual(body["date"], "2026-07-11T10:00:00Z")
+        self.assertEqual(body["source"], "container")
 
     async def test_update_check_uses_the_latest_public_release(self):
         remote = FakeResponse(
             200,
             {
                 "tag_name": "v1.1.0",
-                "name": "Omni Gateway 1.1.0",
+                "name": "Polaris 1.1.0",
                 "body": "Release hardening.\n\nDetails.",
                 "published_at": "2026-08-11T12:00:00Z",
-                "html_url": "https://github.com/nguywnben/omni-gateway/releases/tag/v1.1.0",
+                "html_url": "https://github.com/nguywnben/polaris/releases/tag/v1.1.0",
             },
         )
         with (
@@ -68,15 +69,15 @@ class VersionInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(body["check_update"])
         self.assertTrue(body["has_update"])
         self.assertEqual(body["latest_version"], "1.1.0")
-        self.assertEqual(body["latest_message"], "Omni Gateway 1.1.0")
+        self.assertEqual(body["latest_message"], "Polaris 1.1.0")
         self.assertEqual(
             body["latest_url"],
-            "https://github.com/nguywnben/omni-gateway/releases/tag/v1.1.0",
+            "https://github.com/nguywnben/polaris/releases/tag/v1.1.0",
         )
         requested_url = get.await_args.args[0]
         self.assertEqual(
             requested_url,
-            "https://api.github.com/repos/nguywnben/omni-gateway/releases/latest",
+            "https://api.github.com/repos/nguywnben/polaris/releases/latest",
         )
 
     def test_semantic_release_comparison_handles_stable_and_prerelease_versions(self):

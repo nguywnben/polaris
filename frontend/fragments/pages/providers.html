@@ -9,12 +9,11 @@
 
                     <div class="provider-catalog-toolbar" role="search">
                         <div>
-                            <strong data-i18n="providers.catalog">Provider Catalog</strong>
+                            <strong id="providerCatalogTitle" data-i18n="providers.catalog">Provider Catalog</strong>
                             <p data-i18n="providers.catalog_description">Choose a connection type, then add credentials to the shared routing pool.</p>
                         </div>
                         <div class="provider-catalog-search-group">
-                            <label class="provider-catalog-search-label" for="providerCatalogSearch" data-i18n="providers.find">Find a provider</label>
-                            <input type="search" id="providerCatalogSearch" class="provider-catalog-search" placeholder="Search providers" data-i18n-placeholder="providers.search" autocomplete="off" data-ui-input="provider-catalog-search">
+                            <input type="search" id="providerCatalogSearch" class="provider-catalog-search" aria-label="Find a provider" data-i18n-aria-label="providers.find" placeholder="Search providers" data-i18n-placeholder="providers.search" autocomplete="off" data-ui-input="provider-catalog-search">
                         </div>
                     </div>
 
@@ -146,7 +145,10 @@
                     </div>
 
                     <p id="providerCatalogEmpty" class="provider-catalog-empty hidden" aria-live="polite" data-i18n="providers.no_matches">No providers match your search.</p>
-
+                    <div class="provider-capability-status" id="providerCapabilityStatus" data-state="loading" role="status" aria-live="polite">
+                        <span id="providerCapabilityStatusText" data-i18n="providers.capabilities_loading">Loading supported connection capabilities...</span>
+                        <button type="button" class="btn btn-secondary btn-small hidden" id="providerCapabilityRetryBtn" data-ui-action="retry-provider-capabilities" data-i18n="providers.retry">Retry</button>
+                    </div>
                     <section class="provider-workspace hidden" id="providerWorkspaceGrok" role="tabpanel" aria-labelledby="providerSelectorGrok">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
@@ -231,7 +233,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">Grok Build Advanced Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build">Grok Build Advanced Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure the public OAuth client and authorization issuer used for Grok Build accounts.</p>
                                 </div>
                                 <div class="page-actions">
@@ -244,8 +246,8 @@
                                 <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div>
                             </div>
                             <div id="grokSettingsForm" class="config-grid provider-config-grid hidden">
-                                <div class="form-group"><label for="xaiClientId">OAuth client ID</label><input type="text" id="xaiClientId" autocomplete="off"></div>
-                                <div class="form-group"><label for="xaiOauthIssuer">OAuth issuer</label><input type="url" id="xaiOauthIssuer" autocomplete="off"></div>
+                                <div class="form-group"><label for="xaiClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="xaiClientId" autocomplete="off"></div>
+                                <div class="form-group"><label for="xaiOauthIssuer" data-provider-form-copy="oauth_issuer">OAuth issuer</label><input type="url" id="xaiOauthIssuer" autocomplete="off"></div>
                             </div>
                         </section>
                     </section>
@@ -264,7 +266,7 @@
 
                         <div class="provider-tools-grid">
                             <section class="tool-panel">
-                                <h2 class="card-title">SpaceXAI Console API Key</h2>
+                                <h2 class="card-title" data-provider-form-copy="api_key_title" data-provider-name="SpaceXAI Console">SpaceXAI Console API Key</h2>
                                 <p class="card-copy provider-tool-copy">Validate a SpaceXAI Console API key, discover its available models, and add it to the active pool.</p>
                                 <form id="xaiCredentialForm" autocomplete="off">
                                     <div class="form-group">
@@ -321,7 +323,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">Grok Build and SpaceXAI Console Transport Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build / SpaceXAI Console">Grok Build and SpaceXAI Console Transport Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure the API endpoint and HTTP identity shared by Grok Build OAuth accounts and SpaceXAI Console API keys.</p>
                                 </div>
                                 <div class="page-actions">
@@ -353,7 +355,7 @@
                         </div>
                         <div class="provider-tools-grid">
                         <section class="tool-panel">
-                            <h2 class="card-title">Google AI Studio API Key</h2>
+                            <h2 class="card-title" data-provider-form-copy="api_key_title" data-provider-name="Google AI Studio">Google AI Studio API Key</h2>
                             <p class="card-copy provider-tool-copy">Validate a Gemini API key and add it to the active provider pool.</p>
                             <form id="googleAiStudioCredentialForm" autocomplete="off">
                                 <div class="form-group">
@@ -413,7 +415,7 @@
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">Google AI Studio Advanced Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google AI Studio">Google AI Studio Advanced Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure the upstream endpoint used to validate API keys and route Google AI Studio requests.</p>
                                 </div>
                                 <div class="page-actions">
@@ -426,11 +428,11 @@
                             </div>
                             <div id="googleAiStudioSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden">
                                 <section class="provider-settings-group">
-                                    <h3>Upstream Endpoint</h3>
+                                    <h3 data-provider-form-copy="upstream_endpoint">Upstream Endpoint</h3>
                                     <p class="card-copy provider-tool-copy">Set the Google Generative Language API host used for validation and inference.</p>
                                     <div class="form-group">
                                         <label for="googleAiStudioApiUrl">Google AI Studio API</label>
-                                        <input type="url" id="googleAiStudioApiUrl" placeholder="https://generativelanguage.googleapis.com">
+                                        <input type="url" id="googleAiStudioApiUrl" placeholder="https://generativelanguage.googleapis.com" autocomplete="url" required>
                                     </div>
                                 </section>
                             </div>
@@ -489,7 +491,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">Codex Advanced Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Codex">Codex Advanced Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure authorization, inference, model discovery, and account quota services for Codex credentials.</p>
                                 </div>
                                 <div class="page-actions">
@@ -504,9 +506,9 @@
                             <div id="codexSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden">
                                 <section class="provider-settings-group config-two-column">
                                     <div class="form-group"><label for="codexApiUrl">Codex API</label><input type="url" id="codexApiUrl" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexUsageUrl">Usage API</label><input type="url" id="codexUsageUrl" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexAuthBase">Authorization service</label><input type="url" id="codexAuthBase" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexClientId">OAuth client ID</label><input type="text" id="codexClientId" autocomplete="off"></div>
+                                    <div class="form-group"><label for="codexUsageUrl" data-provider-form-copy="usage_api">Usage API</label><input type="url" id="codexUsageUrl" autocomplete="off"></div>
+                                    <div class="form-group"><label for="codexAuthBase" data-provider-form-copy="authorization_service">Authorization service</label><input type="url" id="codexAuthBase" autocomplete="off"></div>
+                                    <div class="form-group"><label for="codexClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="codexClientId" autocomplete="off"></div>
                                     <div class="form-group"><label for="codexUserAgent">HTTP User-Agent</label><input type="text" id="codexUserAgent" autocomplete="off"></div>
                                 </section>
                             </div>
@@ -523,7 +525,7 @@
 
                         <div class="provider-tools-grid">
                             <section class="tool-panel">
-                                <h2 class="card-title">OpenAI Platform API Key</h2>
+                                <h2 class="card-title" data-provider-form-copy="api_key_title" data-provider-name="OpenAI Platform">OpenAI Platform API Key</h2>
                                 <p class="card-copy provider-tool-copy">Validate an API key against the model catalog, then add it to the active pool.</p>
                                 <form id="openaiPlatformCredentialForm" autocomplete="off"><div class="form-group"><label for="openaiPlatformApiKey">API key</label><input type="password" id="openaiPlatformApiKey" name="openai-platform-api-key" placeholder="Enter an OpenAI API key" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false" required></div><button type="submit" class="btn" id="addOpenaiPlatformKeyBtn">Validate and add</button></form>
                                 <div id="openaiPlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="openaiPlatformSaveResultTitle">API key added to pool</strong><p id="openaiPlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
@@ -543,7 +545,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">OpenAI Platform Advanced Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="OpenAI Platform">OpenAI Platform Advanced Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure the API endpoint used for key validation, model discovery, and inference.</p>
                                 </div>
                                 <div class="page-actions">
@@ -614,7 +616,7 @@
                             <div class="provider-workspace-heading"><div class="provider-workspace-logo"><img src="/frontend/assets/providers/ollama-logo.png" alt=""></div><div><h2>Ollama</h2><p>Connect local, remote, or cloud model servers and route every model they expose.</p><a class="provider-site-link" href="https://ollama.com/" target="_blank" rel="noreferrer">https://ollama.com/</a></div></div>
                         </div>
                         <div class="provider-tools-grid">
-                            <section class="tool-panel"><h2 class="card-title">Ollama Connection</h2><p class="card-copy provider-tool-copy">Validate an Ollama endpoint, discover its models, and add it to the active pool.</p><form id="ollamaCredentialForm" autocomplete="off"><div class="form-group"><label for="ollamaBaseUrl">Endpoint</label><input type="url" id="ollamaBaseUrl" value="http://localhost:11434" placeholder="http://localhost:11434" autocomplete="off" required></div><div class="form-group"><label for="ollamaApiKey">API key <span class="field-optional">Optional</span></label><input type="password" id="ollamaApiKey" name="ollama-api-key" placeholder="Required only by protected or cloud endpoints" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false"></div><p class="form-help">Containers cannot reach the host through their own localhost. Use the host gateway or a network-reachable endpoint when Omni Gateway runs in Docker.</p><button type="submit" class="btn" id="addOllamaBtn">Validate and add</button></form><div id="ollamaSaveResult" class="save-result provider-save-result hidden"><div><strong id="ollamaSaveResultTitle">Ollama connection added to pool</strong><p id="ollamaSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
+                            <section class="tool-panel"><h2 class="card-title">Ollama Connection</h2><p class="card-copy provider-tool-copy">Validate an Ollama endpoint, discover its models, and add it to the active pool.</p><form id="ollamaCredentialForm" autocomplete="off"><div class="form-group"><label for="ollamaBaseUrl">Endpoint</label><input type="url" id="ollamaBaseUrl" value="http://localhost:11434" placeholder="http://localhost:11434" autocomplete="off" required></div><div class="form-group"><label for="ollamaApiKey">API key <span class="field-optional">Optional</span></label><input type="password" id="ollamaApiKey" name="ollama-api-key" placeholder="Required only by protected or cloud endpoints" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false"></div><button type="submit" class="btn" id="addOllamaBtn">Validate and add</button></form><div id="ollamaSaveResult" class="save-result provider-save-result hidden"><div><strong id="ollamaSaveResultTitle">Ollama connection added to pool</strong><p id="ollamaSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
                             <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p class="card-copy provider-tool-copy">Import Ollama connection JSON files or ZIP archives.</p><button type="button" class="upload-area" id="ollamaUploadArea" aria-describedby="ollamaUploadHelp" data-ui-action="select-ollama-files"><div><div class="upload-title">Drop connection files here</div><p class="upload-copy" id="ollamaUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="ollamaFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="ollama-files"><div id="ollamaFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="ollamaFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-ollama-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-ollama-files">Clear</button></div></div><div id="ollamaUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="ollamaProgressFill"></div></div><p id="ollamaProgressText" class="page-description provider-progress-copy">0%</p></div><div id="ollamaUploadResult" class="save-result upload-result hidden"><div><strong id="ollamaUploadResultTitle">Import complete</strong><p id="ollamaUploadResultText"></p><div id="ollamaUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
                         </div>
                     </section>
@@ -629,10 +631,10 @@
                                     <a class="provider-site-link" href="https://antigravity.google/" target="_blank" rel="noreferrer">https://antigravity.google/</a>
                                 </div>
                             </div>
-                            <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" style="display: none;">
-                                <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" title="Previous page" aria-label="Previous page">Previous</button>
-                                <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite">Page 1 of 2</div>
-                                <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" title="Next page" aria-label="Next page">Next</button>
+                            <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
+                                <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
+                                <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
+                                <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
                             </div>
                         </div>
                         <div class="provider-tools-grid">
@@ -655,7 +657,7 @@
                                 <div id="primaryCallbackUrlSection" class="oauth-completion-panel hidden">
                                     <label for="primaryCallbackUrlInput">Callback URL</label>
                                     <p class="card-copy provider-tool-copy">If Google opens a localhost callback page after sign-in, copy the full URL from that tab and paste it here.</p>
-                                    <textarea id="primaryCallbackUrlInput" rows="3" placeholder="http://localhost:4283/callback?state=...&code=..."></textarea>
+                                    <textarea id="primaryCallbackUrlInput" rows="3" placeholder="http://localhost:4283/callback?state=...&code=..." autocomplete="off" spellcheck="false"></textarea>
                                 </div>
 
                                 <div class="page-actions" style="margin-top: 14px;">
@@ -718,7 +720,7 @@
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title">Google Antigravity Advanced Settings</h2>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google Antigravity">Google Antigravity Advanced Settings</h2>
                                     <p class="card-copy provider-tool-copy">Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.</p>
                                 </div>
                                 <div class="page-actions">
@@ -735,29 +737,29 @@
 
                             <div id="antigravitySettingsForm" class="provider-settings-grid hidden">
                                 <section class="provider-settings-group">
-                                    <h3>OAuth Client</h3>
+                                    <h3 data-provider-form-copy="oauth_client">OAuth Client</h3>
                                     <p class="card-copy provider-tool-copy">Manage the OAuth application used for Google Antigravity authorization.</p>
-                                    <div class="form-group"><label for="antigravityOauthClientId">Client ID</label><input type="text" id="antigravityOauthClientId" autocomplete="off"></div>
-                                    <div class="form-group"><label for="antigravityOauthClientSecret">Client secret</label><input type="text" id="antigravityOauthClientSecret" autocomplete="off"></div>
+                                    <div class="form-group"><label for="antigravityOauthClientId">Client ID</label><input type="text" id="antigravityOauthClientId" autocomplete="off" required></div>
+                                    <div class="form-group"><label for="antigravityOauthClientSecret">Client secret</label><input type="password" id="antigravityOauthClientSecret" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-bwignore="true" required></div>
                                 </section>
 
                                 <section class="provider-settings-group">
-                                    <h3>Upstream Endpoints</h3>
+                                    <h3 data-provider-form-copy="upstream_endpoints">Upstream Endpoints</h3>
                                     <p class="card-copy provider-tool-copy">Configure provider and Google API hosts used by Google Antigravity requests.</p>
-                                    <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="text" id="antigravityApiUrl"></div>
-                                    <div class="form-group"><label for="antigravityOauthUrl">OAuth API</label><input type="text" id="antigravityOauthUrl"></div>
-                                    <div class="form-group"><label for="antigravityGoogleApisUrl">Google APIs</label><input type="text" id="antigravityGoogleApisUrl"></div>
-                                    <div class="form-group"><label for="antigravityResourceManagerUrl">Resource Manager API</label><input type="text" id="antigravityResourceManagerUrl"></div>
-                                    <div class="form-group"><label for="antigravityServiceUsageUrl">Service Usage API</label><input type="text" id="antigravityServiceUsageUrl"></div>
+                                    <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="url" id="antigravityApiUrl" autocomplete="url" required></div>
+                                    <div class="form-group"><label for="antigravityOauthUrl">OAuth API</label><input type="url" id="antigravityOauthUrl" autocomplete="url" required></div>
+                                    <div class="form-group"><label for="antigravityGoogleApisUrl">Google APIs</label><input type="url" id="antigravityGoogleApisUrl" autocomplete="url" required></div>
+                                    <div class="form-group"><label for="antigravityResourceManagerUrl">Resource Manager API</label><input type="url" id="antigravityResourceManagerUrl" autocomplete="url" required></div>
+                                    <div class="form-group"><label for="antigravityServiceUsageUrl">Service Usage API</label><input type="url" id="antigravityServiceUsageUrl" autocomplete="url" required></div>
                                 </section>
 
                                 <section class="provider-settings-group">
-                                    <h3>Protocol Behavior</h3>
+                                    <h3 data-provider-form-copy="protocol_behavior">Protocol Behavior</h3>
                                     <p class="card-copy provider-tool-copy">Tune headers, streaming conversion, and retry credential switching.</p>
-                                    <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
-                                    <div class="form-group"><label for="antigravityPayloadUserAgent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
-                                    <label class="switch-row"><input type="checkbox" id="antigravityStreamToNonstream" class="config-checkbox"><span>Collect streaming responses for non-stream clients</span></label>
-                                    <label class="switch-row" style="margin-top: 12px;"><input type="checkbox" id="antigravitySwitchCredential" class="config-checkbox"><span>Switch Google Antigravity credentials during retries</span></label>
+                                    <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
+                                    <div class="form-group"><label for="antigravityPayloadUserAgent" data-provider-form-copy="payload_user_agent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
+                                    <label class="switch-row"><input type="checkbox" id="antigravityStreamToNonstream" class="config-checkbox"><span data-provider-form-copy="stream_to_nonstream">Collect streaming responses for non-stream clients</span></label>
+                                    <label class="switch-row" style="margin-top: 12px;"><input type="checkbox" id="antigravitySwitchCredential" class="config-checkbox"><span data-provider-form-copy="switch_credential">Switch Google Antigravity credentials during retries</span></label>
                                 </section>
                             </div>
                         </section>

@@ -1,4 +1,5 @@
 @echo off
+REM Compatibility path for native Python installs. Canonical production: docs/installation.md.
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
@@ -20,5 +21,5 @@ echo [INFO] Installing Python dependencies...
 uv pip install --require-hashes -r requirements.lock
 if errorlevel 1 exit /b 1
 
-echo [INFO] Starting Omni Gateway...
+echo [INFO] Starting Polaris...
 ".venv\Scripts\python.exe" backend\main.py

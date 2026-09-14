@@ -1,4 +1,4 @@
-"""Semantic Vector Caching Layer for Omni Gateway.
+"""Semantic Vector Caching Layer for Polaris.
 
 Provides near-instant cache hits for semantically similar prompts using
 vector cosine similarity matching (in-memory fast index or vector store).

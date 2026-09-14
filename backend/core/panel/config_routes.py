@@ -1,6 +1,17 @@
+import asyncio
+import os
+
 import config
 from core.auth import verify_password
+from core.configuration_schema import (
+    CONFIGURATION_FIELDS,
+    ApplyMode,
+    ConfigurationError,
+    settings_metadata,
+    validate_config_updates,
+)
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.identity import get_session_service
 from core.keep_alive import keep_alive_service
 from core.models import AccessCredentialsUpdateRequest, ConfigSaveRequest
 from core.passwords import hash_password
@@ -16,63 +27,47 @@ from log import configure_logging, log
 from .utils import get_env_locked_keys, internal_server_error
 
 router = APIRouter(prefix="/api/config", tags=["config"])
+_access_credentials_update_lock = asyncio.Lock()
 
-ACCESS_SECRET_KEYS = {"api_password", "panel_password", "password"}
-RESTART_REQUIRED_CONFIG_KEYS = {"host", "port", "credentials_dir"}
-PROVIDER_SPECIFIC_CONFIG_KEYS = {
-    "antigravity_client_id",
-    "antigravity_client_secret",
-    "antigravity_api_url",
-    "oauth_url",
-    "google_apis_url",
-    "resource_manager_url",
-    "service_usage_url",
-    "antigravity_user_agent",
-    "antigravity_payload_user_agent",
-    "stream_to_nonstream",
-    "switch_credential_enabled",
-    "google_ai_studio_api_url",
-    "xai_api_url",
-    "xai_oauth_issuer",
-    "xai_client_id",
-    "xai_user_agent",
+ACCESS_SECRET_KEYS = {
+    "api_password",
+    "password",
+    *(
+        field.config_key
+        for field in CONFIGURATION_FIELDS
+        if field.config_key and field.surface == "access" and field.secret
+    ),
 }
-ALLOWED_CONFIG_KEYS = (
-    set(config.ENV_MAPPINGS.values()) - ACCESS_SECRET_KEYS - PROVIDER_SPECIFIC_CONFIG_KEYS
-)
+CONFIGURATION_SECRET_KEYS = {
+    "api_password",
+    "password",
+    *(field.config_key for field in CONFIGURATION_FIELDS if field.config_key and field.secret),
+}
+RESTART_REQUIRED_CONFIG_KEYS = {
+    field.config_key
+    for field in CONFIGURATION_FIELDS
+    if field.config_key and field.apply is ApplyMode.RESTART
+}
+PROVIDER_SPECIFIC_CONFIG_KEYS = {
+    field.config_key
+    for field in CONFIGURATION_FIELDS
+    if field.config_key and field.surface == "provider"
+}
+POLICY_ONLY_CONFIG_KEYS = {
+    field.config_key
+    for field in CONFIGURATION_FIELDS
+    if field.config_key and field.surface == "quality"
+}
+ALLOWED_CONFIG_KEYS = {
+    field.config_key
+    for field in CONFIGURATION_FIELDS
+    if field.config_key and field.surface == "system"
+}
 DEFAULT_BACKED_CONFIG_KEYS = {
     "code_assist_client_id",
     "code_assist_client_secret",
 }
-RESETTABLE_CONFIG_KEYS = {
-    "host",
-    "port",
-    "credentials_dir",
-    "proxy",
-    "code_assist_endpoint",
-    "code_assist_client_id",
-    "code_assist_client_secret",
-    "auto_disable_enabled",
-    "auto_disable_error_codes",
-    "retry_429_enabled",
-    "retry_429_max_retries",
-    "retry_429_interval",
-    "compatibility_mode_enabled",
-    "return_thoughts_to_frontend",
-    "anti_truncation_max_attempts",
-    "token_compression_enabled",
-    "token_compression_threshold",
-    "token_compression_target",
-    "token_compression_min_recent_turns",
-    "routing_strategy",
-    "preferred_provider",
-    "upstream_timeout_seconds",
-    "log_level",
-    "log_max_mb",
-    "log_backup_count",
-    "keepalive_url",
-    "keepalive_interval",
-}
+RESETTABLE_CONFIG_KEYS = set(ALLOWED_CONFIG_KEYS)
 PRESERVED_RESET_KEYS = {
     "api_key",
     "panel_password",
@@ -80,10 +75,11 @@ PRESERVED_RESET_KEYS = {
 
 
 def _redact_access_secrets(current_config: dict) -> dict:
-    """Return control-panel configuration without reusable access secrets."""
+    """Return control-panel configuration without any reusable secret."""
     public_config = dict(current_config)
-    public_config["panel_password_configured"] = bool(public_config.get("panel_password"))
-    for key in ACCESS_SECRET_KEYS:
+    for key in CONFIGURATION_SECRET_KEYS:
+        if key in public_config:
+            public_config[f"{key}_configured"] = bool(public_config.get(key))
         public_config.pop(key, None)
     return public_config
 
@@ -171,7 +167,8 @@ async def get_config(token: str = Depends(verify_panel_token)):
         return JSONResponse(
             content={
                 "config": _redact_access_secrets(current_config),
-                "env_locked": list(env_locked_keys),
+                "env_locked": sorted(env_locked_keys),
+                "metadata": settings_metadata(os.environ),
             }
         )
 
@@ -200,221 +197,10 @@ async def save_config(request: ConfigSaveRequest, token: str = Depends(verify_pa
                 detail=f"Unsupported configuration key(s): {', '.join(unknown_keys)}",
             )
 
-        if "retry_429_max_retries" in new_config:
-            if (
-                not isinstance(new_config["retry_429_max_retries"], int)
-                or new_config["retry_429_max_retries"] < 0
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Maximum 429 retries must be an integer greater than or equal to 0.",
-                )
-
-        if "retry_429_enabled" in new_config:
-            if not isinstance(new_config["retry_429_enabled"], bool):
-                raise HTTPException(
-                    status_code=400, detail="The 429 retry switch must be a boolean."
-                )
-
-        if "retry_429_interval" in new_config:
-            try:
-                interval = float(new_config["retry_429_interval"])
-                if interval < 0.01 or interval > 10:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="The 429 retry interval must be between 0.01 and 10 seconds.",
-                    )
-            except (ValueError, TypeError):
-                raise HTTPException(
-                    status_code=400, detail="The 429 retry interval must be a valid number."
-                )
-
-        if "anti_truncation_max_attempts" in new_config:
-            if (
-                not isinstance(new_config["anti_truncation_max_attempts"], int)
-                or new_config["anti_truncation_max_attempts"] < 1
-                or new_config["anti_truncation_max_attempts"] > 10
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Anti-truncation recovery attempts must be an integer between 1 and 10.",
-                )
-
-        if "token_compression_enabled" in new_config:
-            if not isinstance(new_config["token_compression_enabled"], bool):
-                raise HTTPException(
-                    status_code=400,
-                    detail="The token compression switch must be a boolean.",
-                )
-
-        current_compression = await config.get_token_compression_config()
-        compression_threshold = new_config.get(
-            "token_compression_threshold",
-            current_compression["threshold_tokens"],
-        )
-        compression_target = new_config.get(
-            "token_compression_target",
-            current_compression["target_tokens"],
-        )
-        if (
-            not isinstance(compression_threshold, int)
-            or isinstance(compression_threshold, bool)
-            or compression_threshold < 128
-            or compression_threshold > 2_000_000
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="The compression threshold must be an integer between 128 and 2000000 tokens.",
-            )
-        if (
-            not isinstance(compression_target, int)
-            or isinstance(compression_target, bool)
-            or compression_target < 64
-            or compression_target >= compression_threshold
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="The compression target must be an integer of at least 64 tokens and lower than the threshold.",
-            )
-        if "token_compression_min_recent_turns" in new_config:
-            min_recent_turns = new_config["token_compression_min_recent_turns"]
-            if (
-                not isinstance(min_recent_turns, int)
-                or isinstance(min_recent_turns, bool)
-                or min_recent_turns < 1
-                or min_recent_turns > 50
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Recent turns to preserve must be an integer between 1 and 50.",
-                )
-
-        if "routing_strategy" in new_config:
-            if new_config["routing_strategy"] not in {
-                "balanced",
-                "priority",
-                "weighted",
-                "least_latency",
-                "lowest_cost",
-            }:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "Routing strategy must be balanced, priority, weighted, "
-                        "least_latency, or lowest_cost."
-                    ),
-                )
-        if "preferred_provider" in new_config:
-            preferred_provider = new_config["preferred_provider"]
-            if not isinstance(preferred_provider, str) or len(preferred_provider) > 80:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Preferred provider must be a valid provider identifier.",
-                )
-        if "upstream_timeout_seconds" in new_config:
-            try:
-                upstream_timeout = float(new_config["upstream_timeout_seconds"])
-            except (TypeError, ValueError):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Upstream timeout must be a valid number.",
-                )
-            if upstream_timeout < 5 or upstream_timeout > 900:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Upstream timeout must be between 5 and 900 seconds.",
-                )
-            new_config["upstream_timeout_seconds"] = upstream_timeout
-
-        if "log_level" in new_config:
-            if new_config["log_level"] not in {"debug", "info", "warning", "error", "critical"}:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Log level must be debug, info, warning, error, or critical.",
-                )
-        for key, label, minimum, maximum in (
-            ("log_max_mb", "Maximum log file size", 1, 1024),
-            ("log_backup_count", "Log backup count", 1, 20),
-        ):
-            if key not in new_config:
-                continue
-            value = new_config[key]
-            if (
-                not isinstance(value, int)
-                or isinstance(value, bool)
-                or value < minimum
-                or value > maximum
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"{label} must be an integer between {minimum} and {maximum}.",
-                )
-
-        if "compatibility_mode_enabled" in new_config:
-            if not isinstance(new_config["compatibility_mode_enabled"], bool):
-                raise HTTPException(
-                    status_code=400, detail="The compatibility mode switch must be a boolean."
-                )
-
-        if "return_thoughts_to_frontend" in new_config:
-            if not isinstance(new_config["return_thoughts_to_frontend"], bool):
-                raise HTTPException(
-                    status_code=400, detail="The reasoning content switch must be a boolean."
-                )
-
-        if "stream_to_nonstream" in new_config:
-            if not isinstance(new_config["stream_to_nonstream"], bool):
-                raise HTTPException(
-                    status_code=400, detail="The stream-to-non-stream switch must be a boolean."
-                )
-
-        if "switch_credential_enabled" in new_config:
-            if not isinstance(new_config["switch_credential_enabled"], bool):
-                raise HTTPException(
-                    status_code=400, detail="The credential switching setting must be a boolean."
-                )
-
-        if "keepalive_url" in new_config:
-            if not isinstance(new_config["keepalive_url"], str):
-                raise HTTPException(status_code=400, detail="Keep-alive URL must be a string.")
-
-        if "keepalive_interval" in new_config:
-            try:
-                interval = int(new_config["keepalive_interval"])
-                if interval < 5 or interval > 86400:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Keep-alive interval must be between 5 and 86400 seconds.",
-                    )
-                new_config["keepalive_interval"] = interval
-            except (ValueError, TypeError):
-                raise HTTPException(
-                    status_code=400, detail="Keep-alive interval must be a valid integer."
-                )
-
-        if "host" in new_config:
-            if not isinstance(new_config["host"], str) or not new_config["host"].strip():
-                raise HTTPException(status_code=400, detail="Server host address cannot be empty.")
-
-        if "port" in new_config:
-            if (
-                not isinstance(new_config["port"], int)
-                or new_config["port"] < 1
-                or new_config["port"] > 65535
-            ):
-                raise HTTPException(
-                    status_code=400, detail="Port number must be an integer between 1 and 65535."
-                )
-
-        code_assist_client_keys = {
-            "code_assist_client_id",
-            "code_assist_client_secret",
-        }
-        for key in code_assist_client_keys & set(new_config):
-            if not isinstance(new_config[key], str):
-                raise HTTPException(
-                    status_code=400, detail=f"Configuration value '{key}' must be a string."
-                )
+        try:
+            new_config = validate_config_updates(new_config, surface="system")
+        except ConfigurationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         env_locked_keys = get_env_locked_keys()
 
@@ -470,68 +256,73 @@ async def update_access_credentials(
     token: str = Depends(verify_panel_token),
 ):
     """Update the panel password without exposing its current value."""
-    if not await verify_password(payload.current_password):
-        raise HTTPException(status_code=401, detail="The current console password is incorrect.")
-
-    requested_updates = {
-        "panel_password": (
-            payload.panel_password,
-            payload.panel_password_confirm,
-            "Panel password",
-        ),
-    }
-    updates = {}
-    for key, (value, confirmation, label) in requested_updates.items():
-        if value is None or value == "":
-            continue
-        if value != confirmation:
-            raise HTTPException(status_code=400, detail=f"{label} confirmation does not match.")
-        if len(value) < 8 or len(value) > 256:
+    async with _access_credentials_update_lock:
+        if not await verify_password(payload.current_password):
             raise HTTPException(
-                status_code=400,
-                detail=f"{label} must contain between 8 and 256 characters.",
+                status_code=401, detail="The current console password is incorrect."
             )
-        updates[key] = value
 
-    if not updates:
-        raise HTTPException(status_code=400, detail="Enter at least one new password.")
-
-    env_locked_keys = get_env_locked_keys()
-    locked_updates = sorted(set(updates) & env_locked_keys)
-    if locked_updates:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "The requested password is managed by the runtime environment and "
-                "cannot be changed from the console."
+        requested_updates = {
+            "panel_password": (
+                payload.panel_password,
+                payload.panel_password_confirm,
+                "Panel password",
             ),
-        )
-
-    try:
-        storage_adapter = await get_storage_adapter()
-        for key, value in updates.items():
-            await storage_adapter.set_config(key, hash_password(value))
-        await config.reload_config()
-
-        response_data = {
-            "message": "Console password updated.",
-            "updated": sorted(updates),
         }
-        response = JSONResponse(content=response_data)
-        if "panel_password" in updates:
-            set_panel_session_cookie(
-                response,
-                await create_panel_session_token(),
-                request,
+        updates = {}
+        for key, (value, confirmation, label) in requested_updates.items():
+            if value is None or value == "":
+                continue
+            if value != confirmation:
+                raise HTTPException(status_code=400, detail=f"{label} confirmation does not match.")
+            if len(value) < 8 or len(value) > 256:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{label} must contain between 8 and 256 characters.",
+                )
+            updates[key] = value
+
+        if not updates:
+            raise HTTPException(status_code=400, detail="Enter at least one new password.")
+
+        env_locked_keys = get_env_locked_keys()
+        locked_updates = sorted(set(updates) & env_locked_keys)
+        if locked_updates:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "The requested password is managed by the runtime environment and "
+                    "cannot be changed from the console."
+                ),
             )
 
-        log.info("Control-panel password updated.")
-        return response
-    except HTTPException:
-        raise
-    except Exception as exc:
-        log.error(f"Failed to update the control-panel password: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to update the console password.")
+        try:
+            if "panel_password" in updates:
+                await get_session_service().revoke_local_owner_sessions()
+            storage_adapter = await get_storage_adapter()
+            for key, value in updates.items():
+                await storage_adapter.set_config(key, hash_password(value))
+            await config.reload_config()
+
+            response_data = {
+                "message": "Console password updated.",
+                "updated": sorted(updates),
+            }
+            response = JSONResponse(content=response_data)
+            if "panel_password" in updates:
+                set_panel_session_cookie(
+                    response,
+                    await create_panel_session_token(),
+                    request,
+                )
+
+            log.info("Control-panel password updated.")
+            return response
+        except HTTPException:
+            raise
+        except Exception as exc:
+            log.error(f"Failed to update the control-panel password: {exc}")
+            raise HTTPException(status_code=500, detail="Failed to update the console password.")
 
 
 @router.post("/reset")

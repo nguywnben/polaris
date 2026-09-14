@@ -87,6 +87,30 @@ class ProviderCostRankTests(unittest.TestCase):
 
 
 class RoutingStrategyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_weighted_strategy_is_reproducible_with_seeded_routers(self):
+        states = {
+            "a.json": credential_state(weight=1.0),
+            "b.json": credential_state(weight=2.0),
+            "c.json": credential_state(weight=3.0),
+        }
+        first_router = SmartCredentialRouter(clock=lambda: 100.0, rng=random.Random(73))
+        second_router = SmartCredentialRouter(clock=lambda: 100.0, rng=random.Random(73))
+
+        first = await first_router.acquire(
+            FakeStorageAdapter(states),
+            mode="primary",
+            model_name="model-a",
+            routing_strategy="weighted",
+        )
+        second = await second_router.acquire(
+            FakeStorageAdapter(states),
+            mode="primary",
+            model_name="model-a",
+            routing_strategy="weighted",
+        )
+
+        self.assertEqual(first[0], second[0])
+
     async def test_least_latency_prefers_faster_credential(self):
         storage = FakeStorageAdapter(
             {
@@ -95,9 +119,24 @@ class RoutingStrategyTests(unittest.IsolatedAsyncioTestCase):
             }
         )
         router = SmartCredentialRouter(clock=lambda: 100.0)
-        # Seed latency history directly (normally fed by complete()).
-        router._record_latency(("primary", "slow.json"), 2_000.0)
-        router._record_latency(("primary", "fast.json"), 150.0)
+        await router._coordination.record_route_outcome(
+            "primary",
+            "slow.json",
+            "model-a",
+            success=True,
+            failure_kind="",
+            retry_after_seconds=0,
+            latency_ms=2_000.0,
+        )
+        await router._coordination.record_route_outcome(
+            "primary",
+            "fast.json",
+            "model-a",
+            success=True,
+            failure_kind="",
+            retry_after_seconds=0,
+            latency_ms=150.0,
+        )
 
         result = await router.acquire(
             storage, mode="primary", model_name="model-a", routing_strategy="least_latency"
@@ -112,7 +151,15 @@ class RoutingStrategyTests(unittest.IsolatedAsyncioTestCase):
             }
         )
         router = SmartCredentialRouter(clock=lambda: 100.0)
-        router._record_latency(("primary", "measured.json"), 900.0)
+        await router._coordination.record_route_outcome(
+            "primary",
+            "measured.json",
+            "model-a",
+            success=True,
+            failure_kind="",
+            retry_after_seconds=0,
+            latency_ms=900.0,
+        )
 
         result = await router.acquire(
             storage, mode="primary", model_name="model-a", routing_strategy="least_latency"
@@ -169,10 +216,18 @@ class RoutingStrategyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_latency_window_is_bounded(self):
         router = SmartCredentialRouter(clock=lambda: 100.0)
-        key = ("primary", "x.json")
         for value in range(20):
-            router._record_latency(key, float(value + 1))
-        self.assertEqual(len(router._latencies[key]), 10)
+            await router._coordination.record_route_outcome(
+                "primary",
+                "x.json",
+                "model-a",
+                success=True,
+                failure_kind="",
+                retry_after_seconds=0,
+                latency_ms=float(value + 1),
+            )
+        outcome = await router._coordination.read_route_outcome("primary", "x.json", "model-a")
+        self.assertEqual(len(outcome.latency_samples_ms), 10)
 
 
 if __name__ == "__main__":

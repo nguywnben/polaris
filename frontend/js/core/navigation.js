@@ -6,9 +6,17 @@ const ROUTE_MAP = {
 
     '/dashboard': 'dashboard',
 
+    '/ai-quality': 'quality',
+
+    '/access': 'access',
+
+    '/identity': 'identity',
+
     '/pool': 'pool',
 
     '/models': 'models',
+
+    '/playground': 'playground',
 
     '/provider': 'pool',
 
@@ -20,6 +28,10 @@ const ROUTE_MAP = {
 
     '/config': 'config',
 
+    '/activity': 'activity',
+
+    '/audit': 'audit',
+
     '/logs': 'logs',
 
     '/about': 'about'
@@ -28,10 +40,16 @@ const ROUTE_MAP = {
 
 const TAB_MAP = {
     dashboard: '/dashboard',
+    quality: '/ai-quality',
+    access: '/access',
+    identity: '/identity',
     pool: '/pool',
     models: '/models',
+    playground: '/playground',
     providers: '/providers',
     config: '/config',
+    activity: '/activity',
+    audit: '/audit',
     logs: '/logs',
     about: '/about'
 };
@@ -120,8 +138,11 @@ function navigate(path, pushState = true) {
 
     }
 
-    const tabName = ROUTE_MAP[targetPath] || 'dashboard';
-    const canonicalPath = TAB_MAP[tabName] || '/dashboard';
+    const routeTabName = ROUTE_MAP[targetPath] || 'dashboard';
+    const tabName = ['audit', 'logs'].includes(routeTabName) ? 'activity' : routeTabName;
+    if (typeof updateTeamAccessNavigation === 'function') updateTeamAccessNavigation();
+    const compatibilityActivityPath = ['/audit', '/logs'].includes(targetPath);
+    const canonicalPath = compatibilityActivityPath ? targetPath : TAB_MAP[tabName] || '/dashboard';
 
     targetPath = canonicalPath;
 
@@ -140,6 +161,12 @@ function navigate(path, pushState = true) {
     }
 
     setMobileMenuState(false);
+
+    if (tabName === 'activity') {
+
+        setActivityView(activityViewFromLocation(targetPath, window.location.search), {load: false});
+
+    }
 
     const currentContent = document.querySelector('.tab-content.active');
 
@@ -167,6 +194,9 @@ function navigate(path, pushState = true) {
         targetTabButton.classList.add('active');
         targetTabButton.setAttribute('aria-current', 'page');
 
+        const navigationGroup = targetTabButton.closest('details');
+        if (navigationGroup) navigationGroup.open = true;
+
     }
 
     // Toggle panels instantly
@@ -187,51 +217,52 @@ function navigate(path, pushState = true) {
 
             resetConsoleScroll(targetContent);
 
+            if (pushState) focusActivePage(targetContent);
+
         }
 
     }
 
 }
 
+function focusActivePage(activeContent) {
+    const heading = activeContent?.querySelector('h1');
+    if (!heading) return;
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({preventScroll: true});
+}
+
 function getTabDataLoader(tabName) {
 
     const loaders = {
 
-        dashboard: () => {
+        dashboard: () => refreshUsageStats(),
 
-            updateEndpointUrls();
+        quality: () => loadQualityPolicy(),
 
-            return refreshUsageStats();
+        access: () => loadAccessPage(),
 
-        },
+        identity: () => loadIdentityConsole(),
 
         pool: () => AppState.primaryCreds.refresh(),
 
         models: () => loadModelCatalog(),
 
-        providers: () => Promise.all([
+        playground: () => initializePlayground(),
 
-            loadAntigravitySettings(),
-
-            loadGoogleAIStudioSettings(),
-
-            loadXaiSettings(),
-
-            loadOpenAISettings(),
-
-            loadAnthropicSettings()
-
-        ]),
+        providers: () => loadProviderOnboarding(),
 
         config: () => loadConfig(),
 
-        logs: () => {
+        activity: () => loadActivityConsole(),
 
-            connectWebSocket();
+        audit: () => loadAuditConsole(),
 
-            return Promise.resolve();
+        traces: () => loadTraceConsole(),
 
-        }
+        runtime_logs: () => connectWebSocket(),
+
+        about: () => loadAboutPage()
 
     };
 

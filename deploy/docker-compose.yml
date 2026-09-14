@@ -1,80 +1,35 @@
 services:
   app:
-    image: ${IMAGE:-nguywnben/omni-gateway:latest}
-    pull_policy: always
-    container_name: omni-gateway
+    image: ${IMAGE:-nguywnben/polaris:latest}
+    pull_policy: missing
     restart: unless-stopped
     init: true
     read_only: true
     ports:
-      - "${HOST_PORT:-4283}:${PORT:-4283}"
+      - "${HOST_PORT:-4283}:4283"
     environment:
-      # Authentication. Empty values preserve automatic API-key generation and
-      # the first-run web setup flow.
-      - API_KEY=${API_KEY:-}
-      - PANEL_PASSWORD=${PANEL_PASSWORD:-}
-      - SETUP_TOKEN=${SETUP_TOKEN:-}
+      # Empty authentication values preserve automatic API-key generation and
+      # the first-run web setup flow. Supply secrets at runtime, never at build time.
+      API_KEY: ${API_KEY:-}
+      PANEL_PASSWORD: ${PANEL_PASSWORD:-}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
 
-      # Server configuration
-      - PORT=${PORT:-4283}
-      - HOST=${HOST:-0.0.0.0}
-      - WORKERS=${WORKERS:-1}
-      - CORS_ORIGINS=${CORS_ORIGINS:-}
-      - PANEL_SESSION_TTL_SECONDS=${PANEL_SESSION_TTL_SECONDS:-86400}
-      - PANEL_COOKIE_SECURE=${PANEL_COOKIE_SECURE:-}
-      - PANEL_LOGIN_WINDOW_SECONDS=${PANEL_LOGIN_WINDOW_SECONDS:-300}
-      - PANEL_LOGIN_MAX_ATTEMPTS=${PANEL_LOGIN_MAX_ATTEMPTS:-10}
-      - PANEL_LOGIN_MAX_TRACKED_CLIENTS=${PANEL_LOGIN_MAX_TRACKED_CLIENTS:-10000}
-      - MAX_REQUEST_BODY_MB=${MAX_REQUEST_BODY_MB:-64}
-      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-false}
-
-      # Logging configuration
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_FILE=${LOG_FILE:-./backend/data/logs/omni-gateway.log}
-      - LOG_MAX_MB=${LOG_MAX_MB:-10}
-      - LOG_BACKUP_COUNT=${LOG_BACKUP_COUNT:-3}
-
-      # Optional: Redis-backed cache and session state
-      - REDIS_URL=${REDIS_URL:-}
-
-      # Optional: MongoDB storage backend
-      - MONGODB_URI=${MONGODB_URI:-}
-      - MONGODB_DATABASE=${MONGODB_DATABASE:-omni_gateway}
-
-      # Optional: PostgreSQL storage backend
-      - POSTGRESQL_URI=${POSTGRESQL_URI:-}
-
-      # Optional: Proxy configuration
-      - PROXY=${PROXY:-}
-
-      # Routing strategy (balanced, priority, weighted, least_latency, lowest_cost)
-      - ROUTING_STRATEGY=${ROUTING_STRATEGY:-balanced}
-      - PREFERRED_PROVIDER=${PREFERRED_PROVIDER:-}
-
-      # Optional: exact-match response cache
-      - RESPONSE_CACHE_ENABLED=${RESPONSE_CACHE_ENABLED:-false}
-      - RESPONSE_CACHE_TTL_SECONDS=${RESPONSE_CACHE_TTL_SECONDS:-300}
-      - RESPONSE_CACHE_MAX_ENTRIES=${RESPONSE_CACHE_MAX_ENTRIES:-1000}
-
-      # Optional: pre-call guardrails
-      - GUARDRAILS_ENABLED=${GUARDRAILS_ENABLED:-false}
-      - GUARDRAILS_PII_MASKING_ENABLED=${GUARDRAILS_PII_MASKING_ENABLED:-true}
-      - GUARDRAILS_INJECTION_DETECTION_ENABLED=${GUARDRAILS_INJECTION_DETECTION_ENABLED:-true}
-      - GUARDRAILS_BLOCKED_KEYWORDS=${GUARDRAILS_BLOCKED_KEYWORDS:-}
-
-      # Optional: observability
-      - METRICS_TOKEN=${METRICS_TOKEN:-}
-      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
-      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
+      # The supported production topology is one process and one replica.
+      HOST: "0.0.0.0"
+      PORT: "4283"
+      WORKERS: "1"
+      POLARIS_RUNTIME_MODE: standalone
+      POLARIS_REPLICA_COUNT: "1"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ${DATA_DIR:-/opt/omni-gateway}/creds:/app/backend/data/creds
-      - ${DATA_DIR:-/opt/omni-gateway}/logs:/app/backend/data/logs
+      - type: volume
+        source: data
+        target: /app/backend/data
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
     security_opt:
       - no-new-privileges:true
-    stop_grace_period: 30s
+    stop_grace_period: 45s
     logging:
       driver: json-file
       options:
@@ -84,9 +39,13 @@ services:
       test:
         - CMD-SHELL
         - >-
-          python -c "import os, urllib.request; port = os.getenv('PORT', '4283');
-          urllib.request.urlopen(f'http://127.0.0.1:{port}/ready', timeout=3)"
+          python -c "import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:4283/ready', timeout=3)"
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+
+volumes:
+  data:
+    name: ${DATA_VOLUME:-polaris-data}

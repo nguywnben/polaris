@@ -11,7 +11,15 @@ from config import (
     get_retry_429_max_retries,
 )
 from core.credential_manager import CredentialManager
-from core.request_context import get_api_key_id, get_request_elapsed_ms, get_request_id
+from core.quality_decision import normalize_quality_decision
+from core.request_context import (
+    get_api_key_id,
+    get_request_elapsed_ms,
+    get_request_id,
+    get_virtual_key_reservation_id,
+)
+from core.request_trace_service import trace_decision
+from core.router.stream_passthrough import close_async_iterator
 from core.usage_stats import normalize_token_usage, record_call
 from core.virtual_keys import virtual_key_manager
 from fastapi import Response
@@ -20,6 +28,24 @@ from log import log
 UNASSIGNED_USAGE_FILENAME = "__gateway_unassigned__.json"
 MODEL_NOT_FOUND_COOLDOWN_SECONDS = 2 * 60
 RETRYABLE_UPSTREAM_STATUS_CODES = frozenset({408, 409, 429, 500, 502, 503, 504})
+MAX_COLLECTED_STREAM_BYTES = 8 * 1024 * 1024
+
+
+def _generation_trace_metadata(
+    *,
+    provider: str,
+    latency_ms: int,
+    tokens: Dict[str, int],
+    request_metrics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    decision = normalize_quality_decision(request_metrics)
+    return {
+        "provider": provider,
+        "latency_ms": latency_ms,
+        "cached_tokens": tokens["cached_tokens"],
+        "reasoning_tokens": tokens["reasoning_tokens"],
+        **decision,
+    }
 
 
 def _schedule_trace_export(
@@ -28,6 +54,7 @@ def _schedule_trace_export(
     provider: str,
     token_usage: Optional[Dict[str, Any]],
     latency_ms: int,
+    request_metrics: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Export a generation trace to Langfuse without blocking the response.
 
@@ -58,12 +85,12 @@ def _schedule_trace_export(
                 latency_ms=float(latency_ms),
                 prompt_tokens=tokens["input_tokens"],
                 completion_tokens=tokens["output_tokens"],
-                metadata={
-                    "provider": provider,
-                    "latency_ms": latency_ms,
-                    "cached_tokens": tokens["cached_tokens"],
-                    "reasoning_tokens": tokens["reasoning_tokens"],
-                },
+                metadata=_generation_trace_metadata(
+                    provider=provider,
+                    latency_ms=latency_ms,
+                    tokens=tokens,
+                    request_metrics=request_metrics,
+                ),
             )
         except Exception as exc:
             log.debug(f"[telemetry] trace export failed: {exc}")
@@ -115,6 +142,14 @@ async def handle_error_with_retry(
                 f"(status {status_code}, attempt {attempt + 1}/{max_retries})"
             )
             await asyncio.sleep(retry_interval)
+            trace_decision(
+                category="retry",
+                action="scheduled",
+                result="succeeded",
+                reason="credential_switched",
+                attempt=attempt + 1,
+                status_code=status_code,
+            )
             return True
         return False
 
@@ -124,6 +159,14 @@ async def handle_error_with_retry(
             f"(attempt {attempt + 1}/{max_retries})"
         )
         await asyncio.sleep(retry_interval)
+        trace_decision(
+            category="retry",
+            action="scheduled",
+            result="succeeded",
+            reason="retryable_status",
+            attempt=attempt + 1,
+            status_code=status_code,
+        )
         return True
 
     return False
@@ -137,6 +180,85 @@ async def get_retry_config() -> Dict[str, Any]:
     }
 
 
+async def _record_success_usage(
+    *,
+    filename: str,
+    model_name: str,
+    provider: str,
+    status_code: int,
+    token_usage: Optional[Dict[str, Any]],
+    request_metrics: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Persist one success and atomically replace its quota estimate with actual usage."""
+    api_key_id = get_api_key_id()
+    reservation_id = get_virtual_key_reservation_id()
+    tokens = normalize_token_usage(token_usage)
+    metrics = dict(request_metrics or {})
+    metrics.setdefault("latency_ms", get_request_elapsed_ms())
+    actual_cost_usd = 0.0
+    cost_override_usd = None
+    durable_cost_recorded = False
+    actual_cost_calculated = not bool(api_key_id)
+    durable_reservation_id = (
+        reservation_id if virtual_key_manager.is_durable_reservation(reservation_id) else ""
+    )
+    try:
+        if api_key_id:
+            actual_cost_usd = await virtual_key_manager.calculate_actual_cost(
+                api_key_id,
+                model=model_name,
+                provider=provider,
+                token_usage=token_usage,
+            )
+            cost_override_usd = actual_cost_usd
+            actual_cost_calculated = True
+        durable_cost_recorded = bool(
+            await record_call(
+                filename,
+                model=model_name,
+                provider=provider,
+                status_code=status_code,
+                success=True,
+                token_usage=token_usage,
+                request_metrics=metrics,
+                request_id=get_request_id(),
+                api_key_id=api_key_id,
+                cost_override_usd=cost_override_usd,
+                durable_reservation_id=durable_reservation_id,
+            )
+        )
+    except Exception as exc:
+        log.error(f"Failed to record successful usage (error_type={type(exc).__name__}).")
+
+    if reservation_id and actual_cost_calculated:
+        try:
+            result = await virtual_key_manager.commit_reservation(
+                reservation_id,
+                actual_tokens=tokens["total_tokens"],
+                actual_cost_usd=actual_cost_usd,
+                durable_cost_recorded=durable_cost_recorded,
+            )
+            if result.overspent:
+                log.warning("[virtual-keys] actual usage exceeded reserved capacity")
+        except Exception as exc:
+            log.error(f"Failed to commit quota reservation (error_type={type(exc).__name__}).")
+    trace_decision(
+        category="usage",
+        action="recorded",
+        result="succeeded" if durable_cost_recorded else "failed",
+        reason="usage_recorded",
+        provider=provider,
+        model=model_name,
+        latency_ms=min(86_400_000, max(0, int(metrics.get("latency_ms") or 0))),
+        input_tokens=tokens["input_tokens"],
+        output_tokens=tokens["output_tokens"],
+        cached_tokens=tokens["cached_tokens"],
+        reasoning_tokens=tokens["reasoning_tokens"],
+        cost_usd=actual_cost_usd,
+    )
+    return metrics
+
+
 async def record_api_call_success(
     credential_manager: CredentialManager,
     credential_name: str,
@@ -148,41 +270,40 @@ async def record_api_call_success(
     provider: Optional[str] = None,
 ) -> None:
     if credential_manager and credential_name:
-        api_key_id = get_api_key_id()
-        try:
-            request_metrics = dict(request_metrics or {})
-            request_metrics.setdefault("latency_ms", get_request_elapsed_ms())
-            await asyncio.to_thread(
-                record_call,
-                credential_name,
-                model=model_name or "",
+        request_metrics, _ = await asyncio.gather(
+            _record_success_usage(
+                filename=credential_name,
+                model_name=model_name or "",
                 provider=provider or mode,
                 status_code=status_code,
-                success=True,
                 token_usage=token_usage,
                 request_metrics=request_metrics,
-                request_id=get_request_id(),
-                api_key_id=api_key_id,
-            )
-        except Exception as e:
-            log.error(f"Failed to record usage for {credential_name}: {e}")
+            ),
+            credential_manager.record_api_call_result(
+                credential_name, True, mode=mode, model_name=model_name
+            ),
+        )
 
-        if api_key_id:
-            try:
-                tokens = normalize_token_usage(token_usage)
-                virtual_key_manager.note_tokens(api_key_id, tokens["total_tokens"])
-            except Exception as e:
-                log.debug(f"Failed to feed TPM window for {api_key_id}: {e}")
+        trace_decision(
+            category="upstream",
+            action="succeeded",
+            result="succeeded",
+            reason="completed",
+            provider=provider or mode,
+            model=model_name or "",
+            status_code=status_code,
+            latency_ms=min(
+                86_400_000,
+                max(0, int(request_metrics.get("latency_ms") or 0)),
+            ),
+        )
 
         _schedule_trace_export(
             model_name=model_name or "",
             provider=provider or mode,
             token_usage=token_usage,
             latency_ms=int(request_metrics.get("latency_ms") or 0),
-        )
-
-        await credential_manager.record_api_call_result(
-            credential_name, True, mode=mode, model_name=model_name
+            request_metrics=request_metrics,
         )
 
 
@@ -198,8 +319,7 @@ async def record_api_call_error(
 ) -> None:
     if credential_manager and credential_name:
         try:
-            await asyncio.to_thread(
-                record_call,
+            await record_call(
                 credential_name,
                 model=model_name or "",
                 provider=provider or mode,
@@ -220,6 +340,15 @@ async def record_api_call_error(
             mode=mode,
             model_name=model_name,
             error_message=error_message,
+        )
+        trace_decision(
+            category="upstream",
+            action="failed",
+            result="failed",
+            reason="rate_limited" if status_code == 429 else "provider_error",
+            provider=provider or mode,
+            model=model_name or "",
+            status_code=status_code,
         )
 
 
@@ -243,8 +372,7 @@ async def record_model_route_miss(
         log.error(f"Failed to set model cooldown for {credential_name}: {exc}")
 
     try:
-        await asyncio.to_thread(
-            record_call,
+        await record_call(
             credential_name,
             model=model_name,
             provider=provider,
@@ -256,6 +384,15 @@ async def record_model_route_miss(
     except Exception as exc:
         log.error(f"Failed to record model route miss for {credential_name}: {exc}")
     finally:
+        trace_decision(
+            category="cooldown",
+            action="applied",
+            result="succeeded",
+            reason="model_cooldown",
+            provider=provider,
+            model=model_name,
+            status_code=404,
+        )
         await credential_manager.release_credential(credential_name, mode="primary")
 
 
@@ -264,11 +401,11 @@ async def record_unassigned_api_call_error(
     status_code: int = 500,
     mode: str = "primary",
     model_name: Optional[str] = None,
+    reason: str = "no_candidate",
 ) -> None:
     """Record a gateway-level request failure that cannot be attributed to a credential."""
     try:
-        await asyncio.to_thread(
-            record_call,
+        await record_call(
             UNASSIGNED_USAGE_FILENAME,
             model=model_name or "",
             provider=mode,
@@ -279,6 +416,59 @@ async def record_unassigned_api_call_error(
         )
     except Exception as e:
         log.error(f"Failed to record unassigned usage failure: {e}")
+    trace_decision(
+        category="routing",
+        action="unavailable",
+        result="failed",
+        reason=(
+            reason
+            if reason in {"no_candidate", "coordination_unavailable"}
+            else "coordination_unavailable"
+        ),
+        model=model_name or "",
+        status_code=status_code,
+    )
+
+
+async def record_unassigned_api_call_success(
+    *,
+    mode: str,
+    model_name: str,
+    token_usage: Optional[Dict[str, Any]],
+    status_code: int = 200,
+    request_metrics: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Persist unattributed success usage and settle any virtual-key reservation."""
+    await _record_success_usage(
+        filename=UNASSIGNED_USAGE_FILENAME,
+        model_name=model_name,
+        provider=mode,
+        status_code=status_code,
+        token_usage=token_usage,
+        request_metrics=request_metrics,
+    )
+    trace_decision(
+        category="upstream",
+        action="succeeded",
+        result="succeeded",
+        reason="completed",
+        provider=mode,
+        model=model_name,
+        status_code=status_code,
+    )
+
+
+async def record_response_cache_hit(*, model_name: str, status_code: int = 200) -> None:
+    """Persist one non-billable cache success and settle its quota reservation."""
+
+    await _record_success_usage(
+        filename=UNASSIGNED_USAGE_FILENAME,
+        model_name=model_name,
+        provider="response_cache",
+        status_code=status_code,
+        token_usage=None,
+        request_metrics=None,
+    )
 
 
 async def parse_and_log_cooldown(error_text: str, mode: str = "code_assist") -> Optional[float]:
@@ -290,9 +480,15 @@ async def parse_and_log_cooldown(error_text: str, mode: str = "code_assist") -> 
                 f"[{mode.upper()}] Quota cooldown detected: "
                 f"{datetime.fromtimestamp(cooldown_until, timezone.utc).isoformat()}"
             )
+            trace_decision(
+                category="cooldown",
+                action="applied",
+                result="succeeded",
+                reason="quota_cooldown",
+            )
             return cooldown_until
-    except Exception as parse_err:
-        log.debug(f"[{mode.upper()}] failed to parse cooldown time: {parse_err}")
+    except (AttributeError, TypeError, ValueError) as parse_err:
+        log.debug(f"[{mode.upper()}] failed to parse cooldown time ({type(parse_err).__name__})")
     return None
 
 
@@ -322,6 +518,8 @@ async def collect_streaming_response(stream_generator) -> Response:
     collected_tool_parts_count = 0
     has_data = False
     line_count = 0
+    done_marker_received = False
+    collected_bytes = 0
 
     log.debug("[STREAM COLLECTOR] Starting to collect streaming response")
 
@@ -349,6 +547,23 @@ async def collect_streaming_response(stream_generator) -> Response:
                 log.debug(f"[STREAM COLLECTOR] Skipping non-string/bytes line: {type(line)}")
                 continue
 
+            collected_bytes += len(line_str.encode("utf-8"))
+            if collected_bytes > MAX_COLLECTED_STREAM_BYTES:
+                trace_decision(
+                    category="upstream",
+                    action="failed",
+                    result="failed",
+                    reason="provider_error",
+                    status_code=502,
+                )
+                return Response(
+                    content=json.dumps(
+                        {"error": "The upstream streaming response exceeded the collection limit."}
+                    ),
+                    status_code=502,
+                    media_type="application/json",
+                )
+
             if not line_str.startswith("data: "):
                 log.debug(
                     f"[STREAM COLLECTOR] Skipping line without 'data: ' prefix: {line_str[:100]}"
@@ -356,9 +571,15 @@ async def collect_streaming_response(stream_generator) -> Response:
                 continue
 
             raw = line_str[6:].strip()
+            if done_marker_received:
+                log.debug("[STREAM COLLECTOR] Ignoring data after the [DONE] marker")
+                continue
             if raw == "[DONE]":
                 log.debug("[STREAM COLLECTOR] Received [DONE] marker")
-                break
+                # Drain the upstream generator so its success accounting and
+                # credential-lease cleanup run before this response returns.
+                done_marker_received = True
+                continue
 
             try:
                 log.debug(f"[STREAM COLLECTOR] Parsing JSON: {raw[:200]}")
@@ -449,11 +670,20 @@ async def collect_streaming_response(stream_generator) -> Response:
 
     except Exception as e:
         log.error(f"[STREAM COLLECTOR] Error collecting stream after {line_count} lines: {e}")
+        trace_decision(
+            category="upstream",
+            action="failed",
+            result="failed",
+            reason="provider_error",
+            status_code=502,
+        )
         return Response(
             content=json.dumps({"error": "Failed to collect the upstream streaming response."}),
-            status_code=500,
+            status_code=502,
             media_type="application/json",
         )
+    finally:
+        await close_async_iterator(stream_generator)
 
     log.debug(
         f"[STREAM COLLECTOR] Finished iteration, has_data={has_data}, line_count={line_count}"
@@ -482,7 +712,7 @@ async def collect_streaming_response(stream_generator) -> Response:
 
     merged_response["response"]["candidates"][0]["content"]["parts"] = final_parts
 
-    log.info(
+    log.debug(
         f"[STREAM COLLECTOR] Collected {len(collected_text)} text chunks, "
         f"{len(collected_thought_text)} thought chunks, {len(collected_other_parts)} other parts "
         f"(tool parts: {collected_tool_parts_count})"
@@ -533,5 +763,5 @@ def parse_quota_reset_timestamp(error_response: dict) -> Optional[float]:
 
         return None
 
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         return None

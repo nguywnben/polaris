@@ -143,6 +143,12 @@ def accept_oauth_callback(code: Optional[str], state: Optional[str]) -> tuple[bo
 
 MAX_AUTH_FLOWS = 20
 DEFAULT_PROJECT_ID = "gemini-pro-1751713012-07fc4dfd"
+OAUTH_START_FAILURE = (
+    "Unable to start OAuth authentication. Check the OAuth configuration and retry."
+)
+OAUTH_CREDENTIAL_FAILURE = (
+    "Unable to retrieve OAuth credentials. Start authentication again and retry."
+)
 
 
 def cleanup_auth_flows_for_memory():
@@ -265,10 +271,16 @@ async def create_auth_url(
                 server_thread.start()
                 log.info(f"OAuth callback server started on {callback_url}.")
             except Exception as e:
-                log.error(f"Failed to start OAuth callback server on port {callback_port}: {e}")
+                log.error(
+                    "Failed to start OAuth callback server "
+                    f"(port={callback_port}, error_type={type(e).__name__})."
+                )
                 return {
                     "success": False,
-                    "error": f"Failed to start OAuth callback server on port {callback_port}: {str(e)}",
+                    "error": (
+                        "Unable to start the local OAuth callback listener. "
+                        "Check port availability and retry."
+                    ),
                 }
         flow = Flow(
             client_id=client_id,
@@ -276,10 +288,9 @@ async def create_auth_url(
             scopes=scopes,
             redirect_uri=callback_url,
         )
-        if user_session:
-            state = f"{user_session}_{str(uuid.uuid4())}"
-        else:
-            state = str(uuid.uuid4())
+        # The externally visible OAuth state is independent from the internal,
+        # non-capability session reference retained for flow ownership checks.
+        state = str(uuid.uuid4())
         auth_url = flow.get_auth_url(state=state)
         if len(auth_flows) >= MAX_AUTH_FLOWS:
             oldest_state = min(auth_flows.keys(), key=lambda k: auth_flows[k].get("created_at", 0))
@@ -290,7 +301,9 @@ async def create_auth_url(
                     port = old_flow.get("callback_port")
                     async_shutdown_server(server, port)
             except Exception as e:
-                log.warning(f"Failed to clean up the oldest OAuth flow: {e}")
+                log.warning(
+                    f"Failed to clean up the oldest OAuth flow (error_type={type(e).__name__})."
+                )
             del auth_flows[oldest_state]
             log.debug("Removed the oldest OAuth flow.")
         auth_flows[state] = {
@@ -321,8 +334,8 @@ async def create_auth_url(
             "detected_project_id": project_id,
         }
     except Exception as e:
-        log.error(f"Failed to create OAuth authorization URL: {e}")
-        return {"success": False, "error": str(e)}
+        log.error(f"Failed to create OAuth authorization URL (error_type={type(e).__name__}).")
+        return {"success": False, "error": OAUTH_START_FAILURE}
 
 
 def wait_for_callback_sync(state: str, timeout: int = 300) -> Optional[str]:
@@ -353,11 +366,13 @@ async def complete_auth_flow(
         if project_id:
             for s, data in auth_flows.items():
                 if data["project_id"] == project_id:
-                    if user_session and data.get("user_session") == user_session:
+                    if user_session:
+                        if data.get("user_session") != user_session:
+                            continue
                         state = s
                         flow_data = data
                         break
-                    elif not state:
+                    if not state:
                         state = s
                         flow_data = data
         if not state:
@@ -453,11 +468,11 @@ async def complete_auth_flow(
                     **_credential_save_response(save_result),
                 }
             except Exception as e:
-                log.error(f"Failed to retrieve credential: {e}")
-                return {"success": False, "error": f"Failed to retrieve credential: {str(e)}"}
+                log.error(f"Failed to retrieve OAuth credential (error_type={type(e).__name__}).")
+                return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
     except Exception as e:
-        log.error(f"Failed to complete OAuth flow: {e}")
-        return {"success": False, "error": str(e)}
+        log.error(f"Failed to complete OAuth flow (error_type={type(e).__name__}).")
+        return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
 
 
 async def asyncio_complete_auth_flow(
@@ -472,12 +487,14 @@ async def asyncio_complete_auth_flow(
             log.info(f"Searching OAuth flow by project ID {project_id}.")
             for s, data in auth_flows.items():
                 if data["project_id"] == project_id:
-                    if user_session and data.get("user_session") == user_session:
+                    if user_session:
+                        if data.get("user_session") != user_session:
+                            continue
                         state = s
                         flow_data = data
                         log.info("Found an OAuth flow for the current session.")
                         break
-                    elif not state:
+                    if not state:
                         state = s
                         flow_data = data
                         log.info(f"Found an OAuth flow for project {project_id}.")
@@ -656,15 +673,18 @@ async def asyncio_complete_auth_flow(
                     **_credential_save_response(save_result),
                 }
             except Exception as e:
-                log.error(f"Failed to retrieve credential: {e}")
-                return {"success": False, "error": f"Failed to retrieve credential: {str(e)}"}
+                log.error(f"Failed to retrieve OAuth credential (error_type={type(e).__name__}).")
+                return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
     except Exception as e:
-        log.error(f"Failed to complete asynchronous auth flow: {e}")
-        return {"success": False, "error": str(e)}
+        log.error(f"Failed to complete asynchronous OAuth flow (error_type={type(e).__name__}).")
+        return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
 
 
 async def complete_auth_flow_from_callback_url(
-    callback_url: str, project_id: Optional[str] = None, mode: str = "code_assist"
+    callback_url: str,
+    project_id: Optional[str] = None,
+    mode: str = "code_assist",
+    user_session: Optional[str] = None,
 ) -> Dict[str, Any]:
     try:
         log.info("Starting authentication from an OAuth callback URL.")
@@ -684,6 +704,11 @@ async def complete_auth_flow_from_callback_url(
                 "error": "The authentication flow was not found. Start authentication again.",
             }
         flow_data = auth_flows[state]
+        if user_session and flow_data.get("user_session") != user_session:
+            return {
+                "success": False,
+                "error": "The authentication flow was not found. Start authentication again.",
+            }
         flow = flow_data["flow"]
         redirect_uri = flow.redirect_uri
         log.debug(f"Using OAuth redirect URI: {redirect_uri}")
@@ -754,7 +779,10 @@ async def complete_auth_flow_from_callback_url(
                             f"No accessible projects detected; using default Project ID {detected_project_id}."
                         )
                 except Exception as e:
-                    log.warning(f"Failed to retrieve project list: {e}; using default Project ID.")
+                    log.warning(
+                        "Failed to retrieve project list; using the default Project ID "
+                        f"(error_type={type(e).__name__})."
+                    )
                     detected_project_id = DEFAULT_PROJECT_ID
                     auto_detected = False
             else:
@@ -764,7 +792,7 @@ async def complete_auth_flow_from_callback_url(
                     log.info(f"Enabling required API services for project {detected_project_id}.")
                     await enable_required_apis(credentials, detected_project_id)
                 except Exception as e:
-                    log.warning(f"Failed to enable API services: {e}")
+                    log.warning(f"Failed to enable API services (error_type={type(e).__name__}).")
             save_result = await save_credentials(
                 credentials, detected_project_id, subscription_tier=subscription_tier
             )
@@ -785,11 +813,16 @@ async def complete_auth_flow_from_callback_url(
                 **_credential_save_response(save_result),
             }
         except Exception as e:
-            log.error(f"Failed to retrieve credential from callback URL: {e}")
-            return {"success": False, "error": f"Failed to retrieve credential: {str(e)}"}
+            log.error(
+                "Failed to retrieve OAuth credential from callback URL "
+                f"(error_type={type(e).__name__})."
+            )
+            return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
     except Exception as e:
-        log.error(f"Failed to complete auth flow from callback URL: {e}")
-        return {"success": False, "error": str(e)}
+        log.error(
+            f"Failed to complete OAuth flow from callback URL (error_type={type(e).__name__})."
+        )
+        return {"success": False, "error": OAUTH_CREDENTIAL_FAILURE}
 
 
 async def save_credentials(
@@ -887,9 +920,11 @@ def cleanup_expired_flows():
         log.debug("Triggered garbage collection for OAuth flow cache.")
 
 
-def get_auth_status(project_id: str) -> Dict[str, Any]:
+def get_auth_status(project_id: str, user_session: Optional[str] = None) -> Dict[str, Any]:
     for state, flow_data in auth_flows.items():
         if flow_data["project_id"] == project_id:
+            if user_session and flow_data.get("user_session") != user_session:
+                continue
             return {
                 "status": "completed" if flow_data["completed"] else "pending",
                 "state": state,

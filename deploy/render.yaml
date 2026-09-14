@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: omni-gateway
+    name: polaris
     runtime: docker
     dockerfilePath: ./deploy/Dockerfile
     dockerContext: .
@@ -22,8 +22,8 @@ services:
       - key: CREDENTIALS_DIR
         value: /app/backend/data/creds
       - key: LOG_FILE
-        value: /app/backend/data/logs/omni-gateway.log
+        value: /app/backend/data/logs/polaris.log
     disk:
-      name: omni-gateway-data
+      name: polaris-data
       mountPath: /app/backend/data
       sizeGB: 1

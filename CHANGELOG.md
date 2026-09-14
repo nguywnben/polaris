@@ -1,8 +1,220 @@
 # Changelog
 
-All notable user-facing changes are documented in this file. Omni Gateway follows [Semantic Versioning](https://semver.org/). The historical `0.x` beta series allowed breaking changes; compatibility changes after `1.0.0` require an appropriate major version.
+All notable user-facing changes are documented in this file. Polaris follows [Semantic Versioning](https://semver.org/). The historical `0.x` beta series allowed breaking changes; compatibility changes after `1.0.0` require an appropriate major version.
 
 ## [Unreleased]
+
+### Added
+
+- Added protocol-aware Node.js SDK examples to Playground alongside cURL and Python.
+- Added automatic model-pricing synchronization with a validated last-known-good snapshot and
+  manual `model_pricing.json` precedence, so newly priced models do not require a Polaris
+  release while inference remains available during catalog outages.
+- Added a 120-second release-blocking reliability profile for routine self-hosted releases while
+  preserving the original ten-minute profile as an explicit optional soak.
+
+### Changed
+
+- Completed the breaking pre-release cutover to Polaris across the repository, containers,
+  console, API keys, virtual model route, environment variables, headers, browser state,
+  telemetry, backup formats, and cryptographic domains. No compatibility aliases are retained;
+  see the [Polaris identifier contract](docs/migrations/polaris.md).
+- Standardized locale-aware console metrics: high-level values at 10,000 and above now use
+  compact notation with exact hover and assistive labels, while detailed views retain grouped
+  full-precision values and small USD costs keep sub-cent precision.
+- Rebalanced the supported product around one worker and one replica: SQLite remains the Core
+  default, PostgreSQL and team OIDC remain Advanced opt-ins, and MongoDB remains Compatibility.
+- Unified console spacing, advisory copy, empty support-tier rendering, responsive coverage, and
+  keyboard smoke across all 11 destinations; only English and Vietnamese documentation is now
+  maintainer-curated while all 15 console locale catalogs remain complete.
+- Completed the project-owned Pydantic 2 configuration migration and made core lifecycle/storage
+  fallback logs observable without exposing raw exception details.
+
+### Removed
+
+- Removed the unreachable Redis coordinated runtime, multi-replica HA lifecycle/operator/evidence,
+  Kubernetes/Helm assets, Redis dependency, and their obsolete active runbook.
+- Removed Redis acceleration and coordinated-only write branches from the MongoDB Compatibility
+  backend, plus 13 stale community README snapshots that advertised retired deployment paths.
+
+### Fixed
+
+- Aligned dashboard usage windows to fixed browser-local clock boundaries and replaced relative
+  timeline placeholders with actual localized timestamps. The one-day view now represents today
+  from 00:00 through 23:00 instead of a rolling 24-hour interval, and tooltips identify one bucket
+  timestamp rather than displaying an interval.
+- Corrected production usage accounting across retries and streaming: the dashboard now labels
+  provider attempts explicitly, recovered failovers keep the logical request successful, partial
+  streams remain failures, cumulative usage chunks are merged, and token totals no longer count
+  cache reads twice. Anthropic cache writes now use their distinct price when available, while the
+  dashboard exposes incomplete provider-usage coverage instead of presenting missing usage as zero.
+- Restored the frozen R1 API compatibility surface and strengthened default SQLite startup so
+  optional database drivers and external services are not loaded unless explicitly selected.
+
+## [1.5.0] - 2026-09-12
+
+### Added
+
+- Added a canonical storage support/recovery contract that distinguishes SQLite Core, PostgreSQL
+  Advanced, and MongoDB Compatibility operation, including explicit outage and migration limits.
+- Added schema-derived Settings state, validated About build/support facts, permanent update and
+  recovery entry points, optional Team-access guidance, and complete English/Vietnamese product
+  copy with compatibility-locale fallbacks.
+- Added selectable cURL, Python SDK, and Node.js SDK quickstarts for every supported Access protocol,
+  using visible virtual-key placeholders only.
+- Added one shared Activity investigation workflow for request traces, audit/security events, and
+  bounded runtime logs, including common filters, request-ID pivots from Dashboard and detail
+  views, session-only correlation state, and a 16 MiB redacted raw-log download ceiling.
+- Added restrictive per-virtual-key and per-request compression controls. Keys can inherit or
+  disable the global policy through an additive revision-checked management endpoint, while
+  authenticated requests can use `x-polaris-compression: off`; neither can weaken global policy.
+- Added a versioned adversarial AI Quality corpus, deterministic property matrix, and one successful
+  HTTP request for every advertised public protocol against bounded deterministic upstreams.
+- Added authenticated, bounded routing-health diagnostics with actionable eligibility, capacity,
+  cooldown, and recovery reasons while excluding credential filenames and request identifiers.
+- Added a versioned cross-protocol contract and shared golden corpora for OpenAI Chat, OpenAI
+  Responses, Anthropic Messages, Gemini, and Vertex text, images, system instructions, tools,
+  structured output, reasoning, usage, finish reasons, and native errors.
+- Added a versioned safe diagnostic contract for credential connection tests with consistent
+  categories, remediation, retry guidance, bounded provider status, and deterministic coverage for
+  all nine advertised provider/authentication variants.
+- Added a versioned provider/auth capability matrix for all nine advertised variants, including
+  lifecycle actions, discovery, OAuth refresh, quota, and normalized ingress protocols; the
+  credential console now derives valid card and mixed-selection actions from the same contract.
+- Added versioned, passphrase-encrypted portable SQLite backup with dry-run validation, explicit
+  conflict policy, automatic encrypted pre-restore snapshots, transactional replacement and
+  rollback, plus a separate non-restorable sanitized inventory export.
+- Added a dry-run-first Compose updater that resolves immutable image IDs, creates an encrypted
+  host recovery point, verifies `/ready`, and restores both the previous image and state snapshot
+  after a failed update.
+- Added one typed configuration schema for startup validation, Settings metadata, environment
+  ownership, restart requirements, `.env`/Compose parity checks, and a generated operator reference.
+- Added a localized Audit surface under Observability with safe category filters, cursor
+  pagination, redacted event details, request-ID pivots, confirmed retention controls, and
+  bounded JSONL/CSV export.
+- Added optional OIDC team login with Authorization Code + PKCE,
+  exact issuer/subject identities, explicit non-owner group-to-role mappings, and revocable
+  sessions bound to identity and policy authorization revisions.
+- Added selected-backend durable usage and cost repositories for SQLite, PostgreSQL, and
+  transaction-capable MongoDB, including idempotent hard-budget reservation journals, restart-safe
+  settlement, read-only verified legacy SQLite import, and bounded ledger operation metrics.
+- Added Redis coordination semantic primitives, opt-in isolated live parity evidence, and bounded
+  coordination operation metrics. The standalone in-memory default and runtime selection remain
+  unchanged; this release does not activate HA Redis operation.
+- Added fenced, bounded coordination semantics for opaque management sessions, authentication
+  attempt admission, and one-time OIDC transactions across the in-memory and Redis state stores.
+  Session and OIDC payloads remain authenticated and encrypted; live Redis parity is opt-in.
+- Added inactive, fenced coordination for credential leases and cooldowns, quota transitions,
+  governance invalidation, and exact-cache metadata, with opaque HMAC identifiers, fixed-cardinality
+  telemetry, bounded reference evidence, and opt-in Redis parity. Response content stays local.
+- Added a fail-closed HA runtime lifecycle with durable/shared namespace binding, coordinated
+  dependency readiness, dry-run-first drain/epoch/reconcile/rollback operations, deployment guards,
+  low-cardinality alerts, and an operator runbook. No coordinated topology is activated.
+- Added a reproducible synthetic HA semantics harness and an explicit activation-disposition record
+  that cannot be used as production or multi-replica evidence.
+- Added storage-owned atomic credential-pool mutation plans for SQLite, PostgreSQL, and MongoDB, and
+  separate encrypted 256-entry admission domains for credential batch previews and idempotent
+  results.
+- Added bounded, resumable quota-state reconciliation with dry-run/apply operation, opaque progress
+  cursors, v1 disposal checks, and authoritative readiness confirmation.
+
+### Changed
+
+- Standardized every application SQLite connection on foreign-key enforcement and a bounded
+  five-second writer wait while keeping the production topology at one worker and one replica.
+
+- System configuration responses now redact every reusable schema secret and report only configured
+  state; blank secret fields preserve stored values, environment-owned controls are not submitted,
+  and all 20 controls expose their live/restart/read-only behavior.
+- Preserved the pre-R1 virtual-key edit contract while retaining optimistic concurrency: the console
+  sends `expected_revision`, legacy PATCH clients may omit it, and new rotate/revoke operations
+  continue to require it.
+- The legacy `/logs` route now opens Runtime logs instead of Request traces, matching its name;
+  `/activity` remains the primary request-trace entry and `/audit` remains an audit compatibility
+  link.
+- Reorganized the self-hosted console around one daily workflow: request traces, audit/security
+  events, and runtime logs now share an accessible Activity page; Team access is conditional,
+  advanced and compatibility settings are collapsed, legacy `/audit` and `/logs` URLs continue to
+  work, and mobile navigation now traps no hidden focus and restores focus on Escape.
+- Context compression now estimates deeply nested payloads without recursion, fails open to the
+  original request on estimation or invariant failure, preserves protected structures, and records
+  bounded before/after estimates and reasons. Primary providers resolve compression once and Vertex
+  anonymous now follows the same policy for streaming and non-streaming requests.
+- Quality preview and runtime now agree that compression begins only after the configured threshold
+  is exceeded, and weak-password guidance is localized across all supported console languages.
+- Unified balanced, priority, weighted, least-latency, and lowest-cost selection under the runtime
+  smart router; seeded fixtures are reproducible, repeated failures use bounded increasing
+  cooldowns, and unused conflicting legacy selectors were removed.
+- Public streaming now closes nested provider resources on disconnect, suppresses retries after
+  model output begins, requires terminal events before success accounting, preserves heartbeat and
+  split UTF-8 framing, bounds frame/aggregation memory, and settles quota and request traces once.
+- Public inference request models now reject unknown or untranslatable semantics with native
+  protocol errors instead of silently dropping fields; translated responses preserve signed
+  reasoning, cached/reasoning token accounting, and incomplete/safety finish states.
+- Credential model tests now have one cancelable 30-second operation deadline; raw upstream bodies
+  and exception text are no longer returned or persisted, while the console presents actionable
+  limited/failure states through labels completed across all 15 locales.
+- Simplified the default Docker Compose deployment to common standalone controls and one durable
+  named volume; optional storage, identity, routing, guardrail, cache, and telemetry controls now
+  require the explicit advanced override, and CI verifies state across container recreation.
+- Invalid documented environment values now fail startup with field-specific remediation instead
+  of relying on scattered fallback behavior; unknown `POLARIS_*` controls emit spelling warnings.
+- System Settings validation and field ownership are schema-derived, removing the duplicated route
+  whitelist and per-field validation block while keeping provider, quality, and access ownership
+  separate.
+- Hard daily and monthly virtual-key budgets now reserve and settle against the selected durable
+  ledger before provider admission. RPM and TPM remain single-process until the Redis coordination
+  phase, so worker and replica limits are unchanged.
+- Successful provider responses with uncertain ledger settlement retain a conservative durable
+  estimate instead of being released as zero spend. Readiness now actively probes the selected
+  usage ledger, and compatibility reports fail closed at a bounded row ceiling.
+- Local-owner login, recovery, and OIDC-start throttles now reserve attempts atomically before
+  protected work, while session issue/resolve/rotate/revoke and OIDC proof consumption use one
+  typed coordination boundary without changing the standalone default.
+- Credential selection now enforces a 100-candidate ceiling and shared lease/cooldown evidence;
+  exact-cache hits require matching coordinated generation and digest evidence. Runtime Redis
+  selection and multi-replica operation remain gated.
+- Runtime coordination consumers now receive one lifecycle-owned service. Primary conversation
+  steps use HMAC-addressed fenced CAS state, and coordinated MongoDB deployments cannot reuse the
+  coordination Redis namespace for the legacy cache.
+- Credential identity admission and deduplication now use one coherent durable snapshot and commit;
+  batch capacity exhaustion returns HTTP 429 with retry guidance while coordination outage returns
+  a typed HTTP 503 response.
+- Redis quota admission now uses 61 fixed second buckets and one directly addressed lifecycle
+  record instead of work proportional to as many as 100,000 retained records. Redis owns RPM/TPM
+  only; the durable usage ledger is the sole daily/monthly monetary-budget authority.
+
+### Fixed
+
+- Rejected corrupt SQLite state before startup writes and made additive startup migration atomic so
+  a later initialization failure cannot leave a partially upgraded database.
+- Preserved upgrades from populated pre-R1 SQLite credential stores by adding timestamp columns in
+  an SQLite-compatible additive step, backfilling existing rows, and timestamping new writes
+  explicitly. A versioned compatibility guard now detects accidental SDK, console, config, or
+  stored-schema contract breaks before release. Runtime shutdown also restores a fresh standalone
+  response-cache coordination boundary instead of leaving the cache attached to a closed store.
+
+- Hardened OIDC outage handling with bounded shared discovery backoff, removed implicit owner
+  fallback from verified-session authorization, and invalidated older sessions after a failed
+  claim-role re-evaluation.
+- Hardened inactive Redis coordination primitives against partial epoch loss, large-token
+  precision loss, expired replay reuse, partial cleanup, malformed quota chronology, and
+  cancellation during client shutdown. Coordinated runtime activation remains gated.
+- Prevented false-valued injected coordination backends from triggering local OIDC fallback and
+  made session/OIDC adapters preserve the exact validated fencing epoch for later HA activation.
+- Prevented unknown routing CAS/invalidation outcomes from being replayed with a new operation ID,
+  avoiding duplicate leases or duplicate generation increments after a committed transport timeout.
+- Closed lifecycle teardown leakage into later credential-routing work and corrected localization
+  audits so supplemental catalogs, HTML void elements, protocol values, and backend management
+  errors cannot escape coverage.
+- Prevented cross-replica duplicate credential identity admission, batch-domain capacity drift,
+  stale standalone MongoDB routing cache after a pool mutation, and ambiguous preview coordination
+  failures.
+- Prevented v1/corrupt/expiring or incompletely reconciled quota state from entering a ready epoch,
+  and made quota reconciliation cursors, page bounds, identifiers, and pipeline replies fail closed.
+- Corrected the synthetic HA evidence output so it no longer reports provider, batch, pool, or
+  quota blockers that the completed semantic checks already resolved. Redis and multi-replica
+  operation remain experimental and outside the supported release topology.
 
 ## [1.4.0] - 2026-08-21
 
@@ -16,7 +228,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 - Added a Prometheus `GET /metrics` endpoint with per-provider request, token, cost, and latency counters plus cache statistics, protected by an optional `METRICS_TOKEN` bearer requirement.
 - Added optional Langfuse trace export that emits model, provider, token counts, and latency for successful calls without sending prompt or response bodies.
 - Added dashboard analytics: a provider health matrix, token distribution breakdown, hourly traffic timeline, and pagination for the usage tables.
-- Added a Helm chart at `deploy/helm/omni-gateway` with persistent storage, probes, secret management, optional Ingress, and an optional Prometheus ServiceMonitor.
+- Added a Helm chart at `deploy/helm/polaris` with persistent storage, probes, secret management, optional Ingress, and an optional Prometheus ServiceMonitor.
 
 ### Changed
 
@@ -34,7 +246,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Added
 
-- Added a conditional update guide in the About page that appears only when a newer Omni Gateway release is available.
+- Added a conditional update guide in the About page that appears only when a newer Polaris release is available.
 - Added a production-oriented update and rollback guide for pinned Docker and Docker Compose deployments.
 
 ### Changed
@@ -139,7 +351,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 ### Fixed
 
 - Retried fixed-model requests through alternate compatible credentials and providers after an upstream `404` without changing the requested model.
-- Kept persistent provider-model blacklisting exclusive to virtual `omway` fallback while applying short credential-model cooldowns to failed fixed routes.
+- Kept persistent provider-model blacklisting exclusive to virtual `polaris` fallback while applying short credential-model cooldowns to failed fixed routes.
 
 ## [1.1.1] - 2026-07-15
 
@@ -162,7 +374,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Added
 
-- Added provider-aware model discovery, credential model testing, virtual `omway` routing, and a manageable blacklist for unavailable virtual-model routes.
+- Added provider-aware model discovery, credential model testing, virtual `polaris` routing, and a manageable blacklist for unavailable virtual-model routes.
 - Added Google AI Studio API-key credentials, JSON/ZIP import, model catalog discovery, credential backup restoration, and provider-specific pool views.
 - Added stable OpenAI, Anthropic, and Google GenAI error envelopes across authentication, validation, upstream, and pre-stream failures.
 - Added bounded request identifiers through `X-Request-ID` for client-side correlation.
@@ -228,18 +440,19 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/omni-gateway/compare/v1.4.0...HEAD
-[1.4.0]: https://github.com/nguywnben/omni-gateway/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/nguywnben/omni-gateway/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/nguywnben/omni-gateway/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/nguywnben/omni-gateway/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/nguywnben/omni-gateway/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/nguywnben/omni-gateway/compare/v1.1.4...v1.2.0
-[1.1.4]: https://github.com/nguywnben/omni-gateway/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/nguywnben/omni-gateway/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/nguywnben/omni-gateway/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/nguywnben/omni-gateway/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/nguywnben/omni-gateway/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nguywnben/omni-gateway/compare/v0.2.0-beta...v1.0.0
-[0.2.0-beta]: https://github.com/nguywnben/omni-gateway/compare/v0.1.0-beta...v0.2.0-beta
-[0.1.0-beta]: https://github.com/nguywnben/omni-gateway/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/nguywnben/polaris/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/nguywnben/polaris/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/nguywnben/polaris/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/nguywnben/polaris/compare/v1.1.4...v1.2.0
+[1.1.4]: https://github.com/nguywnben/polaris/compare/v1.1.3...v1.1.4
+[1.1.3]: https://github.com/nguywnben/polaris/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/nguywnben/polaris/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/nguywnben/polaris/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/nguywnben/polaris/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/nguywnben/polaris/compare/v0.2.0-beta...v1.0.0
+[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...v0.2.0-beta
+[0.1.0-beta]: https://github.com/nguywnben/polaris/releases/tag/v0.1.0-beta

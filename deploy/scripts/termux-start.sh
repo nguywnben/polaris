@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Compatibility path for Termux. Canonical production: docs/installation.md.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,9 +16,9 @@ echo "[INFO] Installing Python dependencies..."
 .venv/bin/python -m pip install --require-hashes -r requirements.lock
 
 if command -v pm2 >/dev/null 2>&1; then
-    echo "[INFO] Starting Omni Gateway with PM2..."
-    pm2 start .venv/bin/python --name omni-gateway -- backend/main.py
+    echo "[INFO] Starting Polaris with PM2..."
+    pm2 start .venv/bin/python --name polaris -- backend/main.py
 else
-    echo "[INFO] PM2 is not installed. Starting Omni Gateway in the foreground..."
+    echo "[INFO] PM2 is not installed. Starting Polaris in the foreground..."
     exec .venv/bin/python backend/main.py
 fi

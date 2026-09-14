@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import unittest
@@ -18,7 +19,6 @@ from core.model_pool import ModelCatalogEntry
 from core.models import CredentialModelTestRequest
 from core.panel.credential_operations import get_creds_status_common, verify_credential_common
 from core.panel.credentials import get_credential_models, test_credential
-from fastapi import HTTPException
 
 
 class FakeCredentialBackend:
@@ -473,16 +473,148 @@ class CredentialStatusModelTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch("core.httpx_client.post_async", new_callable=AsyncMock) as post_mock,
         ):
-            with self.assertRaises(HTTPException) as context:
-                await test_credential(
-                    "google-ai-studio-example.json",
-                    request=CredentialModelTestRequest(model="gemini-3-flash-preview"),
-                    mode="primary",
-                    _token="test-session",
-                )
+            response = await test_credential(
+                "google-ai-studio-example.json",
+                request=CredentialModelTestRequest(model="gemini-3-flash-preview"),
+                mode="primary",
+                _token="test-session",
+            )
 
-        self.assertEqual(context.exception.status_code, 400)
+        payload = json.loads(response.body)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(payload["diagnostic"]["category"], "invalid_model")
+        self.assertEqual(payload["diagnostic"]["code"], "provider_connection_invalid_model")
         post_mock.assert_not_awaited()
+
+    async def test_provider_failure_retains_safe_status_without_upstream_body(self):
+        storage = FakeCredentialStorage()
+        secret = "sk-secret-that-must-not-leak"
+        upstream = SimpleNamespace(
+            status_code=403,
+            text=json.dumps(
+                {
+                    "error": {
+                        "code": "permission_error",
+                        "message": f"Authorization: Bearer {secret}",
+                    }
+                }
+            ),
+        )
+
+        with (
+            patch(
+                "core.panel.credentials.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credentials.get_google_ai_studio_api_url",
+                AsyncMock(return_value="https://generativelanguage.googleapis.com"),
+            ),
+            patch("core.httpx_client.post_async", AsyncMock(return_value=upstream)),
+        ):
+            response = await test_credential(
+                "google-ai-studio-example.json",
+                request=CredentialModelTestRequest(model="gemini-2.5-pro"),
+                mode="primary",
+                _token="test-session",
+            )
+
+        payload = json.loads(response.body)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(payload["diagnostic"]["category"], "permission")
+        self.assertEqual(payload["diagnostic"]["provider_status"], 403)
+        self.assertEqual(payload["diagnostic"]["provider_code"], "permission_error")
+        self.assertNotIn(secret, response.body.decode())
+        self.assertEqual(
+            storage.updated_state[1]["error_messages"]["403"],
+            payload["diagnostic"]["message"],
+        )
+
+    async def test_rate_limit_is_a_successful_connection_with_typed_remediation(self):
+        storage = FakeCredentialStorage()
+        upstream = SimpleNamespace(
+            status_code=429,
+            text='{"error":{"code":"rate_limit_exceeded","message":"raw"}}',
+        )
+
+        with (
+            patch(
+                "core.panel.credentials.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credentials.get_google_ai_studio_api_url",
+                AsyncMock(return_value="https://generativelanguage.googleapis.com"),
+            ),
+            patch("core.httpx_client.post_async", AsyncMock(return_value=upstream)),
+        ):
+            response = await test_credential(
+                "google-ai-studio-example.json",
+                request=CredentialModelTestRequest(model="gemini-2.5-pro"),
+                mode="primary",
+                _token="test-session",
+            )
+
+        payload = json.loads(response.body)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["diagnostic"]["category"], "rate_limit")
+        self.assertTrue(payload["diagnostic"]["retryable"])
+        self.assertTrue(payload["diagnostic"]["remediation"])
+        self.assertEqual(payload["message"], payload["diagnostic"]["message"])
+
+    async def test_complete_connection_test_has_one_hard_timeout(self):
+        storage = FakeCredentialStorage()
+
+        async def blocked_request(*_args, **_kwargs):
+            await asyncio.Event().wait()
+
+        with (
+            patch(
+                "core.panel.credentials.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credentials.get_google_ai_studio_api_url",
+                AsyncMock(return_value="https://generativelanguage.googleapis.com"),
+            ),
+            patch("core.httpx_client.post_async", blocked_request),
+            patch("core.panel.credentials.CONNECTION_TEST_TIMEOUT_SECONDS", 0.001),
+        ):
+            response = await test_credential(
+                "google-ai-studio-example.json",
+                request=CredentialModelTestRequest(model="gemini-2.5-pro"),
+                mode="primary",
+                _token="test-session",
+            )
+
+        payload = json.loads(response.body)
+        self.assertEqual(response.status_code, 504)
+        self.assertEqual(payload["diagnostic"]["category"], "timeout")
+
+    async def test_client_disconnect_cancels_the_complete_connection_test(self):
+        cancelled = asyncio.Event()
+
+        async def blocked_storage():
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+        http_request = SimpleNamespace(is_disconnected=AsyncMock(return_value=True))
+        with patch("core.panel.credentials.get_storage_adapter", blocked_storage):
+            response = await test_credential(
+                "google-ai-studio-example.json",
+                request=CredentialModelTestRequest(model="gemini-2.5-pro"),
+                mode="primary",
+                _token="test-session",
+                http_request=http_request,
+            )
+
+        payload = json.loads(response.body)
+        self.assertEqual(response.status_code, 499)
+        self.assertEqual(payload["diagnostic"]["category"], "cancelled")
+        self.assertTrue(cancelled.is_set())
 
     async def test_antigravity_verification_persists_the_credential_model_catalog(self):
         storage = FakeAntigravityStorage()
@@ -695,8 +827,9 @@ class CredentialStatusModelTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             storage.updated_state[1],
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
         )
+        self.assertIn("enabled state was preserved", payload["message"].lower())
 
     async def test_codex_verification_refreshes_an_expired_access_token_once(self):
         storage = FakeProviderStorage(
@@ -774,6 +907,104 @@ class CredentialStatusModelTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("OpenAI Platform", payload["message"])
         fetch_models.assert_awaited_once_with("sk-platform-example-key")
         self.assertEqual(storage.stored_credential[1]["model_ids"], ["gpt-4.1", "gpt-5"])
+
+    async def test_claude_code_verification_preserves_disabled_state(self):
+        credential = {
+            "provider": "anthropic",
+            "credential_type": "oauth",
+            "access_token": "claude-access-token",
+            "refresh_token": "claude-refresh-token",
+            "disabled": True,
+        }
+        storage = FakeProviderStorage(credential)
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.credential_manager.prepare_credential",
+                AsyncMock(return_value=dict(credential)),
+            ) as prepare,
+            patch(
+                "core.panel.credential_operations.fetch_anthropic_model_ids",
+                AsyncMock(return_value=["claude-sonnet-4-6"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common("claude-code-example.json", mode="primary")
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "oauth")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        prepare.assert_awaited_once()
+        fetch_models.assert_awaited_once()
+
+    async def test_claude_platform_verification_preserves_disabled_state(self):
+        credential = {
+            "provider": "anthropic",
+            "credential_type": "api_key",
+            "api_key": "sk-ant-example-key",
+            "disabled": True,
+        }
+        storage = FakeProviderStorage(credential)
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.fetch_anthropic_model_ids",
+                AsyncMock(return_value=["claude-opus-4-1"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common(
+                "claude-platform-example.json", mode="primary"
+            )
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "api_key")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        fetch_models.assert_awaited_once()
+        verified_credential = fetch_models.await_args.args[0]
+        self.assertEqual(verified_credential["api_key"], "sk-ant-example-key")
+
+    async def test_ollama_verification_preserves_disabled_state(self):
+        storage = FakeProviderStorage(
+            {
+                "provider": "ollama",
+                "credential_type": "connection",
+                "base_url": "http://host.docker.internal:11434",
+                "api_key": "optional-secret",
+                "disabled": True,
+            }
+        )
+
+        with (
+            patch(
+                "core.panel.credential_operations.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credential_operations.fetch_ollama_model_ids",
+                AsyncMock(return_value=["qwen3.5"]),
+            ) as fetch_models,
+        ):
+            response = await verify_credential_common("ollama-example.json", mode="primary")
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["credential_type"], "connection")
+        self.assertTrue(storage.stored_credential[1]["disabled"])
+        self.assertNotIn("disabled", storage.updated_state[1])
+        fetch_models.assert_awaited_once_with(
+            "http://host.docker.internal:11434", "optional-secret"
+        )
 
 
 if __name__ == "__main__":

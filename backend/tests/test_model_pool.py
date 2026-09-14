@@ -221,7 +221,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
                 "core.panel.model_pools.get_virtual_model_pool",
                 AsyncMock(
                     return_value={
-                        "alias": "omway",
+                        "alias": "polaris",
                         "strategy": "priority_fallback",
                         "selected_models": [],
                         "enabled": True,
@@ -274,12 +274,12 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             AsyncMock(side_effect=AssertionError("Catalog lookup reached the data path.")),
         ):
             resolution = await resolve_model_request(
-                "omway",
+                "polaris",
                 storage_adapter=storage,
             )
 
         self.assertTrue(resolution.is_virtual)
-        self.assertEqual(resolution.response_model, "omway")
+        self.assertEqual(resolution.response_model, "polaris")
         self.assertEqual(
             resolution.candidates,
             ("missing-model", "gemini-2.5-flash", "claude-sonnet-4-6"),
@@ -298,7 +298,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(await get_public_virtual_models(storage_adapter=storage), [])
         with self.assertRaises(ModelPoolError):
-            await resolve_model_request("omway", storage_adapter=storage)
+            await resolve_model_request("polaris", storage_adapter=storage)
 
     async def test_configured_alias_remains_in_model_list_during_catalog_outage(self):
         with (
@@ -308,12 +308,12 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.router.primary.model_list.get_public_virtual_models",
-                AsyncMock(return_value=["omway"]),
+                AsyncMock(return_value=["polaris"]),
             ),
         ):
             models = await get_primary_models_with_features()
 
-        self.assertEqual(models, ["omway"])
+        self.assertEqual(models, ["polaris"])
 
     async def test_empty_catalog_is_cached_until_expiry(self):
         loader = AsyncMock(return_value={})
@@ -525,7 +525,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_openai_virtual_model_routes_hi_prompt_and_preserves_alias(self):
         request = OpenAIChatCompletionRequest(
-            model="omway",
+            model="polaris",
             messages=[{"role": "user", "content": "Hi"}],
         )
         upstream = Response(
@@ -545,8 +545,8 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             media_type="application/json",
         )
         resolution = ModelResolution(
-            requested_model="omway",
-            response_model="omway",
+            requested_model="polaris",
+            response_model="polaris",
             candidates=("gemini-2.5-flash", "claude-sonnet-4-6"),
             is_virtual=True,
         )
@@ -564,7 +564,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             response = await chat_completions(request, token="test")
 
         payload = json.loads(response.body)
-        self.assertEqual(payload["model"], "omway")
+        self.assertEqual(payload["model"], "polaris")
         self.assertEqual(payload["choices"][0]["message"]["content"], "Hello back")
         self.assertEqual(
             routed_request.await_args.kwargs["model_candidates"],
@@ -573,7 +573,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_anthropic_virtual_model_preserves_alias(self):
         request = ClaudeRequest(
-            model="omway",
+            model="polaris",
             max_tokens=128,
             messages=[{"role": "user", "content": "Hello"}],
         )
@@ -594,8 +594,8 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             media_type="application/json",
         )
         resolution = ModelResolution(
-            requested_model="omway",
-            response_model="omway",
+            requested_model="polaris",
+            response_model="polaris",
             candidates=("gemini-2.5-flash", "claude-sonnet-4-6"),
             is_virtual=True,
         )
@@ -613,7 +613,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             response = await anthropic_messages(request, _token="test")
 
         payload = json.loads(response.body)
-        self.assertEqual(payload["model"], "omway")
+        self.assertEqual(payload["model"], "polaris")
         self.assertEqual(payload["content"][0]["text"], "Hello back")
         self.assertEqual(
             routed_request.await_args.kwargs["model_candidates"],
@@ -640,8 +640,8 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
             media_type="application/json",
         )
         resolution = ModelResolution(
-            requested_model="omway",
-            response_model="omway",
+            requested_model="polaris",
+            response_model="polaris",
             candidates=("gemini-2.5-flash", "claude-sonnet-4-6"),
             is_virtual=True,
         )
@@ -658,7 +658,7 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
         ):
             response = await gemini_generate_content(
                 request,
-                model="omway",
+                model="polaris",
                 api_key="test",
             )
 

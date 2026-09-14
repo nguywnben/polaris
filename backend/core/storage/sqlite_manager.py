@@ -2,11 +2,26 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import aiosqlite
+from core.credential_pool_mutation import (
+    CredentialPoolMutation,
+    CredentialPoolMutationError,
+    CredentialPoolPlanner,
+    CredentialPoolRecord,
+    normalize_pool_mode,
+    validate_credential_pool_mutation,
+)
 from log import log
 from paths import DEFAULT_CREDENTIALS_DIR
+
+from .sqlite_runtime import open_sqlite, verify_existing_sqlite_database
+
+if TYPE_CHECKING:
+    from core.audit import AuditRepository
+    from core.durable_migration_runner import MigrationCheckpointRepository
+    from core.identity.repository import IdentityRepository
 
 
 class SQLiteManager:
@@ -34,8 +49,8 @@ class SQLiteManager:
             ("tier", "TEXT DEFAULT 'pro'"),
             ("rotation_order", "INTEGER DEFAULT 0"),
             ("call_count", "INTEGER DEFAULT 0"),
-            ("created_at", "REAL DEFAULT (unixepoch())"),
-            ("updated_at", "REAL DEFAULT (unixepoch())"),
+            ("created_at", "REAL"),
+            ("updated_at", "REAL"),
         ],
         "primary_credentials": [
             ("disabled", "INTEGER DEFAULT 0"),
@@ -48,8 +63,8 @@ class SQLiteManager:
             ("enable_credit", "INTEGER DEFAULT 0"),
             ("rotation_order", "INTEGER DEFAULT 0"),
             ("call_count", "INTEGER DEFAULT 0"),
-            ("created_at", "REAL DEFAULT (unixepoch())"),
-            ("updated_at", "REAL DEFAULT (unixepoch())"),
+            ("created_at", "REAL"),
+            ("updated_at", "REAL"),
         ],
     }
 
@@ -75,18 +90,19 @@ class SQLiteManager:
                 self._db_path = os.path.join(self._credentials_dir, "credentials.db")
 
                 os.makedirs(self._credentials_dir, exist_ok=True)
+                await asyncio.to_thread(verify_existing_sqlite_database, self._db_path)
 
-                async with aiosqlite.connect(self._db_path) as db:
+                async with open_sqlite(self._db_path) as db:
                     await db.execute("PRAGMA journal_mode=WAL")
-                    await db.execute("PRAGMA foreign_keys=ON")
-
-                    await self._ensure_schema_compatibility(db)
-
-                    await self._create_tables(db)
-
-                    await self._repair_credential_filenames(db)
-
-                    await db.commit()
+                    await db.execute("BEGIN IMMEDIATE")
+                    try:
+                        await self._ensure_schema_compatibility(db)
+                        await self._create_tables(db)
+                        await self._repair_credential_filenames(db)
+                        await db.commit()
+                    except Exception:
+                        await db.rollback()
+                        raise
 
                 await self._load_config_cache()
 
@@ -94,7 +110,7 @@ class SQLiteManager:
                 log.info(f"SQLite storage initialized at {self._db_path}")
 
             except Exception as e:
-                log.error(f"Error initializing SQLite: {e}")
+                log.error(f"SQLite initialization failed ({type(e).__name__}).")
                 raise
 
     async def _ensure_schema_compatibility(self, db: aiosqlite.Connection) -> None:
@@ -111,22 +127,28 @@ class SQLiteManager:
                     existing_columns = {row[1] for row in await cursor.fetchall()}
 
                 added_count = 0
+                added_columns = set()
                 for col_name, col_def in columns:
                     if col_name not in existing_columns:
-                        try:
-                            await db.execute(
-                                f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"
-                            )
-                            log.info(f"Added missing column {table_name}.{col_name}")
-                            added_count += 1
-                        except Exception as e:
-                            log.error(f"Failed to add column {table_name}.{col_name}: {e}")
+                        await db.execute(
+                            f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"
+                        )
+                        log.info(f"Added missing column {table_name}.{col_name}")
+                        added_count += 1
+                        added_columns.add(col_name)
+
+                timestamp_columns = added_columns & {"created_at", "updated_at"}
+                for column in timestamp_columns:
+                    await db.execute(
+                        f"UPDATE {table_name} SET {column} = unixepoch() WHERE {column} IS NULL"
+                    )
 
                 if added_count > 0:
                     log.info(f"Table {table_name}: added {added_count} missing column(s)")
 
         except Exception as e:
             log.error(f"Error ensuring schema compatibility: {e}")
+            raise
 
     async def _create_tables(self, db: aiosqlite.Connection):
         await db.execute("""
@@ -287,13 +309,14 @@ class SQLiteManager:
 
         except Exception as e:
             log.error(f"Error repairing credential filenames: {e}")
+            raise
 
     async def _load_config_cache(self):
         if self._config_loaded:
             return
 
         try:
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute("SELECT key, value FROM config") as cursor:
                     rows = await cursor.fetchall()
 
@@ -318,6 +341,55 @@ class SQLiteManager:
         if not self._initialized:
             raise RuntimeError("SQLite manager not initialized")
 
+    async def create_audit_repository(self, *, cursor_signing_key: bytes) -> "AuditRepository":
+        self._ensure_initialized()
+        from .audit_sqlite import SQLiteAuditRepository
+
+        repository = SQLiteAuditRepository(
+            self._db_path,
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_identity_repository(self) -> "IdentityRepository":
+        self._ensure_initialized()
+        from .identity_sqlite import SQLiteIdentityRepository
+
+        repository = SQLiteIdentityRepository(self._db_path)
+        await repository.initialize()
+        return repository
+
+    async def create_migration_checkpoint_repository(
+        self,
+    ) -> "MigrationCheckpointRepository":
+        self._ensure_initialized()
+        from .migration_sqlite import SQLiteMigrationCheckpointRepository
+
+        repository = SQLiteMigrationCheckpointRepository(self._db_path)
+        await repository.initialize()
+        return repository
+
+    async def create_request_trace_repository(self, *, cursor_signing_key: bytes):
+        self._ensure_initialized()
+        from .request_trace_sqlite import SQLiteRequestTraceRepository
+
+        repository = SQLiteRequestTraceRepository(
+            self._db_path,
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_usage_ledger_repository(self):
+        self._ensure_initialized()
+        from .usage_ledger_sqlite import SQLiteUsageLedgerRepository
+
+        repository = SQLiteUsageLedgerRepository(self._db_path)
+        await repository.initialize()
+        await repository.import_legacy_usage(os.path.join(self._credentials_dir, "usage_stats.db"))
+        return repository
+
     def _get_table_name(self, mode: str) -> str:
         if mode == "primary":
             return "primary_credentials"
@@ -333,7 +405,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 current_time = time.time()
 
                 if mode == "code_assist":
@@ -424,7 +496,7 @@ class SQLiteManager:
         self._ensure_initialized()
 
         try:
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute("""
                     SELECT filename
                     FROM credentials
@@ -447,7 +519,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(
                     f"""
                     SELECT disabled, error_codes, last_success, user_email,
@@ -478,8 +550,9 @@ class SQLiteManager:
                     await db.execute(
                         f"""
                         INSERT INTO {table_name}
-                        (filename, credential_data, rotation_order, last_success)
-                        VALUES (?, ?, ?, ?)
+                        (filename, credential_data, rotation_order, last_success,
+                         created_at, updated_at)
+                        VALUES (?, ?, ?, ?, unixepoch(), unixepoch())
                     """,
                         (filename, json.dumps(credential_data), next_order, time.time()),
                     )
@@ -492,6 +565,83 @@ class SQLiteManager:
             log.error(f"Error storing credential {filename}: {e}")
             return False
 
+    async def mutate_credential_pool(
+        self, mode: str, planner: CredentialPoolPlanner
+    ) -> CredentialPoolMutation:
+        """Apply one pool plan while holding SQLite's durable writer lock."""
+        self._ensure_initialized()
+        mode = normalize_pool_mode(mode)
+        table_name = self._get_table_name(mode)
+        if not callable(planner):
+            raise CredentialPoolMutationError("Credential pool planner is invalid.")
+        try:
+            async with open_sqlite(self._db_path) as db:
+                await db.execute("BEGIN IMMEDIATE")
+                try:
+                    async with db.execute(
+                        f"""SELECT filename, credential_data, user_email, rotation_order
+                            FROM {table_name} ORDER BY rotation_order, filename"""
+                    ) as cursor:
+                        rows = await cursor.fetchall()
+                    records = []
+                    for filename, payload, user_email, rotation_order in rows:
+                        credential_data = json.loads(payload)
+                        if type(credential_data) is not dict:
+                            raise CredentialPoolMutationError(
+                                "Stored credential payload is invalid."
+                            )
+                        records.append(
+                            CredentialPoolRecord(
+                                filename=filename,
+                                credential_data=credential_data,
+                                user_email=user_email,
+                                rotation_order=rotation_order,
+                            )
+                        )
+                    mutation = validate_credential_pool_mutation(planner(tuple(records)))
+                    for filename in mutation.deletes:
+                        await db.execute(
+                            f"DELETE FROM {table_name} WHERE filename = ?", (filename,)
+                        )
+                    next_order = max((record.rotation_order for record in records), default=-1) + 1
+                    existing_names = {record.filename for record in records}
+                    for write in mutation.writes:
+                        if write.filename in existing_names:
+                            await db.execute(
+                                f"""UPDATE {table_name}
+                                    SET credential_data = ?, user_email = ?, updated_at = unixepoch()
+                                    WHERE filename = ?""",
+                                (
+                                    json.dumps(write.credential_data),
+                                    write.user_email,
+                                    write.filename,
+                                ),
+                            )
+                        else:
+                            await db.execute(
+                                f"""INSERT INTO {table_name}
+                                    (filename, credential_data, user_email, rotation_order,
+                                     last_success, created_at, updated_at)
+                                    VALUES (?, ?, ?, ?, ?, unixepoch(), unixepoch())""",
+                                (
+                                    write.filename,
+                                    json.dumps(write.credential_data),
+                                    write.user_email,
+                                    next_order,
+                                    time.time(),
+                                ),
+                            )
+                            next_order += 1
+                    await db.commit()
+                    return mutation
+                except BaseException:
+                    await db.rollback()
+                    raise
+        except CredentialPoolMutationError:
+            raise
+        except Exception:
+            raise CredentialPoolMutationError("Credential pool mutation failed.") from None
+
     async def get_credential(
         self, filename: str, mode: str = "code_assist"
     ) -> Optional[Dict[str, Any]]:
@@ -501,7 +651,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(
                     f"""
                     SELECT credential_data FROM {table_name} WHERE filename = ?
@@ -523,7 +673,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(f"""
                     SELECT filename FROM {table_name} ORDER BY rotation_order
                 """) as cursor:
@@ -538,7 +688,7 @@ class SQLiteManager:
         self._ensure_initialized()
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(f"""
                     SELECT filename, credential_data
                     FROM {table_name}
@@ -563,7 +713,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 await db.execute("PRAGMA secure_delete=ON")
                 result = await db.execute(
                     f"""
@@ -630,7 +780,7 @@ class SQLiteManager:
 
             log.debug(f"[DB] SQL parameters: set_clauses = {set_clauses}, values = {values}")
 
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 sql_exact = f"""
                     UPDATE {table_name}
                     SET {", ".join(set_clauses)}
@@ -666,7 +816,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 if mode == "code_assist":
                     async with db.execute(
                         f"""
@@ -753,7 +903,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 if mode == "code_assist":
                     async with db.execute(f"""
                         SELECT filename, disabled, error_codes, last_success,
@@ -847,7 +997,7 @@ class SQLiteManager:
         try:
             table_name = self._get_table_name(mode)
 
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 global_stats = {"total": 0, "normal": 0, "disabled": 0}
                 async with db.execute(f"""
                     SELECT disabled, COUNT(*) FROM {table_name} GROUP BY disabled
@@ -1013,7 +1163,7 @@ class SQLiteManager:
         try:
             table_name = self._get_table_name(mode)
 
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 query = f"""
                     SELECT filename, user_email
                     FROM {table_name}
@@ -1075,7 +1225,7 @@ class SQLiteManager:
         self._ensure_initialized()
 
         try:
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 await db.execute(
                     """
                     INSERT INTO config (key, value, updated_at)
@@ -1097,6 +1247,7 @@ class SQLiteManager:
 
     async def reload_config_cache(self):
         self._ensure_initialized()
+        self._config_cache = {}
         self._config_loaded = False
         await self._load_config_cache()
         log.info("Config cache reloaded from database")
@@ -1113,7 +1264,7 @@ class SQLiteManager:
         self._ensure_initialized()
 
         try:
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 await db.execute("DELETE FROM config WHERE key = ?", (key,))
                 await db.commit()
 
@@ -1133,7 +1284,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(
                     f"""
                     SELECT error_codes, error_messages FROM {table_name} WHERE filename = ?
@@ -1174,7 +1325,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 async with db.execute(
                     f"""
                     SELECT model_cooldowns FROM {table_name} WHERE filename = ?
@@ -1221,7 +1372,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 result = await db.execute(
                     f"""
                     UPDATE {table_name}
@@ -1246,25 +1397,30 @@ class SQLiteManager:
             return False
 
     async def record_success(
-        self, filename: str, model_name: Optional[str] = None, mode: str = "code_assist"
+        self,
+        filename: str,
+        model_name: Optional[str] = None,
+        mode: str = "code_assist",
+        call_increment: int = 1,
     ) -> None:
         self._ensure_initialized()
         filename = os.path.basename(filename)
+        call_increment = max(1, int(call_increment))
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 await db.execute(
                     f"""
                     UPDATE {table_name}
                     SET last_success = unixepoch(),
-                        call_count = COALESCE(call_count, 0) + 1,
+                        call_count = COALESCE(call_count, 0) + ?,
                         error_codes = '[]',
                         error_messages = '{{}}',
                         updated_at = unixepoch()
                     WHERE filename = ?
                 """,
-                    (filename,),
+                    (call_increment, filename),
                 )
 
                 if model_name:
@@ -1300,7 +1456,7 @@ class SQLiteManager:
 
         try:
             table_name = self._get_table_name(mode)
-            async with aiosqlite.connect(self._db_path) as db:
+            async with open_sqlite(self._db_path) as db:
                 await db.execute(
                     f"""
                     UPDATE {table_name}

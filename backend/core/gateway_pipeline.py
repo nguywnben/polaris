@@ -18,14 +18,36 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.guardrails import GuardrailsEngine
-from core.response_cache import generate_cache_key, response_cache
+from core.request_trace_service import trace_decision
+from core.response_cache import generate_cache_key, response_cache, response_cache_coordinator
 from fastapi import Response
 from log import log
 
 # Responses larger than this are not cached (memory protection).
 MAX_CACHEABLE_RESPONSE_BYTES = 512 * 1024
 
-CACHE_HIT_HEADER = "x-omni-cache"
+CACHE_HIT_HEADER = "x-polaris-cache"
+
+
+def runtime_admission_response() -> Optional[Response]:
+    """Reject inference after the process lifecycle has closed admission."""
+    from core.runtime_lifecycle import get_runtime_lifecycle
+
+    lifecycle = get_runtime_lifecycle()
+    if lifecycle is None or lifecycle.admission_available:
+        return None
+    return Response(
+        content=json.dumps(
+            {
+                "error": {
+                    "message": "Gateway runtime is temporarily unavailable.",
+                    "type": "runtime_unavailable",
+                }
+            }
+        ),
+        status_code=503,
+        media_type="application/json",
+    )
 
 
 def _iter_text_parts(body: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -63,10 +85,39 @@ async def apply_pre_call_guardrails(
     try:
         settings = await get_guardrails_config()
     except Exception as exc:
-        log.error(f"[guardrails] failed to load config, failing open: {exc}")
-        return None, body
+        log.error(
+            f"[guardrails] policy resolution failed ({type(exc).__name__}); "
+            "blocking the request because enforcement state is unknown."
+        )
+        trace_decision(
+            category="guardrail",
+            action="blocked",
+            result="failed",
+            reason="policy_unavailable",
+        )
+        return (
+            Response(
+                content=json.dumps(
+                    {
+                        "error": {
+                            "message": "Gateway guardrails are temporarily unavailable.",
+                            "type": "guardrails_unavailable",
+                        }
+                    }
+                ),
+                status_code=503,
+                media_type="application/json",
+            ),
+            body,
+        )
 
     if not settings["enabled"]:
+        trace_decision(
+            category="guardrail",
+            action="skipped",
+            result="skipped",
+            reason="feature_disabled",
+        )
         return None, body
 
     engine = GuardrailsEngine(
@@ -81,6 +132,17 @@ async def apply_pre_call_guardrails(
         result = engine.inspect_and_sanitize(part["text"])
         if not result.is_safe:
             log.warning(f"[guardrails] request blocked: {', '.join(result.violations)}")
+            reason = (
+                "injection_detected"
+                if any("injection" in str(item).lower() for item in result.violations)
+                else "blocked_keyword"
+            )
+            trace_decision(
+                category="guardrail",
+                action="blocked",
+                result="denied",
+                reason=reason,
+            )
             return (
                 Response(
                     content=json.dumps(
@@ -103,12 +165,22 @@ async def apply_pre_call_guardrails(
             _iter_text_parts(sanitized_body)[index]["text"] = result.sanitized_text
             log.info(f"[guardrails] masked PII in request text ({', '.join(result.violations)})")
 
+    trace_decision(
+        category="guardrail",
+        action="masked" if sanitized_body is not None else "evaluated",
+        result="succeeded" if sanitized_body is not None else "allowed",
+        reason="pii_masked" if sanitized_body is not None else "policy_passed",
+    )
+
     return None, sanitized_body if sanitized_body is not None else body
 
 
 def _is_cacheable_request(body: Dict[str, Any]) -> bool:
     """Only deterministic requests (explicit temperature == 0) are cacheable."""
-    generation_config = body.get("generationConfig")
+    request_body = body.get("request")
+    if not isinstance(request_body, dict):
+        request_body = body
+    generation_config = request_body.get("generationConfig")
     if not isinstance(generation_config, dict):
         return False
     temperature = generation_config.get("temperature")
@@ -127,26 +199,78 @@ async def lookup_response_cache(
     cacheable; ``cached_response`` is ``None`` on cache miss.
     """
     from config import get_response_cache_config
+    from core.request_context import is_operation_replay_required
+
+    replay_required = is_operation_replay_required()
+
+    def replay_miss() -> Tuple[None, Response]:
+        return None, Response(
+            content=json.dumps(
+                {
+                    "error": {
+                        "message": "The prior operation result is temporarily unavailable.",
+                        "type": "operation_replay_unavailable",
+                    }
+                }
+            ),
+            status_code=503,
+            media_type="application/json",
+        )
 
     try:
         settings = await get_response_cache_config()
     except Exception as exc:
-        log.error(f"[response-cache] failed to load config, failing open: {exc}")
-        return None, None
+        log.error(
+            f"[response-cache] policy resolution failed ({type(exc).__name__}); failing open."
+        )
+        trace_decision(
+            category="cache",
+            action="skipped",
+            result="failed",
+            reason="policy_unavailable",
+        )
+        return replay_miss() if replay_required else (None, None)
 
-    if not settings["enabled"] or not _is_cacheable_request(body):
-        return None, None
+    if not settings["enabled"]:
+        trace_decision(
+            category="cache",
+            action="skipped",
+            result="skipped",
+            reason="feature_disabled",
+        )
+        return replay_miss() if replay_required else (None, None)
+    if not _is_cacheable_request(body):
+        trace_decision(
+            category="cache",
+            action="skipped",
+            result="skipped",
+            reason="not_eligible",
+        )
+        return replay_miss() if replay_required else (None, None)
 
     response_cache.default_ttl_seconds = settings["ttl_seconds"]
     response_cache.max_entries = settings["max_entries"]
 
     cache_key = generate_cache_key(str(body.get("model") or ""), body, stream=False)
-    entry = response_cache.get(cache_key)
+    entry = await response_cache_coordinator.get(cache_key)
     if entry is None:
-        return cache_key, None
+        trace_decision(
+            category="cache",
+            action="miss",
+            result="miss",
+            reason="cache_miss",
+        )
+        return replay_miss() if replay_required else (cache_key, None)
 
     content, media_type = entry
     log.info(f"[response-cache] HIT for model={body.get('model')}")
+    trace_decision(
+        category="cache",
+        action="hit",
+        result="hit",
+        reason="cache_hit",
+        model=str(body.get("model") or ""),
+    )
     return cache_key, Response(
         content=content,
         status_code=200,
@@ -155,11 +279,29 @@ async def lookup_response_cache(
     )
 
 
-def store_response_cache(cache_key: Optional[str], response: Response) -> None:
+async def store_response_cache(cache_key: Optional[str], response: Response) -> None:
     """Persist a successful upstream response for future exact-match hits."""
     if not cache_key or response is None or response.status_code != 200:
         return
     body_bytes = response.body
     if not body_bytes or len(body_bytes) > MAX_CACHEABLE_RESPONSE_BYTES:
         return
-    response_cache.set(cache_key, (bytes(body_bytes), response.media_type))
+    stored = await response_cache_coordinator.set(
+        cache_key,
+        (bytes(body_bytes), response.media_type or "application/octet-stream"),
+        response_cache.default_ttl_seconds,
+    )
+    if not stored:
+        trace_decision(
+            category="cache",
+            action="skipped",
+            result="failed",
+            reason="coordination_unavailable",
+        )
+        return
+    trace_decision(
+        category="cache",
+        action="stored",
+        result="succeeded",
+        reason="cache_stored",
+    )

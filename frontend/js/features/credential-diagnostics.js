@@ -16,7 +16,7 @@ async function verifyCredential(filename) {
 
         if (response.ok && data.success) {
 
-            showStatus(data.message || 'Credential verified.', 'success');
+            showStatus(data.message || t('credentials.verified'), 'success');
 
             showMessageModal(t('credential_verification_title'), buildCredentialVerificationHtml(filename, data), 'success', {html: true});
 
@@ -62,7 +62,7 @@ async function verifyProviderCredential(filename) {
 
         if (response.ok && data.success) {
 
-            showStatus(data.message || 'Credential verified.', 'success');
+            showStatus(data.message || t('credentials.verified'), 'success');
 
             showMessageModal(t('credential_verification_title'), buildCredentialVerificationHtml(filename, data), 'success', {html: true});
 
@@ -90,7 +90,7 @@ async function verifyProviderCredential(filename) {
 
 }
 
-async function testCredential(filename, model) {
+async function testCredential(filename, model, signal) {
 
     try {
 
@@ -102,26 +102,31 @@ async function testCredential(filename, model) {
 
             headers: getAuthHeaders(),
 
-            body: JSON.stringify({ model })
+            body: JSON.stringify({ model }),
+
+            signal
 
         });
 
         const data = await response.json();
 
         const logicalStatus = data.status_code || response.status;
-        const isRateLimited = logicalStatus === 429 && data.success === true;
+        const isLimited = logicalStatus === 429 && data.success === true;
 
-        if (response.status === 200 || isRateLimited) {
+        if (response.status === 200 || isLimited) {
 
             const resultHtml = buildCredentialTestResultHtml(filename, data, response, { mode: 'Code Assist' });
 
-            showStatus(isRateLimited ? t('credential_rate_limited') : t('test_successful'), isRateLimited ? 'warning' : 'success');
+            showStatus(
+                isLimited ? (data?.diagnostic?.message || t('credential_rate_limited')) : t('test_successful'),
+                isLimited ? 'warning' : 'success'
+            );
 
             await AppState.creds.refresh();
 
             return {
                 html: resultHtml,
-                type: isRateLimited ? 'info' : 'success'
+                type: isLimited ? 'info' : 'success'
             };
 
         }
@@ -130,7 +135,9 @@ async function testCredential(filename, model) {
 
             const errorDetails = buildCredentialTestErrorHtml(filename, data, response);
 
-            showStatus(`Test failed: ${data.message || `${t('http_code_prefix')} ${data.status_code || response.status}`}`, 'error');
+            const message = data?.diagnostic?.message || data.message || `${t('http_code_prefix')} ${data.status_code || response.status}`;
+
+            showStatus(t('credentials.test_failed', {error: message}), 'error');
 
             return {
                 html: errorDetails,
@@ -141,6 +148,14 @@ async function testCredential(filename, model) {
 
     } catch (error) {
 
+        if (signal?.aborted || error?.name === 'AbortError') {
+
+            showStatus(t('credential_test_cancelled'), 'info');
+
+            return {type: 'info', html: ''};
+
+        }
+
         const errorMsg = t('test_failed_errormessage', {error_message: error.message});
 
         showStatus(errorMsg, 'error');
@@ -148,13 +163,13 @@ async function testCredential(filename, model) {
         return {
             type: 'error',
             html: buildApiResultHtml({
-                intro: 'The selected model test could not be completed.',
+                intro: t('verification_failed'),
                 rows: [
                     ['Result', 'Failed'],
                     [t('table_filename'), filename],
                     ['Model', model],
                 ],
-                summaryLabel: 'Failure summary',
+                summaryLabel: t('modal.error_summary'),
                 note: errorMsg,
             })
         };
@@ -163,7 +178,7 @@ async function testCredential(filename, model) {
 
 }
 
-async function testPrimaryCredential(filename, model) {
+async function testPrimaryCredential(filename, model, signal) {
 
     try {
 
@@ -175,26 +190,31 @@ async function testPrimaryCredential(filename, model) {
 
             headers: getAuthHeaders(),
 
-            body: JSON.stringify({ model })
+            body: JSON.stringify({ model }),
+
+            signal
 
         });
 
         const data = await response.json();
 
         const logicalStatus = data.status_code || response.status;
-        const isRateLimited = logicalStatus === 429 && data.success === true;
+        const isLimited = logicalStatus === 429 && data.success === true;
 
-        if (response.status === 200 || isRateLimited) {
+        if (response.status === 200 || isLimited) {
 
             const resultHtml = buildCredentialTestResultHtml(filename, data, response, { mode: 'Provider' });
 
-            showStatus(isRateLimited ? t('credential_rate_limited') : t('test_successful'), isRateLimited ? 'warning' : 'success');
+            showStatus(
+                isLimited ? (data?.diagnostic?.message || t('credential_rate_limited')) : t('test_successful'),
+                isLimited ? 'warning' : 'success'
+            );
 
             await AppState.primaryCreds.refresh();
 
             return {
                 html: resultHtml,
-                type: isRateLimited ? 'info' : 'success'
+                type: isLimited ? 'info' : 'success'
             };
 
         }
@@ -203,7 +223,9 @@ async function testPrimaryCredential(filename, model) {
 
             const errorDetails = buildCredentialTestErrorHtml(filename, data, response);
 
-            showStatus(`Test failed: ${data.message || `${t('http_code_prefix')} ${data.status_code || response.status}`}`, 'error');
+            const message = data?.diagnostic?.message || data.message || `${t('http_code_prefix')} ${data.status_code || response.status}`;
+
+            showStatus(t('credentials.test_failed', {error: message}), 'error');
 
             return {
                 html: errorDetails,
@@ -214,6 +236,14 @@ async function testPrimaryCredential(filename, model) {
 
     } catch (error) {
 
+        if (signal?.aborted || error?.name === 'AbortError') {
+
+            showStatus(t('credential_test_cancelled'), 'info');
+
+            return {type: 'info', html: ''};
+
+        }
+
         const errorMsg = t('test_failed_errormessage', {error_message: error.message});
 
         showStatus(errorMsg, 'error');
@@ -221,13 +251,13 @@ async function testPrimaryCredential(filename, model) {
         return {
             type: 'error',
             html: buildApiResultHtml({
-                intro: 'The selected model test could not be completed.',
+                intro: t('verification_failed'),
                 rows: [
                     ['Result', 'Failed'],
                     [t('table_filename'), filename],
                     ['Model', model],
                 ],
-                summaryLabel: 'Failure summary',
+                summaryLabel: t('modal.error_summary'),
                 note: errorMsg,
             })
         };
@@ -258,7 +288,7 @@ async function configurePreviewChannel(filename) {
 
             showStatus(successMsg.replace(/\n/g, '<br>'), 'success');
 
-            showMessageModal(t('preview_configuration_title'), `${t('status_action_success', {action: t('btn_setup_preview')})}\n\n${t('table_filename')}: ${filename}\n\n${data.message}\n\nSetting ID: ${data.setting_id || 'N/A'}\nBinding ID: ${data.binding_id || 'N/A'}`, 'success');
+            showMessageModal(t('preview_configuration_title'), `${t('status_action_success', {action: t('btn_setup_preview')})}\n\n${t('table_filename')}: ${filename}\n\n${data.message}\n\n${t('runtime.setting_id')}: ${data.setting_id || 'N/A'}\n${t('runtime.binding_id')}: ${data.binding_id || 'N/A'}`, 'success');
 
             await AppState.creds.refresh();
 

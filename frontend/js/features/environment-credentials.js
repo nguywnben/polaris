@@ -88,7 +88,7 @@ async function loadEnvCredentials() {
                 showStatus(t('successfully_imported_dataloaded_co', {
                     data_loaded_count: data.loaded_count,
                     data_total_count: data.total_count,
-                    credential_noun: Number(data.total_count) === 1 ? 'credential file' : 'credential files'
+                    credential_noun: t('credential')
                 }), 'success');
 
                 setTimeout(() => checkEnvCredsStatus(), 1000);

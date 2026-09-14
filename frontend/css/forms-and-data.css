@@ -56,7 +56,8 @@ button.endpoint-code-card:hover {
 
 .credentials {
     max-height: 280px;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 12px;
 }
 
@@ -221,6 +222,7 @@ button.endpoint-code-card:hover {
 .health-matrix-legend,
 .chart-legend {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     background: var(--bg-subtle);
@@ -480,6 +482,22 @@ button.endpoint-code-card:hover {
     transform: translateX(-50%) translateY(-2px);
 }
 
+.timeline-bar-col:first-child .timeline-tooltip {
+    left: 0;
+    transform: translateY(-6px);
+}
+
+.timeline-bar-col:last-child .timeline-tooltip {
+    right: 0;
+    left: auto;
+    transform: translateY(-6px);
+}
+
+.timeline-bar-col:first-child:hover .timeline-tooltip,
+.timeline-bar-col:last-child:hover .timeline-tooltip {
+    transform: translateY(-2px);
+}
+
 .timeline-labels-row {
     display: flex;
     justify-content: space-between;
@@ -681,7 +699,9 @@ button.endpoint-code-card:hover {
 }
 
 .usage-table-wrapper {
-    overflow-x: auto;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
@@ -776,7 +796,8 @@ button.endpoint-code-card:hover {
 
 .usage-table {
     width: 100%;
-    min-width: 640px;
+    min-width: 0;
+    table-layout: fixed;
     border-collapse: collapse;
 }
 
@@ -797,6 +818,23 @@ button.endpoint-code-card:hover {
 
 .usage-table tr:last-child td {
     border-bottom: 0;
+}
+
+.usage-table th,
+.usage-table td,
+.usage-table code {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.usage-table th:first-child,
+.usage-table td:first-child {
+    width: 40%;
+}
+
+.usage-table th:not(:first-child),
+.usage-table td:not(:first-child) {
+    width: 20%;
 }
 
 .usage-cell-primary {
@@ -848,11 +886,13 @@ label {
     margin-bottom: 7px;
 }
 
+input:not([type]),
 input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="url"],
 input[type="search"],
+input[type="datetime-local"],
 select,
 textarea {
     width: 100%;
@@ -863,28 +903,99 @@ textarea {
     color: var(--text);
     padding: 8px 13px;
     outline: 0;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
+select {
+    appearance: none;
+    background-image: var(--select-chevron);
+    background-position: right 13px center;
+    background-repeat: no-repeat;
+    background-size: 12px 8px;
+    padding: 8px 38px 8px 13px;
+}
+
+input:not([type]):not(:disabled):not(.disabled):not(:focus):hover,
 input[type="text"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="password"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="number"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="url"]:not(:disabled):not(.disabled):not(:focus):hover,
 input[type="search"]:not(:disabled):not(.disabled):not(:focus):hover,
+input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus):hover,
 select:not(:disabled):not(.disabled):not(:focus):hover,
 textarea:not(:disabled):not(.disabled):not(:focus):hover {
     border-color: var(--field-hover-border);
-    background: var(--control-hover);
+    background-color: var(--control-hover);
 }
 
 textarea {
     border-radius: var(--radius);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+:is(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):focus {
+    border-color: var(--field-focus-border);
+    background-color: var(--surface);
+    box-shadow: none;
+}
+
+:is(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):focus-visible {
+    outline: 0;
+}
+
+select:open {
+    border-color: var(--field-focus-border);
+    background-color: var(--surface);
+    background-image: var(--select-chevron-open);
+    box-shadow: none;
+}
+
+:is(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):user-invalid:not(:focus) {
+    border-color: var(--danger);
+}
+
+:is(
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea
+):user-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: none;
 }
 
 input:disabled,
@@ -897,7 +1008,9 @@ input.disabled,
 select.disabled,
 textarea.disabled,
 .env-locked {
-    background: var(--bg-subtle);
+    border-color: var(--border);
+    background-color: var(--bg-subtle);
+    box-shadow: none;
     color: var(--text-muted);
     -webkit-text-fill-color: var(--text-muted);
     opacity: 1;
@@ -950,6 +1063,7 @@ textarea[readonly] {
 .form-group:last-child {
     margin-bottom: 0;
 }
+
 
 .switch-row {
     display: flex;

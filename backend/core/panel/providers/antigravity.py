@@ -43,6 +43,18 @@ BOOLEAN_KEYS = {
     "switch_credential_enabled",
 }
 
+SECRET_CONFIG_KEYS = {"antigravity_client_secret"}
+
+
+def redact_antigravity_config(config_values: dict) -> dict:
+    """Return provider settings without reflecting stored secrets to the browser."""
+    safe_config = dict(config_values)
+    configured_secrets = sorted(key for key in SECRET_CONFIG_KEYS if bool(safe_config.get(key)))
+    for key in SECRET_CONFIG_KEYS:
+        if key in safe_config:
+            safe_config[key] = ""
+    return {"config": safe_config, "configured_secrets": configured_secrets}
+
 
 async def _current_antigravity_config() -> dict:
     client_id, client_secret = await config.get_antigravity_oauth_client_config()
@@ -66,12 +78,9 @@ async def get_antigravity_config(token: str = Depends(verify_panel_token)):
     """Return Google Antigravity provider settings for the provider setup UI."""
     try:
         env_locked = get_env_locked_keys() & ANTIGRAVITY_CONFIG_KEYS
-        return JSONResponse(
-            content={
-                "config": await _current_antigravity_config(),
-                "env_locked": sorted(env_locked),
-            }
-        )
+        content = redact_antigravity_config(await _current_antigravity_config())
+        content["env_locked"] = sorted(env_locked)
+        return JSONResponse(content=content)
     except Exception as e:
         log.error(f"Failed to retrieve Google Antigravity configuration: {e}")
         raise internal_server_error() from e
@@ -115,13 +124,15 @@ async def save_antigravity_config(
 
         await config.reload_config()
 
-        return JSONResponse(
-            content={
+        content = redact_antigravity_config(saved_config)
+        content.update(
+            {
                 "message": "Google Antigravity settings saved.",
-                "saved_config": saved_config,
+                "saved_config": content.pop("config"),
                 "env_locked": sorted(env_locked),
             }
         )
+        return JSONResponse(content=content)
     except HTTPException:
         raise
     except Exception as e:
@@ -143,14 +154,15 @@ async def reset_antigravity_config(token: str = Depends(verify_panel_token)):
 
         await config.reload_config()
 
-        return JSONResponse(
-            content={
+        content = redact_antigravity_config(await _current_antigravity_config())
+        content.update(
+            {
                 "message": "Google Antigravity settings reset to defaults.",
-                "config": await _current_antigravity_config(),
                 "reset_config": deleted_keys,
                 "env_locked": sorted(env_locked),
             }
         )
+        return JSONResponse(content=content)
     except Exception as e:
         log.error(f"Failed to reset Google Antigravity configuration: {e}")
         raise internal_server_error() from e

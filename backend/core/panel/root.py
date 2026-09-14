@@ -1,5 +1,6 @@
 """Root routes for the management console."""
 
+import hashlib
 import re
 from functools import lru_cache
 from html import escape
@@ -20,10 +21,16 @@ CONSOLE_FRAGMENT_PATHS = (
     "layout/sidebar.html",
     "layout/mobile-header.html",
     "pages/dashboard.html",
+    "pages/ai-quality.html",
+    "pages/access.html",
+    "pages/identity.html",
     "pages/pool.html",
     "pages/models.html",
+    "pages/playground.html",
     "pages/providers.html",
     "pages/settings.html",
+    "pages/activity.html",
+    "pages/audit.html",
     "pages/logs.html",
     "pages/about.html",
     "layout/footer.html",
@@ -34,28 +41,50 @@ CONSOLE_STYLE_ASSETS = (
     "css/shell.css",
     "css/providers-and-models.css",
     "css/forms-and-data.css",
+    "css/quality-policy.css",
+    "css/playground.css",
+    "css/access.css",
+    "css/identity.css",
+    "css/audit.css",
+    "css/observability.css",
     "css/components.css",
     "css/dialogs.css",
     "css/responsive.css",
 )
 
+CONSOLE_EARLY_SCRIPT_ASSETS = ("js/core/theme.js",)
+
 CONSOLE_SCRIPT_ASSETS = (
     "js/core/locales.js",
     "js/core/page-locales.js",
+    "js/core/audit-locales.js",
+    "js/core/trace-locales.js",
+    "js/core/operational-locales.js",
+    "js/core/number-format.js",
     "js/core/i18n.js",
+    "js/core/identity-locales.js",
+    "js/core/identity-contract.js",
     "js/core/navigation.js",
     "js/core/credential-manager.js",
     "js/core/upload-manager.js",
     "js/core/state.js",
     "js/ui/notifications.js",
+    "js/ui/page-states.js",
     "js/ui/api-integration.js",
     "js/ui/dialog-content.js",
     "js/ui/dialogs.js",
     "js/ui/credential-dialogs.js",
     "js/ui/credential-cards.js",
     "js/features/authentication.js",
+    "js/features/virtual-keys.js",
+    "js/features/identity.js",
+    "js/features/conditional-navigation.js",
+    "js/features/audit.js",
+    "js/features/traces.js",
+    "js/features/activity.js",
     "js/features/navigation.js",
     "js/features/model-pool.js",
+    "js/features/playground.js",
     "js/features/code-assist-authentication.js",
     "js/features/antigravity-authentication.js",
     "js/features/credential-pool.js",
@@ -64,6 +93,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/logs.js",
     "js/features/environment-credentials.js",
     "js/features/provider-settings-shared.js",
+    "js/features/provider-onboarding.js",
     "js/features/google-ai-studio-settings.js",
     "js/features/xai-settings.js",
     "js/features/openai-settings.js",
@@ -71,7 +101,9 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/ollama-settings.js",
     "js/features/antigravity-settings.js",
     "js/features/system-settings.js",
+    "js/features/quality-policy.js",
     "js/features/dashboard.js",
+    "js/features/about.js",
     "js/features/version.js",
     "js/features/mobile-navigation.js",
 )
@@ -82,17 +114,22 @@ def _console_asset_paths():
         FRONTEND_DIR / asset
         for asset in (
             *CONSOLE_STYLE_ASSETS,
+            *CONSOLE_EARLY_SCRIPT_ASSETS,
             *CONSOLE_SCRIPT_ASSETS,
         )
     )
 
 
-def _console_asset_version() -> int:
-    return max(path.stat().st_mtime_ns for path in _console_asset_paths())
+def _console_asset_version() -> str:
+    digest = hashlib.blake2s(digest_size=10)
+    for path in _console_asset_paths():
+        metadata = path.stat()
+        digest.update(f"{path}\0{metadata.st_mtime_ns}\0{metadata.st_size}\0".encode("utf-8"))
+    return digest.hexdigest()
 
 
 @lru_cache(maxsize=4)
-def _read_console_bundle(asset_paths: tuple[str, ...], asset_version: int, separator: str) -> str:
+def _read_console_bundle(asset_paths: tuple[str, ...], asset_version: str, separator: str) -> str:
     """Read a versioned bundle while keeping source files independently editable."""
     del asset_version
     return (
@@ -139,6 +176,18 @@ def serve_console_styles(request: Request):
     )
 
 
+@router.get("/frontend/theme.js", include_in_schema=False)
+def serve_theme_script(request: Request):
+    """Serve the blocking theme bootstrap separately to prevent a wrong-theme flash."""
+    asset_version = _console_asset_version()
+    content = _read_console_bundle(CONSOLE_EARLY_SCRIPT_ASSETS, asset_version, "\n;\n")
+    return Response(
+        content=content,
+        media_type="text/javascript",
+        headers=_bundle_cache_headers(request),
+    )
+
+
 @router.get("/frontend/console.js", include_in_schema=False)
 def serve_console_scripts(request: Request):
     """Serve the ordered console modules as one cacheable classic script."""
@@ -159,7 +208,7 @@ def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLRespons
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{safe_title} - Omni Gateway</title>
+    <title>{safe_title} - Polaris</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
@@ -239,7 +288,7 @@ def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLRespons
             <span class="brand-mark" aria-hidden="true">
                 <img src="/frontend/assets/logo.png" alt="">
             </span>
-            <span class="brand-title">Omni Gateway</span>
+            <span class="brand-title">Polaris</span>
         </div>
         <h1>{safe_title}</h1>
         <p>{safe_message}</p>
@@ -311,14 +360,20 @@ async def serve_oauth_callback(request: Request):
 @router.get("/login", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/setup", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/ai-quality", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/access", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/identity", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/code_assist", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/pool", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/models", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/playground", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/providers", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/provider", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/oauth", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/upload", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/config", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/activity", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/audit", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/logs", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/about", response_class=HTMLResponse, include_in_schema=False)
 def serve_control_panel():
@@ -329,6 +384,11 @@ def serve_control_panel():
         html_content = re.sub(
             r'href="/frontend/console\.css(?:\?v=[^"]*)?"',
             f'href="/frontend/console.css?v={asset_version}"',
+            html_content,
+        )
+        html_content = re.sub(
+            r'src="/frontend/theme\.js(?:\?v=[^"]*)?"',
+            f'src="/frontend/theme.js?v={asset_version}"',
             html_content,
         )
         html_content = re.sub(

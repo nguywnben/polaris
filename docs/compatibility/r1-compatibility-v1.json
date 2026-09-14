@@ -1,0 +1,866 @@
+{
+  "schema_version": 1,
+  "profile": "production-self-hosted-r1",
+  "contract_version": "r1-v1",
+  "public_inference_operations": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "semantic_sha256": "f40845078cff2c2b6827456ce5558a796e41aa9573c23d1dc264ec1850d979fd"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "semantic_sha256": "63aa35fca8f4b44e4bc6d95590b231555a7090e96dc652cda34564909308eda4"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages/count_tokens",
+      "semantic_sha256": "30e899000287652c30dd3b7702fdcfab36008be50b09b6b81920e47a59c83f89"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "semantic_sha256": "3ae0a1dbdb2e87322c340c1a367592604f5ec7ba25865dcbe2dcda612f109f97"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "semantic_sha256": "250ef7feb1b25caf10b5dc22fbb7fd3c078c7a3f61cec725ee8909b9d29c2f1a"
+    },
+    {
+      "method": "GET",
+      "path": "/v1beta/models",
+      "semantic_sha256": "3ae0a1dbdb2e87322c340c1a367592604f5ec7ba25865dcbe2dcda612f109f97"
+    },
+    {
+      "method": "POST",
+      "path": "/v1beta/models/{model}:countTokens",
+      "semantic_sha256": "45e2999e8c816344dce0ea357f8bd5f0403fe2d4f546585dbd991039b4ffdfaa"
+    },
+    {
+      "method": "POST",
+      "path": "/v1beta/models/{model}:generateContent",
+      "semantic_sha256": "921e8fa9653a28d5455c4a350fe1185f474ca27ae47d744d4b905b8ee68644cd"
+    },
+    {
+      "method": "POST",
+      "path": "/v1beta/models/{model}:streamGenerateContent",
+      "semantic_sha256": "921e8fa9653a28d5455c4a350fe1185f474ca27ae47d744d4b905b8ee68644cd"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/chat/completions",
+      "semantic_sha256": "9a718cb729b8e91a780cc971438da68cc17b460e71ef37f9bc0405b4a7e1a337"
+    },
+    {
+      "method": "GET",
+      "path": "/vertex/v1/models",
+      "semantic_sha256": "e5003fc880125ad5ff5f5fab7edaa64b2ea99554b0ddf75a17f3dcc1222fc526"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/models/{model}:countTokens",
+      "semantic_sha256": "88f0ecde23893963d13dcd6d127ecf2a91853551ad4cbb7136025a2119980c05"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/models/{model}:generateContent",
+      "semantic_sha256": "63febab388dc2451c47c9007312437b4c1db54cc82bfbd7ee18ac671ade74c1d"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/models/{model}:streamGenerateContent",
+      "semantic_sha256": "63febab388dc2451c47c9007312437b4c1db54cc82bfbd7ee18ac671ade74c1d"
+    },
+    {
+      "method": "GET",
+      "path": "/vertex/v1beta/models",
+      "semantic_sha256": "e5003fc880125ad5ff5f5fab7edaa64b2ea99554b0ddf75a17f3dcc1222fc526"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1beta/models/{model}:countTokens",
+      "semantic_sha256": "88f0ecde23893963d13dcd6d127ecf2a91853551ad4cbb7136025a2119980c05"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1beta/models/{model}:generateContent",
+      "semantic_sha256": "63febab388dc2451c47c9007312437b4c1db54cc82bfbd7ee18ac671ade74c1d"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1beta/models/{model}:streamGenerateContent",
+      "semantic_sha256": "63febab388dc2451c47c9007312437b4c1db54cc82bfbd7ee18ac671ade74c1d"
+    }
+  ],
+  "management_operations": [
+    {
+      "method": "GET",
+      "path": "/api/audit/events",
+      "semantic_sha256": "4205abae4125e0516b7c63151c225e59b489f48b86368059fcea5dc9ec4f536c"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit/export",
+      "semantic_sha256": "ae4c07f35f067dc81d3d815cd5a902a34a05bbe390c44a16cccab2f2e84d9246"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audit/retention",
+      "semantic_sha256": "23313a2b0f9650d4a6c23e586309c2a8ee689d2b63cca2c6df46f21a259b675d"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/audit/retention",
+      "semantic_sha256": "9f4df9bfe72e8bdf9c2b26cd09ed3bbb2220bb71baa443ee1147d268e5e85e18"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/callback",
+      "semantic_sha256": "c49ea764433fcc025e04a02fd7f7c266921d2bb10aa4e942f059a45566504d10"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/callback-url",
+      "semantic_sha256": "5dc21dd097bd1a96c605f280bd44ae188cf7aee9da8d5d8fcdc2d549de1ffbc4"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/env-creds",
+      "semantic_sha256": "d2d8ba6ca79d2f223fa49156591a66dfcdf5a1d0eb446a748c1200ef9cff64a3"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/env-creds-status",
+      "semantic_sha256": "d2d8ba6ca79d2f223fa49156591a66dfcdf5a1d0eb446a748c1200ef9cff64a3"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/keys",
+      "semantic_sha256": "31137a93226faaf8894e545c6e3daf27c5869eb5edae0b83c26963a1cfc6f7b9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/keys/reset",
+      "semantic_sha256": "31137a93226faaf8894e545c6e3daf27c5869eb5edae0b83c26963a1cfc6f7b9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/load-env-creds",
+      "semantic_sha256": "d2d8ba6ca79d2f223fa49156591a66dfcdf5a1d0eb446a748c1200ef9cff64a3"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "semantic_sha256": "ab195500c72044c7b1c67065c54f3421928aeba866634d6aa48916f748babf82"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "semantic_sha256": "958397f0e03c03cd879c80ec030c83f4ffb56c470d2bc577a79d43c1947b6bc2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/recovery",
+      "semantic_sha256": "fe1b8d67e99be2a404d2eedb99d171e92cf1644f643767f2f9b4b1e13fe25a10"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/setup",
+      "semantic_sha256": "41f1545f792f925bd05153d550f12818e1492eabec67eb2c7133f5dd17e6f288"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/setup/status",
+      "semantic_sha256": "958397f0e03c03cd879c80ec030c83f4ffb56c470d2bc577a79d43c1947b6bc2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/start",
+      "semantic_sha256": "b7ab72901e3179b6e5cd8c5ae67b6537f94b94d46c5a39a544740c9bd2a410a9"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/status",
+      "semantic_sha256": "e9c2408c1ba8a0dae4ed9c97a7719999be9c8ba89b616abcce71f2bc973a80c4"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/status/{project_id}",
+      "semantic_sha256": "9f01e4f64c78ca77ef10d389e7ee1df172e9ac7e41bb26e3acf737133845733d"
+    },
+    {
+      "method": "GET",
+      "path": "/api/capabilities",
+      "semantic_sha256": "7bec841bc5425d2dd2e9a43c4bfd69eafb376d2c6a8f951440ede30762b691b9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/access",
+      "semantic_sha256": "60d9b6156e12787e8c8be6bf123c41f4cb98660686ce330f04303c3e5c8ad217"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/get",
+      "semantic_sha256": "d65b29bf9cea9ec3ea65a5946b9bbcac8f273f58af3fa5aee1d00f120dfe55cd"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/reset",
+      "semantic_sha256": "d65b29bf9cea9ec3ea65a5946b9bbcac8f273f58af3fa5aee1d00f120dfe55cd"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/save",
+      "semantic_sha256": "d0eb57700bbc1809bb2e7647620544b62004c51684b141cd7e4fe3a4c7ff6a02"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/action",
+      "semantic_sha256": "57e3eb8f8c9936876d6ef95c1e76789f5759b03c7b88b11c871617ded5be9466"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/batch-action",
+      "semantic_sha256": "e01ed276d59b5bfabcf695c2d3aef91f6ce3e926983a114cfa424bad41f52b0c"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/configure-preview/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/deduplicate-by-email",
+      "semantic_sha256": "72f5874e328322dc82a7883227e32ea47739863ce78e140a4c8777a209364b79"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/detail/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/download-all",
+      "semantic_sha256": "72f5874e328322dc82a7883227e32ea47739863ce78e140a4c8777a209364b79"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/download/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/errors/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/fetch-email/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/import",
+      "semantic_sha256": "6c6a38f003cd4cf602b2908861bbeb15b2dfba21c1bfbf26250271e32039b40a"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/models/{filename}",
+      "semantic_sha256": "d8a805cad29dea2d8d449b9934189d2fc3a27c855a1a646bda7ea727ac91ffb6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/quota/{filename}",
+      "semantic_sha256": "45b35ed0830e9c7d9752bc9d6b2bb938014205af72a587f8e15ee019075d5511"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/refresh-all-emails",
+      "semantic_sha256": "72f5874e328322dc82a7883227e32ea47739863ce78e140a4c8777a209364b79"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/status",
+      "semantic_sha256": "c18618716d97af904308afa862de980c95db612060527d27ae9f0095ddfb995c"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/test/{filename}",
+      "semantic_sha256": "705b3c6cda27c16fee4cec16095ca8e1fd2fd41c2607e445764cafbfc121675a"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/upload",
+      "semantic_sha256": "f099988e1d2fbe59cd010ecd5827f6b8b6b45e19bf7cc5e01058850b9ec984eb"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/verify/{filename}",
+      "semantic_sha256": "9661684f2a0ca451e3b755d9b455b582435cedf2b186abd5a1f7ca76668990a6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/identities",
+      "semantic_sha256": "74b8471b8c12199b3b61998dc8f29a1d1bb1f34d595819402ababad9c1bf2289"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/identities",
+      "semantic_sha256": "e51a08c547a6f33de8dca6c0338fc48560b23b02cb255a04f76673f0974ec7bc"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/identity/identities/{identity_id}",
+      "semantic_sha256": "e7c956341b9c0509b5c180baca7c437596d34a4ab5addbb99a0bdf5c980b36a6"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/identity/identities/{identity_id}/role-binding",
+      "semantic_sha256": "bdfa113f4344f2fd842d0640423e83062f57821456889161318980dba7b19848"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/oidc-policy",
+      "semantic_sha256": "dbe7deafd4f664fdf68352ffc75d8f36e3b8bed058dcddff53221750c8fb2dc5"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/oidc-policy/advance",
+      "semantic_sha256": "67691a566671c4c100b5822d282a70432c3ec97ef1222512207ae4dfce480147"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/oidc/callback",
+      "semantic_sha256": "5017113a10e2e79c088c327a6d5aff64f70bd78e59b4ce810cf4f68cbfa42f6a"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/oidc/start",
+      "semantic_sha256": "5017113a10e2e79c088c327a6d5aff64f70bd78e59b4ce810cf4f68cbfa42f6a"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/recovery",
+      "semantic_sha256": "8880992bdc63eca5fa6cd34180e96252304809a2b919db8969394f425ec5e6f3"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/session",
+      "semantic_sha256": "fa28c58f380bcd414d57741283d3a2f5540127b4c140b77ef1a538fd279818f7"
+    },
+    {
+      "method": "GET",
+      "path": "/api/identity/sessions",
+      "semantic_sha256": "ce72e7554350e40bb03c8bcbd3f491dbd34da810d4bbfdb732cbc949c7881ac9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/identity/sessions/{session_reference}/revoke",
+      "semantic_sha256": "a1ef342ccd49201259f556d3313c7fe30a22e7951408a19093739899ce6ede54"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logs/clear",
+      "semantic_sha256": "715c8d3e05bb9e91925d7134cda4d8fc02c109f64ba8c3484d3f28903ce42b81"
+    },
+    {
+      "method": "GET",
+      "path": "/api/logs/download",
+      "semantic_sha256": "715c8d3e05bb9e91925d7134cda4d8fc02c109f64ba8c3484d3f28903ce42b81"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/model-blacklist",
+      "semantic_sha256": "2b346442b40d66bcac7710e9e0ef69fc3fc7f6a826fd64c26fb371e6d15e80e5"
+    },
+    {
+      "method": "GET",
+      "path": "/api/model-blacklist",
+      "semantic_sha256": "2b346442b40d66bcac7710e9e0ef69fc3fc7f6a826fd64c26fb371e6d15e80e5"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/model-blacklist/{provider_id}/models/{model_id}",
+      "semantic_sha256": "b02fd81b414d8fd18442bfd30df62b975a1e58672b3cb71d1fd19cae25826d6f"
+    },
+    {
+      "method": "GET",
+      "path": "/api/model-catalog",
+      "semantic_sha256": "fc78bd0c707c5fda57c94e6b6280ea2d59935410e7e20fce570cd777759a8128"
+    },
+    {
+      "method": "GET",
+      "path": "/api/model-pools",
+      "semantic_sha256": "2b346442b40d66bcac7710e9e0ef69fc3fc7f6a826fd64c26fb371e6d15e80e5"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/model-pools/polaris",
+      "semantic_sha256": "273b8d0acbc62ed03ac31ffe6051829b157bf1db7a3e1e58ffbd46f3a7280513"
+    },
+    {
+      "method": "GET",
+      "path": "/api/observability/health",
+      "semantic_sha256": "54ea6613a2723edafef7fee6dc5840f9b302efa1536c462191f36421c08eb425"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "semantic_sha256": "b4841d44d3b3d8bddc5f388139e585429d4c88f0a50182e5e568ba7752a52938"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/claude-code/oauth/complete",
+      "semantic_sha256": "94992c793c2db5ca4680681bb1bde3d050bdae423dabb53a21965736a2fc5e81"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/claude-code/oauth/start",
+      "semantic_sha256": "5ab9811f9e7b99be4830d59e3b5050c6b85981cb4eb98c7f0d206f231efe7e9b"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/anthropic/config",
+      "semantic_sha256": "5ab9811f9e7b99be4830d59e3b5050c6b85981cb4eb98c7f0d206f231efe7e9b"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/config",
+      "semantic_sha256": "1b096d00c4dc4c69ce1e4f93419a34cbfe892262b0013d9fe84e82492c78c99a"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/config/reset",
+      "semantic_sha256": "9df5698c774304dd23f654ffd83611906855afa23d786cb65e558d7b3f3f6b1b"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/credentials/import",
+      "semantic_sha256": "a74e216cbf9d5df66d84d7e50e5bf5710b0ed8da1f654eeede04d87a8370854f"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/anthropic/platform/credentials",
+      "semantic_sha256": "92d3f4e67c587748380424d54afec1f923cbffa46c2f24aeac31f15281c4643b"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/antigravity/config",
+      "semantic_sha256": "575a65bac1d8c86955e99b5f1e497247da564bf80c6c190512654dced86fff4c"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/antigravity/config",
+      "semantic_sha256": "4969fd3da12e6c906a413609ff622e07f128a7a9112aa04190b7da2397ced388"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/antigravity/config/reset",
+      "semantic_sha256": "575a65bac1d8c86955e99b5f1e497247da564bf80c6c190512654dced86fff4c"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/google-ai-studio/config",
+      "semantic_sha256": "acdc7bfe95cfe6311ac95fc391831f503ca3f4a210cf4b4180a5fa2dd057e504"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/google-ai-studio/config",
+      "semantic_sha256": "ad38710ff40071db55c0bc37dca3bd7fe2c2adfeaa09da0ed122ba11d872a2ef"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/google-ai-studio/config/reset",
+      "semantic_sha256": "acdc7bfe95cfe6311ac95fc391831f503ca3f4a210cf4b4180a5fa2dd057e504"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/google-ai-studio/credentials",
+      "semantic_sha256": "ace5cae53349129ce17035c01c088a58fae79d6f06f54cc464c34aa47b971d64"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/google-ai-studio/credentials/import",
+      "semantic_sha256": "69d942944b57da2ee74147ebd0fc1ec7fcb00ba89b51cc1184d2acb4bc870ffb"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/ollama/credentials",
+      "semantic_sha256": "10c3c47fe6c2c5f93e05f8e11d20f5bfd9951ac8b445f91ae3d51e9c17e4e3b9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/ollama/credentials/import",
+      "semantic_sha256": "e3bbc478362d87de0763d0e8308226ec02d7897f4cbd6a660e087fe4329fb26c"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/codex/oauth/complete",
+      "semantic_sha256": "a5776e7cef8b6dac3bb848f445a65d8b524af6da8189a7cd2b56a2d3b0acbbe1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/codex/oauth/start",
+      "semantic_sha256": "6719bef02b65e62335ab6cd2b0445805dc57839f5d4a976d53968c3dee86043f"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/openai/config",
+      "semantic_sha256": "6719bef02b65e62335ab6cd2b0445805dc57839f5d4a976d53968c3dee86043f"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/config",
+      "semantic_sha256": "48d02f2da101647c8143d1622ab3538c56fb82eb9008c5ec77b3e1799ea5d242"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/config/reset",
+      "semantic_sha256": "8f6ba9fe8d33dfde65f9242c92762ea02b9d766d999b61ec6550d4dea9da02a7"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/credentials/import",
+      "semantic_sha256": "4e18aab352e58ad3122068c3f5172664ffb9bc41e18c2ceb8229fdc2a33e168f"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/openai/platform/credentials",
+      "semantic_sha256": "659a28e3b15a598f533f4ce3978585b2c2153ce91a15b45d4a29a34b50bdda6a"
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/xai/config",
+      "semantic_sha256": "615919785005a08dc83e6edac2386676f6e3060203206c1f5e17cc8d11477e22"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/config",
+      "semantic_sha256": "d9ada943fae9eed703960b20689bbb2171499c88e1182b8062fd191288092d0e"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/config/reset",
+      "semantic_sha256": "7d4a2c1c1f9c6c9974c95e88f5e2e812c141a65cf8b09d56b207ec1eb0315c91"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/credentials",
+      "semantic_sha256": "5cf97a6c660c04bf10178d2016fb52435cdd10c251e0a623577d17a37352b5c9"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/credentials/import",
+      "semantic_sha256": "fd9fd7c2d3035599800eae2f287e80bdf12bfeebee873b489ce9f19976b147f2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/oauth/complete",
+      "semantic_sha256": "36d237648f63adc8a3c558e9e6c060ede668ed9a5ff45f432a2d08ba0dac1303"
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/xai/oauth/start",
+      "semantic_sha256": "615919785005a08dc83e6edac2386676f6e3060203206c1f5e17cc8d11477e22"
+    },
+    {
+      "method": "GET",
+      "path": "/api/quality-policy",
+      "semantic_sha256": "dbd8719277dfd023d941c816cd875f65523d11078603b6370f90b7d23e84e3dd"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/quality-policy",
+      "semantic_sha256": "50b0ecf7c6713cfb1b0500cd6e0c23cfcbb3582517a043ae4d52635729b96e3a"
+    },
+    {
+      "method": "POST",
+      "path": "/api/quality-policy/preview",
+      "semantic_sha256": "c72e9d270e103e3f59b7b97914bb1bc8aca8f641d7dffab9d1b7abecd1134503"
+    },
+    {
+      "method": "GET",
+      "path": "/api/traces",
+      "semantic_sha256": "86c8294bc9e1b44784f0a80de82403de3d6e44bf04ec502ec50c098f417fb34a"
+    },
+    {
+      "method": "GET",
+      "path": "/api/traces/export",
+      "semantic_sha256": "095e96e7203f7dcd1814e303cf1fe9c457ddf44604a1b03b03cbdb84d0c1ed34"
+    },
+    {
+      "method": "GET",
+      "path": "/api/traces/retention",
+      "semantic_sha256": "520a6a4f3d1119634f4af0fb1e49a5109794d615287d29c8c7e9918aa75f8f45"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/traces/retention",
+      "semantic_sha256": "99718734d1bac1b66b35d21f153f41adf6df2fb20279735db87c3971022a892f"
+    },
+    {
+      "method": "GET",
+      "path": "/api/traces/{trace_id}",
+      "semantic_sha256": "7f3819b35e5ef5b10a1d81fea39da8d8f89aff260244f2820d46479d19135777"
+    },
+    {
+      "method": "GET",
+      "path": "/api/usage/aggregated",
+      "semantic_sha256": "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871"
+    },
+    {
+      "method": "GET",
+      "path": "/api/usage/stats",
+      "semantic_sha256": "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871"
+    },
+    {
+      "method": "GET",
+      "path": "/api/version/info",
+      "semantic_sha256": "249474db45dda78f6fc20be630b5865d6ab960154e6155f90185e5d1c3d129e8"
+    },
+    {
+      "method": "GET",
+      "path": "/api/virtual-keys",
+      "semantic_sha256": "60b13fdab532fd09df030a60ac6a09ec47807acf6834420d608f2039b1d0bca4"
+    },
+    {
+      "method": "POST",
+      "path": "/api/virtual-keys",
+      "semantic_sha256": "1f56742ebc8ab9aabcb711fb20bf2fd3d5dd0011be1bd3771d097acc44088611"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/virtual-keys/{key_id}",
+      "semantic_sha256": "3c900a4fc7e4690469ddabc74d56a159cd934988dd3b1a947280b87b81e67a38"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/virtual-keys/{key_id}",
+      "semantic_sha256": "b4dbba6025bb0dc39a74a9469147e1216b00d70a2b8e5d6eda1e1074f79b4a07"
+    },
+    {
+      "method": "POST",
+      "path": "/api/virtual-keys/{key_id}/revoke",
+      "semantic_sha256": "0c124fac17e03c9ec1db5d3271575369b2e0a6ddd90be683f59430c1947f2be3"
+    },
+    {
+      "method": "POST",
+      "path": "/api/virtual-keys/{key_id}/rotate",
+      "semantic_sha256": "5d52a4cad7b05d21162d5c6b4d53f6e326143573360888fac49e664a8a717a68"
+    },
+    {
+      "method": "GET",
+      "path": "/api/virtual-keys/{key_id}/usage",
+      "semantic_sha256": "3c900a4fc7e4690469ddabc74d56a159cd934988dd3b1a947280b87b81e67a38"
+    }
+  ],
+  "config_compatibility": {
+    "removed_environment_errors": {
+      "PASSWORD": "PANEL_PASSWORD"
+    },
+    "removed_environment_renames": {
+      "ANTIGRAVITY_STREAM2NOSTREAM": "STREAM_TO_NONSTREAM",
+      "ANTIGRAVITY_SWITCH_CREDENTIAL": "SWITCH_CREDENTIAL_ENABLED",
+      "API_URL": "ANTIGRAVITY_API_URL",
+      "CLIENT_ID": "ANTIGRAVITY_CLIENT_ID",
+      "CLIENT_SECRET": "ANTIGRAVITY_CLIENT_SECRET",
+      "GOOGLEAPIS_PROXY_URL": "GOOGLE_APIS_URL",
+      "OAUTH_PROXY_URL": "OAUTH_URL",
+      "RESOURCE_MANAGER_API_URL": "RESOURCE_MANAGER_URL",
+      "SERVICE_USAGE_API_URL": "SERVICE_USAGE_URL",
+      "USER_AGENT": "ANTIGRAVITY_USER_AGENT"
+    },
+    "stored_key_renames": {
+      "api_url": "antigravity_api_url",
+      "client_id": "antigravity_client_id",
+      "client_secret": "antigravity_client_secret",
+      "password": "panel_password"
+    },
+    "removed_stored_keys": [
+      "api_password",
+      "api_url",
+      "client_id",
+      "client_secret",
+      "password"
+    ]
+  },
+  "database_schema_versions": {
+    "audit_event": 1,
+    "durable_migration_checkpoint": 1,
+    "identity_and_role_binding": 1,
+    "management_session": 2,
+    "oidc_policy": 1,
+    "quality_policy": 1,
+    "request_trace": 1,
+    "usage_ledger": 1,
+    "virtual_key": 2
+  },
+  "console_routes": {
+    "server_paths": [
+      "/",
+      "/about",
+      "/access",
+      "/ai-quality",
+      "/audit",
+      "/code_assist",
+      "/config",
+      "/dashboard",
+      "/identity",
+      "/login",
+      "/logs",
+      "/models",
+      "/oauth",
+      "/pool",
+      "/provider",
+      "/providers",
+      "/setup",
+      "/upload"
+    ],
+    "route_map": {
+      "/dashboard": "dashboard",
+      "/ai-quality": "quality",
+      "/access": "access",
+      "/identity": "identity",
+      "/pool": "pool",
+      "/models": "models",
+      "/provider": "pool",
+      "/providers": "providers",
+      "/oauth": "providers",
+      "/upload": "providers",
+      "/config": "config",
+      "/audit": "audit",
+      "/logs": "logs",
+      "/about": "about"
+    },
+    "tab_map": {
+      "dashboard": "/dashboard",
+      "quality": "/ai-quality",
+      "access": "/access",
+      "identity": "/identity",
+      "pool": "/pool",
+      "models": "/models",
+      "providers": "/providers",
+      "config": "/config",
+      "audit": "/audit",
+      "logs": "/logs",
+      "about": "/about"
+    },
+    "compatibility_aliases": {
+      "/oauth": "/providers",
+      "/provider": "/pool",
+      "/upload": "/providers"
+    }
+  },
+  "generated_client_examples": [
+    {
+      "id": "python-openai-chat",
+      "method": "POST",
+      "operation_path": "/v1/chat/completions",
+      "base_path": "/v1",
+      "source_markers": [
+        {
+          "path": "README.md",
+          "contains": "OpenAI(base_url=\"http://127.0.0.1:4283/v1\""
+        },
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "OpenAI(base_url, api_key)"
+        },
+        {
+          "path": "frontend/js/ui/api-integration.js",
+          "contains": "openaiEl.textContent = `${origin}/v1`"
+        }
+      ]
+    },
+    {
+      "id": "python-openai-responses",
+      "method": "POST",
+      "operation_path": "/v1/responses",
+      "base_path": "/v1",
+      "source_markers": [
+        {
+          "path": "README.md",
+          "contains": "client.responses.create("
+        }
+      ]
+    },
+    {
+      "id": "python-anthropic-messages",
+      "method": "POST",
+      "operation_path": "/v1/messages",
+      "base_path": "/",
+      "source_markers": [
+        {
+          "path": "README.md",
+          "contains": "Anthropic(base_url=\"http://127.0.0.1:4283\""
+        },
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "Anthropic(base_url, api_key)"
+        },
+        {
+          "path": "frontend/js/ui/api-integration.js",
+          "contains": "anthropicEl.textContent = origin"
+        }
+      ]
+    },
+    {
+      "id": "python-google-genai",
+      "method": "POST",
+      "operation_path": "/v1beta/models/{model}:generateContent",
+      "base_path": "/",
+      "source_markers": [
+        {
+          "path": "README.md",
+          "contains": "\"base_url\": \"http://127.0.0.1:4283\""
+        },
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "genai.Client(api_key, http_options)"
+        },
+        {
+          "path": "frontend/js/ui/api-integration.js",
+          "contains": "googleGenaiEl.textContent = origin"
+        }
+      ]
+    },
+    {
+      "id": "node-openai-chat",
+      "method": "POST",
+      "operation_path": "/v1/chat/completions",
+      "base_path": "/v1",
+      "source_markers": [
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "new OpenAI({ baseURL, apiKey })"
+        }
+      ]
+    },
+    {
+      "id": "node-anthropic-messages",
+      "method": "POST",
+      "operation_path": "/v1/messages",
+      "base_path": "/",
+      "source_markers": [
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "new Anthropic({ baseURL, apiKey })"
+        }
+      ]
+    },
+    {
+      "id": "node-google-genai",
+      "method": "POST",
+      "operation_path": "/v1beta/models/{model}:generateContent",
+      "base_path": "/",
+      "source_markers": [
+        {
+          "path": "frontend/fragments/pages/access.html",
+          "contains": "new GoogleGenAI({ apiKey, httpOptions })"
+        }
+      ]
+    }
+  ]
+}

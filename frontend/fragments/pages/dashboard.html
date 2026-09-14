@@ -2,73 +2,111 @@
                     <header class="page-header">
                         <div>
                             <div class="page-kicker" data-i18n="dashboard">Overview</div>
-                            <h1 class="page-title" data-i18n="dashboard_title">Omni Gateway Dashboard</h1>
-                            <p class="page-description" data-i18n="dashboard_description">Monitor request flow, provider capacity, and integration details for coding-tool traffic.</p>
+                            <h1 class="page-title" data-i18n="dashboard_title">Polaris Dashboard</h1>
+                            <p class="page-description" data-i18n="dashboard_description">See whether the gateway is ready, what needs attention, and how traffic is performing.</p>
                         </div>
                         <div class="page-actions">
-                            <label class="dashboard-range-control" for="usagePeriodSelect">
+                            <div class="dashboard-range-control">
                                 <span data-i18n="time_range">Time range</span>
-                                <select id="usagePeriodSelect" class="filter-select" data-ui-change="usage-period">
+                                <select id="usagePeriodSelect" class="filter-select" aria-label="Time range" data-i18n-aria-label="time_range" data-ui-change="usage-period">
                                     <option value="1d" data-i18n="one_day">1 day</option>
                                     <option value="7d" data-i18n="seven_days">7 days</option>
                                     <option value="30d" data-i18n="thirty_days">30 days</option>
                                     <option value="all" data-i18n="all">All</option>
                                 </select>
-                            </label>
+                            </div>
                         </div>
                     </header>
 
-                    <div class="stats-container" id="dashboardStats" data-i18n-aria-label="dashboard_title" aria-label="Dashboard metrics" aria-busy="true">
+                    <div id="dashboardUsageState" data-page-state-host hidden></div>
+
+                    <section id="dashboardFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="dashboard.no_traffic_yet">No traffic yet</h2>
+                            <p data-i18n="dashboard.recent_empty">No requests have been recorded yet.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="playground" data-i18n="playground.label">Playground</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                        </div>
+                    </section>
+
+                    <div class="stats-container" id="dashboardStats" data-i18n-aria-label="dashboard.metrics" aria-label="Gateway metrics" aria-busy="true">
                         <div class="stat-item">
                             <span class="stat-number" id="totalApiCalls">0</span>
-                            <span class="stat-label"><span id="totalApiCallsLabel" data-i18n-runtime>Requests in the last 24 hours</span><span class="stat-detail" id="requestOutcomeDetail" data-i18n-runtime>0 successful / 0 failed</span></span>
+                            <span class="stat-label"><span id="totalApiCallsLabel" data-i18n-runtime>Provider attempts in the last 24 hours</span><span class="stat-detail" id="requestOutcomeDetail" data-i18n-runtime>0 successful / 0 failed</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="successRate24h">0%</span>
-                            <span class="stat-label"><span data-i18n="dashboard.success_rate">Success rate</span><span class="stat-detail" id="successRateDetail" data-i18n="dashboard.no_traffic_yet">No traffic yet</span></span>
+                            <span class="stat-label"><span data-i18n="dashboard.attempt_success_rate">Provider attempt success rate</span><span class="stat-detail" id="successRateDetail" data-i18n="dashboard.no_traffic_yet">No traffic yet</span></span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-number"><span id="activeFiles">0</span>/<span id="totalFiles">0</span></span>
                             <span class="stat-label"><span data-i18n="dashboard.active_total_credentials">Active / total credentials</span><span class="stat-detail" id="disabledCredentialsDetail" data-i18n-runtime>0 disabled</span></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-number" id="avgCallsPerFile">0.0</span>
-                            <span class="stat-label"><span data-i18n="dashboard.requests_per_credential">Requests per active credential</span><span class="stat-detail" id="assignedRequestsDetail" data-i18n-runtime>0 assigned requests</span></span>
+                        <div class="stat-item dashboard-traffic-only">
+                            <span class="stat-number" id="totalCostUsd">$0.00</span>
+                            <span class="stat-label"><span id="totalCostLabel" data-i18n-runtime>Estimated cost in the last 24 hours</span><span class="stat-detail" id="pricingSourceDetail" data-i18n="dashboard.cost_pricing_fallback">Using configured and built-in model prices</span></span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item dashboard-traffic-only">
                             <span class="stat-number" id="totalTokens24h">0</span>
                             <span class="stat-label"><span id="totalTokensLabel" data-i18n-runtime>Tokens in the last 24 hours</span><span class="stat-detail" id="inputOutputDetail" data-i18n-runtime>Input 0 / output 0</span></span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-number" id="avgTokensPerRequest">0</span>
-                            <span class="stat-label"><span data-i18n="dashboard.tokens_per_request">Tokens per successful request</span><span class="stat-detail" id="cacheSavingsDetail" data-i18n-runtime>Cached 0 / estimated savings 0</span></span>
+                        <div class="stat-item dashboard-traffic-only">
+                            <span class="stat-number" id="dashboardP95Latency">—</span>
+                            <span class="stat-label"><span data-i18n="dashboard.p95_latency">P95 latency</span><span class="stat-detail" data-i18n="dashboard.last_15_minutes">Last 15 minutes</span></span>
                         </div>
                     </div>
 
                     <div class="dashboard-grid">
+                        <section class="card span-7 operational-health-card" id="operationalHealthCard" aria-busy="true">
+                            <div class="operational-health-header">
+                                <div>
+                                    <div class="page-kicker" data-i18n="dashboard.request_health_kicker">Last 15 minutes</div>
+                                    <h2 class="card-title" data-i18n="dashboard.request_health_title">Request health</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="dashboard.request_health_description">Requests, errors, latency, route failures, and capacity warnings.</p>
+                                </div>
+                                <span class="health-pill warning" id="sloOverallStatus" role="status"><span class="status-dot"></span><span data-i18n="slo.loading">Loading</span></span>
+                            </div>
+                            <div class="slo-red-grid" aria-live="polite">
+                                <div class="slo-metric"><span data-i18n="slo.rate">Request rate</span><strong id="sloRequestRate">—</strong><small data-i18n="slo.per_minute">per minute</small></div>
+                                <div class="slo-metric"><span data-i18n="slo.error_rate">Error rate</span><strong id="sloErrorRate">—</strong><small id="sloErrorCount">—</small></div>
+                                <div class="slo-metric"><span data-i18n="dashboard.p95_latency">P95 latency</span><strong id="sloP95">—</strong><small data-i18n="dashboard.last_15_minutes">Last 15 minutes</small></div>
+                                <div class="slo-metric"><span data-i18n="dashboard.capacity_alerts">Capacity alerts</span><strong id="sloExhaustion">—</strong><small data-i18n="dashboard.bounded_health_sample">Bounded health sample</small></div>
+                            </div>
+                            <div class="slo-route-health">
+                                <h3 data-i18n="slo.route_health">Model-route health</h3>
+                                <div class="usage-table-wrapper"><table class="usage-table slo-route-table"><thead><tr><th scope="col" data-i18n="slo.route">Route</th><th scope="col" data-i18n="requests">Requests</th><th scope="col" data-i18n="slo.error_rate">Error rate</th><th scope="col" data-i18n="dashboard.p95_latency">P95 latency</th></tr></thead><tbody id="sloRouteRows"><tr><td colspan="4" data-i18n="slo.loading">Loading</td></tr></tbody></table></div>
+                            </div>
+                        </section>
+
+                        <section class="card span-5 recent-activity-card" id="recentActivityCard" aria-busy="true">
+                            <div class="recent-activity-header">
+                                <div><div class="page-kicker" data-i18n="dashboard.recent_kicker">Latest requests</div><h2 class="card-title" data-i18n="dashboard.recent_title">Recent activity</h2></div>
+                                <button type="button" class="btn btn-secondary btn-small" data-ui-action="switch-tab" data-tab="activity" data-i18n="dashboard.view_all_activity">View all</button>
+                            </div>
+                            <p class="card-copy card-title-copy" data-i18n="dashboard.recent_description">Inspect the latest outcomes without retaining prompt or response content.</p>
+                            <ol class="dashboard-activity-list" id="recentActivityList" aria-live="polite"><li class="dashboard-activity-empty" data-i18n="dashboard.recent_loading">Loading recent activity…</li></ol>
+                        </section>
+
                         <section class="card span-12 health-matrix-card" id="providerHealthCard">
                             <div class="health-matrix-header">
                                 <div>
-                                    <h2 class="card-title" data-i18n="dashboard.health_matrix_title">Provider Health & Status Matrix</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="dashboard.health_matrix_description">Real-time status, active credentials, and traffic health across all supported AI providers.</p>
+                                    <h2 class="card-title" data-i18n="dashboard.health_matrix_title">Provider and credential status</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="dashboard.health_matrix_description">Find unavailable credentials, cooldowns, and providers that need attention.</p>
                                 </div>
                                 <div class="health-matrix-legend" aria-hidden="true">
                                     <span class="health-pill healthy"><span class="status-dot"></span><span data-i18n="dashboard.status_healthy">Operational</span></span>
                                     <span class="health-pill warning"><span class="status-dot"></span><span data-i18n="dashboard.status_idle">Idle / Ready</span></span>
-                                    <span class="health-pill error"><span class="status-dot"></span><span data-i18n="dashboard.status_issues">Issues / Cooldown</span></span>
+                                    <span class="health-pill error"><span class="status-dot"></span><span data-i18n="dashboard.status_issues">Needs attention</span></span>
                                 </div>
                             </div>
-                            <div class="provider-health-grid" id="providerHealthGrid">
-                                <div class="health-grid-loading skeleton-row"><div class="skeleton-cell"></div></div>
-                            </div>
+                            <div class="provider-health-grid" id="providerHealthGrid"><div class="health-grid-loading skeleton-row"><div class="skeleton-cell"></div></div></div>
                         </section>
 
-                        <section class="card span-12 chart-card" id="trafficChartCard">
+                        <section class="card span-12 chart-card dashboard-traffic-only" id="trafficChartCard">
                             <div class="chart-card-header">
-                                <div>
-                                    <h2 class="card-title" data-i18n="dashboard.token_distribution_title">Token Consumption & Traffic Distribution</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="dashboard.token_distribution_description">Visual breakdown of input, output, cached, and reasoning tokens with estimated cost savings.</p>
-                                </div>
+                                <div><h2 class="card-title" data-i18n="dashboard.token_distribution_title">Usage and provider attempt trend</h2><p class="card-copy card-title-copy" data-i18n="dashboard.token_distribution_description">Compare provider attempts with input, output, cached, and reasoning tokens.</p></div>
                                 <div class="chart-legend" id="tokenChartLegend">
                                     <span class="legend-item"><span class="legend-bullet input-bullet"></span><span data-i18n="dashboard.input_tokens">Input</span></span>
                                     <span class="legend-item"><span class="legend-bullet output-bullet"></span><span data-i18n="dashboard.output_tokens">Output</span></span>
@@ -77,223 +115,26 @@
                                 </div>
                             </div>
                             <div class="token-distribution-container" id="tokenDistributionContainer">
-                                <div class="token-distribution-bar" id="tokenDistributionBar" role="progressbar" data-i18n-aria-label="dashboard.token_distribution_title" aria-label="Token breakdown">
-                                    <div class="bar-segment input-segment" style="width: 0%" data-i18n-title="dashboard.input_tokens" title="Input"></div>
-                                    <div class="bar-segment output-segment" style="width: 0%" data-i18n-title="dashboard.output_tokens" title="Output"></div>
-                                    <div class="bar-segment cached-segment" style="width: 0%" data-i18n-title="dashboard.cached_tokens" title="Cached"></div>
-                                    <div class="bar-segment reasoning-segment" style="width: 0%" data-i18n-title="dashboard.reasoning_tokens" title="Reasoning"></div>
-                                </div>
-                                 <div class="token-distribution-metrics" id="tokenDistributionMetrics">
-                                    <div class="dist-metric-box">
-                                        <span class="dist-metric-label" data-i18n="dashboard.input_tokens">Input</span>
-                                        <span class="dist-metric-value" id="distInputTokens">0</span>
-                                        <span class="dist-metric-pct" id="distInputPct">0%</span>
-                                    </div>
-                                    <div class="dist-metric-box">
-                                        <span class="dist-metric-label" data-i18n="dashboard.output_tokens">Output</span>
-                                        <span class="dist-metric-value" id="distOutputTokens">0</span>
-                                        <span class="dist-metric-pct" id="distOutputPct">0%</span>
-                                    </div>
-                                    <div class="dist-metric-box">
-                                        <span class="dist-metric-label" data-i18n="dashboard.cached_tokens">Cached</span>
-                                        <span class="dist-metric-value" id="distCachedTokens">0</span>
-                                        <span class="dist-metric-pct" id="distCachedPct">0%</span>
-                                    </div>
-                                    <div class="dist-metric-box">
-                                        <span class="dist-metric-label" data-i18n="dashboard.reasoning_tokens">Reasoning</span>
-                                        <span class="dist-metric-value" id="distReasoningTokens">0</span>
-                                        <span class="dist-metric-pct" id="distReasoningPct">0%</span>
-                                    </div>
-                                </div>
-                                <div class="traffic-timeline-chart" id="trafficTimelineChart">
-                                    <div class="timeline-chart-header">
-                                        <span data-i18n="dashboard.timeline_traffic">Hourly Traffic Volume</span>
-                                        <span id="timelineChartMaxInfo" data-i18n-runtime>Peak: 0 req/h</span>
-                                    </div>
-                                    <div class="timeline-bars-wrapper" id="timelineBarsWrapper"></div>
-                                    <div class="timeline-labels-row">
-                                        <span id="timelineStartLabel" data-i18n-runtime>-24h</span>
-                                        <span id="timelineMidLabel" data-i18n-runtime>-12h</span>
-                                        <span id="timelineNowLabel" data-i18n="now">Now</span>
-                                    </div>
-                                </div>
+                                <div class="token-distribution-bar" id="tokenDistributionBar" role="progressbar" data-i18n-aria-label="dashboard.token_distribution_title" aria-label="Token breakdown"><div class="bar-segment input-segment" style="width: 0%" data-i18n-title="dashboard.input_tokens" title="Input"></div><div class="bar-segment output-segment" style="width: 0%" data-i18n-title="dashboard.output_tokens" title="Output"></div><div class="bar-segment cached-segment" style="width: 0%" data-i18n-title="dashboard.cached_tokens" title="Cached"></div><div class="bar-segment reasoning-segment" style="width: 0%" data-i18n-title="dashboard.reasoning_tokens" title="Reasoning"></div></div>
+                                <div class="token-distribution-metrics" id="tokenDistributionMetrics"><div class="dist-metric-box"><span class="dist-metric-label" data-i18n="dashboard.input_tokens">Input</span><span class="dist-metric-value" id="distInputTokens">0</span><span class="dist-metric-pct" id="distInputPct">0%</span></div><div class="dist-metric-box"><span class="dist-metric-label" data-i18n="dashboard.output_tokens">Output</span><span class="dist-metric-value" id="distOutputTokens">0</span><span class="dist-metric-pct" id="distOutputPct">0%</span></div><div class="dist-metric-box"><span class="dist-metric-label" data-i18n="dashboard.cached_tokens">Cached</span><span class="dist-metric-value" id="distCachedTokens">0</span><span class="dist-metric-pct" id="distCachedPct">0%</span></div><div class="dist-metric-box"><span class="dist-metric-label" data-i18n="dashboard.reasoning_tokens">Reasoning</span><span class="dist-metric-value" id="distReasoningTokens">0</span><span class="dist-metric-pct" id="distReasoningPct">0%</span></div></div>
+                                <div class="traffic-timeline-chart" id="trafficTimelineChart"><div class="timeline-chart-header"><span data-i18n="dashboard.timeline_traffic">Provider attempts over time</span><span id="timelineChartMaxInfo" data-i18n-runtime>Peak: 0 attempts/h</span></div><div class="timeline-bars-wrapper" id="timelineBarsWrapper"></div><div class="timeline-labels-row"><span id="timelineStartLabel" data-i18n-runtime>—</span><span id="timelineMidLabel" data-i18n-runtime>—</span><span id="timelineNowLabel" data-i18n-runtime>—</span></div></div>
                             </div>
                         </section>
 
-                        <section class="card span-6">
-                            <h2 class="card-title" data-i18n="dashboard.api_integration">API Integration</h2>
-                            <p class="card-copy card-title-copy" data-i18n="dashboard.api_integration_description">Copy the API key and SDK base URLs used by compatible clients.</p>
-                            <div class="metric-row">
-                                <div class="copy-field">
-                                    <label for="apiKey" data-i18n="api_key">API key</label>
-                                    <div class="secret-field">
-                                        <input type="password" id="apiKey" value="" class="skeleton skeleton-control" readonly data-i18n-title="copy_api_key" title="Copy API key" data-i18n-aria-label="loading_api_key" aria-label="Loading API key" aria-busy="true" data-ui-action="copy-api-key">
-                                        <button type="button" id="toggleApiKeyVisibilityBtn" class="btn btn-secondary icon-btn" data-ui-action="toggle-api-key" data-i18n-title="show_api_key" title="Show API key" data-i18n-aria-label="show_api_key" aria-label="Show API key">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                        </button>
-                                        <button type="button" id="regenerateApiKeyBtn" class="btn btn-secondary icon-btn" data-ui-action="regenerate-api-key" data-i18n-title="regenerate_api_key" title="Regenerate API key">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.8-3"></path><path d="M4 5v4h4"></path><path d="M4 13a8 8 0 0 0 14.8 3"></path><path d="M20 19v-4h-4"></path></svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="copy-field">
-                                    <label data-i18n="openai_base_url">OpenAI base URL</label>
-                                    <button type="button" class="endpoint-code-card" id="openaiEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
-                                </div>
-                                <div class="copy-field">
-                                    <label data-i18n="anthropic_base_url">Anthropic base URL</label>
-                                    <button type="button" class="endpoint-code-card" id="anthropicEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
-                                </div>
-                                <div class="copy-field">
-                                    <label data-i18n="google_genai_base_url">Google GenAI base URL</label>
-                                    <button type="button" class="endpoint-code-card" id="googleGenaiEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="card span-6 client-setup-card">
-                            <input class="setup-language-radio" type="radio" id="setupLangPython" name="setupLanguage" checked>
-                            <input class="setup-language-radio" type="radio" id="setupLangNode" name="setupLanguage">
-                            <div class="setup-card-header">
-                                <div>
-                                    <h2 class="card-title" data-i18n="dashboard.sdk_setup">SDK Setup</h2>
-                                    <p class="setup-card-copy" data-i18n="dashboard.sdk_setup_description">Select a language to view the client configuration for each supported SDK.</p>
-                                </div>
-                                <div class="setup-language-switch" role="radiogroup" data-i18n-aria-label="dashboard.client_language" aria-label="Client language">
-                                    <label for="setupLangPython" class="setup-language-option" data-i18n-technical>Python</label>
-                                    <label for="setupLangNode" class="setup-language-option" data-i18n-technical>Node.js</label>
-                                </div>
-                            </div>
-                            <div class="client-setup-panels">
-                                <div class="client-setup-panel setup-python">
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>OpenAI</strong>
-                                            </div>
-                                            <span>openai</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>OpenAI(base_url, api_key)</dd></div>
-                                            <div><dt>Request</dt><dd>client.chat.completions.create(model, messages)</dd></div>
-                                        </dl>
-                                    </div>
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>Anthropic</strong>
-                                            </div>
-                                            <span>anthropic</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>Anthropic(base_url, api_key)</dd></div>
-                                            <div><dt>Request</dt><dd>client.messages.create(model, max_tokens, messages)</dd></div>
-                                        </dl>
-                                    </div>
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>Google GenAI</strong>
-                                            </div>
-                                            <span>google-genai</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>genai.Client(api_key, http_options)</dd></div>
-                                            <div><dt>Request</dt><dd>client.models.generate_content(model, contents)</dd></div>
-                                        </dl>
-                                    </div>
-                                </div>
-                                <div class="client-setup-panel setup-node">
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>OpenAI</strong>
-                                            </div>
-                                            <span>openai</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>new OpenAI({ baseURL, apiKey })</dd></div>
-                                            <div><dt>Request</dt><dd>client.chat.completions.create({ model, messages })</dd></div>
-                                        </dl>
-                                    </div>
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>Anthropic</strong>
-                                            </div>
-                                            <span>@anthropic-ai/sdk</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>new Anthropic({ baseURL, apiKey })</dd></div>
-                                            <div><dt>Request</dt><dd>client.messages.create({ model, max_tokens, messages })</dd></div>
-                                        </dl>
-                                    </div>
-                                    <div class="client-route-card" data-i18n-auto>
-                                        <div class="client-route-header">
-                                            <div>
-                                                <strong>Google GenAI</strong>
-                                            </div>
-                                            <span>@google/genai</span>
-                                        </div>
-                                        <dl class="client-route-details">
-                                            <div><dt>Initialize</dt><dd>new GoogleGenAI({ apiKey, httpOptions })</dd></div>
-                                            <div><dt>Request</dt><dd>ai.models.generateContent({ model, contents })</dd></div>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="card span-12">
-                            <h2 class="card-title" id="usageBreakdownTitle" data-i18n-runtime>24-Hour Request Breakdown</h2>
-                            <p class="card-copy card-title-copy" id="usageBreakdownDescription" data-i18n-runtime>Review provider and credential traffic for the last 24 hours.</p>
+                        <section class="card span-12 dashboard-traffic-only">
+                            <h2 class="card-title" id="usageBreakdownTitle" data-i18n-runtime>Provider attempt breakdown for the last 24 hours</h2>
+                            <p class="card-copy card-title-copy" id="usageBreakdownDescription" data-i18n-runtime>Review provider attempts by provider and credential for the last 24 hours.</p>
                             <div class="usage-provider-summary" id="usageProviderSummary" data-i18n-aria-label="provider_activity" aria-label="Provider activity"></div>
-                            <div id="usageLoading" class="skeleton-table" role="status" data-i18n-aria-label="loading_request_breakdown" aria-label="Loading request breakdown" aria-busy="true">
-                                <div class="skeleton-row header"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-                                <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-                            </div>
-                            <div class="usage-table-wrapper">
-                                <table class="usage-table">
-                                    <thead>
-                                        <tr>
-                                            <th data-i18n="credential">Credential</th>
-                                            <th data-i18n="requests">Requests</th>
-                                            <th data-i18n="success">Success</th>
-                                            <th data-i18n="tokens">Tokens</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="usageList"></tbody>
-                                </table>
-                            </div>
-                            <div class="pagination-container" id="usagePaginationContainer" style="display: none;">
-                                <button type="button" class="pagination-btn" id="usagePrevPageBtn" data-ui-action="change-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button>
-                                <div class="pagination-info" id="usagePaginationInfo" data-i18n-runtime>Page 1 of 1</div>
-                                <button type="button" class="pagination-btn" id="usageNextPageBtn" data-ui-action="change-usage-page" data-page-delta="1" data-i18n="next">Next</button>
-                            </div>
+                            <div id="usageLoading" class="skeleton-table" role="status" data-i18n-aria-label="loading_request_breakdown" aria-label="Loading request breakdown" aria-busy="true"><div class="skeleton-row header"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div><div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div></div>
+                            <div class="usage-table-wrapper"><table class="usage-table"><thead><tr><th scope="col" data-i18n="credential">Credential</th><th scope="col" data-i18n="dashboard.provider_attempts">Provider attempts</th><th scope="col" data-i18n="success">Success</th><th scope="col" data-i18n="tokens">Tokens</th></tr></thead><tbody id="usageList"></tbody></table></div>
+                            <div class="pagination-container" id="usagePaginationContainer" role="navigation" aria-labelledby="usageBreakdownTitle" style="display: none;"><button type="button" class="pagination-btn" id="usagePrevPageBtn" data-ui-action="change-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button><div class="pagination-info" id="usagePaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div><button type="button" class="pagination-btn" id="usageNextPageBtn" data-ui-action="change-usage-page" data-page-delta="1" data-i18n="next">Next</button></div>
                         </section>
 
                         <section class="card span-12" id="historicalUsageSection" hidden>
-                            <h2 class="card-title" data-i18n="dashboard.historical_usage">Historical Credential Usage</h2>
+                            <h2 class="card-title" id="historicalUsageTitle" data-i18n="dashboard.historical_usage">Historical Credential Usage</h2>
                             <p class="card-copy card-title-copy" data-i18n="dashboard.historical_usage_description">Review retained, anonymized traffic from credentials that are no longer available in the pool.</p>
-                            <div class="usage-table-wrapper">
-                                <table class="usage-table">
-                                    <thead>
-                                        <tr>
-                                            <th data-i18n="credential">Credential</th>
-                                            <th data-i18n="requests">Requests</th>
-                                            <th data-i18n="success">Success</th>
-                                            <th data-i18n="tokens">Tokens</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="historicalUsageList"></tbody>
-                                </table>
-                            </div>
-                            <div class="pagination-container" id="historicalUsagePaginationContainer" style="display: none;">
-                                <button type="button" class="pagination-btn" id="historicalUsagePrevPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button>
-                                <div class="pagination-info" id="historicalUsagePaginationInfo" data-i18n-runtime>Page 1 of 1</div>
-                                <button type="button" class="pagination-btn" id="historicalUsageNextPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="1" data-i18n="next">Next</button>
-                            </div>
+                            <div class="usage-table-wrapper"><table class="usage-table"><thead><tr><th scope="col" data-i18n="credential">Credential</th><th scope="col" data-i18n="dashboard.provider_attempts">Provider attempts</th><th scope="col" data-i18n="success">Success</th><th scope="col" data-i18n="tokens">Tokens</th></tr></thead><tbody id="historicalUsageList"></tbody></table></div>
+                            <div class="pagination-container" id="historicalUsagePaginationContainer" role="navigation" aria-labelledby="historicalUsageTitle" style="display: none;"><button type="button" class="pagination-btn" id="historicalUsagePrevPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button><div class="pagination-info" id="historicalUsagePaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div><button type="button" class="pagination-btn" id="historicalUsageNextPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="1" data-i18n="next">Next</button></div>
                         </section>
                     </div>
-
                 </div>

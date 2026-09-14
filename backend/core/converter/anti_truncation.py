@@ -3,10 +3,12 @@ import json
 import re
 from typing import Any, AsyncGenerator, Dict, List, Tuple
 
+from core.request_trace_service import trace_decision
 from fastapi.responses import StreamingResponse
 from log import log
 
 DONE_MARKER = "[done]"
+MAX_ANTI_TRUNCATION_BUFFER_BYTES = 8 * 1024 * 1024
 CONTINUATION_PROMPT = f"""Please continue from exactly where the previous response was truncated.
 
 Rules:
@@ -143,6 +145,7 @@ class AntiTruncationStreamProcessor:
         self.enable_prefill_mode = enable_prefill_mode
 
         self.collected_content = io.StringIO()
+        self.collected_bytes = 0
         self.current_attempt = 0
 
     def _get_collected_text(self) -> str:
@@ -150,15 +153,21 @@ class AntiTruncationStreamProcessor:
 
     def _append_content(self, content: str):
         if content:
+            added_bytes = len(content.encode("utf-8"))
+            if self.collected_bytes + added_bytes > MAX_ANTI_TRUNCATION_BUFFER_BYTES:
+                raise RuntimeError("Anti-truncation output exceeded its memory limit")
             self.collected_content.write(content)
+            self.collected_bytes += added_bytes
 
     def _clear_content(self):
         self.collected_content.close()
         self.collected_content = io.StringIO()
+        self.collected_bytes = 0
 
     async def process_stream(self) -> AsyncGenerator[bytes, None]:
         while self.current_attempt < self.max_attempts:
             self.current_attempt += 1
+            attempt_output_started = False
 
             current_payload = self._build_current_payload()
 
@@ -172,6 +181,7 @@ class AntiTruncationStreamProcessor:
                     return
 
                 chunk_buffer = io.StringIO()
+                chunk_buffer_bytes = 0
                 found_done_marker = False
 
                 async for line in response.body_iterator:
@@ -232,7 +242,16 @@ class AntiTruncationStreamProcessor:
                             )
 
                             if content:
+                                content_bytes = len(content.encode("utf-8"))
+                                if (
+                                    self.collected_bytes + chunk_buffer_bytes + content_bytes
+                                    > MAX_ANTI_TRUNCATION_BUFFER_BYTES
+                                ):
+                                    raise RuntimeError(
+                                        "Anti-truncation output exceeded its memory limit"
+                                    )
                                 chunk_buffer.write(content)
+                                chunk_buffer_bytes += content_bytes
 
                                 has_marker = self._check_done_marker_in_chunk_content(content)
                                 log.debug(
@@ -245,6 +264,7 @@ class AntiTruncationStreamProcessor:
                                     )
 
                             cleaned_line = self._remove_done_marker_from_line(line, line_str, data)
+                            attempt_output_started = True
                             yield cleaned_line
 
                         except (json.JSONDecodeError, ValueError):
@@ -297,12 +317,32 @@ class AntiTruncationStreamProcessor:
 
             except Exception as e:
                 log.error(f"Anti-truncation error in attempt {self.current_attempt}: {str(e)}")
+                if attempt_output_started:
+                    status_code = 504 if isinstance(e, TimeoutError) else 502
+                    trace_decision(
+                        category="upstream",
+                        action="failed",
+                        result="failed",
+                        reason="timeout" if status_code == 504 else "provider_error",
+                        status_code=status_code,
+                    )
+                    error_chunk = {
+                        "error": {
+                            "message": "The upstream streaming response ended unexpectedly.",
+                            "type": "api_error",
+                            "code": status_code,
+                        }
+                    }
+                    self._clear_content()
+                    yield f"data: {json.dumps(error_chunk)}\n\n".encode()
+                    yield b"data: [DONE]\n\n"
+                    return
                 if self.current_attempt >= self.max_attempts:
                     error_chunk = {
                         "error": {
-                            "message": f"Anti-truncation failed: {str(e)}",
+                            "message": "The anti-truncation stream failed.",
                             "type": "api_error",
-                            "code": 500,
+                            "code": 502,
                         }
                     }
                     yield f"data: {json.dumps(error_chunk)}\n\n".encode()

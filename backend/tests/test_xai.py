@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 import json
 import sys
-import time
 import unittest
 import zipfile
 from pathlib import Path
@@ -24,12 +23,16 @@ from core.panel.providers.xai import (
     save_xai_config,
     save_xai_oauth_credential,
 )
+from core.provider_authorization_coordination import (
+    ProviderAuthorizationService,
+    configure_provider_authorization_service,
+    get_provider_authorization_service,
+)
+from core.state_store import InMemoryStateStore
 from core.xai import (
-    MAX_OAUTH_FLOWS,
     XAI_REDIRECT_URI,
     XaiError,
     XaiValidation,
-    _oauth_flows,
     _stream_tool_calls,
     complete_xai_oauth,
     create_xai_oauth_url,
@@ -54,9 +57,21 @@ class FakeResponse:
 
 
 class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
-    def tearDown(self):
-        _oauth_flows.clear()
+    async def asyncSetUp(self) -> None:
+        self.store = InMemoryStateStore()
+        self.authorization_key = b"x" * 32
+        configure_provider_authorization_service(
+            ProviderAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
+
+    async def asyncTearDown(self) -> None:
+        configure_provider_authorization_service(None)
         _stream_tool_calls.clear()
+        await self.store.close()
 
     def test_model_parser_normalizes_unique_ids(self):
         self.assertEqual(
@@ -91,7 +106,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.xai.get_xai_user_agent",
-                AsyncMock(return_value="grok-cli/omni-gateway"),
+                AsyncMock(return_value="grok-cli/polaris"),
             ),
         ):
             models = await fetch_xai_model_ids("xai-example-key")
@@ -103,7 +118,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             request.await_args.kwargs["headers"]["User-Agent"],
-            "grok-cli/omni-gateway",
+            "grok-cli/polaris",
         )
 
     async def test_oauth_model_discovery_uses_grok_build_catalog_and_headers(self):
@@ -116,7 +131,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.xai.get_xai_user_agent",
-                AsyncMock(return_value="grok-cli/omni-gateway"),
+                AsyncMock(return_value="grok-cli/polaris"),
             ),
         ):
             models = await fetch_xai_oauth_model_ids("grok-oauth-token")
@@ -159,15 +174,18 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(query["redirect_uri"], [XAI_REDIRECT_URI])
         self.assertEqual(query["code_challenge_method"], ["S256"])
         self.assertEqual(query["state"], [result["state"]])
-        self.assertEqual(len(_oauth_flows[result["state"]]["code_verifier"]), 128)
+        self.assertTrue(result["state"].startswith("xai_"))
 
     async def test_oauth_flow_storage_is_bounded(self):
-        for index in range(MAX_OAUTH_FLOWS):
-            _oauth_flows[f"state-{index}"] = {
-                "created_at": time.time(),
-                "code_verifier": "verifier",
-            }
-
+        await self.store.close()
+        self.store = InMemoryStateStore(_oidc_transaction_limit_for_testing=1)
+        configure_provider_authorization_service(
+            ProviderAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
         with (
             patch(
                 "core.xai.discover_xai_oauth_endpoints",
@@ -184,9 +202,8 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
         ):
             await create_xai_oauth_url()
-
-        self.assertEqual(len(_oauth_flows), MAX_OAUTH_FLOWS)
-        self.assertNotIn("state-0", _oauth_flows)
+            with self.assertRaisesRegex(XaiError, "could not be started"):
+                await create_xai_oauth_url()
 
     async def test_refresh_updates_rotating_tokens_and_expiry(self):
         credential = {
@@ -227,12 +244,28 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             await refresh_xai_oauth_credential(credential)
 
     async def test_authorization_code_stores_tokens_but_returns_secret_free_metadata(self):
-        _oauth_flows["state-1"] = {
-            "created_at": time.time(),
-            "code_verifier": "verifier-1",
-            "token_endpoint": "https://auth.x.ai/oauth2/token",
-            "client_id": "public-client-id",
-        }
+        verifier = "v" * 128
+        state = await get_provider_authorization_service().create(
+            "xai",
+            json.dumps(
+                {
+                    "client_id": "public-client-id",
+                    "code_verifier": verifier,
+                    "schema_version": 1,
+                    "token_endpoint": "https://auth.x.ai/oauth2/token",
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("ascii"),
+            ttl_seconds=900,
+        )
+        configure_provider_authorization_service(
+            ProviderAuthorizationService(
+                self.store,
+                key=self.authorization_key,
+                fencing_epoch=1,
+            )
+        )
         stored = AsyncMock(
             return_value={
                 "action": "created",
@@ -258,7 +291,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch("core.xai.credential_manager.add_primary_credential", stored),
         ):
-            result = await complete_xai_oauth("authorization-code", "state-1")
+            result = await complete_xai_oauth("authorization-code", state)
 
         saved_payload = stored.await_args.args[1]
         self.assertEqual(saved_payload["access_token"], "access-secret")
@@ -270,7 +303,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
                 "client_id": "public-client-id",
                 "code": "authorization-code",
                 "redirect_uri": XAI_REDIRECT_URI,
-                "code_verifier": "verifier-1",
+                "code_verifier": verifier,
             },
         )
         self.assertEqual(result["model_count"], 2)
@@ -278,15 +311,8 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("refresh_token", result)
 
     async def test_authorization_code_rejects_an_expired_oauth_session(self):
-        _oauth_flows["expired-state"] = {
-            "created_at": 1,
-            "code_verifier": "verifier-1",
-            "token_endpoint": "https://auth.x.ai/oauth2/token",
-            "client_id": "public-client-id",
-        }
-
         with self.assertRaisesRegex(XaiError, "not found or has expired"):
-            await complete_xai_oauth("authorization-code", "expired-state")
+            await complete_xai_oauth("authorization-code", "xai_" + "A" * 43)
 
     async def test_authorization_code_rejects_a_callback_url(self):
         with self.assertRaisesRegex(XaiError, "not a callback URL"):
@@ -301,7 +327,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             "xai_api_url": "https://api.x.ai/v1",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "locked-client-id",
-            "xai_user_agent": "grok-cli/omni-gateway",
+            "xai_user_agent": "grok-cli/polaris",
         }
         with (
             patch(
@@ -337,7 +363,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             "xai_api_url": "https://api.x.ai/v1",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "client-id",
-            "xai_user_agent": "grok-cli/omni-gateway",
+            "xai_user_agent": "grok-cli/polaris",
         }
         with (
             patch(

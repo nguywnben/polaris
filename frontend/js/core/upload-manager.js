@@ -6,8 +6,6 @@ function createUploadManager(type, options = {}) {
 
     const elementPrefix = options.elementPrefix || (type === 'primary' ? 'primary' : '');
 
-    const credentialType = options.credentialType || (type === 'primary' ? 'provider' : 'Code Assist');
-
     return {
 
         type: type,
@@ -69,7 +67,7 @@ function createUploadManager(type, options = {}) {
             if (variant !== 'success') panel.classList.add(variant);
 
             title.textContent = titleText;
-            const savedLabel = `${savedCount} ${credentialType} credential${savedCount === 1 ? '' : 's'}`;
+            const savedLabel = t('runtime.credentials_imported', {count: savedCount});
             text.textContent = ensureTerminalPunctuation(
                 data.message || t('status_upload_success', {credentials: savedLabel})
             );
@@ -84,15 +82,15 @@ function createUploadManager(type, options = {}) {
                 fileLine.className = 'upload-result-file';
 
                 const actionLabel = item.status === 'skipped'
-                    ? 'Skipped'
+                    ? t('import.action_skipped')
                     : item.status === 'error'
-                        ? 'Error'
+                        ? t('failed')
                         : item.action === 'replaced'
-                            ? 'Renewed'
+                            ? t('import.action_renewed')
                             : item.action === 'updated'
-                                ? 'Updated'
-                                : 'Added';
-                fileLine.textContent = `${actionLabel}: ${item.filename || item.source_filename || 'Credential'}`;
+                                ? t('import.action_updated')
+                                : t('import.action_added');
+                fileLine.textContent = `${actionLabel}: ${item.filename || item.source_filename || t('credential')}`;
 
                 const messageLine = document.createElement('div');
                 messageLine.className = 'upload-result-message';
@@ -106,7 +104,7 @@ function createUploadManager(type, options = {}) {
                 const moreItem = document.createElement('div');
                 moreItem.className = 'upload-result-message';
                 const hiddenCount = results.length - visibleResults.length;
-                moreItem.textContent = t('upload.more_results', {count: hiddenCount});
+                moreItem.textContent = t('upload.more_results', {count: formatConsoleNumber(hiddenCount)});
                 details.appendChild(moreItem);
             }
 
@@ -290,7 +288,7 @@ function createUploadManager(type, options = {}) {
                             const data = JSON.parse(xhr.responseText);
 
                             const savedCount = Number(data.uploaded_count || 0);
-                            const savedLabel = `${savedCount} ${credentialType} credential${savedCount === 1 ? '' : 's'}`;
+                            const savedLabel = t('runtime.credentials_imported', {count: savedCount});
                             const message = data.message || t('status_upload_success', {credentials: savedLabel});
                             const uploadStatus = data.uploaded_count > 0
                                 ? (data.error_count > 0 ? 'warning' : 'success')

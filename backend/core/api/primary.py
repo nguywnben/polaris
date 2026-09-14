@@ -1,13 +1,12 @@
 import asyncio
 import hashlib
 import json
-import os
 import time
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+import httpx
 from config import (
     get_anthropic_api_url,
     get_antigravity_api_url,
@@ -46,6 +45,7 @@ from core.api.utils import (
     record_api_call_error,
     record_api_call_success,
     record_model_route_miss,
+    record_response_cache_hit,
     record_unassigned_api_call_error,
 )
 from core.codex import (
@@ -55,10 +55,12 @@ from core.codex import (
     fetch_codex_model_ids,
     gemini_request_to_codex,
 )
+from core.coordination import CoordinationUnavailableError
 from core.credential_manager import credential_manager
 from core.gateway_pipeline import (
     apply_pre_call_guardrails,
     lookup_response_cache,
+    runtime_admission_response,
     store_response_cache,
 )
 from core.google_ai_studio import (
@@ -84,6 +86,10 @@ from core.openai_platform import (
     openai_response_to_gemini,
     openai_stream_line_to_gemini,
 )
+from core.primary_session_coordination import (
+    PrimarySessionState,
+    get_primary_session_coordinator,
+)
 from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
@@ -101,15 +107,18 @@ from core.provider_registry import (
     get_credential_provider_variant,
     get_provider_routing_id,
 )
+from core.request_trace_service import trace_decision
 from core.storage_adapter import get_storage_adapter
 from core.token_compression import (
     CompressionResult,
     CompressionSettings,
     compress_gemini_request,
+    compression_trace_reason,
 )
 from core.usage_stats import (
     extract_token_usage_from_response,
     extract_token_usage_from_stream_chunk,
+    merge_token_usage,
 )
 from core.xai import (
     build_xai_headers,
@@ -122,24 +131,11 @@ from core.xai import (
 from fastapi import Response
 from log import log
 
-SESSION_TTL_SECONDS = 6 * 60 * 60
-MAX_SESSION_STATES = 1024
-_REDIS_KEY_PREFIX = "primary:session:"
 MAX_MODEL_ROUTE_ATTEMPTS = 128
 MAX_MODEL_DISCOVERY_CONCURRENCY = 8
 MAX_MODEL_DISCOVERY_COHORTS = 32
 MAX_MODEL_DISCOVERY_FAILOVER_ATTEMPTS = 3
 MODEL_DISCOVERY_ROTATION_SECONDS = 5 * 60
-
-
-@dataclass
-class PrimarySessionState:
-    conversation_id: str
-    trajectory_id: str
-    session_id: str
-    step_index: int
-    created_at: float
-    last_used_at: float
 
 
 @dataclass(frozen=True)
@@ -155,33 +151,6 @@ class ProviderRequestContext:
     headers: Dict[str, str]
     payload: Dict[str, Any]
     request_metrics: Dict[str, Any]
-
-
-_session_states: Dict[str, PrimarySessionState] = {}
-
-
-_redis_client = None
-_redis_checked = False
-
-
-async def _get_redis():
-    global _redis_client, _redis_checked
-    if _redis_checked:
-        return _redis_client
-    _redis_checked = True
-    redis_url = os.getenv("REDIS_URL")
-    if not redis_url:
-        return None
-    try:
-        import redis.asyncio as aioredis  # type: ignore
-
-        client = aioredis.from_url(redis_url, decode_responses=True)
-        await client.ping()
-        _redis_client = client
-        log.info("[SESSION] Redis session store enabled")
-    except Exception as e:
-        log.warning(f"[SESSION] Redis unavailable, falling back to in-memory: {e}")
-    return _redis_client
 
 
 def _extract_first_user_text(request_payload: Dict[str, Any]) -> str:
@@ -212,68 +181,12 @@ def _session_key(request_payload: Dict[str, Any], model: str = "") -> str:
     return f"{model_prefix}default"
 
 
-def _prune_session_states(now: float) -> None:
-    expired = [k for k, s in _session_states.items() if now - s.last_used_at > SESSION_TTL_SECONDS]
-    for k in expired:
-        _session_states.pop(k, None)
-    if len(_session_states) <= MAX_SESSION_STATES:
-        return
-    overflow = len(_session_states) - MAX_SESSION_STATES
-    oldest = sorted(_session_states.items(), key=lambda item: item[1].last_used_at)
-    for k, _ in oldest[:overflow]:
-        _session_states.pop(k, None)
-
-
-def _make_new_state(first_user_text: str, now: float) -> PrimarySessionState:
-    if first_user_text:
-        digest = hashlib.sha256(first_user_text.encode("utf-8")).digest()
-        session_id_val = int.from_bytes(digest[:8], "big") & 0x7FFFFFFFFFFFFFFF
-        session_id = f"-{session_id_val}"
-    else:
-        session_id = f"-{uuid.uuid4().int % 9_000_000_000_000_000_000}"
-    return PrimarySessionState(
-        conversation_id=str(uuid.uuid4()),
-        trajectory_id=str(uuid.uuid4()),
-        session_id=session_id,
-        step_index=1,
-        created_at=now,
-        last_used_at=now,
-    )
-
-
 async def _get_session_state(
     request_payload: Dict[str, Any], model: str = ""
 ) -> PrimarySessionState:
-    now = time.time()
     key = _session_key(request_payload, model)
     first_user_text = _extract_first_user_text(request_payload)
-
-    redis = await _get_redis()
-    if redis is not None:
-        redis_key = f"{_REDIS_KEY_PREFIX}{key}"
-        try:
-            raw = await redis.get(redis_key)
-            if raw:
-                data = json.loads(raw)
-                state = PrimarySessionState(**data)
-                state.step_index += 1
-                state.last_used_at = now
-            else:
-                state = _make_new_state(first_user_text, now)
-            await redis.set(redis_key, json.dumps(state.__dict__), ex=SESSION_TTL_SECONDS)
-            return state
-        except Exception as e:
-            log.warning(f"[SESSION] Redis error, falling back to memory: {e}")
-
-    _prune_session_states(now)
-    state = _session_states.get(key)
-    if state:
-        state.step_index += 1
-        state.last_used_at = now
-        return state
-    state = _make_new_state(first_user_text, now)
-    _session_states[key] = state
-    return state
+    return await get_primary_session_coordinator().next_state(key, first_user_text)
 
 
 def _generate_request_id(conversation_id: str, trajectory_id: str, step: int) -> str:
@@ -304,13 +217,15 @@ async def wrap_cli_request(
     model: str,
     project_id: str,
     enable_credit: bool = False,
+    compression_result: CompressionResult | None = None,
 ) -> Tuple[Dict[str, Any], str, CompressionResult]:
     original_inner = dict(gemini_request)
     state = await _get_session_state(original_inner, model)
-    compression_result = compress_gemini_request(
-        original_inner,
-        CompressionSettings(**await get_token_compression_config()),
-    )
+    if compression_result is None:
+        compression_result = compress_gemini_request(
+            original_inner,
+            CompressionSettings(**await get_token_compression_config()),
+        )
     inner = dict(compression_result.request)
 
     if compression_result.applied:
@@ -365,14 +280,15 @@ async def prepare_provider_request(
     provider_id = get_credential_provider(credential_data)
     model_name = str(body.get("model") or "").strip()
     inner_request = body.get("request", body)
+    compression_result = compress_gemini_request(
+        dict(inner_request),
+        CompressionSettings(**await get_token_compression_config()),
+    )
+    compressed_request = dict(compression_result.request)
 
     if provider_id == GOOGLE_AI_STUDIO:
         api_key = str(credential_data.get("api_key") or "").strip()
-        compression_result = compress_gemini_request(
-            dict(inner_request),
-            CompressionSettings(**await get_token_compression_config()),
-        )
-        payload = dict(compression_result.request)
+        payload = dict(compressed_request)
         for internal_key in ("model", "sessionId", "labels", "enabledCreditTypes"):
             payload.pop(internal_key, None)
         target_url = build_generation_url(
@@ -387,11 +303,7 @@ async def prepare_provider_request(
         )
         if not access_token:
             raise ValueError("Provider credential does not contain an access token or API key.")
-        compression_result = compress_gemini_request(
-            dict(inner_request),
-            CompressionSettings(**await get_token_compression_config()),
-        )
-        payload = gemini_request_to_xai(dict(compression_result.request), model_name, streaming)
+        payload = gemini_request_to_xai(dict(compressed_request), model_name, streaming)
         is_oauth = (
             get_credential_provider_variant(credential_data) == GROK
             or str(credential_data.get("credential_type") or "").strip().lower() == "oauth"
@@ -414,20 +326,12 @@ async def prepare_provider_request(
         )
         if not access_token:
             raise ValueError("OpenAI credential does not contain an API key or access token.")
-        compression_result = compress_gemini_request(
-            dict(inner_request),
-            CompressionSettings(**await get_token_compression_config()),
-        )
         if credential_variant == OPENAI_PLATFORM:
-            payload = gemini_request_to_openai(
-                dict(compression_result.request), model_name, streaming
-            )
+            payload = gemini_request_to_openai(dict(compressed_request), model_name, streaming)
             target_url = f"{(await get_openai_api_url()).rstrip('/')}/chat/completions"
             auth_headers = build_openai_headers(str(access_token))
         else:
-            payload = gemini_request_to_codex(
-                dict(compression_result.request), model_name, streaming
-            )
+            payload = gemini_request_to_codex(dict(compressed_request), model_name, streaming)
             target_url = f"{(await get_codex_api_url()).rstrip('/')}/responses"
             auth_headers = build_codex_headers(
                 str(access_token),
@@ -438,24 +342,14 @@ async def prepare_provider_request(
                 user_agent=await get_codex_user_agent(),
             )
     elif provider_id == ANTHROPIC:
-        compression_result = compress_gemini_request(
-            dict(inner_request),
-            CompressionSettings(**await get_token_compression_config()),
-        )
-        payload = gemini_request_to_anthropic(
-            dict(compression_result.request), model_name, streaming
-        )
+        payload = gemini_request_to_anthropic(dict(compressed_request), model_name, streaming)
         target_url = f"{(await get_anthropic_api_url()).rstrip('/')}/messages"
         auth_headers = build_anthropic_headers(
             credential_data,
             user_agent=await get_claude_user_agent(),
         )
     elif provider_id == OLLAMA:
-        compression_result = compress_gemini_request(
-            dict(inner_request),
-            CompressionSettings(**await get_token_compression_config()),
-        )
-        payload = gemini_request_to_ollama(dict(compression_result.request), model_name, streaming)
+        payload = gemini_request_to_ollama(dict(compressed_request), model_name, streaming)
         base_url = normalize_ollama_base_url(str(credential_data.get("base_url") or ""))
         target_url = f"{base_url}/api/chat"
         auth_headers = build_ollama_headers(str(credential_data.get("api_key") or ""))
@@ -475,10 +369,11 @@ async def prepare_provider_request(
         target_url = f"{primary_url.rstrip('/')}/{operation}"
         auth_headers = await build_primary_headers(str(access_token))
         payload, _, compression_result = await wrap_cli_request(
-            inner_request,
+            compressed_request,
             model_name,
             project_id,
             enable_credit=bool(credential_data.get("enable_credit", False)),
+            compression_result=compression_result,
         )
 
     if extra_headers:
@@ -525,6 +420,25 @@ async def prepare_provider_request(
             access_token = credential_data.get("access_token") or credential_data.get("token")
             auth_headers["Authorization"] = f"Bearer {access_token}"
 
+    trace_decision(
+        category="compression",
+        action="applied" if compression_result.applied else "skipped",
+        result="succeeded" if compression_result.applied else "skipped",
+        reason=compression_trace_reason(compression_result),
+        provider=provider_id,
+        model=model_name,
+        original_tokens=compression_result.original_estimated_tokens,
+        final_tokens=compression_result.final_estimated_tokens,
+    )
+    trace_decision(
+        category="upstream",
+        action="attempted",
+        result="succeeded",
+        reason="healthy_candidate",
+        provider=provider_id,
+        model=model_name,
+    )
+
     return ProviderRequestContext(
         provider_id=provider_id,
         target_url=target_url,
@@ -536,6 +450,52 @@ async def prepare_provider_request(
 
 def _is_retryable_status(status_code: int, disable_error_codes: List[int]) -> bool:
     return status_code in RETRYABLE_UPSTREAM_STATUS_CODES or status_code in disable_error_codes
+
+
+def _stream_event_is_terminal(chunk: Any) -> bool:
+    """Return whether a canonical Gemini SSE chunk closes model generation."""
+    if not isinstance(chunk, (str, bytes)):
+        return False
+    text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, bytes) else chunk
+    payload_text = text.strip()
+    if payload_text.startswith("data:"):
+        payload_text = payload_text[5:].strip()
+    if payload_text == "[DONE]":
+        return True
+    try:
+        payload = json.loads(payload_text)
+    except (TypeError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if isinstance(payload.get("response"), dict):
+        payload = payload["response"]
+    prompt_feedback = payload.get("promptFeedback")
+    if isinstance(prompt_feedback, dict) and prompt_feedback.get("blockReason"):
+        return True
+    candidates = payload.get("candidates")
+    return isinstance(candidates, list) and any(
+        isinstance(candidate, dict) and bool(candidate.get("finishReason"))
+        for candidate in candidates
+    )
+
+
+def _stream_event_is_heartbeat(chunk: Any) -> bool:
+    if not isinstance(chunk, (str, bytes)):
+        return False
+    text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, bytes) else chunk
+    return text.lstrip().startswith(":")
+
+
+def _normalize_sse_frame(chunk: Any) -> Any:
+    if not isinstance(chunk, (str, bytes)):
+        return chunk
+    marker = chunk.lstrip()
+    prefixes = (b"data:", b":") if isinstance(chunk, bytes) else ("data:", ":")
+    if not marker.startswith(prefixes):
+        return chunk
+    newline = b"\n\n" if isinstance(chunk, bytes) else "\n\n"
+    return chunk.rstrip() + newline
 
 
 def _normalize_model_candidates(
@@ -556,8 +516,33 @@ def _normalize_model_candidates(
 def _no_credential_error_message(model_name: str) -> str:
     normalized_model = str(model_name or "").strip()
     if normalized_model:
-        return f"No enabled credential supports model '{normalized_model}'."
-    return "No credentials are available."
+        return (
+            f"No route is currently available for model '{normalized_model}'. "
+            "Check enabled credentials, model support, cooldowns, and routing settings."
+        )
+    return (
+        "No credential route is currently available. Check credential health and routing settings."
+    )
+
+
+async def _coordination_unavailable_response(
+    *, log_prefix: str, model_name: str, error: CoordinationUnavailableError
+) -> Response:
+    log.error(
+        f"{log_prefix} Credential routing coordination is unavailable "
+        f"(error_type={type(error).__name__})."
+    )
+    await record_unassigned_api_call_error(
+        status_code=503,
+        mode="primary",
+        model_name=model_name,
+        reason="coordination_unavailable",
+    )
+    return Response(
+        content=json.dumps({"error": "Credential routing is temporarily unavailable."}),
+        status_code=503,
+        media_type="application/json",
+    )
 
 
 async def _switch_credential_for_retry(
@@ -603,19 +588,27 @@ async def stream_request(
     model_routing: bool = False,
 ):
     """Public streaming entry point: guardrails first, then upstream dispatch."""
+    admission_response = runtime_admission_response()
+    if admission_response is not None:
+        yield admission_response
+        return
     guard_response, body = await apply_pre_call_guardrails(body)
     if guard_response is not None:
         yield guard_response
         return
 
-    async for item in _stream_request_upstream(
+    upstream = _stream_request_upstream(
         body,
         native=native,
         headers=headers,
         model_candidates=model_candidates,
         model_routing=model_routing,
-    ):
-        yield item
+    )
+    try:
+        async for item in upstream:
+            yield item
+    finally:
+        await upstream.aclose()
 
 
 async def _stream_request_upstream(
@@ -631,13 +624,21 @@ async def _stream_request_upstream(
     route_exclusions: set[tuple[str, str]] = set()
     credential_route_exclusions: set[tuple[str, str]] = set()
 
-    route_result = await credential_manager.get_valid_model_credential(
-        candidates,
-        mode="primary",
-        respect_model_blacklist=model_routing,
-        excluded_provider_models=route_exclusions,
-        excluded_credential_models=credential_route_exclusions,
-    )
+    try:
+        route_result = await credential_manager.get_valid_model_credential(
+            candidates,
+            mode="primary",
+            respect_model_blacklist=model_routing,
+            excluded_provider_models=route_exclusions,
+            excluded_credential_models=credential_route_exclusions,
+        )
+    except CoordinationUnavailableError as exc:
+        yield await _coordination_unavailable_response(
+            log_prefix="[provider stream]",
+            model_name=requested_model,
+            error=exc,
+        )
+        return
 
     if not route_result:
         log.error("[provider stream] No credentials currently available")
@@ -728,7 +729,8 @@ async def _stream_request_upstream(
     attempt_limit = max_retries + MAX_MODEL_ROUTE_ATTEMPTS
     for attempt in range(attempt_limit + 1):
         received_content = False
-        stream_token_usage: Dict[str, int] = {}
+        terminal_received = False
+        stream_token_usage: Dict[str, Any] = {}
         need_retry = False
         model_route_retry = False
 
@@ -751,8 +753,34 @@ async def _stream_request_upstream(
                             if isinstance(chunk.body, bytes)
                             else str(chunk.body)
                         )
-                    except Exception:
+                    except Exception as exc:
+                        log.debug(
+                            "[provider stream] could not decode an upstream error body "
+                            f"({type(exc).__name__})."
+                        )
                         error_body = ""
+
+                    if received_content:
+                        await record_api_call_error(
+                            credential_manager,
+                            current_file,
+                            status_code,
+                            None,
+                            mode="primary",
+                            model_name=model_name,
+                            error_message=error_body,
+                            provider=provider_id,
+                        )
+                        trace_decision(
+                            category="retry",
+                            action="skipped",
+                            result="skipped",
+                            reason="not_eligible",
+                            attempt=attempt + 1,
+                            status_code=status_code,
+                        )
+                        yield chunk
+                        return
 
                     if status_code == 404:
                         credential_route_exclusions.add((current_file, model_name))
@@ -791,12 +819,9 @@ async def _stream_request_upstream(
 
                         cooldown_until = None
                         if (status_code == 429 or status_code == 503) and error_body:
-                            try:
-                                cooldown_until = await parse_and_log_cooldown(
-                                    error_body, mode="primary"
-                                )
-                            except Exception:
-                                pass
+                            cooldown_until = await parse_and_log_cooldown(
+                                error_body, mode="primary"
+                            )
 
                         await record_api_call_error(
                             credential_manager,
@@ -847,6 +872,11 @@ async def _stream_request_upstream(
                         yield chunk
                         return
                 else:
+                    if _stream_event_is_heartbeat(chunk):
+                        yield _normalize_sse_frame(chunk)
+                        continue
+                    if isinstance(chunk, (str, bytes)) and not chunk.strip():
+                        continue
                     if provider_id == XAI:
                         chunk = xai_stream_line_to_gemini(chunk)
                         if not chunk:
@@ -869,15 +899,18 @@ async def _stream_request_upstream(
                         if not chunk:
                             continue
 
+                    chunk = _normalize_sse_frame(chunk)
+
                     if not received_content:
                         received_content = True
                         log.debug(
                             f"[provider stream] started receiving streaming responses, model: {model_name}"
                         )
 
+                    terminal_received = terminal_received or _stream_event_is_terminal(chunk)
+
                     chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
-                    if any(chunk_token_usage.values()):
-                        stream_token_usage = chunk_token_usage
+                    stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
 
                     if isinstance(chunk, bytes):
                         log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
@@ -886,7 +919,7 @@ async def _stream_request_upstream(
 
                     yield chunk
 
-            if received_content:
+            if received_content and terminal_received:
                 await record_api_call_success(
                     credential_manager,
                     current_file,
@@ -901,6 +934,29 @@ async def _stream_request_upstream(
                     provider=provider_id,
                 )
                 log.debug(f"[provider stream] Streaming response completed, model: {model_name}")
+                return
+            elif received_content:
+                log.warning(
+                    "[provider stream] upstream closed before a terminal stream event "
+                    f"(credential={current_file}, model={model_name})"
+                )
+                await record_api_call_error(
+                    credential_manager,
+                    current_file,
+                    502,
+                    None,
+                    mode="primary",
+                    model_name=model_name,
+                    error_message="Upstream stream ended before a terminal event",
+                    provider=provider_id,
+                )
+                yield Response(
+                    content=json.dumps(
+                        {"error": "The upstream streaming response ended unexpectedly."}
+                    ),
+                    status_code=502,
+                    media_type="application/json",
+                )
                 return
             elif not need_retry:
                 log.warning(
@@ -958,11 +1014,67 @@ async def _stream_request_upstream(
                         return
                 continue
 
+        except (asyncio.CancelledError, GeneratorExit):
+            # A disconnected client closes this async generator at its current
+            # yield point. Release the active distributed lease explicitly;
+            # normal success/error accounting may not get a chance to run.
+            trace_decision(
+                category="upstream",
+                action="failed",
+                result="failed",
+                reason="cancelled",
+                provider=provider_id,
+                model=model_name,
+                status_code=499,
+            )
+            await credential_manager.release_credential(current_file, mode="primary")
+            raise
+        except CoordinationUnavailableError as exc:
+            yield await _coordination_unavailable_response(
+                log_prefix="[provider stream]",
+                model_name=requested_model,
+                error=exc,
+            )
+            return
         except Exception as e:
-            exception_status = int(getattr(e, "status_code", 500) or 500)
+            is_timeout = isinstance(e, (TimeoutError, httpx.TimeoutException))
+            exception_status = int(getattr(e, "status_code", 0) or (504 if is_timeout else 502))
             log.error(
                 f"[provider stream] Streaming Request Exception: {e}, Credentials: {current_file}"
             )
+            if received_content:
+                await record_api_call_error(
+                    credential_manager,
+                    current_file,
+                    exception_status,
+                    None,
+                    mode="primary",
+                    model_name=model_name,
+                    error_message=str(e),
+                    provider=provider_id,
+                )
+                trace_decision(
+                    category="retry",
+                    action="skipped",
+                    result="skipped",
+                    reason="not_eligible",
+                    attempt=attempt + 1,
+                    status_code=exception_status,
+                )
+                yield Response(
+                    content=json.dumps(
+                        {
+                            "error": (
+                                "The upstream streaming request timed out after output began."
+                                if is_timeout
+                                else "The upstream streaming request failed after output began."
+                            )
+                        }
+                    ),
+                    status_code=exception_status,
+                    media_type="application/json",
+                )
+                return
             if exception_status == 404:
                 credential_route_exclusions.add((current_file, model_name))
                 if model_routing:
@@ -1055,12 +1167,19 @@ async def non_stream_request(
     model_routing: bool = False,
 ) -> Response:
     """Public non-streaming entry point: guardrails, cache, then upstream."""
+    admission_response = runtime_admission_response()
+    if admission_response is not None:
+        return admission_response
     guard_response, body = await apply_pre_call_guardrails(body)
     if guard_response is not None:
         return guard_response
 
     cache_key, cached_response = await lookup_response_cache(body)
     if cached_response is not None:
+        await record_response_cache_hit(
+            model_name=str(body.get("model") or ""),
+            status_code=cached_response.status_code,
+        )
         return cached_response
 
     response = await _non_stream_request_upstream(
@@ -1072,9 +1191,9 @@ async def non_stream_request(
 
     if cache_key:
         try:
-            store_response_cache(cache_key, response)
+            await store_response_cache(cache_key, response)
         except Exception as exc:
-            log.debug(f"[response-cache] failed to store response: {exc}")
+            log.debug(f"[response-cache] response store failed ({type(exc).__name__}).")
     return response
 
 
@@ -1106,13 +1225,20 @@ async def _non_stream_request_upstream(
     route_exclusions: set[tuple[str, str]] = set()
     credential_route_exclusions: set[tuple[str, str]] = set()
 
-    route_result = await credential_manager.get_valid_model_credential(
-        candidates,
-        mode="primary",
-        respect_model_blacklist=model_routing,
-        excluded_provider_models=route_exclusions,
-        excluded_credential_models=credential_route_exclusions,
-    )
+    try:
+        route_result = await credential_manager.get_valid_model_credential(
+            candidates,
+            mode="primary",
+            respect_model_blacklist=model_routing,
+            excluded_provider_models=route_exclusions,
+            excluded_credential_models=credential_route_exclusions,
+        )
+    except CoordinationUnavailableError as exc:
+        return await _coordination_unavailable_response(
+            log_prefix="[provider]",
+            model_name=requested_model,
+            error=exc,
+        )
 
     if not route_result:
         log.error("[provider] No credentials currently available")
@@ -1383,8 +1509,11 @@ async def _non_stream_request_upstream(
                 error_text = ""
                 try:
                     error_text = response.text
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.debug(
+                        "[provider] could not decode an upstream error body "
+                        f"({type(exc).__name__})."
+                    )
 
                 if status_code == 404:
                     credential_route_exclusions.add((current_file, model_name))
@@ -1420,12 +1549,7 @@ async def _non_stream_request_upstream(
 
                     cooldown_until = None
                     if (status_code == 429 or status_code == 503) and error_text:
-                        try:
-                            cooldown_until = await parse_and_log_cooldown(
-                                error_text, mode="primary"
-                            )
-                        except Exception:
-                            pass
+                        cooldown_until = await parse_and_log_cooldown(error_text, mode="primary")
 
                     await record_api_call_error(
                         credential_manager,
@@ -1492,6 +1616,12 @@ async def _non_stream_request_upstream(
                         )
                 continue
 
+        except CoordinationUnavailableError as exc:
+            return await _coordination_unavailable_response(
+                log_prefix="[provider]",
+                model_name=requested_model,
+                error=exc,
+            )
         except Exception as e:
             log.error(
                 f"[provider] non-streaming request raised an exception: {e}; credential={current_file}"

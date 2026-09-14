@@ -1,0 +1,181 @@
+{
+  "candidate_commit": "43a830aedfbc1af7156606e3c312f3a05d8a3d5f",
+  "checks": [
+    {
+      "id": "workload.request_count",
+      "observed": 6000,
+      "passed": true,
+      "requirement": "exactly 6000 attempts"
+    },
+    {
+      "id": "workload.duration",
+      "observed": 600.058,
+      "passed": true,
+      "requirement": "600 to 630 seconds"
+    },
+    {
+      "id": "workload.error_rate",
+      "observed": 0.0,
+      "passed": true,
+      "requirement": "< 0.001"
+    },
+    {
+      "id": "workload.gateway_p95",
+      "observed": 81.416,
+      "passed": true,
+      "requirement": "<= 100.0 ms"
+    },
+    {
+      "id": "workload.concurrency",
+      "observed": 3,
+      "passed": true,
+      "requirement": "<= 16"
+    },
+    {
+      "id": "workload.client_queue",
+      "observed": 0,
+      "passed": true,
+      "requirement": "<= 16"
+    },
+    {
+      "id": "workload.schedule_lag",
+      "observed": 24.919,
+      "passed": true,
+      "requirement": "<= 250.0 ms"
+    },
+    {
+      "id": "gateway.exhaustion",
+      "observed": {
+        "budget": 0,
+        "capacity": 0,
+        "cooldown": 0,
+        "quota": 0,
+        "rate_limit": 0
+      },
+      "passed": true,
+      "requirement": "zero quota/budget/rate-limit/cooldown/capacity events"
+    },
+    {
+      "id": "memory.peak",
+      "observed": 164.492,
+      "passed": true,
+      "requirement": "<= 512.0 MiB"
+    },
+    {
+      "id": "memory.growth",
+      "observed": 5.09,
+      "passed": true,
+      "requirement": "<= 32.0 MiB after warmup"
+    },
+    {
+      "id": "memory.slope",
+      "observed": 0.7622,
+      "passed": true,
+      "requirement": "<= 1.0 MiB/min after warmup"
+    },
+    {
+      "id": "dashboard.usable",
+      "observed": 610.596,
+      "passed": true,
+      "requirement": "<= 2500.0 ms"
+    },
+    {
+      "id": "restart.graceful_shutdown",
+      "observed": {
+        "lifecycle_complete": true,
+        "seconds": 0.701
+      },
+      "passed": true,
+      "requirement": "complete lifecycle in <= 15.0 seconds"
+    },
+    {
+      "id": "restart.ready",
+      "observed": 2.531,
+      "passed": true,
+      "requirement": "<= 30.0 seconds"
+    },
+    {
+      "id": "restart.post_request",
+      "observed": 200,
+      "passed": true,
+      "requirement": "HTTP 200 with the persisted route and virtual key"
+    }
+  ],
+  "completed_at": "2026-09-12T06:08:49.662463+00:00",
+  "dashboard": {
+    "usable_ms": 610.596
+  },
+  "environment": {
+    "platform": "win32",
+    "provider": "deterministic-loopback-ollama",
+    "python": "3.14.6",
+    "replicas": 1,
+    "runtime": "standalone",
+    "storage": "sqlite",
+    "workers": 1
+  },
+  "gateway": {
+    "deterministic_provider_requests": 6001,
+    "exhaustion": {
+      "budget": 0,
+      "capacity": 0,
+      "cooldown": 0,
+      "quota": 0,
+      "rate_limit": 0
+    }
+  },
+  "initial_ready_seconds": 2.606,
+  "memory": {
+    "final_rss_mib": 164.492,
+    "first_window_median_mib": 158.781,
+    "growth_mib": 5.09,
+    "initial_rss_mib": 151.992,
+    "last_window_median_mib": 163.871,
+    "monotonic_increase_ratio": 0.8426,
+    "peak_rss_mib": 164.492,
+    "sample_count": 121,
+    "slope_mib_per_minute": 0.7622,
+    "stable_sample_count": 109
+  },
+  "passed": true,
+  "profile": {
+    "concurrency": 16,
+    "duration_seconds": 600,
+    "expected_requests": 6000,
+    "offered_rps": 10,
+    "schema_version": "polaris.reliability-profile.v1",
+    "sha256": "7fdb4c04890eecd96bf465e434c7cb6450bcb72734c587f4e9689fed2570120a"
+  },
+  "restart": {
+    "final_shutdown_complete": true,
+    "final_shutdown_seconds": 0.426,
+    "graceful_shutdown_complete": true,
+    "graceful_shutdown_seconds": 0.701,
+    "post_restart_status": 200,
+    "ready_seconds": 2.531,
+    "shutdown_exit_code": 0
+  },
+  "schema_version": "polaris.reliability-result.v1",
+  "source_checkout": "git-archive",
+  "started_at": "2026-09-12T05:58:32.306619+00:00",
+  "workload": {
+    "achieved_rps": 9.999,
+    "attempted": 6000,
+    "deadline_failures": 0,
+    "elapsed_seconds": 600.0578584999894,
+    "error_rate": 0.0,
+    "failed": 0,
+    "failure_counts": {},
+    "max_in_flight": 3,
+    "max_queue_depth": 0,
+    "max_schedule_lag_ms": 24.918799987062812,
+    "p50_ms": 53.907599998638034,
+    "p95_ms": 81.4161000016611,
+    "p99_ms": 98.51549999439158,
+    "response_validation_failures": 0,
+    "status_counts": {
+      "200": 6000
+    },
+    "succeeded": 6000
+  }
+}

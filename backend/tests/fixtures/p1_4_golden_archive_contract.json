@@ -1,0 +1,25 @@
+{
+  "archive_version": 1,
+  "components": [
+    "audit",
+    "configuration",
+    "credentials",
+    "identity",
+    "ledgers",
+    "quality_policy",
+    "request_traces",
+    "routes",
+    "virtual_keys"
+  ],
+  "excluded": [
+    "legacy_usage_stats",
+    "pre_restore_snapshots",
+    "raw_logs"
+  ],
+  "format": "polaris-portable-state",
+  "members": [
+    "manifest.json",
+    "state/credentials.db"
+  ],
+  "state_schema_version": 1
+}

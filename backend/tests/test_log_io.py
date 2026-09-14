@@ -14,8 +14,10 @@ if str(TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(TESTS_DIR))
 
 from core.panel.logs import (
+    MAX_LOG_DOWNLOAD_BYTES,
     _clear_log_file,
     _log_file_size,
+    _read_bounded_log_export,
     _read_log_chunk,
     _read_recent_log_lines,
 )
@@ -49,6 +51,40 @@ class LogFileHelperTests(unittest.TestCase):
             content, bytes_read = _read_log_chunk(str(path), len("first\n"), len("second\n"))
             self.assertEqual(content, "second\n")
             self.assertEqual(bytes_read, len("second\n"))
+
+    def test_download_export_keeps_latest_complete_redacted_lines_within_limit(self):
+        with workspace_temp_directory() as temp_dir:
+            path = Path(temp_dir) / "runtime.log"
+            path.write_text(
+                "old line that must be dropped\n"
+                "[2026-09-10 08:00:00] [ERROR] token=secret-value\n"
+                "[2026-09-10 08:00:01] [INFO] request_id=req-safe\n",
+                encoding="utf-8",
+            )
+
+            export, truncated = _read_bounded_log_export(str(path), max_bytes=110)
+
+            self.assertTrue(truncated)
+            self.assertLessEqual(len(export), 110)
+            self.assertNotIn(b"secret-value", export)
+            self.assertIn(b"token=<redacted>", export)
+            self.assertIn(b"request_id=req-safe", export)
+            self.assertFalse(export.startswith(b"must be dropped"))
+            self.assertEqual(MAX_LOG_DOWNLOAD_BYTES, 16 * 1024 * 1024)
+
+    def test_download_export_keeps_first_line_when_limit_starts_on_line_boundary(self):
+        with workspace_temp_directory() as temp_dir:
+            path = Path(temp_dir) / "runtime.log"
+            latest_lines = b"request_id=req-boundary\nstatus=failed\n"
+            path.write_bytes(b"discarded\n" + latest_lines)
+
+            export, truncated = _read_bounded_log_export(
+                str(path),
+                max_bytes=len(latest_lines),
+            )
+
+            self.assertTrue(truncated)
+            self.assertEqual(export, latest_lines)
 
 
 if __name__ == "__main__":

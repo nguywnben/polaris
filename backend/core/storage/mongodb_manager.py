@@ -1,11 +1,24 @@
-import json
+import asyncio
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from core.credential_pool_mutation import (
+    CredentialPoolMutation,
+    CredentialPoolMutationError,
+    CredentialPoolPlanner,
+    CredentialPoolRecord,
+    normalize_pool_mode,
+    validate_credential_pool_mutation,
+)
 from log import log
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
+
+if TYPE_CHECKING:
+    from core.audit import AuditRepository
+    from core.durable_migration_runner import MigrationCheckpointRepository
+    from core.identity.repository import IdentityRepository
 
 
 class MongoDBManager:
@@ -33,8 +46,10 @@ class MongoDBManager:
         self._config_cache: Dict[str, Any] = {}
         self._config_loaded = False
 
-        self._redis = None
-        self._redis_enabled: bool = False
+        self._credential_pool_locks = {
+            "code_assist": asyncio.Lock(),
+            "primary": asyncio.Lock(),
+        }
 
     async def initialize(self) -> None:
         if self._initialized:
@@ -45,7 +60,7 @@ class MongoDBManager:
             if not mongodb_uri:
                 raise ValueError("MONGODB_URI environment variable not set")
 
-            database_name = os.getenv("MONGODB_DATABASE", "omni_gateway")
+            database_name = os.getenv("MONGODB_DATABASE", "polaris")
 
             self._client = AsyncMongoClient(mongodb_uri)
             self._db = self._client[database_name]
@@ -59,10 +74,8 @@ class MongoDBManager:
             self._initialized = True
             log.info(f"MongoDB storage initialized (database: {database_name})")
 
-            await self._init_redis()
-
         except Exception as e:
-            log.error(f"Error initializing MongoDB: {e}")
+            log.error(f"MongoDB initialization failed ({type(e).__name__}).")
             raise
 
     async def _create_indexes(self):
@@ -117,345 +130,7 @@ class MongoDBManager:
             log.error(f"Error loading config cache: {e}")
             self._config_cache = {}
 
-    async def _init_redis(self) -> None:
-        redis_url = os.getenv("REDIS_URL")
-        if not redis_url:
-            return
-
-        try:
-            import redis.asyncio as aioredis  # type: ignore
-        except ImportError:
-            log.warning("redis package not installed, Redis cache disabled. Run: pip install redis")
-            return
-
-        try:
-            self._redis = aioredis.from_url(redis_url, decode_responses=True)
-            await self._redis.ping()
-            self._redis_enabled = True
-            log.info("Redis connected, rebuilding credential pool cache...")
-
-            import asyncio
-
-            await asyncio.gather(
-                self._rebuild_redis_cache("code_assist"),
-                self._rebuild_redis_cache("primary"),
-                self._load_config_to_redis(),
-            )
-            log.info("Redis credential pool cache ready")
-        except Exception as e:
-            log.warning(f"Redis init failed, falling back to MongoDB-only mode: {e}")
-            self._redis = None
-            self._redis_enabled = False
-
-    def _rk_avail(self, mode: str) -> str:
-        return f"code_assist:avail:{mode}"
-
-    def _rk_tier(self, mode: str, tier: str) -> str:
-        return f"code_assist:tier:{mode}:{tier}"
-
-    def _rk_preview(self, mode: str) -> str:
-        return f"code_assist:preview:{mode}"
-
-    def _rk_cd(self, mode: str, filename: str, escaped_model: str) -> str:
-        return f"code_assist:cd:{mode}:{filename}:{escaped_model}"
-
-    async def _rebuild_redis_cache(self, mode: str) -> None:
-        if not self._redis:
-            return
-        try:
-            collection = self._db[self._get_collection_name(mode)]
-
-            projection: Dict[str, Any] = {
-                "filename": 1,
-                "disabled": 1,
-                "model_cooldowns": 1,
-                "tier": 1,
-                "preview": 1,
-                "_id": 0,
-            }
-
-            avail: List[str] = []
-            tier_buckets: Dict[str, List[str]] = {}  # tier -> [filename, ...]
-            preview_members: List[str] = []
-            cooldown_entries: List[tuple] = []  # (cd_key, ttl_seconds, value)
-            current_time = time.time()
-
-            async for doc in collection.find({}, projection=projection):
-                if not doc.get("disabled", False):
-                    filename = doc["filename"]
-                    avail.append(filename)
-
-                    tier = doc.get("tier") or "pro"
-                    tier_buckets.setdefault(tier, []).append(filename)
-
-                    if mode == "code_assist" and doc.get("preview", True):
-                        preview_members.append(filename)
-
-                    model_cooldowns = doc.get("model_cooldowns") or {}
-                    for escaped_model, cooldown_until in model_cooldowns.items():
-                        if (
-                            isinstance(cooldown_until, (int, float))
-                            and cooldown_until > current_time
-                        ):
-                            ttl = int(cooldown_until - current_time)
-                            if ttl > 0:
-                                cd_key = self._rk_cd(mode, filename, escaped_model)
-                                cooldown_entries.append((cd_key, ttl, str(cooldown_until)))
-
-            tmp_avail = self._rk_avail(mode) + ":tmp"
-
-            pipe = self._redis.pipeline()
-
-            pipe.delete(tmp_avail)
-            if avail:
-                pipe.sadd(tmp_avail, *avail)
-            await pipe.execute()
-
-            pipe2 = self._redis.pipeline()
-            if avail:
-                pipe2.rename(tmp_avail, self._rk_avail(mode))
-            else:
-                pipe2.delete(self._rk_avail(mode))
-                pipe2.delete(tmp_avail)
-            await pipe2.execute()
-
-            all_tiers = ("free", "pro", "ultra")
-            pipe3 = self._redis.pipeline()
-            for tier in all_tiers:
-                tier_key = self._rk_tier(mode, tier)
-                tmp_tier_key = tier_key + ":tmp"
-                pipe3.delete(tmp_tier_key)
-                members = tier_buckets.get(tier, [])
-                if members:
-                    pipe3.sadd(tmp_tier_key, *members)
-            await pipe3.execute()
-
-            pipe4 = self._redis.pipeline()
-            for tier in all_tiers:
-                tier_key = self._rk_tier(mode, tier)
-                tmp_tier_key = tier_key + ":tmp"
-                members = tier_buckets.get(tier, [])
-                if members:
-                    pipe4.rename(tmp_tier_key, tier_key)
-                else:
-                    pipe4.delete(tier_key)
-                    pipe4.delete(tmp_tier_key)
-            await pipe4.execute()
-
-            preview_key = self._rk_preview(mode)
-            tmp_preview_key = preview_key + ":tmp"
-            pipe5 = self._redis.pipeline()
-            pipe5.delete(tmp_preview_key)
-            if preview_members:
-                pipe5.sadd(tmp_preview_key, *preview_members)
-            await pipe5.execute()
-            pipe6 = self._redis.pipeline()
-            if preview_members:
-                pipe6.rename(tmp_preview_key, preview_key)
-            else:
-                pipe6.delete(preview_key)
-                pipe6.delete(tmp_preview_key)
-            await pipe6.execute()
-
-            if cooldown_entries:
-                pipe7 = self._redis.pipeline()
-                for cd_key, ttl, value in cooldown_entries:
-                    pipe7.setex(cd_key, ttl, value)
-                await pipe7.execute()
-
-            log.debug(
-                f"Redis cache rebuilt [{mode}]: {len(avail)} avail, "
-                f"tiers={{{', '.join(f'{t}:{len(tier_buckets.get(t, []))}' for t in all_tiers)}}}, "
-                f"preview={len(preview_members)}, "
-                f"{len(cooldown_entries)} cooldown key(s) restored"
-            )
-        except Exception as e:
-            log.warning(f"Redis rebuild cache error [{mode}]: {e}")
-
-    async def _redis_add_cred(
-        self, mode: str, filename: str, tier: str = "pro", preview: bool = True
-    ) -> None:
-        if not self._redis_enabled:
-            return
-        try:
-            pipe = self._redis.pipeline()
-            pipe.sadd(self._rk_avail(mode), filename)
-            pipe.sadd(self._rk_tier(mode, tier), filename)
-            if mode == "code_assist" and preview:
-                pipe.sadd(self._rk_preview(mode), filename)
-            await pipe.execute()
-        except Exception as e:
-            log.warning(f"Redis add_cred error: {e}")
-
-    async def _redis_remove_cred(
-        self, mode: str, filename: str, tier: Optional[str] = None
-    ) -> None:
-        if not self._redis_enabled:
-            return
-        try:
-            pipe = self._redis.pipeline()
-            pipe.srem(self._rk_avail(mode), filename)
-            if tier:
-                pipe.srem(self._rk_tier(mode, tier), filename)
-            else:
-                for t in ("free", "pro", "ultra"):
-                    pipe.srem(self._rk_tier(mode, t), filename)
-            pipe.srem(self._rk_preview(mode), filename)
-            await pipe.execute()
-        except Exception as e:
-            log.warning(f"Redis remove_cred error: {e}")
-
-    async def _redis_sync_cred(
-        self, mode: str, filename: str, disabled: bool, tier: str = "pro", preview: bool = True
-    ) -> None:
-        if not self._redis_enabled:
-            return
-        try:
-            pipe = self._redis.pipeline()
-            if disabled:
-                pipe.srem(self._rk_avail(mode), filename)
-                for t in ("free", "pro", "ultra"):
-                    pipe.srem(self._rk_tier(mode, t), filename)
-                pipe.srem(self._rk_preview(mode), filename)
-            else:
-                pipe.sadd(self._rk_avail(mode), filename)
-                pipe.sadd(self._rk_tier(mode, tier), filename)
-                if mode == "code_assist" and preview:
-                    pipe.sadd(self._rk_preview(mode), filename)
-                else:
-                    pipe.srem(self._rk_preview(mode), filename)
-            await pipe.execute()
-        except Exception as e:
-            log.warning(f"Redis sync_cred error: {e}")
-
-    async def _choose_best_redis_candidate(self, mode: str, candidates: list[str]) -> Optional[str]:
-        """Select the least-used sampled Redis candidate using MongoDB metadata."""
-        normalized_candidates = [os.path.basename(str(item)) for item in candidates if item]
-        if not normalized_candidates:
-            return None
-
-        try:
-            collection = self._db[self._get_collection_name(mode)]
-            doc = await collection.find_one(
-                {"filename": {"$in": normalized_candidates}, "disabled": False},
-                projection={
-                    "filename": 1,
-                    "call_count": 1,
-                    "last_success": 1,
-                    "rotation_order": 1,
-                    "_id": 0,
-                },
-                sort=[
-                    ("call_count", 1),
-                    ("last_success", 1),
-                    ("rotation_order", 1),
-                    ("filename", 1),
-                ],
-            )
-            if doc and doc.get("filename"):
-                return str(doc["filename"])
-        except Exception as e:
-            log.debug(f"Redis candidate ranking fell back to sampled order: {e}")
-
-        return normalized_candidates[0]
-
-    async def _get_next_available_from_redis(
-        self,
-        mode: str,
-        model_name: Optional[str],
-        exclude_free_tier: bool = False,
-        preview_only: bool = False,
-    ) -> Optional[tuple]:
-        try:
-            if preview_only and exclude_free_tier:
-                preview_set = await self._redis.smembers(self._rk_preview(mode))
-                pro_members = await self._redis.smembers(self._rk_tier(mode, "pro"))
-                ultra_members = await self._redis.smembers(self._rk_tier(mode, "ultra"))
-                non_free = pro_members | ultra_members
-                all_candidates = list(preview_set & non_free)
-                if not all_candidates:
-                    log.debug(
-                        f"[Redis MISS] mode={mode} preview+non-free: no candidates, fallback to MongoDB"
-                    )
-                    return None
-                candidates = sorted(all_candidates)
-            elif preview_only:
-                preview_key = self._rk_preview(mode)
-                preview_size = await self._redis.scard(preview_key)
-                if preview_size == 0:
-                    log.debug(
-                        f"[Redis MISS] mode={mode} preview_only: pool empty, fallback to MongoDB"
-                    )
-                    return None
-                sample_size = min(preview_size, 10)
-                candidates = await self._redis.srandmember(preview_key, sample_size)
-                if not candidates:
-                    return None
-            elif exclude_free_tier:
-                pro_members = await self._redis.smembers(self._rk_tier(mode, "pro"))
-                ultra_members = await self._redis.smembers(self._rk_tier(mode, "ultra"))
-                all_candidates = list(pro_members | ultra_members)
-                if not all_candidates:
-                    log.debug(
-                        f"[Redis MISS] mode={mode} exclude_free: no non-free creds, fallback to MongoDB"
-                    )
-                    return None
-                candidates = sorted(all_candidates)
-            else:
-                pool_key = self._rk_avail(mode)
-                pool_size = await self._redis.scard(pool_key)
-                if pool_size == 0:
-                    log.debug(
-                        f"[Redis MISS] mode={mode} pool_key={pool_key}: pool empty, fallback to MongoDB"
-                    )
-                    return None
-                sample_size = min(pool_size, 10)
-                candidates = await self._redis.srandmember(pool_key, sample_size)
-                if not candidates:
-                    return None
-
-            if model_name:
-                escaped = self._escape_model_name(model_name)
-                available_candidates = []
-                for filename in candidates:
-                    cd_key = self._rk_cd(mode, filename, escaped)
-                    if not await self._redis.exists(cd_key):
-                        available_candidates.append(filename)
-
-                filename = await self._choose_best_redis_candidate(mode, available_candidates)
-                if filename:
-                    credential_data = await self.get_credential(filename, mode)
-                    if mode == "primary":
-                        state = await self.get_credential_state(filename, mode)
-                        credential_data = credential_data or {}
-                        credential_data["enable_credit"] = bool(state.get("enable_credit", False))
-                    log.debug(f"[Redis HIT] mode={mode} model={model_name} -> {filename}")
-                    return filename, credential_data
-
-                log.debug(
-                    f"[Redis MISS] mode={mode} model={model_name}: all {len(candidates)} candidates in cooldown, fallback to MongoDB"
-                )
-                return None
-            else:
-                filename = await self._choose_best_redis_candidate(mode, candidates)
-                if not filename:
-                    return None
-                credential_data = await self.get_credential(filename, mode)
-                if mode == "primary":
-                    state = await self.get_credential_state(filename, mode)
-                    credential_data = credential_data or {}
-                    credential_data["enable_credit"] = bool(state.get("enable_credit", False))
-                log.debug(f"[Redis HIT] mode={mode} -> {filename}")
-                return filename, credential_data
-        except Exception as e:
-            log.warning(f"Redis get_next_available error: {e}")
-            return None
-
     async def close(self) -> None:
-        if self._redis:
-            await self._redis.aclose()
-            self._redis = None
-            self._redis_enabled = False
         if self._client:
             await self._client.close()
             self._client = None
@@ -466,6 +141,65 @@ class MongoDBManager:
     def _ensure_initialized(self):
         if not self._initialized:
             raise RuntimeError("MongoDB manager not initialized")
+
+    async def create_audit_repository(self, *, cursor_signing_key: bytes) -> "AuditRepository":
+        self._ensure_initialized()
+        from .audit_mongodb import MongoAuditRepository
+
+        repository = MongoAuditRepository(
+            self._db["audit_events"],
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_identity_repository(self) -> "IdentityRepository":
+        self._ensure_initialized()
+        from .identity_mongodb import MongoDBIdentityRepository
+
+        repository = MongoDBIdentityRepository(self._db["management_identity_state"])
+        await repository.initialize()
+        return repository
+
+    async def create_migration_checkpoint_repository(
+        self,
+    ) -> "MigrationCheckpointRepository":
+        self._ensure_initialized()
+        from .migration_mongodb import MongoMigrationCheckpointRepository
+
+        repository = MongoMigrationCheckpointRepository(self._db["durable_migration_checkpoints"])
+        await repository.initialize()
+        return repository
+
+    async def create_request_trace_repository(self, *, cursor_signing_key: bytes):
+        self._ensure_initialized()
+        from .request_trace_mongodb import MongoRequestTraceRepository
+
+        repository = MongoRequestTraceRepository(
+            self._db["request_traces"],
+            cursor_signing_key=cursor_signing_key,
+        )
+        await repository.initialize()
+        return repository
+
+    async def create_usage_ledger_repository(self):
+        self._ensure_initialized()
+        from paths import DEFAULT_CREDENTIALS_DIR
+
+        from .usage_ledger_mongodb import MongoDBUsageLedgerRepository
+        from .usage_legacy_gate import require_external_usage_migration_ready
+
+        credentials_dir = os.getenv("CREDENTIALS_DIR", str(DEFAULT_CREDENTIALS_DIR))
+        await require_external_usage_migration_ready(
+            os.path.join(credentials_dir, "usage_stats.db")
+        )
+        repository = MongoDBUsageLedgerRepository(
+            self._client,
+            self._db["durable_usage_ledger"],
+            self._db["durable_usage_budget_keys"],
+        )
+        await repository.initialize()
+        return repository
 
     def _get_collection_name(self, mode: str) -> str:
         if mode == "primary":
@@ -479,18 +213,6 @@ class MongoDBManager:
         self, mode: str = "code_assist", model_name: Optional[str] = None
     ) -> Optional[tuple[str, Dict[str, Any]]]:
         self._ensure_initialized()
-
-        if self._redis_enabled:
-            model_lower = model_name.lower() if model_name else ""
-            exclude_free = False
-            preview_only = mode == "code_assist" and "preview" in model_lower
-            result = await self._get_next_available_from_redis(
-                mode, model_name, exclude_free_tier=exclude_free, preview_only=preview_only
-            )
-            if result is not None:
-                return result
-
-            log.debug(f"[MongoDB fallback] mode={mode} model={model_name}")
 
         try:
             collection_name = self._get_collection_name(mode)
@@ -608,8 +330,6 @@ class MongoDBManager:
                         new_credential["enable_credit"] = False
 
                     await collection.insert_one(new_credential)
-
-                    await self._redis_add_cred(mode, filename)
                 except Exception as insert_error:
                     if "duplicate key" in str(insert_error).lower():
                         await collection.update_one(
@@ -630,6 +350,86 @@ class MongoDBManager:
         except Exception as e:
             log.error(f"Error storing credential {filename}: {e}")
             return False
+
+    async def _mutate_credential_pool_in_session(
+        self,
+        mode: str,
+        planner: CredentialPoolPlanner,
+        *,
+        session=None,
+    ) -> CredentialPoolMutation:
+        collection = self._db[self._get_collection_name(mode)]
+        cursor = collection.find(
+            {},
+            {"filename": 1, "credential_data": 1, "user_email": 1, "rotation_order": 1, "_id": 0},
+            session=session,
+        ).sort([("rotation_order", 1), ("filename", 1)])
+        documents = await cursor.to_list(length=None)
+        records = []
+        for document in documents:
+            credential_data = document.get("credential_data")
+            if type(credential_data) is not dict:
+                raise CredentialPoolMutationError("Stored credential payload is invalid.")
+            records.append(
+                CredentialPoolRecord(
+                    filename=document.get("filename"),
+                    credential_data=credential_data,
+                    user_email=document.get("user_email"),
+                    rotation_order=document.get("rotation_order", 0),
+                )
+            )
+        mutation = validate_credential_pool_mutation(planner(tuple(records)))
+        if mutation.deletes:
+            await collection.delete_many(
+                {"filename": {"$in": list(mutation.deletes)}}, session=session
+            )
+        next_order = max((record.rotation_order for record in records), default=-1) + 1
+        existing_names = {record.filename for record in records}
+        current_time = time.time()
+        for write in mutation.writes:
+            update = {
+                "$set": {
+                    "credential_data": write.credential_data,
+                    "user_email": write.user_email,
+                    "updated_at": current_time,
+                }
+            }
+            if write.filename not in existing_names:
+                update["$setOnInsert"] = {
+                    "disabled": False,
+                    "error_codes": [],
+                    "error_messages": [],
+                    "last_success": current_time,
+                    "model_cooldowns": {},
+                    "preview": True,
+                    "tier": "pro",
+                    "rotation_order": next_order,
+                    "call_count": 0,
+                    "created_at": current_time,
+                }
+                if mode == "primary":
+                    update["$setOnInsert"]["enable_credit"] = False
+                next_order += 1
+            await collection.update_one(
+                {"filename": write.filename}, update, upsert=True, session=session
+            )
+        return mutation
+
+    async def mutate_credential_pool(
+        self, mode: str, planner: CredentialPoolPlanner
+    ) -> CredentialPoolMutation:
+        """Apply one pool plan atomically relative to this process."""
+        self._ensure_initialized()
+        mode = normalize_pool_mode(mode)
+        if not callable(planner):
+            raise CredentialPoolMutationError("Credential pool planner is invalid.")
+        try:
+            async with self._credential_pool_locks[mode]:
+                return await self._mutate_credential_pool_in_session(mode, planner)
+        except CredentialPoolMutationError:
+            raise
+        except Exception:
+            raise CredentialPoolMutationError("Credential pool mutation failed.") from None
 
     async def get_credential(
         self, filename: str, mode: str = "code_assist"
@@ -701,7 +501,6 @@ class MongoDBManager:
             deleted_count = result.deleted_count
 
             if deleted_count > 0:
-                await self._redis_remove_cred(mode, filename)
                 log.debug(f"Deleted credential: {filename} (mode={mode}).")
                 return True
             else:
@@ -800,31 +599,6 @@ class MongoDBManager:
 
             result = await collection.update_one({"filename": filename}, {"$set": valid_updates})
             updated_count = result.modified_count + result.matched_count
-
-            if self._redis_enabled and "disabled" in valid_updates:
-                if valid_updates["disabled"]:
-                    await self._redis_remove_cred(mode, filename)
-                else:
-                    doc = await collection.find_one(
-                        {"filename": filename},
-                        projection={"tier": 1, "preview": 1, "_id": 0},
-                    )
-                    tier_val = (doc or {}).get("tier", "pro") or "pro"
-                    preview_val = (doc or {}).get("preview", True)
-                    await self._redis_sync_cred(
-                        mode, filename, disabled=False, tier=tier_val, preview=preview_val
-                    )
-            elif self._redis_enabled and ("tier" in valid_updates or "preview" in valid_updates):
-                doc = await collection.find_one(
-                    {"filename": filename},
-                    projection={"disabled": 1, "tier": 1, "preview": 1, "_id": 0},
-                )
-                if doc and not doc.get("disabled", False):
-                    tier_val = doc.get("tier", "pro") or "pro"
-                    preview_val = doc.get("preview", True)
-                    await self._redis_sync_cred(
-                        mode, filename, disabled=False, tier=tier_val, preview=preview_val
-                    )
 
             return updated_count > 0
 
@@ -1092,30 +866,6 @@ class MongoDBManager:
                 "stats": {"total": 0, "normal": 0, "disabled": 0},
             }
 
-    def _rk_config(self, key: str) -> str:
-        return f"code_assist:config:{key}"
-
-    def _rk_config_all(self) -> str:
-        return "code_assist:config"
-
-    async def _load_config_to_redis(self) -> None:
-        if not self._redis_enabled:
-            return
-        try:
-            config_collection = self._db["config"]
-            cursor = config_collection.find({})
-            mapping = {}
-            async for doc in cursor:
-                mapping[doc["key"]] = json.dumps(doc.get("value"))
-            pipe = self._redis.pipeline()
-            pipe.delete(self._rk_config_all())
-            if mapping:
-                pipe.hset(self._rk_config_all(), mapping=mapping)
-            await pipe.execute()
-            log.debug(f"Synced {len(mapping)} config items to Redis")
-        except Exception as e:
-            log.warning(f"Failed to sync config to Redis: {e}")
-
     async def set_config(self, key: str, value: Any) -> bool:
         self._ensure_initialized()
 
@@ -1127,13 +877,7 @@ class MongoDBManager:
                 upsert=True,
             )
 
-            if self._redis_enabled:
-                try:
-                    await self._redis.hset(self._rk_config_all(), key, json.dumps(value))
-                except Exception as e:
-                    log.warning(f"Redis config set error for key={key}: {e}")
-            else:
-                self._config_cache[key] = value
+            self._config_cache[key] = value
 
             return True
 
@@ -1143,38 +887,17 @@ class MongoDBManager:
 
     async def reload_config_cache(self):
         self._ensure_initialized()
-        if self._redis_enabled:
-            await self._load_config_to_redis()
-        else:
-            self._config_loaded = False
-            await self._load_config_cache()
+        self._config_loaded = False
+        await self._load_config_cache()
         log.info("Config cache reloaded from database")
 
     async def get_config(self, key: str, default: Any = None) -> Any:
         self._ensure_initialized()
 
-        if self._redis_enabled:
-            try:
-                raw = await self._redis.hget(self._rk_config_all(), key)
-                if raw is not None:
-                    return json.loads(raw)
-                return default
-            except Exception as e:
-                log.warning(f"Redis config get error for key={key}: {e}")
-                return default
-
         return self._config_cache.get(key, default)
 
     async def get_all_config(self) -> Dict[str, Any]:
         self._ensure_initialized()
-
-        if self._redis_enabled:
-            try:
-                raw_map = await self._redis.hgetall(self._rk_config_all())
-                return {k: json.loads(v) for k, v in raw_map.items()}
-            except Exception as e:
-                log.warning(f"Redis config getall error: {e}")
-                return {}
 
         return self._config_cache.copy()
 
@@ -1185,13 +908,7 @@ class MongoDBManager:
             config_collection = self._db["config"]
             result = await config_collection.delete_one({"key": key})
 
-            if self._redis_enabled:
-                try:
-                    await self._redis.hdel(self._rk_config_all(), key)
-                except Exception as e:
-                    log.warning(f"Redis config delete error for key={key}: {e}")
-            else:
-                self._config_cache.pop(key, None)
+            self._config_cache.pop(key, None)
 
             return result.deleted_count > 0
 
@@ -1271,17 +988,6 @@ class MongoDBManager:
                 log.warning(f"Credential {filename} not found")
                 return False
 
-            if self._redis_enabled:
-                cd_key = self._rk_cd(mode, filename, escaped_model_name)
-                if cooldown_until is None:
-                    await self._redis.delete(cd_key)
-                else:
-                    ttl = int(cooldown_until - time.time())
-                    if ttl > 0:
-                        await self._redis.setex(cd_key, ttl, str(cooldown_until))
-                    else:
-                        await self._redis.delete(cd_key)
-
             log.debug(
                 f"Set model cooldown: {filename}, model_name={model_name}, cooldown_until={cooldown_until}"
             )
@@ -1307,8 +1013,6 @@ class MongoDBManager:
                 log.warning(f"Credential {filename} not found")
                 return False
 
-            model_cooldowns = doc.get("model_cooldowns") or {}
-
             await collection.update_one(
                 {"filename": filename},
                 {
@@ -1319,13 +1023,6 @@ class MongoDBManager:
                 },
             )
 
-            if self._redis_enabled and isinstance(model_cooldowns, dict) and model_cooldowns:
-                redis_keys = [
-                    self._rk_cd(mode, filename, escaped_model)
-                    for escaped_model in model_cooldowns.keys()
-                ]
-                await self._redis.delete(*redis_keys)
-
             log.debug(f"Cleared all model cooldowns: {filename} (mode={mode})")
             return True
 
@@ -1334,10 +1031,15 @@ class MongoDBManager:
             return False
 
     async def record_success(
-        self, filename: str, model_name: Optional[str] = None, mode: str = "code_assist"
+        self,
+        filename: str,
+        model_name: Optional[str] = None,
+        mode: str = "code_assist",
+        call_increment: int = 1,
     ) -> None:
         self._ensure_initialized()
         filename = os.path.basename(filename)
+        call_increment = max(1, int(call_increment))
 
         try:
             collection_name = self._get_collection_name(mode)
@@ -1353,7 +1055,7 @@ class MongoDBManager:
                         "error_messages": {},
                         "updated_at": now,
                     },
-                    "$inc": {"call_count": 1},
+                    "$inc": {"call_count": call_increment},
                 },
             )
 
@@ -1363,9 +1065,6 @@ class MongoDBManager:
                     {"filename": filename, f"model_cooldowns.{escaped}": {"$exists": True}},
                     {"$unset": {f"model_cooldowns.{escaped}": ""}, "$set": {"updated_at": now}},
                 )
-
-                if self._redis_enabled:
-                    await self._redis.delete(self._rk_cd(mode, filename, escaped))
 
         except Exception as e:
             log.error(f"Error recording success for {filename}: {e}")

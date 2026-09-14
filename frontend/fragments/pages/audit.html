@@ -1,0 +1,82 @@
+                <section id="activityAuditPanel" class="activity-panel" role="tabpanel" aria-labelledby="activityAuditTab" data-activity-panel="audit" hidden>
+                    <header class="activity-view-header">
+                        <div>
+                            <h2 class="activity-view-title" data-i18n="audit.title">Audit events</h2>
+                            <p class="page-description" data-i18n="audit.description">Investigate every management mutation through redacted, durable evidence.</p>
+                        </div>
+                        <div class="page-actions">
+                            <button type="button" class="btn btn-secondary" data-ui-action="export-audit" data-export-format="jsonl" data-i18n="audit.export_jsonl">Export JSONL</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="export-audit" data-export-format="csv" data-i18n="audit.export_csv">Export CSV</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="refresh-audit" data-i18n="audit.refresh">Refresh</button>
+                        </div>
+                    </header>
+
+                    <div class="audit-layout">
+                            <section class="audit-panel" aria-labelledby="auditEventsHeading">
+                                <div class="audit-panel-heading"><div><h2 id="auditEventsHeading" class="card-title" data-i18n="audit.events">Event stream</h2><p class="card-copy" data-i18n="activity.audit_filters_description">Refine audit evidence by action, target, and fingerprints after applying the shared investigation filters.</p></div><span id="auditEventStatus" class="audit-status" role="status" aria-live="polite"></span></div>
+                                <form id="auditFilterForm" class="audit-filter-grid" data-i18n-aria-label="audit.filters" aria-label="Filters">
+                                    <div class="form-group">
+                                        <label for="auditAction" data-i18n="audit.action">Action</label>
+                                        <input id="auditAction" name="actions" list="auditActionOptions" maxlength="64" autocomplete="off" placeholder="credential.update">
+                                        <datalist id="auditActionOptions">
+                                            <option value="auth.login"></option><option value="auth.logout"></option><option value="auth.setup"></option>
+                                            <option value="config.update"></option><option value="config.reset"></option><option value="root_key.rotate"></option>
+                                            <option value="provider.create"></option><option value="provider.update"></option><option value="provider.delete"></option>
+                                            <option value="credential.create"></option><option value="credential.update"></option><option value="credential.delete"></option>
+                                            <option value="credential.verify"></option><option value="credential.test"></option><option value="credential.quota"></option>
+                                            <option value="credential.toggle"></option><option value="credential.export"></option><option value="credential.credit_mode"></option>
+                                            <option value="credential.batch"></option><option value="credential.import"></option><option value="credential.email_refresh"></option>
+                                            <option value="virtual_key.create"></option><option value="virtual_key.update"></option><option value="virtual_key.rotate"></option><option value="virtual_key.revoke"></option>
+                                            <option value="quality_policy.update"></option><option value="backup.create"></option><option value="backup.restore"></option><option value="backup.export"></option>
+                                            <option value="audit.retention_update"></option><option value="audit.export"></option><option value="trace.retention_update"></option><option value="trace.export"></option><option value="model_blacklist.clear"></option><option value="model_pool.update"></option><option value="logs.clear"></option>
+                                            <option value="identity.create"></option><option value="identity.update"></option><option value="role_binding.update"></option><option value="session.revoke"></option><option value="oidc_policy.advance"></option><option value="management.access_denied"></option>
+                                        </datalist>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="auditTargetType" data-i18n="audit.target_type">Target type</label>
+                                        <select id="auditTargetType" name="target_types" data-i18n-technical><option value="" data-i18n="audit.all">All</option><option value="session">session</option><option value="configuration">configuration</option><option value="provider">provider</option><option value="credential">credential</option><option value="virtual_key">virtual_key</option><option value="quality_policy">quality_policy</option><option value="backup">backup</option><option value="audit_policy">audit_policy</option><option value="trace_policy">trace_policy</option><option value="root_key">root_key</option><option value="model_blacklist">model_blacklist</option><option value="model_pool">model_pool</option><option value="log_store">log_store</option><option value="identity">identity</option><option value="role_binding">role_binding</option><option value="oidc_policy">oidc_policy</option><option value="management_route">management_route</option></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="auditActorFingerprint" data-i18n="audit.actor_fingerprint">Actor fingerprint</label>
+                                        <input id="auditActorFingerprint" name="actor_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="auditTargetFingerprint" data-i18n="audit.target_fingerprint">Target fingerprint</label>
+                                        <input id="auditTargetFingerprint" name="target_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="auditPageSize" data-i18n="audit.page_size">Events per page</label>
+                                        <select id="auditPageSize" name="page_size"><option value="25">25</option><option value="50">50</option><option value="100">100</option><option value="200">200</option></select>
+                                    </div>
+                                    <div class="audit-filter-actions">
+                                        <button type="submit" class="btn" data-i18n="audit.apply">Apply filters</button>
+                                        <button type="button" class="btn btn-secondary" data-ui-action="clear-audit-filters" data-i18n="audit.clear">Clear</button>
+                                    </div>
+                                </form>
+                                <ol id="auditEventList" class="audit-event-list" aria-live="polite" aria-busy="false"></ol>
+                                <div class="audit-pagination" hidden>
+                                    <button id="auditPreviousPage" type="button" class="btn btn-secondary" data-ui-action="audit-previous-page" disabled data-i18n="audit.previous">Previous</button>
+                                    <span id="auditPageNumber" data-i18n="audit.page">Page 1</span>
+                                    <button id="auditNextPage" type="button" class="btn btn-secondary" data-ui-action="audit-next-page" disabled data-i18n="audit.next">Next</button>
+                                </div>
+                            </section>
+                    </div>
+
+                    <dialog id="auditDetailDialog" class="audit-detail-dialog" aria-labelledby="auditDetailTitle">
+                        <div class="audit-detail-header"><h2 id="auditDetailTitle" data-i18n="audit.details">Event details</h2><button type="button" class="icon-button" data-ui-action="close-audit-detail" data-i18n-aria-label="audit.close" aria-label="Close">×</button></div>
+                        <dl class="audit-detail-grid">
+                            <div><dt data-i18n="audit.occurred_at">Occurred at</dt><dd id="auditDetailOccurredAt"></dd></div>
+                            <div><dt data-i18n="audit.event_id">Event ID</dt><dd id="auditDetailEventId"></dd></div>
+                            <div><dt data-i18n="audit.request_id">Request ID</dt><dd id="auditDetailRequestId"></dd></div>
+                            <div><dt data-i18n="audit.action">Action</dt><dd id="auditDetailAction"></dd></div>
+                            <div><dt data-i18n="audit.outcome">Outcome</dt><dd id="auditDetailOutcome"></dd></div>
+                            <div><dt data-i18n="audit.actor_type">Actor type</dt><dd id="auditDetailActorType"></dd></div>
+                            <div><dt data-i18n="audit.actor_fingerprint">Actor fingerprint</dt><dd id="auditDetailActorFingerprint"></dd></div>
+                            <div><dt data-i18n="audit.target_type">Target type</dt><dd id="auditDetailTargetType"></dd></div>
+                            <div><dt data-i18n="audit.target_fingerprint">Target fingerprint</dt><dd id="auditDetailTargetFingerprint"></dd></div>
+                            <div><dt data-i18n="audit.change_codes">Change codes</dt><dd id="auditDetailChangeCodes"></dd></div>
+                        </dl>
+                        <div class="audit-detail-actions"><button type="button" class="btn btn-secondary" data-ui-action="copy-audit-request" data-i18n="audit.copy_request">Copy request ID</button><button type="button" class="btn btn-secondary" data-ui-action="pivot-audit-request" data-i18n="audit.pivot_request">Filter by request ID</button><button type="button" class="btn" data-ui-action="related-trace-request" data-i18n="activity.related_trace">Related request trace</button></div>
+                        <p id="auditDetailStatus" role="status" aria-live="polite"></p>
+                    </dialog>
+                </section>

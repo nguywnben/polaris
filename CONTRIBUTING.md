@@ -1,6 +1,6 @@
-# Contributing to Omni Gateway
+# Contributing to Polaris
 
-Thank you for improving Omni Gateway. Contributions should keep the public API predictable, provider behavior isolated, and deployment defaults safe for operators.
+Thank you for improving Polaris. Contributions should keep the public API predictable, provider behavior isolated, and deployment defaults safe for operators.
 
 ## Before You Start
 
@@ -11,7 +11,7 @@ Thank you for improving Omni Gateway. Contributions should keep the public API p
 
 ## Development Setup
 
-Omni Gateway supports Python 3.12 and newer versions covered by CI.
+Polaris supports Python 3.12 and newer versions covered by CI.
 
 ```bash
 python -m venv .venv
@@ -37,21 +37,39 @@ The console is available at `http://127.0.0.1:4283`. Runtime credentials, databa
 
 ## Required Checks
 
-Run the complete local quality gate before opening a pull request:
+Use the smallest gate matching the work. During implementation, run the fast gate and only the
+affected test modules:
 
 ```bash
-ruff check backend
-ruff format --check backend
-python -m compileall -q backend
-python -m backend.tests
-for script in frontend/js/*.js; do node --check "$script"; done
-yamllint --strict .github deploy .yamllint.yml
-bash -n deploy/scripts/*.sh
-python -m pip check
-python -m pip_audit --local --progress-spinner off
+python tools/quality_gate.py fast
+python tools/quality_gate.py task --test-module backend.tests.test_config_security
 ```
 
-CI repeats these checks on the supported Python matrix and performs an application smoke test.
+At a phase boundary, pass the affected integration/contract modules once:
+
+```bash
+python tools/quality_gate.py phase --test-module backend.tests.test_product_surface_inventory
+```
+
+Do not run the complete core suite after every edit. The single release command, its CI-owned
+prerequisites, and separately classified optional suites can be inspected with:
+
+```bash
+python tools/quality_gate.py release --dry-run
+python tools/quality_gate.py --list-suites
+```
+
+For frontend journey changes, install the isolated browser harness once and run it directly:
+
+```bash
+python -m pip install -r requirements-browser.txt
+python -m playwright install chromium
+python tools/browser_smoke.py
+```
+
+CI labels production-blocking jobs and steps as `Required`. Live storage/provider checks and the
+ten-minute soak are optional; retired Redis/HA/Kubernetes surfaces have no executable gate. See
+[Quality gates](docs/quality-gates.md) for the exact cadence and suite classifications.
 
 When `requirements.txt` changes, regenerate the production lock with Python 3.12:
 
@@ -66,7 +84,8 @@ pip-compile \
   requirements.txt
 ```
 
-Container publication starts only after the full verification matrix and container smoke test succeed.
+Container publication starts only after the verification matrix, required Chromium browser smoke,
+and container smoke succeed.
 
 ## Architecture Rules
 
@@ -75,7 +94,7 @@ Container publication starts only after the full verification matrix and contain
 - Put provider metadata and capability decisions behind `provider_registry.py` and provider-specific adapters.
 - Access persistence through `storage_adapter.py`; do not couple routes directly to a database driver.
 - Keep presentation text in the frontend and return structured, sanitized errors from the backend.
-- Preserve the `sk-ogw-` prefix for generated API keys.
+- Preserve the `sk-polaris-` prefix for generated API keys.
 - Add regression tests for every bug fix and contract tests for public route changes.
 
 More detail is available in [docs/architecture.md](docs/architecture.md).
@@ -86,7 +105,7 @@ More detail is available in [docs/architecture.md](docs/architecture.md).
 - Repository directories and non-Python asset names use lowercase `kebab-case` where practical.
 - Use complete, natural English in UI text, logs, errors, comments, and documentation.
 - Comments should explain constraints or intent rather than restating the code.
-- Avoid branded namespaces in technical routes and configuration. Product branding belongs in presentation and documentation; `sk-ogw-` API keys are the intentional exception.
+- Use the Polaris namespace consistently for product-owned routes, configuration, telemetry, browser storage, events, backup formats, and generated API keys.
 
 ## Pull Requests
 

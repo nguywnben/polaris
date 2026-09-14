@@ -17,7 +17,7 @@ from app_version import DEFAULT_APPLICATION_VERSION, get_application_version
 
 class ApplicationVersionTests(unittest.TestCase):
     def test_default_version_matches_stable_release(self):
-        self.assertEqual(DEFAULT_APPLICATION_VERSION, "1.4.0")
+        self.assertEqual(DEFAULT_APPLICATION_VERSION, "1.5.0")
 
     def test_release_tag_is_normalized(self):
         with patch.dict(os.environ, {"BUILD_VERSION": "v1.2.3-beta.1"}):

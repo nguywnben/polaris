@@ -38,9 +38,15 @@ class RequestBodyTooLarge(Exception):
 class RequestBodyLimitMiddleware:
     """Reject oversized fixed-length and chunked HTTP request bodies."""
 
-    def __init__(self, app: Callable[..., Awaitable[Any]], max_body_bytes: int) -> None:
+    def __init__(
+        self,
+        app: Callable[..., Awaitable[Any]],
+        max_body_bytes: int,
+        path_limits: dict[str, int] | None = None,
+    ) -> None:
         self.app = app
         self.max_body_bytes = max_body_bytes
+        self.path_limits = dict(path_limits or {})
 
     @staticmethod
     def _content_length(scope: Scope) -> int | None:
@@ -69,8 +75,10 @@ class RequestBodyLimitMiddleware:
             await self.app(scope, receive, send)
             return
 
+        path = str(scope.get("path") or "")
+        max_body_bytes = self.path_limits.get(path, self.max_body_bytes)
         content_length = self._content_length(scope)
-        if content_length is not None and content_length > self.max_body_bytes:
+        if content_length is not None and content_length > max_body_bytes:
             await self._response(scope)(scope, receive, send)
             return
 
@@ -81,7 +89,7 @@ class RequestBodyLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received_bytes += len(message.get("body", b""))
-                if received_bytes > self.max_body_bytes:
+                if received_bytes > max_body_bytes:
                     raise RequestBodyTooLarge
             return message
 

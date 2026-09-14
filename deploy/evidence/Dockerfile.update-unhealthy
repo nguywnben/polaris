@@ -1,0 +1,6 @@
+ARG BASE_IMAGE=polaris:p1.5-target
+FROM ${BASE_IMAGE}
+
+COPY --chown=gateway:gateway deploy/evidence/p1.5-unhealthy-entry.py /app/p1.5-unhealthy-entry.py
+
+CMD ["python", "/app/p1.5-unhealthy-entry.py"]

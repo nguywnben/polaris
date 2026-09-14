@@ -1,29 +1,60 @@
-    <section id="setupSection" class="login-wrapper" data-i18n-aria-label="setup_title" aria-label="Create Your Console Password">
-        <div class="login-card">
+    <section id="setupSection" class="login-wrapper setup-wrapper" data-i18n-aria-label="setup_title" aria-label="Create Your Console Password">
+        <div class="login-card setup-card">
             <div class="login-brand">
                 <span class="app-mark" aria-hidden="true">
                     <img class="app-mark-image" src="/frontend/assets/logo.png" alt="">
                 </span>
-                <div class="login-brand-title">Omni Gateway</div>
+                <div class="login-brand-title">Polaris</div>
             </div>
             <h1 class="login-title" data-i18n="setup_title">Create Your Console Password</h1>
-            <p class="login-copy" data-i18n="setup_copy">Secure this new Omni Gateway instance before opening the management console.</p>
+            <p class="login-copy" data-i18n="setup_copy">Secure this new Polaris instance before opening the management console.</p>
             <form id="setupForm" class="login-form" autocomplete="on">
                 <input class="password-manager-identity" type="text" name="username" value="admin" autocomplete="username" tabindex="-1" aria-hidden="true">
-                <label for="setupPassword" data-i18n="console_password">Console password</label>
-                <input type="password" id="setupPassword" name="new-password" data-i18n-placeholder="password_min_placeholder" placeholder="At least 8 characters" autocomplete="new-password">
-                <label for="setupPasswordConfirm" data-i18n="confirm_password">Confirm password</label>
-                <input type="password" id="setupPasswordConfirm" name="confirm-password" data-i18n-placeholder="password_confirm_placeholder" placeholder="Re-enter password" autocomplete="new-password">
                 <div id="setupTokenGroup" class="setup-token-group hidden">
                     <label for="setupToken" data-i18n="setup_token">Setup token</label>
-                    <input type="password" id="setupToken" name="setup-token" data-i18n-placeholder="setup_token_placeholder" placeholder="Enter the token from the application logs" autocomplete="off" spellcheck="false">
-                    <p class="field-hint" data-i18n="setup_token_hint">Remote setup requires the one-time token printed in the container or application logs.</p>
+                    <input type="password" id="setupToken" name="setup-token" data-i18n-placeholder="setup_token_placeholder" placeholder="Enter the operator-configured SETUP_TOKEN" autocomplete="off" spellcheck="false">
                 </div>
-                <button type="submit" class="btn" data-i18n="create_password">Create password</button>
+                <div class="setup-preflight">
+                    <div class="setup-preflight-header">
+                        <div>
+                            <h2 data-i18n="setup_preflight_title">Installation checks</h2>
+                            <p data-i18n="setup_preflight_copy">Verify storage, address and transport before creating the owner.</p>
+                        </div>
+                        <button id="setupPreflightButton" type="button" class="btn btn-secondary" data-i18n="run_preflight">Run checks</button>
+                    </div>
+                    <section id="setupPreflightSummary" class="setup-preflight-summary" role="status" aria-live="polite" aria-atomic="true">
+                        <p id="setupPreflightAction" class="setup-next-action" data-i18n="setup_action_loading">Checking installation state…</p>
+                        <dl class="setup-runtime-details">
+                            <div>
+                                <dt data-i18n="setup_base_url">Console address</dt>
+                                <dd id="setupBaseUrl">—</dd>
+                            </div>
+                            <div>
+                                <dt data-i18n="setup_listener">Server listener</dt>
+                                <dd id="setupListener">—</dd>
+                            </div>
+                        </dl>
+                        <ul id="setupPreflightChecks" class="setup-check-list">
+                            <li id="setupCheckData" data-status="pending"><span data-i18n="setup_check_data">Data storage</span><span data-setup-check-message data-i18n="setup_check_pending">Not checked</span></li>
+                            <li id="setupCheckAddress" data-status="pending"><span data-i18n="setup_check_address">Console address</span><span data-setup-check-message data-i18n="setup_check_pending">Not checked</span></li>
+                            <li id="setupCheckTransport" data-status="pending"><span data-i18n="setup_check_transport">Transport and cookies</span><span data-setup-check-message data-i18n="setup_check_pending">Not checked</span></li>
+                            <li id="setupCheckSetupToken" data-status="pending"><span data-i18n="setup_check_token">Setup token</span><span data-setup-check-message data-i18n="setup_check_pending">Not checked</span></li>
+                            <li id="setupCheckOwner" data-status="pending"><span data-i18n="setup_check_owner">Owner account</span><span data-setup-check-message data-i18n="setup_check_pending">Not checked</span></li>
+                        </ul>
+                    </section>
+                </div>
+                <fieldset id="setupOwnerFields" class="setup-owner-fields" disabled>
+                    <legend data-i18n="setup_owner_title">Owner password</legend>
+                    <label for="setupPassword" data-i18n="console_password">Console password</label>
+                    <input type="password" id="setupPassword" name="new-password" data-i18n-placeholder="password_min_placeholder" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" maxlength="256" required>
+                    <label for="setupPasswordConfirm" data-i18n="confirm_password">Confirm password</label>
+                    <input type="password" id="setupPasswordConfirm" name="confirm-password" data-i18n-placeholder="password_confirm_placeholder" placeholder="Re-enter password" autocomplete="new-password" minlength="12" maxlength="256" required>
+                    <button id="setupSubmitButton" type="submit" class="btn" data-i18n="create_password">Create password</button>
+                </fieldset>
             </form>
         </div>
         <footer class="login-footer" data-i18n-aria-label="site_footer" aria-label="Site footer">
-            <span>Omni Gateway</span>
+            <span>Polaris</span>
             <span data-i18n="footer_tagline">Universal AI routing for coding tools.</span>
         </footer>
     </section>

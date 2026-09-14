@@ -1,0 +1,121 @@
+                <div id="playgroundTab" class="tab-content">
+                    <header class="page-header">
+                        <div>
+                            <div class="page-kicker" data-i18n="playground.label">Playground</div>
+                            <h1 class="page-title" data-i18n="playground.title">Test the Gateway</h1>
+                            <p class="page-description" data-i18n="playground.description">Send one bounded request through the same routing and quality path used by compatible clients.</p>
+                        </div>
+                    </header>
+
+                    <div class="playground-workspace">
+                        <form id="playgroundForm" class="card playground-composer" novalidate>
+                            <div class="playground-section-heading">
+                                <div>
+                                    <h2 class="card-title" data-i18n="playground.request_title">Request</h2>
+                                    <p class="card-copy" id="playgroundProtocolHint" data-i18n="playground.protocol_hint">Use an OpenAI Chat-shaped request.</p>
+                                </div>
+                                <span id="playgroundMessageCount" class="status-badge muted" aria-live="polite">1 / 32</span>
+                            </div>
+
+                            <div class="playground-control-grid">
+                                <div class="form-group">
+                                    <label for="playgroundProtocol" data-i18n="playground.protocol">Protocol</label>
+                                    <select id="playgroundProtocol" data-ui-change="playground-protocol" data-i18n-technical>
+                                        <option value="openai_chat">OpenAI Chat Completions</option>
+                                        <option value="openai_responses">OpenAI Responses</option>
+                                        <option value="anthropic_messages">Anthropic Messages</option>
+                                        <option value="gemini">Google GenAI</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="playgroundModel" data-i18n="playground.model">Model</label>
+                                    <input id="playgroundModel" type="text" value="polaris" maxlength="256" required autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="form-group">
+                                    <label for="playgroundTimeout" data-i18n="playground.timeout">Timeout (seconds)</label>
+                                    <input id="playgroundTimeout" type="number" value="60" min="1" max="120" required inputmode="numeric">
+                                </div>
+                                <label class="switch-row playground-stream-control"><input id="playgroundStream" class="config-checkbox" type="checkbox"><span><strong data-i18n="playground.stream">Stream response</strong><small data-i18n="playground.stream_hint">Show native events as they arrive.</small></span></label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="playgroundSystem"><span data-i18n="playground.system">System instruction</span> <small class="field-optional" data-i18n="playground.optional">optional</small></label>
+                                <textarea id="playgroundSystem" rows="3" maxlength="65536" data-playground-input placeholder="You are a concise coding assistant." data-i18n-placeholder="playground.system_placeholder"></textarea>
+                            </div>
+
+                            <div class="playground-messages-heading">
+                                <div>
+                                    <h3 data-i18n="playground.messages">Messages</h3>
+                                    <p data-i18n="playground.messages_hint">Up to 32 messages and 512 KiB of text in this tab.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-small" id="playgroundAddMessage" data-ui-action="playground-add-message" data-i18n="playground.add_message">Add message</button>
+                            </div>
+                            <div id="playgroundMessages" class="playground-messages"></div>
+
+                            <details class="playground-parameters">
+                                <summary data-i18n="playground.parameters">Generation parameters</summary>
+                                <div class="playground-parameter-grid">
+                                    <div class="form-group">
+                                        <label for="playgroundMaxTokens" data-i18n="playground.max_tokens">Maximum output tokens</label>
+                                        <input id="playgroundMaxTokens" type="number" value="1024" min="1" max="65536" required inputmode="numeric">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="playgroundTemperature"><span data-i18n="playground.temperature">Temperature</span> <small class="field-optional" data-i18n="playground.optional">optional</small></label>
+                                        <input id="playgroundTemperature" type="number" min="0" max="2" step="0.1" placeholder="Provider default" data-i18n-placeholder="playground.provider_default" inputmode="decimal">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="playgroundTopP"><span data-i18n="playground.top_p">Top P</span> <small class="field-optional" data-i18n="playground.optional">optional</small></label>
+                                        <input id="playgroundTopP" type="number" min="0" max="1" step="0.05" placeholder="Provider default" data-i18n-placeholder="playground.provider_default" inputmode="decimal">
+                                    </div>
+                                </div>
+                            </details>
+
+                            <div id="playgroundValidation" class="status error hidden" role="alert" tabindex="-1"></div>
+                            <div class="playground-run-actions">
+                                <button type="submit" class="btn" id="playgroundRun" data-ui-action="playground-run" data-i18n="playground.run">Run request</button>
+                                <button type="button" class="btn btn-secondary" id="playgroundCancel" data-ui-action="playground-cancel" disabled data-i18n="playground.cancel">Cancel</button>
+                                <span id="playgroundRunState" role="status" aria-live="polite" data-i18n="playground.ready">Ready</span>
+                            </div>
+                        </form>
+
+                        <section class="playground-results" aria-labelledby="playgroundOutputHeading">
+                            <div class="card playground-output-card is-pristine" id="playgroundOutputCard">
+                                <div class="playground-section-heading">
+                                    <div>
+                                        <h2 class="card-title" id="playgroundOutputHeading" data-i18n="playground.output_title">Response</h2>
+                                        <p class="card-copy" data-i18n="playground.output_hint">Native JSON or stream events, rendered as inert text.</p>
+                                    </div>
+                                    <span id="playgroundOutcome" class="status-badge muted" data-i18n="playground.not_run">Not run</span>
+                                </div>
+                                <div id="playgroundError" class="status error hidden" role="alert" tabindex="-1"></div>
+                                <pre id="playgroundOutput" class="playground-output" tabindex="0" aria-live="polite" data-i18n-aria-label="playground.output_label" aria-label="Playground response">Run a request to see the response.</pre>
+                                <p id="playgroundOutputLimit" class="field-hint" data-i18n="playground.output_limit">Display is limited to 2 MiB; longer responses are cancelled.</p>
+                            </div>
+
+                            <section id="playgroundMetadata" class="card playground-metadata-card hidden" aria-labelledby="playgroundMetadataHeading">
+                                <h2 class="card-title" id="playgroundMetadataHeading" data-i18n="playground.metadata_title">Route and quality</h2>
+                                <dl class="playground-metadata-grid">
+                                    <div><dt data-i18n="playground.outcome">Outcome</dt><dd id="playgroundMetadataOutcome">—</dd></div>
+                                    <div><dt data-i18n="playground.request_id">Request ID</dt><dd id="playgroundMetadataRequestId">—</dd></div>
+                                    <div><dt data-i18n="playground.selected_route">Selected route</dt><dd id="playgroundMetadataRoute">—</dd></div>
+                                    <div><dt data-i18n="playground.attempts">Attempts / fallbacks</dt><dd id="playgroundMetadataAttempts">—</dd></div>
+                                    <div><dt data-i18n="playground.tokens">Input / output tokens</dt><dd id="playgroundMetadataTokens">—</dd></div>
+                                    <div><dt data-i18n="playground.duration">Duration</dt><dd id="playgroundMetadataDuration">—</dd></div>
+                                    <div><dt data-i18n="playground.quality_profile">Quality profile</dt><dd id="playgroundMetadataQuality">—</dd></div>
+                                    <div><dt data-i18n="playground.compression">Compression</dt><dd id="playgroundMetadataCompression">—</dd></div>
+                                </dl>
+                            </section>
+
+                            <details class="card playground-example-card">
+                                <summary data-i18n="playground.client_example">Client example</summary>
+                                <p data-i18n="playground.example_hint">Uses a visible placeholder, never your console session or a stored key.</p>
+                                <div class="playground-example-toolbar">
+                                    <label for="playgroundExampleFormat" data-i18n="playground.example_format">Format</label>
+                                    <select id="playgroundExampleFormat" data-ui-change="playground-example-format" data-i18n-technical><option value="curl">cURL (Bash)</option><option value="powershell">PowerShell</option><option value="python">Python SDK</option><option value="node">Node.js SDK</option></select>
+                                    <button type="button" class="btn btn-secondary btn-small" id="playgroundCopyExample" data-ui-action="playground-copy-example" data-i18n="playground.copy_example">Copy example</button>
+                                </div>
+                                <pre id="playgroundExample" class="playground-example" tabindex="0"></pre>
+                            </details>
+                        </section>
+                    </div>
+                </div>

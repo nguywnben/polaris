@@ -131,6 +131,16 @@ const AppState = {
 
     envLockedFields: new Set(),
 
+    qualityPolicy: null,
+
+    qualityEffectiveSettings: null,
+
+    qualityProfileDefaults: {},
+
+    qualityEnvLockedFields: new Set(),
+
+    qualityPolicyLoaded: false,
+
     antigravityConfig: {},
 
     antigravityConfigLoaded: false,
@@ -149,6 +159,39 @@ const AppState = {
 
     modelPoolEnabled: true,
 
+    modelPoolConfigured: false,
+
+    modelPoolRevision: '',
+    savedModelSelection: [],
+
+    modelRouteValidation: null,
+
+    modelProviderCatalogs: [],
+
+    modelRoutingPolicy: { strategy: 'balanced', preferred_provider: '' },
+
+    playground: {
+
+        initialized: false,
+
+        messages: [{role: 'user', content: ''}],
+
+        controller: null,
+
+        running: false,
+
+        cancelReason: '',
+
+        hasRun: false,
+
+        outcomeKey: 'playground.not_run',
+
+        outcomeType: 'muted',
+
+        runStateKey: 'playground.ready'
+
+    },
+
     logWebSocket: null,
 
     allLogs: [],
@@ -157,9 +200,17 @@ const AppState = {
 
     currentLogFilter: 'all',
 
+    activeActivityView: 'traces',
+
+    teamAccessEnabled: null,
+
     usageStatsData: {},
 
     usageStatsLoaded: false,
+
+    operationalHealth: null,
+
+    dashboardAggregate: null,
 
     usagePeriod: '1d',
 
@@ -182,7 +233,7 @@ const AppState = {
 };
 
 const STORAGE_KEYS = {
-    logAutoScroll: 'omni_gateway_log_auto_scroll',
+    logAutoScroll: 'polaris_log_auto_scroll',
 };
 
 // =====================================================================

@@ -19,11 +19,12 @@ class RetryPolicyTests(unittest.IsolatedAsyncioTestCase):
     def test_no_credential_diagnostic_names_the_requested_model(self):
         self.assertEqual(
             _no_credential_error_message("gemini-2.5-flash"),
-            "No enabled credential supports model 'gemini-2.5-flash'.",
+            "No route is currently available for model 'gemini-2.5-flash'. "
+            "Check enabled credentials, model support, cooldowns, and routing settings.",
         )
         self.assertEqual(
             _no_credential_error_message(""),
-            "No credentials are available.",
+            "No credential route is currently available. Check credential health and routing settings.",
         )
 
     def test_transient_http_statuses_are_routable_failures(self):

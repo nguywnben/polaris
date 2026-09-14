@@ -6,7 +6,6 @@ import re
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 JAVASCRIPT = ROOT / "frontend" / "js"
 CALL_PATTERN = re.compile(
@@ -24,7 +23,9 @@ def main() -> int:
         source = path.read_text(encoding="utf-8")
         for match in CALL_PATTERN.finditer(source):
             value = match.group("value").strip()
-            if value in DEVELOPER_ERRORS:
+            if value in DEVELOPER_ERRORS or re.fullmatch(
+                r"[a-z][a-z0-9_-]*(?:\.[a-z][a-z0-9_-]*)*", value
+            ):
                 continue
             line = source.count("\n", 0, match.start()) + 1
             issues.append((path, line, value))

@@ -2,42 +2,61 @@
                     <header class="page-header">
                             <div>
                                 <div class="page-kicker" data-i18n="pool">Pool</div>
-                                <h1 class="page-title" data-i18n="pool_title">Provider Credential Pool</h1>
+                                <h1 class="page-title" id="poolPageTitle" data-i18n="pool_title">Provider Credential Pool</h1>
                                 <p class="page-description" data-i18n="pool_description">Manage accounts and API keys from every connected provider. Monitor credential health, routing capacity, and pool backups from one place.</p>
                             </div>
                             <div class="page-actions">
-                                <button type="button" class="btn" data-ui-action="refresh-pool" data-i18n="refresh">Refresh</button>
-                                <button type="button" class="btn btn-secondary" id="poolImportArchiveBtn" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
-                                <button type="button" class="btn btn-secondary" data-ui-action="download-pool" data-i18n="download_zip">Download ZIP</button>
+                                <button type="button" class="btn btn-secondary" data-ui-action="refresh-pool" data-i18n="refresh">Refresh</button>
+                                <button type="button" class="btn" id="poolImportArchiveBtn" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
+                                <button type="button" class="btn btn-secondary pool-data-only" data-ui-action="download-pool" data-i18n="download_zip">Download ZIP</button>
                             </div>
                     </header>
                     <input type="file" id="poolImportArchiveInput" accept=".zip,application/zip" hidden data-ui-change="pool-archive">
 
-                    <div class="stats-container">
+                    <section id="poolFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="status_no_creds">No credentials found</h2>
+                            <p data-i18n="pool_description">Manage accounts and API keys from every connected provider.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                            <button type="button" class="btn btn-secondary" data-ui-action="select-pool-archive" data-i18n="import_zip">Import ZIP</button>
+                        </div>
+                    </section>
+
+                    <div class="stats-container pool-data-only">
                         <div class="stat-item"><span class="stat-number" id="primaryStatTotal">0</span><span class="stat-label" data-i18n="total_credentials">Total credentials</span></div>
                         <div class="stat-item"><span class="stat-number" id="primaryStatNormal">0</span><span class="stat-label" data-i18n="active_credentials">Active credentials</span></div>
                         <div class="stat-item"><span class="stat-number" id="primaryStatDisabled">0</span><span class="stat-label" data-i18n="disabled_credentials">Disabled credentials</span></div>
                     </div>
 
-                    <div class="batch-controls">
+                    <div class="batch-controls pool-data-only">
                         <div class="batch-label">
-                            <input type="checkbox" id="selectAllPrimaryCheckbox" class="select-all-checkbox" data-ui-change="select-all-primary">
-                            <label for="selectAllPrimaryCheckbox" data-i18n="select_all_visible">Select all visible</label>
-                            <span class="selected-count" id="primarySelectedCount" data-i18n-runtime>0 selected</span>
+                            <input type="checkbox" id="primarySelectAllCheckbox" class="select-all-checkbox" data-ui-change="select-all-primary">
+                            <label for="primarySelectAllCheckbox" data-i18n="pool.selection.page">Select this page</label>
+                            <span class="selected-count" id="primarySelectedCount" data-i18n-runtime>0</span>
+                            <button type="button" class="selection-link" id="primarySelectAllMatchingBtn" data-ui-action="select-all-matching-primary" data-i18n-runtime hidden>Select all matching</button>
+                            <button type="button" class="selection-link" id="primaryClearSelectionBtn" data-ui-action="clear-primary-selection" data-i18n="pool.selection.clear" hidden>Clear selection</button>
                         </div>
                         <div class="batch-actions">
                             <button type="button" class="batch-btn batch-enable" id="primaryBatchEnableBtn" data-ui-action="batch-primary" data-batch-action="enable" data-i18n="action_enable" disabled>Enable</button>
                             <button type="button" class="batch-btn" id="primaryBatchDisableBtn" data-ui-action="batch-primary" data-batch-action="disable" data-i18n="action_disable" disabled>Disable</button>
-                            <button type="button" class="batch-btn batch-delete" id="primaryBatchDeleteBtn" data-ui-action="batch-primary" data-batch-action="delete" data-i18n="action_delete" disabled>Delete</button>
-                            <button type="button" class="batch-btn" id="primaryBatchEnableCreditBtn" data-ui-action="batch-primary" data-batch-action="enable_credit" data-i18n="action_enable_credit" disabled>Enable credits</button>
-                            <button type="button" class="batch-btn" id="primaryBatchDisableCreditBtn" data-ui-action="batch-primary" data-batch-action="disable_credit" data-i18n="action_disable_credit" disabled>Disable credits</button>
                             <button type="button" class="batch-btn" id="primaryBatchVerifyBtn" data-ui-action="batch-verify-primary" data-i18n="verify" disabled>Verify</button>
+                            <button type="button" class="batch-btn batch-delete" id="primaryBatchDeleteBtn" data-ui-action="batch-primary" data-batch-action="delete" data-i18n="action_delete" disabled>Delete</button>
                         </div>
                     </div>
 
-                    <div class="filter-container">
+                    <section class="credential-filter-panel pool-data-only" aria-labelledby="primaryFiltersTitle">
+                        <div class="credential-filter-header">
+                            <div>
+                                <h2 id="primaryFiltersTitle" data-i18n="pool.filters.title">Filters</h2>
+                                <span id="primaryActiveFilterCount" class="filter-summary" aria-live="polite" data-i18n-runtime>No active filters</span>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-compact" data-ui-action="reset-primary-filters" data-i18n="pool.filters.reset">Reset filters</button>
+                        </div>
+                        <div class="filter-container" data-credential-filter-tier="primary">
                         <div class="filter-group">
-                            <label for="primaryProviderFilter" data-i18n="provider">Provider</label>
+                            <label for="primaryProviderFilter" data-i18n="pool.filter.provider_variant">Provider type</label>
                             <select id="primaryProviderFilter" class="filter-select" data-ui-change="primary-filter">
                                 <option value="all" data-i18n="all_providers">All providers</option>
                                 <option value="google_antigravity">Google Antigravity</option>
@@ -52,39 +71,21 @@
                             </select>
                         </div>
                         <div class="filter-group">
+                            <label for="primaryHealthFilter" data-i18n="pool.filter.health">Health</label>
+                            <select id="primaryHealthFilter" class="filter-select" data-ui-change="primary-filter">
+                                <option value="all" data-i18n="pool.filter.all_health">All health states</option>
+                                <option value="healthy" data-i18n="pool.health.healthy">Healthy</option>
+                                <option value="degraded" data-i18n="pool.health.degraded">Degraded</option>
+                                <option value="unhealthy" data-i18n="pool.health.unhealthy">Unhealthy</option>
+                                <option value="disabled" data-i18n="disabled">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
                             <label for="primaryStatusFilter" data-i18n="status">Status</label>
                             <select id="primaryStatusFilter" class="filter-select" data-ui-change="primary-filter">
                                 <option value="all" data-i18n="all">All</option>
                                 <option value="enabled" data-i18n="enabled">Enabled</option>
                                 <option value="disabled" data-i18n="disabled">Disabled</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="primaryErrorCodeFilter" data-i18n="error">Error</label>
-                            <select id="primaryErrorCodeFilter" class="filter-select" data-ui-change="primary-filter">
-                                <option value="all" data-i18n="all">All</option>
-                                <option value="none" data-i18n="none">None</option>
-                                <option value="400">400</option>
-                                <option value="403">403</option>
-                                <option value="429">429</option>
-                                <option value="500">500</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="primaryCooldownFilter" data-i18n="cooldown">Cooldown</label>
-                            <select id="primaryCooldownFilter" class="filter-select" data-ui-change="primary-filter">
-                                <option value="all" data-i18n="all">All</option>
-                                <option value="in_cooldown" data-i18n="in_cooldown">In cooldown</option>
-                                <option value="no_cooldown" data-i18n="no_cooldown">No cooldown</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="primaryTierFilter" data-i18n="tier">Tier</label>
-                            <select id="primaryTierFilter" class="filter-select" data-ui-change="primary-filter">
-                                <option value="all" data-i18n="all">All</option>
-                                <option value="free" data-i18n="free">Free</option>
-                                <option value="pro" data-i18n-technical>Pro</option>
-                                <option value="ultra" data-i18n-technical>Ultra</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -96,18 +97,86 @@
                                 <option value="200">200</option>
                             </select>
                         </div>
-                    </div>
+                        </div>
+                        <details class="credential-filter-disclosure" id="primaryAdvancedFilters" data-credential-filter-tier="advanced">
+                            <summary>
+                                <span data-i18n="pool.filters.more">More filters</span>
+                            </summary>
+                            <div class="filter-container credential-filter-advanced-grid">
+                                <div class="filter-group">
+                                    <label for="primaryCredentialKindFilter" data-i18n="pool.filter.credential_kind">Credential kind</label>
+                                    <select id="primaryCredentialKindFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="pool.filter.all_kinds">All kinds</option>
+                                        <option value="oauth" data-i18n-technical>OAuth</option>
+                                        <option value="api_key" data-i18n-technical>API key</option>
+                                        <option value="connection" data-i18n="pool.kind.connection">Connection</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="primaryErrorCodeFilter" data-i18n="error">Error</label>
+                                    <select id="primaryErrorCodeFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="all">All</option>
+                                        <option value="none" data-i18n="none">None</option>
+                                        <option value="400">400</option>
+                                        <option value="401">401</option>
+                                        <option value="403">403</option>
+                                        <option value="429">429</option>
+                                        <option value="500">500</option>
+                                        <option value="502">502</option>
+                                        <option value="503">503</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="primaryCooldownFilter" data-i18n="cooldown">Cooldown</label>
+                                    <select id="primaryCooldownFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="all">All</option>
+                                        <option value="in_cooldown" data-i18n="in_cooldown">In cooldown</option>
+                                        <option value="no_cooldown" data-i18n="no_cooldown">No cooldown</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="primaryTierFilter" data-i18n="tier">Tier</label>
+                                    <select id="primaryTierFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="all">All</option>
+                                        <option value="free" data-i18n="free">Free</option>
+                                        <option value="pro" data-i18n-technical>Pro</option>
+                                        <option value="ultra" data-i18n-technical>Ultra</option>
+                                        <option value="not_applicable" data-i18n="pool.tier.not_applicable">Not applicable</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="primaryQuotaStateFilter" data-i18n="pool.filter.quota_state">Quota state</label>
+                                    <select id="primaryQuotaStateFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="pool.filter.all_quota">All quota states</option>
+                                        <option value="available" data-i18n="pool.quota.available">Available</option>
+                                        <option value="limited" data-i18n="pool.quota.limited">Limited</option>
+                                        <option value="exhausted" data-i18n="pool.quota.exhausted">Exhausted</option>
+                                        <option value="unsupported" data-i18n="pool.quota.unsupported">Not supported</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="primarySourceFilter" data-i18n="pool.filter.source">Source</label>
+                                    <select id="primarySourceFilter" class="filter-select" data-ui-change="primary-filter">
+                                        <option value="all" data-i18n="pool.filter.all_sources">All sources</option>
+                                        <option value="managed" data-i18n="pool.source.managed">Managed</option>
+                                        <option value="environment" data-i18n="pool.source.environment">Environment</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+                    </section>
 
-                    <div id="primaryCredsListSection">
+                    <div id="primaryCredsListSection" class="pool-data-only">
+                        <div id="primaryCredsState" data-page-state-host hidden></div>
                         <div id="primaryCredsLoading" class="skeleton-list" role="status" data-i18n-aria-label="loading_provider_credentials" aria-label="Loading provider credentials" aria-busy="true">
                             <div class="skeleton-item"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line buttons"></div></div>
                             <div class="skeleton-item"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line buttons"></div></div>
                             <div class="skeleton-item"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line buttons"></div></div>
                         </div>
                         <div class="credential-provider-groups" id="primaryCredsList"></div>
-                        <div class="pagination-container" id="primaryPaginationContainer" style="display: none;">
+                        <div class="pagination-container" id="primaryPaginationContainer" role="navigation" aria-labelledby="poolPageTitle" style="display: none;">
                             <button type="button" class="pagination-btn" id="primaryPrevPageBtn" data-ui-action="change-primary-page" data-page-delta="-1" data-i18n="previous">Previous</button>
-                            <div class="pagination-info" id="primaryPaginationInfo" data-i18n-runtime>Page 1 of 1</div>
+                            <div class="pagination-info" id="primaryPaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div>
                             <button type="button" class="pagination-btn" id="primaryNextPageBtn" data-ui-action="change-primary-page" data-page-delta="1" data-i18n="next">Next</button>
                         </div>
                     </div>

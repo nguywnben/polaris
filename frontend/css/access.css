@@ -1,0 +1,406 @@
+.virtual-key-section {
+    margin-top: 24px;
+}
+
+.access-client-card {
+    display: grid;
+    align-content: start;
+    gap: 16px;
+}
+
+.access-client-header {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 12px;
+}
+
+.access-client-header > div {
+    grid-column: 1 / -1;
+}
+
+.access-client-protocol {
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.access-client-protocol label,
+.virtual-key-filter-field label {
+    margin: 0;
+}
+
+.access-client-example {
+    display: grid;
+    gap: 12px;
+}
+
+.access-client-example pre {
+    min-height: 188px;
+    padding: 14px;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.access-client-example .btn {
+    justify-self: end;
+}
+
+.virtual-key-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.virtual-key-header .card-copy {
+    max-width: 720px;
+}
+
+.virtual-key-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.virtual-key-filter-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.virtual-key-list {
+    display: grid;
+    gap: 12px;
+}
+
+.virtual-key-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.virtual-key-card-heading,
+.virtual-key-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.virtual-key-identity {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.virtual-key-identity strong {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 720;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.virtual-key-identity code {
+    color: var(--text-muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.virtual-key-status {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.virtual-key-status.active {
+    background: var(--success-bg);
+    border-color: #cce8d2;
+    color: var(--success);
+}
+
+.virtual-key-status.expired {
+    background: var(--warning-bg);
+    border-color: #f0dfaa;
+    color: var(--warning);
+}
+
+.virtual-key-status.revoked {
+    background: var(--danger-bg);
+    border-color: #f0c9c6;
+    color: var(--danger);
+}
+
+.virtual-key-metadata {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--border);
+    overflow: hidden;
+}
+
+.virtual-key-metadata > div {
+    min-width: 0;
+    padding: 10px 12px;
+    background: var(--bg-subtle);
+}
+
+.virtual-key-metadata dt,
+.virtual-key-policy-label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-soft);
+    font-size: 11px;
+    font-weight: 680;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.virtual-key-metadata dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.virtual-key-policy-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.virtual-key-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.virtual-key-chips code {
+    max-width: 100%;
+    padding: 4px 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.virtual-key-actions {
+    justify-content: flex-end;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.virtual-key-empty {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 28px 20px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.virtual-key-section.is-pristine-empty .virtual-key-filters {
+    display: none;
+}
+
+.virtual-key-section.is-pristine-empty .virtual-key-header {
+    margin-bottom: 14px;
+}
+
+.virtual-key-empty .btn {
+    margin-top: 8px;
+}
+
+.virtual-key-empty strong {
+    color: var(--text);
+}
+
+.virtual-key-form-modal {
+    width: min(100%, 820px);
+}
+
+.virtual-key-form-body {
+    max-height: min(70vh, 720px);
+}
+
+.virtual-key-form-actions {
+    gap: 8px;
+}
+
+.virtual-key-form-body label > span,
+.virtual-key-fieldset legend {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 680;
+}
+
+.virtual-key-form-body small,
+.virtual-key-fieldset small {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-soft);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.virtual-key-enabled {
+    align-content: start;
+}
+
+.virtual-key-enabled input {
+    margin-top: 8px;
+}
+
+.virtual-key-fieldset {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+    margin: 0 0 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.virtual-key-fieldset legend {
+    padding: 0 6px;
+    margin: 0;
+}
+
+.virtual-key-fieldset .switch-row {
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.virtual-key-fieldset .switch-row strong {
+    font-size: 12px;
+}
+
+.virtual-key-secret-modal {
+    width: min(100%, 680px);
+}
+
+.virtual-key-secret-modal p {
+    margin: 0 0 14px;
+}
+
+.virtual-key-secret-modal .secret-field input {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.virtual-key-usage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.virtual-key-usage-card {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.virtual-key-usage-card h4 {
+    margin: 0 0 12px;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.virtual-key-usage-card dl,
+.virtual-key-usage-card dl > div {
+    display: grid;
+    gap: 8px;
+}
+
+.virtual-key-usage-card dl > div {
+    grid-template-columns: 1fr auto;
+}
+
+.virtual-key-usage-card dt,
+.virtual-key-usage-card dd {
+    margin: 0;
+}
+
+.virtual-key-usage-card dd {
+    color: var(--text);
+    font-weight: 680;
+}
+
+@media (max-width: 960px) {
+    .virtual-key-metadata {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .access-client-header {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .virtual-key-header,
+    .virtual-key-card-heading {
+        display: grid;
+    }
+
+    .virtual-key-filters,
+    .virtual-key-policy-row,
+    .virtual-key-usage-grid,
+    .virtual-key-fieldset {
+        grid-template-columns: 1fr;
+    }
+
+    .virtual-key-metadata {
+        grid-template-columns: 1fr;
+    }
+
+    .virtual-key-status {
+        justify-self: start;
+    }
+
+    .virtual-key-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .virtual-key-actions .btn {
+        width: 100%;
+    }
+}

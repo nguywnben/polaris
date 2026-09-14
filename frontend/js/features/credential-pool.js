@@ -1,4 +1,4 @@
-// Omni Gateway management console: credentials.
+// Polaris management console: credentials.
 
 function refreshCredsStatus() { AppState.creds.refresh(); }
 
@@ -10,17 +10,7 @@ function changePageSize() { AppState.creds.changePageSize(); }
 
 function toggleFileSelection(filename) {
 
-    if (AppState.creds.selectedFiles.has(filename)) {
-
-        AppState.creds.selectedFiles.delete(filename);
-
-    } else {
-
-        AppState.creds.selectedFiles.add(filename);
-
-    }
-
-    AppState.creds.updateBatchControls();
+    AppState.creds.toggleFileSelection(filename);
 
 }
 
@@ -28,21 +18,7 @@ function toggleSelectAll() {
 
     const checkbox = document.getElementById('selectAllCheckbox');
 
-    const checkboxes = document.querySelectorAll('.file-checkbox');
-
-    if (checkbox.checked) {
-
-        checkboxes.forEach(cb => AppState.creds.selectedFiles.add(cb.getAttribute('data-filename')));
-
-    } else {
-
-        AppState.creds.selectedFiles.clear();
-
-    }
-
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-
-    AppState.creds.updateBatchControls();
+    AppState.creds.toggleVisibleSelection(checkbox.checked);
 
 }
 
@@ -120,41 +96,21 @@ function changePrimaryPageSize() { AppState.primaryCreds.changePageSize(); }
 
 function togglePrimaryFileSelection(filename) {
 
-    if (AppState.primaryCreds.selectedFiles.has(filename)) {
-
-        AppState.primaryCreds.selectedFiles.delete(filename);
-
-    } else {
-
-        AppState.primaryCreds.selectedFiles.add(filename);
-
-    }
-
-    AppState.primaryCreds.updateBatchControls();
+    AppState.primaryCreds.toggleFileSelection(filename);
 
 }
 
 function toggleSelectAllPrimary() {
 
-    const checkbox = document.getElementById('selectAllPrimaryCheckbox');
+    const checkbox = document.getElementById('primarySelectAllCheckbox');
 
-    const checkboxes = document.querySelectorAll('.primaryFile-checkbox');
-
-    if (checkbox.checked) {
-
-        checkboxes.forEach(cb => AppState.primaryCreds.selectedFiles.add(cb.getAttribute('data-filename')));
-
-    } else {
-
-        AppState.primaryCreds.selectedFiles.clear();
-
-    }
-
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-
-    AppState.primaryCreds.updateBatchControls();
+    if (checkbox) AppState.primaryCreds.toggleVisibleSelection(checkbox.checked);
 
 }
+
+function selectAllMatchingPrimary() { AppState.primaryCreds.selectAllMatching(); }
+
+function clearPrimarySelection() { AppState.primaryCreds.clearSelection(); }
 
 function batchPrimaryAction(action) { AppState.primaryCreds.batchAction(action); }
 
@@ -249,11 +205,11 @@ function selectPoolImportArchive() {
 
 function getPoolImportActionLabel(result) {
 
-    if (result.status === 'error') return 'Failed';
-    if (result.status === 'skipped') return 'Skipped';
-    if (result.action === 'replaced') return 'Renewed';
-    if (result.action === 'updated') return 'Updated';
-    return 'Added';
+    if (result.status === 'error') return t('failed');
+    if (result.status === 'skipped') return t('import.action_skipped');
+    if (result.action === 'replaced') return t('import.action_renewed');
+    if (result.action === 'updated') return t('import.action_updated');
+    return t('import.action_added');
 
 }
 
@@ -269,7 +225,7 @@ function buildPoolImportResultHtml(data) {
     const providerSummary = providerItems.length
         ? `
             <div class="message-result-section">
-                <div class="message-result-section-title">Provider Summary</div>
+                <div class="message-result-section-title">${escapeHtml(t('provider_activity'))}</div>
                 <div class="usage-provider-summary pool-import-provider-summary">
                     ${providerItems.map((provider) => {
                         const providerMeta = getCredentialProviderMeta({ provider: provider.provider }, 'usage');
@@ -286,13 +242,13 @@ function buildPoolImportResultHtml(data) {
                                     <div class="usage-provider-logo" aria-hidden="true">${logo}</div>
                                     <div>
                                         <div class="usage-provider-name">${escapeHtml(providerMeta.name)}</div>
-                                        <div class="usage-provider-meta">Credential import</div>
+                                        <div class="usage-provider-meta">${escapeHtml(t('import_zip'))}</div>
                                     </div>
                                 </div>
                                 <dl class="usage-provider-metrics">
-                                    <div><dt>Imported</dt><dd>${formatUsageNumber(imported)}</dd></div>
-                                    <div><dt>Skipped</dt><dd>${formatUsageNumber(provider.skipped)}</dd></div>
-                                    <div><dt>Failed</dt><dd>${formatUsageNumber(provider.failed)}</dd></div>
+                                    <div><dt>${escapeHtml(t('import.action_added'))}</dt><dd>${formatUsageNumber(imported)}</dd></div>
+                                    <div><dt>${escapeHtml(t('import.action_skipped'))}</dt><dd>${formatUsageNumber(provider.skipped)}</dd></div>
+                                    <div><dt>${escapeHtml(t('failed'))}</dt><dd>${formatUsageNumber(provider.failed)}</dd></div>
                                 </dl>
                             </article>
                         `;
@@ -312,8 +268,8 @@ function buildPoolImportResultHtml(data) {
                 ? 'muted'
                 : 'success';
         const providerName = result.provider_name
-            || (result.provider ? getCredentialProviderMeta({ provider: result.provider }, 'usage').name : 'Unrecognized provider');
-        const sourceName = result.source_filename || result.filename || 'Credential file';
+            || (result.provider ? getCredentialProviderMeta({ provider: result.provider }, 'usage').name : `${t('provider')}: ${t('modal.unknown')}`);
+        const sourceName = result.source_filename || result.filename || t('credential');
 
         return `
             <div class="upload-result-item">
@@ -321,7 +277,7 @@ function buildPoolImportResultHtml(data) {
                     <span class="status-badge ${statusClass}">${escapeHtml(getPoolImportActionLabel(result))}</span>
                     <span class="upload-result-file">${escapeHtml(sourceName)}</span>
                 </div>
-                <div class="upload-result-message">${escapeHtml(providerName)} - ${escapeHtml(ensureTerminalPunctuation(result.message || 'Import completed.'))}</div>
+                <div class="upload-result-message">${escapeHtml(providerName)} - ${escapeHtml(ensureTerminalPunctuation(result.message || t('import.pool_complete')))}</div>
             </div>
         `;
 
@@ -330,10 +286,10 @@ function buildPoolImportResultHtml(data) {
     const fileSection = results.length
         ? `
             <div class="message-result-section">
-                <div class="message-result-section-title">File Results</div>
+                <div class="message-result-section-title">${escapeHtml(t('runtime.summary'))}</div>
                 <div class="upload-result-details">
                     ${fileResults}
-                    ${hiddenCount ? `<div class="upload-result-message">${hiddenCount} more ${hiddenCount === 1 ? 'result was' : 'results were'} processed.</div>` : ''}
+                    ${hiddenCount ? `<div class="upload-result-message">${escapeHtml(t('upload.more_results', {count: formatConsoleNumber(hiddenCount)}))}</div>` : ''}
                 </div>
             </div>
         `
@@ -341,14 +297,14 @@ function buildPoolImportResultHtml(data) {
 
     return `
         <div class="message-result-panel">
-            <div class="message-result-intro">The archive was inspected and each credential was routed through its provider-specific validation and duplicate checks.</div>
+            <div class="message-result-intro">${escapeHtml(t('import.archive_intro'))}</div>
             <div class="message-result-section">
-                <div class="message-result-section-title">Import Summary</div>
+                <div class="message-result-section-title">${escapeHtml(t('runtime.summary'))}</div>
                 <div class="message-result-summary pool-import-summary">${renderMessageResultRows([
-                    ['Credential files', Number(data.total_count || 0)],
-                    ['Imported', Number(data.uploaded_count || 0)],
-                    ['Skipped', Number(data.skipped_count || 0)],
-                    ['Failed', Number(data.error_count || 0)],
+                    [t('credential'), Number(data.total_count || 0)],
+                    [t('import.action_added'), Number(data.uploaded_count || 0)],
+                    [t('import.action_skipped'), Number(data.skipped_count || 0)],
+                    [t('failed'), Number(data.error_count || 0)],
                 ])}</div>
             </div>
             ${providerSummary}

@@ -11,6 +11,8 @@
                         </div>
                     </header>
 
+                    <div id="configState" data-page-state-host hidden></div>
+
                     <div id="configSection">
                         <div id="configLoading" class="skeleton-config" role="status" data-i18n-aria-label="loading_system_configuration" aria-label="Loading system configuration" aria-busy="true">
                             <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div><div class="skeleton-line field"></div><div class="skeleton-line field"></div></div>
@@ -19,9 +21,7 @@
                         </div>
 
                         <div id="configForm" class="hidden">
-                            <div class="config-note" data-i18n="settings.storage_note">
-                                Values saved here are stored locally unless they are managed by the runtime environment. Provider-specific settings are managed from the Providers page.
-                            </div>
+                            <div id="settingsApplySummary" class="settings-schema-legend" role="status" aria-live="polite"></div>
 
                             <div class="config-grid">
                                 <div class="config-column">
@@ -30,37 +30,24 @@
                                     <p class="card-copy card-title-copy" data-i18n="language_region_description">Choose the language used by this browser for the console and its management messages.</p>
                                     <div class="form-group">
                                         <label for="consoleLanguage" data-i18n="display_language">Display language</label>
-                                        <select id="consoleLanguage" class="lang-switcher" aria-describedby="consoleLanguageHint"></select>
+                                        <select id="consoleLanguage" class="lang-switcher"></select>
                                     </div>
-                                    <p id="consoleLanguageHint" class="field-hint" data-i18n="language_browser_hint">Your choice is saved in this browser. New browsers start with the closest supported language for their region.</p>
+                                    <div class="form-group">
+                                        <label for="themePreference" data-i18n="theme.label">Theme</label>
+                                        <select id="themePreference" aria-describedby="themePreferenceHint">
+                                            <option value="system" data-i18n="theme.system">System</option>
+                                            <option value="light" data-i18n="theme.light">Light</option>
+                                            <option value="dark" data-i18n="theme.dark">Dark</option>
+                                        </select>
+                                        <span id="themePreferenceHint" class="visually-hidden" data-i18n="theme.hint">Controls the console color scheme on this device.</span>
+                                    </div>
                                 </section>
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.server_access">Server Access</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.server_access_description">Control the network interface used by the service after its next restart.</p>
-                                    <div class="form-group"><label for="host" data-i18n="settings.bind_host">Bind host</label><input type="text" id="host" placeholder="0.0.0.0"></div>
-                                    <div class="form-group"><label for="port" data-i18n="settings.port">Port</label><input type="number" id="port" min="1" max="65535" placeholder="4283"></div>
-                                    <p class="field-hint" data-i18n="settings.listener_restart_hint">Listener changes require an application restart. Docker port publishing must be updated separately.</p>
+                                    <div class="form-group"><label for="host" data-i18n="settings.bind_host">Bind host</label><input type="text" id="host" data-config-key="host" placeholder="0.0.0.0"></div>
+                                    <div class="form-group"><label for="port" data-i18n="settings.port">Port</label><input type="number" id="port" data-config-key="port" min="1" max="65535" placeholder="4283"></div>
                                 </section>
-
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="settings.translation_runtime">Translation and Runtime</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="settings.translation_runtime_description">Adjust compatibility translation and response recovery behavior.</p>
-                                    <label class="switch-row"><input type="checkbox" id="compatibilityModeEnabled" class="config-checkbox"><span data-i18n="settings.flatten_instructions">Flatten system instructions for compatibility</span></label>
-                                    <label class="switch-row" style="margin-top: 12px;"><input type="checkbox" id="returnThoughtsToFrontend" class="config-checkbox"><span data-i18n="settings.return_reasoning">Return reasoning content when available</span></label>
-                                    <div class="form-group" style="margin-top: 14px;"><label for="antiTruncationMaxAttempts" data-i18n="settings.recovery_attempts">Truncation recovery attempts</label><input type="number" id="antiTruncationMaxAttempts" min="1" max="10"></div>
-                                </section>
-
-                                <section class="config-group">
-                                    <h2 class="card-title" data-i18n="settings.context_optimization">Context Optimization</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="settings.context_optimization_description">Reduce oversized conversation history while preserving system instructions, tool definitions, and recent turns.</p>
-                                    <label class="switch-row"><input type="checkbox" id="tokenCompressionEnabled" class="config-checkbox"><span data-i18n="settings.compress_history">Compress oversized conversation history</span></label>
-                                    <div class="form-group" style="margin-top: 14px;"><label for="tokenCompressionThreshold" data-i18n="settings.compression_threshold">Compression threshold in tokens</label><input type="number" id="tokenCompressionThreshold" min="128" max="2000000"></div>
-                                    <div class="form-group"><label for="tokenCompressionTarget" data-i18n="settings.compression_target">Target size in tokens</label><input type="number" id="tokenCompressionTarget" min="64" max="1999999"></div>
-                                    <div class="form-group"><label for="tokenCompressionMinRecentTurns" data-i18n="settings.recent_turns">Recent turns to preserve</label><input type="number" id="tokenCompressionMinRecentTurns" min="1" max="50"></div>
-                                </section>
-                                </div>
-
-                                <div class="config-column">
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.console_access">Console Access</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.console_access_description">Change the console password without revealing its current value.</p>
@@ -79,46 +66,36 @@
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.failover_policy">Failover Policy</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.failover_policy_description">Define automatic disabling, retries, and alternate credential behavior.</p>
-                                    <label class="switch-row"><input type="checkbox" id="autoBanEnabled" class="config-checkbox"><span data-i18n="settings.auto_disable">Auto-disable credentials for configured error codes</span></label>
-                                    <div class="form-group" style="margin-top: 14px;"><label for="autoBanErrorCodes" data-i18n="settings.auto_disable_codes">Auto-disable error codes</label><input type="text" id="autoBanErrorCodes" placeholder="400,403"></div>
-                                    <label class="switch-row"><input type="checkbox" id="retry429Enabled" class="config-checkbox"><span data-i18n="settings.retry_alternate">Retry failed requests with alternate credentials</span></label>
-                                    <div class="form-group" style="margin-top: 14px;"><label for="retry429MaxRetries" data-i18n="settings.maximum_retries">Maximum retries</label><input type="number" id="retry429MaxRetries" min="0" max="50"></div>
-                                    <div class="form-group"><label for="retry429Interval" data-i18n="settings.retry_interval">Retry interval in seconds</label><input type="number" id="retry429Interval" min="0.01" max="10" step="0.01"></div>
+                                    <label class="switch-row"><input type="checkbox" id="autoBanEnabled" class="config-checkbox" data-config-key="auto_disable_enabled"><span data-i18n="settings.auto_disable">Auto-disable credentials for configured error codes</span></label>
+                                    <div class="form-group config-spaced-field"><label for="autoBanErrorCodes" data-i18n="settings.auto_disable_codes">Auto-disable error codes</label><input type="text" id="autoBanErrorCodes" data-config-key="auto_disable_error_codes" placeholder="400,403"></div>
+                                    <label class="switch-row"><input type="checkbox" id="retry429Enabled" class="config-checkbox" data-config-key="retry_429_enabled"><span data-i18n="settings.retry_alternate">Retry failed requests with alternate credentials</span></label>
+                                    <div class="form-group config-spaced-field"><label for="retry429MaxRetries" data-i18n="settings.maximum_retries">Maximum retries</label><input type="number" id="retry429MaxRetries" data-config-key="retry_429_max_retries" min="0" max="100"></div>
+                                    <div class="form-group"><label for="retry429Interval" data-i18n="settings.retry_interval">Retry interval in seconds</label><input type="number" id="retry429Interval" data-config-key="retry_429_interval" min="0.01" max="10" step="0.01"></div>
                                 </section>
-
-                                <details class="config-group config-advanced-group">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.runtime_logs">Runtime Logs</strong>
-                                            <small data-i18n="settings.runtime_logs_description">Control server-side verbosity and bounded file retention.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group">
-                                            <label for="runtimeLogLevel" data-i18n="settings.log_level">Log level</label>
-                                            <select id="runtimeLogLevel">
-                                                <option value="debug" data-i18n="debug">Debug</option>
-                                                <option value="info" data-i18n="info">Info</option>
-                                                <option value="warning" data-i18n="warning">Warning</option>
-                                                <option value="error" data-i18n="error">Error</option>
-                                                <option value="critical" data-i18n="critical">Critical</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group"><label for="runtimeLogMaxMb" data-i18n="settings.log_file_size">Maximum file size in MB</label><input type="number" id="runtimeLogMaxMb" min="1" max="1024"></div>
-                                        <div class="form-group"><label for="runtimeLogBackupCount" data-i18n="settings.log_backups">Retained backup files</label><input type="number" id="runtimeLogBackupCount" min="1" max="20"></div>
-                                        <p class="field-hint" data-i18n="settings.log_rotation_hint">Logs rotate automatically when the active file reaches the configured size.</p>
-                                    </div>
-                                </details>
                                 </div>
 
                                 <div class="config-column">
+                                <section class="config-group" data-settings-tier="advanced">
+                                    <h2 class="card-title" data-i18n="settings.runtime_logs">Runtime Logs</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.runtime_logs_description">Control server-side verbosity and bounded file retention.</p>
+                                    <div class="form-group">
+                                        <label for="runtimeLogLevel" data-i18n="settings.log_level">Log level</label>
+                                        <select id="runtimeLogLevel" data-config-key="log_level">
+                                            <option value="debug" data-i18n="debug">Debug</option>
+                                            <option value="info" data-i18n="info">Info</option>
+                                            <option value="warning" data-i18n="warning">Warning</option>
+                                            <option value="error" data-i18n="error">Error</option>
+                                            <option value="critical" data-i18n="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group"><label for="runtimeLogMaxMb" data-i18n="settings.log_file_size">Maximum file size in MB</label><input type="number" id="runtimeLogMaxMb" data-config-key="log_max_mb" min="1" max="1024"></div>
+                                    <div class="form-group"><label for="runtimeLogBackupCount" data-i18n="settings.log_backups">Retained backup files</label><input type="number" id="runtimeLogBackupCount" data-config-key="log_backup_count" min="1" max="20"></div>
+                                </section>
                                 <section class="config-group">
                                     <h2 class="card-title" data-i18n="settings.storage_proxy">Storage and Proxy</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.storage_proxy_description">Set credential storage and outbound network routing.</p>
-                                    <div class="form-group"><label for="credentialsDir" data-i18n="settings.credentials_directory">Credentials directory</label><input type="text" id="credentialsDir"></div>
-                                    <div class="form-group"><label for="proxy" data-i18n="settings.outbound_proxy">Outbound proxy</label><input type="text" id="proxy" placeholder="http://127.0.0.1:7890"></div>
-                                    <p class="field-hint" data-i18n="settings.proxy_hint">Use the proxy when the server cannot reach OAuth or provider APIs directly.</p>
-                                    <p class="field-hint" data-i18n="settings.credentials_restart_hint">Changing the credentials directory requires an application restart.</p>
+                                    <div class="form-group"><label for="credentialsDir" data-i18n="settings.credentials_directory">Credentials directory</label><input type="text" id="credentialsDir" data-config-key="credentials_dir"></div>
+                                    <div class="form-group"><label for="proxy" data-i18n="settings.outbound_proxy">Outbound proxy</label><input type="text" id="proxy" data-config-key="proxy" placeholder="http://127.0.0.1:7890"></div>
                                 </section>
 
                                 <section class="config-group">
@@ -126,7 +103,7 @@
                                     <p class="card-copy card-title-copy" data-i18n="settings.routing_policy_description">Balance healthy credentials automatically or prefer one provider while retaining fallback.</p>
                                     <div class="form-group">
                                         <label for="routingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
-                                        <select id="routingStrategy" data-ui-change="routing-strategy">
+                                        <select id="routingStrategy" data-config-key="routing_strategy" data-ui-change="routing-strategy">
                                             <option value="balanced" data-i18n="settings.balanced">Balanced</option>
                                             <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
                                             <option value="weighted" data-i18n="settings.weighted">Weighted random</option>
@@ -136,7 +113,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="preferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
-                                        <select id="preferredProvider">
+                                        <select id="preferredProvider" data-config-key="preferred_provider">
                                             <option value="" data-i18n="settings.automatic">Automatic</option>
                                             <option value="google_antigravity">Google Antigravity</option>
                                             <option value="google_ai_studio">Google AI Studio</option>
@@ -146,38 +123,42 @@
                                             <option value="ollama">Ollama</option>
                                         </select>
                                     </div>
-                                    <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" min="5" max="900" step="1"></div>
-                                    <p class="field-hint" data-i18n="settings.routing_fallback_hint">If the preferred provider is unavailable or incompatible with a model, routing continues through another healthy provider.</p>
+                                    <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1"></div>
                                 </section>
 
-                                <details class="config-group config-advanced-group">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.code_assist">Code Assist Compatibility</strong>
-                                            <small data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="text" id="codeAssistEndpoint"></div>
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" autocomplete="off"></div>
-                                        <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><input type="text" id="codeAssistClientSecret" autocomplete="off"></div>
-                                    </div>
-                                </details>
+                                <section class="config-group" data-settings-tier="compatibility">
+                                    <h2 class="card-title" data-i18n="settings.code_assist">Code Assist Compatibility</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</p>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="text" id="codeAssistEndpoint" data-config-key="code_assist_endpoint"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-config-key="code_assist_client_id" autocomplete="off"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><input type="password" id="codeAssistClientSecret" data-config-key="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"></div>
+                                </section>
 
-                                <details class="config-group config-advanced-group">
-                                    <summary class="config-advanced-summary">
-                                        <span>
-                                            <strong data-i18n="settings.keep_alive">Hosted Keep-Alive</strong>
-                                            <small data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</small>
-                                        </span>
-                                    </summary>
-                                    <div class="config-advanced-body">
-                                        <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl"><button type="button" class="btn btn-secondary btn-small config-inline-action" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
-                                        <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" min="5" max="86400"></div>
-                                    </div>
-                                </details>
+                                <section class="config-group" data-settings-tier="compatibility">
+                                    <h2 class="card-title" data-i18n="settings.keep_alive">Hosted Keep-Alive</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</p>
+                                    <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl" data-config-key="keepalive_url"><button type="button" class="btn btn-secondary btn-small config-inline-action" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
+                                    <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" data-config-key="keepalive_interval" min="5" max="86400"></div>
+                                </section>
                                 </div>
                             </div>
+
+                            <section class="config-group settings-retention-group" aria-labelledby="operationalRetentionHeading">
+                                <h2 id="operationalRetentionHeading" class="card-title" data-i18n="settings.operational_retention">Operational data retention</h2>
+                                <p class="card-copy card-title-copy" data-i18n="settings.operational_retention_description">Set independent age and count limits for request traces and audit events.</p>
+                                <div class="operational-retention-grid">
+                                    <div class="operational-retention-item" aria-labelledby="traceRetentionHeading">
+                                        <h3 id="traceRetentionHeading" data-i18n="trace.retention">Trace retention</h3>
+                                        <p class="card-copy"><span data-i18n="trace.retention_description">Traces are pruned independently when either the age or count limit is exceeded.</span> <span data-i18n="trace.content_free_description">Only allowlisted decisions and numeric usage are stored—never prompts, responses, secrets, or exception text.</span></p>
+                                        <form id="traceRetentionForm" class="operational-retention-form"><div class="form-group"><label for="traceRetentionDays" data-i18n="trace.retention_days">Retention days</label><input type="number" id="traceRetentionDays" required></div><div class="form-group"><label for="traceMaxTraces" data-i18n="trace.max_traces">Maximum traces</label><input type="number" id="traceMaxTraces" required></div><div class="operational-retention-actions"><button id="traceSaveRetention" type="submit" class="btn btn-secondary" data-i18n="trace.save_retention">Save retention</button><p id="traceRetentionStatus" class="field-hint" role="status" aria-live="polite"></p></div></form>
+                                    </div>
+                                    <div class="operational-retention-item" aria-labelledby="auditRetentionHeading">
+                                        <h3 id="auditRetentionHeading" data-i18n="audit.retention">Audit retention</h3>
+                                        <p class="card-copy" data-i18n="audit.retention_description">Events are pruned when either the age or count limit is exceeded.</p>
+                                        <form id="auditRetentionForm" class="operational-retention-form"><div class="form-group"><label for="auditRetentionDays" data-i18n="audit.retention_days">Retention days</label><input type="number" id="auditRetentionDays" required></div><div class="form-group"><label for="auditMaxEvents" data-i18n="audit.max_events">Maximum events</label><input type="number" id="auditMaxEvents" required></div><div class="operational-retention-actions"><button id="auditSaveRetention" type="submit" class="btn btn-secondary" data-i18n="audit.save_retention">Save retention</button><p id="auditRetentionStatus" class="field-hint" role="status" aria-live="polite"></p></div></form>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>

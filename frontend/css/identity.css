@@ -1,0 +1,234 @@
+.identity-page-status,
+.identity-section-status {
+    min-height: 20px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.identity-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.identity-layout {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+}
+
+.identity-panel {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.identity-panel-heading,
+.identity-record-heading,
+.identity-record-actions,
+.identity-pagination,
+.identity-dialog-header,
+.identity-dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.identity-panel-heading {
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.identity-panel-heading .card-copy {
+    margin-bottom: 0;
+}
+
+.identity-fact-list,
+.identity-record-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin: 0;
+}
+
+.identity-fact-list div,
+.identity-record-facts div {
+    min-width: 0;
+}
+
+.identity-fact-list dt,
+.identity-record-facts dt {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.identity-fact-list dd,
+.identity-record-facts dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.identity-summary-action {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.identity-record-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.identity-record {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+}
+
+.identity-record-heading {
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.identity-record-title {
+    min-width: 0;
+}
+
+.identity-record-title strong,
+.identity-record-title code {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.identity-record-title code {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.identity-record-actions {
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.identity-record-actions select {
+    min-width: 180px;
+}
+
+.identity-pagination {
+    margin-top: 16px;
+}
+
+.identity-dialog {
+    width: min(620px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-pop);
+}
+
+.identity-dialog::backdrop {
+    background: rgb(0 0 0 / .45);
+}
+
+.identity-dialog-header,
+.identity-dialog-body,
+.identity-dialog-actions {
+    padding: 18px 20px;
+}
+
+.identity-dialog-header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+}
+
+.identity-dialog-header h2,
+.identity-dialog-header p,
+.identity-dialog-body p {
+    margin: 0;
+}
+
+.identity-dialog-header p {
+    margin-top: 6px;
+    color: var(--text-muted);
+}
+
+.identity-dialog-body {
+    display: grid;
+    gap: 14px;
+}
+
+.identity-dialog-body .form-group {
+    margin: 0;
+}
+
+.identity-dialog-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+}
+
+.identity-panel :where(button, a, summary):focus-visible,
+.identity-dialog :where(button, a, summary):focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.identity-mode-notice {
+    width: fit-content;
+    max-width: 100%;
+    margin: -8px 0 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.identity-mode-notice[data-readiness="ready"] {
+    color: var(--success);
+}
+
+.identity-mode-notice[data-readiness="invalid"] {
+    color: var(--danger);
+}
+
+@media (max-width: 1080px) {
+    .identity-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .identity-panel-heading,
+    .identity-record-heading,
+    .identity-record-actions,
+    .identity-dialog-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .identity-fact-list,
+    .identity-record-facts {
+        grid-template-columns: 1fr;
+    }
+
+    .identity-record-actions .btn,
+    .identity-record-actions select,
+    .identity-dialog-actions .btn {
+        width: 100%;
+    }
+}
