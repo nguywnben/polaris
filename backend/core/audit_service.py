@@ -194,7 +194,7 @@ class AuditService:
         event = create_audit_event(
             request_id=request_id,
             actor_type="system",
-            actor_identifier="omni-gateway",
+            actor_identifier="polaris",
             action="inference.execute",
             target_type="inference_route",
             target_identifier=protocol,
