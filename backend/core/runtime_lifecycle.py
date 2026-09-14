@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
+import time
 from collections.abc import Callable
 from enum import StrEnum
 from typing import Any
@@ -55,6 +56,19 @@ class RuntimeState(StrEnum):
     CLOSED = "closed"
 
 
+def _new_runtime_store() -> InMemoryStateStore:
+    """Expose Unix-based timestamps without making TTLs follow wall-clock jumps.
+
+    The store is process-local, so one epoch anchor covers its entire lifetime.
+    Subsequent NTP/manual corrections do not revive or prematurely expire sessions.
+    """
+    monotonic_anchor = time.monotonic()
+    epoch_anchor = time.time()
+    return InMemoryStateStore(
+        clock=lambda: epoch_anchor + (time.monotonic() - monotonic_anchor)
+    )
+
+
 class RuntimeLifecycle:
     """Construct and inject one in-memory coordination service before request traffic."""
 
@@ -62,7 +76,7 @@ class RuntimeLifecycle:
         self,
         *,
         policy: RuntimePolicy | None = None,
-        store_factory: Callable[[], Any] = InMemoryStateStore,
+        store_factory: Callable[[], Any] = _new_runtime_store,
     ) -> None:
         self.policy = policy or RuntimePolicy.from_environment()
         self.state = RuntimeState.STARTING
