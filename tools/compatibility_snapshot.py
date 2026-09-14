@@ -18,6 +18,22 @@ PUBLIC_PREFIXES = ("/v1/", "/v1beta/", "/vertex/")
 NON_SEMANTIC_OPENAPI_KEYS = frozenset(
     {"description", "example", "examples", "externalDocs", "operationId", "summary", "title"}
 )
+# Adding the optional bounded timezone offset preserves every existing request shape. Keep the
+# exact before/after fingerprints explicit so unrelated changes to these operations still fail.
+COMPATIBLE_OPERATION_EVOLUTIONS = {
+    ("GET", "/api/usage/aggregated"): {
+        (
+            "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871",
+            "15b43529ff0bb94c39e18ac82729d0806d9abc82ae6deda02fb3d08057ce1cb0",
+        )
+    },
+    ("GET", "/api/usage/stats"): {
+        (
+            "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871",
+            "15b43529ff0bb94c39e18ac82729d0806d9abc82ae6deda02fb3d08057ce1cb0",
+        )
+    },
+}
 
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
@@ -271,7 +287,10 @@ def compare_snapshots(baseline: dict[str, object], current: dict[str, object]) -
         for operation, fingerprint in expected.items():
             if operation not in actual:
                 differences.append(f"removed {name}: {operation[0]} {operation[1]}")
-            elif actual[operation] != fingerprint:
+            elif actual[operation] != fingerprint and (
+                fingerprint,
+                actual[operation],
+            ) not in COMPATIBLE_OPERATION_EVOLUTIONS.get(operation, set()):
                 differences.append(f"changed {name}: {operation[0]} {operation[1]}")
 
     expected_config = baseline["config_compatibility"]
