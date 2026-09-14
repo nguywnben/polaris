@@ -351,7 +351,8 @@ def install_fixtures(page: Page) -> None:
     for pattern in (
         "**/api/providers/ollama/credentials",
         "**/api/model-catalog*",
-        "**/api/model-routes/omway*",
+        "**/api/model-routes/omway",
+        "**/api/model-routes/omway/validate",
         "**/api/playground/runs",
         "**/api/traces?*",
     ):
@@ -423,7 +424,9 @@ def _verify_responsive_routes(page: Page) -> None:
 def _verify_keyboard_navigation(page: Page) -> None:
     page.set_viewport_size({"width": 1024, "height": 900})
     page.evaluate("navigate('/dashboard', false)")
-    playground_tab = page.locator('[data-ui-action="switch-tab"][data-tab="playground"]')
+    playground_tab = page.locator(
+        '#primaryNavigation [data-ui-action="switch-tab"][data-tab="playground"]'
+    )
     playground_tab.focus()
     page.keyboard.press("Enter")
     expect(page.locator("#playgroundTab")).to_be_visible()
@@ -486,7 +489,9 @@ def run_journeys(page: Page, base_url: str, expected_dashboard_title: str) -> li
     expect(catalog_model).to_be_visible()
     catalog_model.check()
     page.locator("#saveModelPoolBtn").click()
-    expect(page.locator("#modelPoolStatus")).not_to_contain_text("Not configured")
+    expect(page.locator("#modelPoolStatus")).to_have_class(
+        re.compile(r"\bsuccess\b"), timeout=15_000
+    )
     _complete(completed, 2)
 
     _open_tab(page, "quality", "#qualityTab")
@@ -514,7 +519,9 @@ def run_journeys(page: Page, base_url: str, expected_dashboard_title: str) -> li
     _complete(completed, 4)
 
     _open_tab(page, "access", "#accessTab")
-    page.locator('[data-ui-action="virtual-key-create"]').click()
+    page.locator(
+        '#virtualKeySection .virtual-key-header [data-ui-action="virtual-key-create"]'
+    ).click()
     key_form = page.locator("#virtualKeyForm")
     expect(key_form).to_be_visible()
     key_form.locator('[name="name"]').fill("Browser smoke key")
