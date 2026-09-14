@@ -60,7 +60,9 @@ class SettingsConsoleContractTests(unittest.TestCase):
         styles = (ROOT / "frontend/css/shell.css").read_text(encoding="utf-8")
 
         self.assertRegex(styles, r"\.page-header\s*>\s*:first-child\s*\{[^}]*min-width:\s*0")
-        self.assertRegex(styles, r"\.page-header\s*>\s*\.page-actions\s*\{[^}]*flex:\s*0\s+0\s+auto")
+        self.assertRegex(
+            styles, r"\.page-header\s*>\s*\.page-actions\s*\{[^}]*flex:\s*0\s+0\s+auto"
+        )
 
     def test_blank_secret_is_not_sent_back_as_a_destructive_clear(self) -> None:
         node = shutil.which("node")
@@ -115,7 +117,10 @@ class AboutAndIdentityConsoleContractTests(unittest.TestCase):
         styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
 
         self.assertEqual(fragment.count('class="about-column"'), 2)
-        self.assertRegex(styles, r"\.about-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*7fr\)\s+minmax\(0,\s*5fr\)")
+        self.assertRegex(
+            styles,
+            r"\.about-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*7fr\)\s+minmax\(0,\s*5fr\)",
+        )
         self.assertRegex(styles, r"\.about-column\s*\{[^}]*align-content:\s*start")
 
     def test_about_runtime_validates_and_renders_untrusted_data_as_text(self) -> None:

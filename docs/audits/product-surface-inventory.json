@@ -66,6 +66,7 @@
   ],
   "settings_controls": [
     {"id": "consoleLanguage", "tier": "core", "journey": "install_configure"},
+    {"id": "themePreference", "tier": "core", "journey": "install_configure"},
     {"id": "host", "tier": "core", "journey": "install_configure"},
     {"id": "port", "tier": "core", "journey": "install_configure"},
     {"id": "currentConsolePassword", "tier": "core", "journey": "access"},
@@ -79,6 +80,10 @@
     {"id": "runtimeLogLevel", "tier": "core", "journey": "activity"},
     {"id": "runtimeLogMaxMb", "tier": "core", "journey": "activity"},
     {"id": "runtimeLogBackupCount", "tier": "core", "journey": "activity"},
+    {"id": "traceRetentionDays", "tier": "core", "journey": "activity"},
+    {"id": "traceMaxTraces", "tier": "core", "journey": "activity"},
+    {"id": "auditRetentionDays", "tier": "core", "journey": "activity"},
+    {"id": "auditMaxEvents", "tier": "core", "journey": "activity"},
     {"id": "credentialsDir", "tier": "core", "journey": "credential_operations"},
     {"id": "proxy", "tier": "core", "journey": "install_configure"},
     {"id": "routingStrategy", "tier": "core", "journey": "model_routing"},
