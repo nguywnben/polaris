@@ -1,5 +1,25 @@
 // Polaris management console: supported interface locales.
 
+// Contextual hints supplement persistent field labels; identifiers remain exact.
+const FORM_PLACEHOLDER_KEYS = ["form.oauth_client_id","form.user_agent","form.subject","form.fingerprint","form.secret","form.value","form.credential_name"];
+const FORM_PLACEHOLDER_VALUES = {
+    "en": ["Enter the OAuth client ID","Enter the client identifier","Enter the exact subject identifier","Enter a fingerprint","The key will appear here","Enter the requested value","Enter a name to identify this credential"],
+    "vi": ["Nhập mã ứng dụng OAuth","Nhập mã nhận diện ứng dụng","Nhập chính xác mã định danh chủ thể","Nhập mã vân tay","Khóa sẽ hiển thị tại đây","Nhập giá trị được yêu cầu","Đặt tên để nhận biết thông tin xác thực này"],
+    "zh-CN": ["输入 OAuth 客户端 ID","输入客户端标识","输入完整且准确的主体标识","输入指纹","密钥将显示在此处","输入所需的值","输入便于识别此凭据的名称"],
+    "zh-TW": ["輸入 OAuth 用戶端 ID","輸入用戶端識別碼","輸入完整且正確的主體識別碼","輸入指紋","金鑰將顯示於此處","輸入所需的值","輸入方便辨識此憑證的名稱"],
+    "de": ["OAuth-Client-ID eingeben","Client-Kennung eingeben","Exakte Subjektkennung eingeben","Fingerabdruck eingeben","Der Schlüssel wird hier angezeigt","Den angeforderten Wert eingeben","Einen Namen zur Erkennung dieser Zugangsdaten eingeben"],
+    "es": ["Introduce el ID del cliente OAuth","Introduce el identificador del cliente","Introduce el identificador exacto del sujeto","Introduce una huella digital","La clave aparecerá aquí","Introduce el valor solicitado","Introduce un nombre para identificar estas credenciales"],
+    "fr": ["Saisissez l’identifiant du client OAuth","Saisissez l’identifiant du client","Saisissez l’identifiant exact du sujet","Saisissez une empreinte","La clé s’affichera ici","Saisissez la valeur demandée","Nommez ces identifiants pour les reconnaître"],
+    "id": ["Masukkan ID klien OAuth","Masukkan pengenal klien","Masukkan pengenal subjek yang persis sama","Masukkan sidik jari","Kunci akan ditampilkan di sini","Masukkan nilai yang diminta","Beri nama agar kredensial ini mudah dikenali"],
+    "it": ["Inserisci l’ID client OAuth","Inserisci l’identificativo del client","Inserisci l’identificativo esatto del soggetto","Inserisci un’impronta digitale","La chiave verrà visualizzata qui","Inserisci il valore richiesto","Inserisci un nome per riconoscere queste credenziali"],
+    "ja": ["OAuth クライアント ID を入力","クライアント識別子を入力","サブジェクト識別子を正確に入力","フィンガープリントを入力","ここにキーが表示されます","指定された値を入力","この認証情報を識別する名前を入力"],
+    "ko": ["OAuth 클라이언트 ID 입력","클라이언트 식별자 입력","정확한 주체 식별자 입력","지문 입력","키가 여기에 표시됩니다","요청된 값 입력","이 자격 증명을 구분할 이름 입력"],
+    "pt": ["Digite o ID do cliente OAuth","Digite o identificador do cliente","Digite o identificador exato do sujeito","Digite uma impressão digital","A chave aparecerá aqui","Digite o valor solicitado","Digite um nome para identificar estas credenciais"],
+    "ru": ["Введите ID клиента OAuth","Введите идентификатор клиента","Введите точный идентификатор субъекта","Введите отпечаток","Здесь появится ключ","Введите запрошенное значение","Введите название для этих учётных данных"],
+    "th": ["ป้อน ID ไคลเอนต์ OAuth","ป้อนตัวระบุไคลเอนต์","ป้อนตัวระบุเจ้าของข้อมูลให้ตรงทุกอักขระ","ป้อนลายนิ้วมือดิจิทัล","คีย์จะแสดงที่นี่","ป้อนค่าที่ร้องขอ","ตั้งชื่อเพื่อให้ระบุข้อมูลรับรองนี้ได้"],
+    "tr": ["OAuth istemci kimliğini girin","İstemci tanımlayıcısını girin","Özne tanımlayıcısını tam olarak girin","Parmak izini girin","Anahtar burada görünecek","İstenen değeri girin","Bu kimlik bilgisini tanımak için bir ad girin"],
+};
+
 const SUPPORTED_LOCALES = {
     en: {
         label: 'English',
@@ -533,6 +553,33 @@ const POOL_GUIDANCE_TRANSLATIONS = {
 };
 for (const [locale, definition] of Object.entries(SUPPORTED_LOCALES)) {
     Object.assign(definition.messages, POOL_GUIDANCE_TRANSLATIONS[locale] || POOL_GUIDANCE_TRANSLATIONS.en);
+}
+
+for (const [locale, values] of Object.entries(FORM_PLACEHOLDER_VALUES)) {
+    Object.assign(COMMON_UI_TRANSLATIONS[locale], Object.fromEntries(
+        FORM_PLACEHOLDER_KEYS.map((key, index) => [key, values[index]])
+    ));
+}
+
+const OAUTH_SECRET_PLACEHOLDERS = {
+    "en": "Enter the OAuth client secret",
+    "vi": "Nhập khóa bí mật của ứng dụng OAuth",
+    "zh-CN": "输入 OAuth 客户端密钥",
+    "zh-TW": "輸入 OAuth 用戶端密鑰",
+    "de": "OAuth-Client-Geheimnis eingeben",
+    "es": "Introduce el secreto del cliente OAuth",
+    "fr": "Saisissez le secret du client OAuth",
+    "id": "Masukkan rahasia klien OAuth",
+    "it": "Inserisci il segreto del client OAuth",
+    "ja": "OAuth クライアントシークレットを入力",
+    "ko": "OAuth 클라이언트 시크릿 입력",
+    "pt": "Digite o segredo do cliente OAuth",
+    "ru": "Введите секрет клиента OAuth",
+    "th": "ป้อนข้อมูลลับของไคลเอนต์ OAuth",
+    "tr": "OAuth istemci sırrını girin"
+};
+for (const [locale, message] of Object.entries(OAUTH_SECRET_PLACEHOLDERS)) {
+    COMMON_UI_TRANSLATIONS[locale]['form.oauth_client_secret'] = message;
 }
 
 const DIALOG_LOCALE_TRANSLATIONS = {

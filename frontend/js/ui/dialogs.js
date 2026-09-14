@@ -100,7 +100,7 @@ function showPromptModal(message, options = {}) {
 
         const initialValue = options.value || '';
 
-        const placeholder = options.placeholder || '';
+        const placeholder = options.placeholder || t('form.value');
 
         modal.innerHTML = `
 
@@ -116,7 +116,7 @@ function showPromptModal(message, options = {}) {
 
                     <div class="message-modal-prompt-copy">${renderDialogMessage(message)}</div>
 
-                    <input type="text" class="message-modal-input">
+                    <input type="text" class="message-modal-input" placeholder="${escapeAttribute(t('form.value'))}" aria-label="${escapeAttribute(title)}">
 
                 </div>
 

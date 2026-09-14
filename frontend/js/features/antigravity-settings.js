@@ -65,9 +65,10 @@ function populateAntigravitySettings() {
         secretField.dataset.secretConfigured = String(
             AppState.antigravityConfiguredSecrets?.has('antigravity_client_secret')
         );
-        secretField.placeholder = secretField.dataset.secretConfigured === 'true'
-            ? t('provider.form.client_secret_help')
-            : '';
+        secretField.dataset.i18nPlaceholder = secretField.dataset.secretConfigured === 'true'
+            ? 'settings.secret_unchanged'
+            : 'form.oauth_client_secret';
+        secretField.placeholder = t(secretField.dataset.i18nPlaceholder);
     }
 
     setAntigravityConfigField('antigravityApiUrl', c.antigravity_api_url || '');

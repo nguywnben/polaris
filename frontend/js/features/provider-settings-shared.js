@@ -227,6 +227,7 @@ function applyProviderFormContract() {
             field.dataset.advanced = String(definition.advanced);
             field.dataset.helpKey = definition.helpKey;
             if (definition.secretLifetime === 'submit') {
+                field.dataset.i18nPlaceholder = definition.helpKey;
                 field.placeholder = t(definition.helpKey);
             }
             field.removeAttribute('aria-describedby');
@@ -249,7 +250,10 @@ function applyProviderFormCopy() {
     Object.values(PROVIDER_FORM_CONTRACT).flat().forEach((definition) => {
         if (definition.secretLifetime !== 'submit') return;
         const field = document.getElementById(definition.id);
-        if (field) field.placeholder = t(definition.helpKey);
+        if (field) {
+            field.dataset.i18nPlaceholder = definition.helpKey;
+            field.placeholder = t(definition.helpKey);
+        }
     });
 }
 

@@ -362,6 +362,7 @@ console.log('All 15 Identity runtime catalogs resolve');
         generated_keys: set[str] = set()
         for variable in (
             "FORM_VALIDATION_KEYS",
+            "FORM_PLACEHOLDER_KEYS",
             "SETTINGS_PAGE_KEYS",
             "PROVIDER_CATALOG_KEYS",
             "PROVIDER_WORKFLOW_KEYS",
@@ -391,7 +392,7 @@ console.log('All 15 Identity runtime catalogs resolve');
         ):
             source = (
                 LOCALE_SOURCE
-                if variable == "FORM_VALIDATION_KEYS"
+                if variable in {"FORM_VALIDATION_KEYS", "FORM_PLACEHOLDER_KEYS"}
                 else IDENTITY_LOCALE_SOURCE
                 if variable == "IDENTITY_KEYS"
                 else AUDIT_LOCALE_SOURCE

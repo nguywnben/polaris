@@ -446,7 +446,7 @@ function showVirtualKeySecret(secret, titleKey) {
             <div class="message-modal-header"><h3 id="virtualKeySecretTitle">${escapeHtml(t(titleKey))}</h3></div>
             <div class="message-modal-body">
                 <p>${escapeHtml(t('access.secret_once'))}</p>
-                <div class="secret-field"><input id="virtualKeySecret" type="text" readonly autocomplete="off" aria-label="${escapeAttribute(t('access.new_key_secret'))}"><button type="button" class="btn btn-secondary" data-virtual-key-copy>${escapeHtml(t('access.copy_secret'))}</button></div>
+                <div class="secret-field"><input id="virtualKeySecret" type="text" readonly autocomplete="off" placeholder="${escapeAttribute(t('form.secret'))}" aria-label="${escapeAttribute(t('access.new_key_secret'))}"><button type="button" class="btn btn-secondary" data-virtual-key-copy>${escapeHtml(t('access.copy_secret'))}</button></div>
             </div>
             <div class="message-modal-footer"><button type="button" class="message-modal-btn message-modal-btn-primary" data-virtual-key-secret-close>${escapeHtml(t('access.secret_saved'))}</button></div>
         </div>

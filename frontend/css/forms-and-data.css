@@ -1,3 +1,16 @@
+input::placeholder,
+textarea::placeholder {
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+/* Only the disabled empty prompt is a select placeholder, not a real “All” choice. */
+select:has(option[value=""][disabled]:checked),
+select option[value=""][disabled] {
+    font-weight: 400;
+}
+
 .endpoint-code-card,
 .code-block,
 .credentials,

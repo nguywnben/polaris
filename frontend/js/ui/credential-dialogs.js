@@ -105,12 +105,12 @@ async function showCredentialEditModal(pathId) {
                         ${credentialEditField(configuration, 'credential_label') ? `
                             <label class="message-modal-field">
                                 <span class="message-modal-field-label">${escapeHtml(t('credential_display_name'))}</span>
-                                <input class="message-modal-input" name="credential_label" maxlength="128" required value="${escapeAttribute(configuration.credential_label || '')}">
+                                <input class="message-modal-input" name="credential_label" maxlength="128" required placeholder="${escapeAttribute(t('form.credential_name'))}" value="${escapeAttribute(configuration.credential_label || '')}">
                             </label>` : ''}
                         ${credentialEditField(configuration, 'base_url') ? `
                             <label class="message-modal-field">
                                 <span class="message-modal-field-label">${escapeHtml(t('provider.form.endpoint_label'))}</span>
-                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" required value="${escapeAttribute(configuration.base_url || '')}">
+                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" required placeholder="https://api.example.com" value="${escapeAttribute(configuration.base_url || '')}">
                             </label>` : ''}
                         ${credentialEditField(configuration, 'api_key') ? `
                             <label class="message-modal-field">

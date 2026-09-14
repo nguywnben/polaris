@@ -27,11 +27,11 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="playgroundModel" data-i18n="playground.model">Model</label>
-                                    <input id="playgroundModel" type="text" value="polaris" maxlength="256" required autocomplete="off" spellcheck="false">
+                                    <input id="playgroundModel" type="text" value="polaris" maxlength="256" required autocomplete="off" spellcheck="false" placeholder="polaris">
                                 </div>
                                 <div class="form-group">
                                     <label for="playgroundTimeout" data-i18n="playground.timeout">Timeout (seconds)</label>
-                                    <input id="playgroundTimeout" type="number" value="60" min="1" max="120" required inputmode="numeric">
+                                    <input id="playgroundTimeout" type="number" value="60" min="1" max="120" required inputmode="numeric" placeholder="60">
                                 </div>
                                 <label class="switch-row playground-stream-control"><input id="playgroundStream" class="config-checkbox" type="checkbox"><span><strong data-i18n="playground.stream">Stream response</strong><small data-i18n="playground.stream_hint">Show native events as they arrive.</small></span></label>
                             </div>
@@ -58,7 +58,7 @@
                                 <div class="playground-parameter-grid">
                                     <div class="form-group">
                                         <label for="playgroundMaxTokens" data-i18n="playground.max_tokens">Maximum output tokens</label>
-                                        <input id="playgroundMaxTokens" type="number" value="1024" min="1" max="65536" required inputmode="numeric">
+                                        <input id="playgroundMaxTokens" type="number" value="1024" min="1" max="65536" required inputmode="numeric" placeholder="1024">
                                     </div>
                                     <div class="form-group">
                                         <label for="playgroundTemperature"><span data-i18n="playground.temperature">Temperature</span> <small class="field-optional" data-i18n="playground.optional">optional</small></label>

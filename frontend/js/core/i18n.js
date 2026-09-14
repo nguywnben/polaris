@@ -5417,7 +5417,8 @@ function applyProviderWorkspaceTranslations(locale) {
         let node = walker.nextNode();
         while (node) {
             const parent = node.parentElement;
-            if (parent && !ignoredParents.has(parent.tagName)) {
+            if (parent && !ignoredParents.has(parent.tagName)
+                && !parent.closest('[data-i18n], [data-i18n-runtime], [data-i18n-technical], [data-provider-form-copy]')) {
                 let original = AUTO_TRANSLATED_TEXT.get(node);
                 if (!original) {
                     const source = node.textContent.trim();
@@ -5444,6 +5445,8 @@ function applyProviderWorkspaceTranslations(locale) {
             }
             for (const attribute of ['placeholder', 'title', 'aria-label']) {
                 if (!element.hasAttribute(attribute)) continue;
+                if (element.hasAttribute(`data-i18n-${attribute}`)
+                    || element.hasAttribute('data-i18n-technical')) continue;
                 if (!(attribute in originals)) originals[attribute] = element.getAttribute(attribute) || '';
                 const source = originals[attribute];
                 const translated = locale === 'en' ? source : translateProviderCopy(source, locale);
