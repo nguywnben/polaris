@@ -38,8 +38,12 @@ for (const file of sources) {
 const context = vm.createContext({document: {addEventListener() {}}, console});
 const localeSource = fs.readFileSync(path.join(frontend, 'js/core/locales.js'), 'utf8');
 const pageLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/page-locales.js'), 'utf8');
+const auditLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/audit-locales.js'), 'utf8');
+const traceLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/trace-locales.js'), 'utf8');
+const operationalLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/operational-locales.js'), 'utf8');
 const i18nSource = fs.readFileSync(path.join(frontend, 'js/core/i18n.js'), 'utf8');
-vm.runInContext(`${localeSource}\n${pageLocaleSource}\n${i18nSource}\nglobalThis.__catalogs = {SUPPORTED_LOCALES, COMMON_UI_TRANSLATIONS, SETTINGS_LOCALE_TRANSLATIONS, AUTH_LOCALE_TRANSLATIONS, DIALOG_LOCALE_TRANSLATIONS, PAGE_LOCALE_TRANSLATIONS, TRANSLATIONS, LEGACY_UI_FALLBACKS, PROVIDER_COPY_FALLBACKS, PROVIDER_LABEL_TRANSLATIONS, PROVIDER_LABEL_KEYS, PRESERVED_TECHNICAL_TRANSLATION_KEYS, resolveLegacyFallback};`, context);
+const identityLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/identity-locales.js'), 'utf8');
+vm.runInContext(`${localeSource}\n${pageLocaleSource}\n${auditLocaleSource}\n${traceLocaleSource}\n${operationalLocaleSource}\n${i18nSource}\n${identityLocaleSource}\nglobalThis.__catalogs = {SUPPORTED_LOCALES, COMMON_UI_TRANSLATIONS, SETTINGS_LOCALE_TRANSLATIONS, AUTH_LOCALE_TRANSLATIONS, DIALOG_LOCALE_TRANSLATIONS, PAGE_LOCALE_TRANSLATIONS, TRANSLATIONS, LEGACY_UI_FALLBACKS, PROVIDER_COPY_FALLBACKS, PROVIDER_LABEL_TRANSLATIONS, PROVIDER_LABEL_KEYS, PRESERVED_TECHNICAL_TRANSLATION_KEYS, resolveLegacyFallback};`, context);
 
 const catalogs = context.__catalogs;
 const verbose = process.argv.includes('--verbose');

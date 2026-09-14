@@ -54,21 +54,11 @@ async function checkForUpdates() {
 
     const checkBtn = document.getElementById('checkUpdateBtn');
 
-    const updateGuideLink = document.getElementById('updateGuideLink');
-
     if (!checkBtn) return;
-
-    const setUpdateGuideVisible = (visible) => {
-
-        if (!updateGuideLink) return;
-
-        updateGuideLink.hidden = !visible;
-
-    };
 
     if (!checkBtn.dataset.defaultText) {
 
-        checkBtn.dataset.defaultText = checkBtn.textContent.trim() || 'Check for updates';
+        checkBtn.dataset.defaultText = checkBtn.textContent.trim() || t('check_for_updates');
 
     }
 
@@ -128,8 +118,6 @@ async function checkForUpdates() {
 
                 checkBtn.classList.add('update-available');
 
-                setUpdateGuideVisible(true);
-
             } else if (data.has_update === false) {
 
                 showStatus(t('already_up_to_date'), 'success');
@@ -137,8 +125,6 @@ async function checkForUpdates() {
                 checkBtn.textContent = t('already_up_to_date_dup');
 
                 checkBtn.classList.add('update-current');
-
-                setUpdateGuideVisible(false);
 
                 checkBtn._resetTimer = setTimeout(() => {
 
@@ -186,7 +172,7 @@ async function checkForUpdates() {
 
 // =====================================================================
 
-window.onload = async function () {
+async function initializeConsole() {
 
     updatePrimaryCallbackUrlPlaceholder();
 
@@ -226,7 +212,17 @@ window.onload = async function () {
 
     }
 
-};
+}
+
+if (document.readyState === 'loading') {
+
+    document.addEventListener('DOMContentLoaded', initializeConsole, { once: true });
+
+} else {
+
+    void initializeConsole();
+
+}
 
 document.addEventListener('DOMContentLoaded', function () {
 

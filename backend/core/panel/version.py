@@ -13,7 +13,7 @@ from log import log
 from paths import PROJECT_ROOT
 
 router = APIRouter(prefix="/api/version", tags=["version"])
-LATEST_RELEASE_URL = "https://api.github.com/repos/nguywnben/omni-gateway/releases/latest"
+LATEST_RELEASE_URL = "https://api.github.com/repos/nguywnben/polaris/releases/latest"
 _SEMVER_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$")
 
 
@@ -23,6 +23,7 @@ class BuildMetadata:
     full_hash: str
     message: str
     date: str
+    source: str
 
 
 def _run_git(*arguments: str) -> str:
@@ -51,6 +52,7 @@ def get_build_metadata() -> BuildMetadata:
             full_hash="" if revision == "unknown" else revision,
             message="Container build",
             date=build_date,
+            source="container",
         )
 
     try:
@@ -60,6 +62,7 @@ def get_build_metadata() -> BuildMetadata:
             full_hash=revision,
             message=_run_git("log", "-1", "--pretty=%s"),
             date=_run_git("log", "-1", "--pretty=%cI"),
+            source="git",
         )
     except (OSError, subprocess.SubprocessError):
         return BuildMetadata(
@@ -67,6 +70,7 @@ def get_build_metadata() -> BuildMetadata:
             full_hash="",
             message="Development build",
             date="",
+            source="development",
         )
 
 
@@ -82,6 +86,7 @@ def _release_metadata(payload: dict) -> BuildMetadata:
         full_hash="",
         message=name or body_line or "Release available",
         date=str(payload.get("published_at") or ""),
+        source="release",
     )
 
 

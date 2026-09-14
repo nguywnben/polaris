@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Compatibility path for Termux. Canonical production: docs/installation.md.
 set -euo pipefail
 
 log() {
@@ -31,7 +32,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
     npm install -g pm2
 fi
 
-PROJECT_DIR="${PROJECT_DIR:-omni-gateway}"
+PROJECT_DIR="${PROJECT_DIR:-polaris}"
 REPOSITORY_URL="${REPOSITORY_URL:-}"
 
 if [ -f "./backend/main.py" ]; then
@@ -56,6 +57,6 @@ log "Installing Python dependencies..."
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install --require-hashes -r requirements.lock
 
-log "Starting Omni Gateway with PM2..."
-pm2 start .venv/bin/python --name omni-gateway -- backend/main.py
+log "Starting Polaris with PM2..."
+pm2 start .venv/bin/python --name polaris -- backend/main.py
 pm2 save

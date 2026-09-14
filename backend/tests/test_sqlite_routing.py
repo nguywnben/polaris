@@ -21,6 +21,28 @@ from support import workspace_temp_directory
 
 
 class SQLiteRoutingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_success_hint_batch_preserves_the_exact_call_increment(self):
+        with workspace_temp_directory() as temp_dir:
+            with patch.dict(os.environ, {"CREDENTIALS_DIR": temp_dir}):
+                storage = SQLiteManager()
+                await storage.initialize()
+                try:
+                    await storage.store_credential(
+                        "batched.json", {"token": "a", "project_id": "a"}, mode="primary"
+                    )
+
+                    await storage.record_success(
+                        "batched.json",
+                        mode="primary",
+                        model_name="model-a",
+                        call_increment=7,
+                    )
+
+                    state = await storage.get_credential_state("batched.json", mode="primary")
+                    self.assertEqual(state["call_count"], 7)
+                finally:
+                    await storage.close()
+
     async def test_failed_attempt_updates_fairness_and_changes_selection(self):
         with workspace_temp_directory() as temp_dir:
             with patch.dict(os.environ, {"CREDENTIALS_DIR": temp_dir}):

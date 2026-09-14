@@ -1,3 +1,4 @@
+# Compatibility path for native Python installs. Canonical production: docs/installation.md.
 $ErrorActionPreference = "Stop"
 
 function Write-Info {
@@ -24,7 +25,7 @@ foreach ($tool in @("git", "uv")) {
     }
 }
 
-$ProjectDir = if ($env:PROJECT_DIR) { $env:PROJECT_DIR } else { "omni-gateway" }
+$ProjectDir = if ($env:PROJECT_DIR) { $env:PROJECT_DIR } else { "polaris" }
 $RepositoryUrl = $env:REPOSITORY_URL
 
 if (Test-Path -LiteralPath "./backend/main.py") {
@@ -50,5 +51,5 @@ if (-not (Test-Path -LiteralPath ".venv/Scripts/python.exe")) {
 Write-Info "Installing Python dependencies..."
 uv pip install --require-hashes -r requirements.lock
 
-Write-Info "Starting Omni Gateway..."
+Write-Info "Starting Polaris..."
 & ".venv/Scripts/python.exe" "backend/main.py"

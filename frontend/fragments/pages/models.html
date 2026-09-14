@@ -7,13 +7,24 @@
                         </div>
                         <div class="page-actions">
                             <button type="button" class="btn btn-secondary" id="refreshModelCatalogBtn" data-ui-action="refresh-model-catalog" data-i18n="refresh">Refresh</button>
-                            <button type="button" class="btn" id="saveModelPoolBtn" data-ui-action="save-model-pool" data-i18n="save">Save</button>
                         </div>
                     </header>
 
-                    <div class="stats-container model-stats-container">
+                    <div id="modelCatalogState" data-page-state-host hidden></div>
+
+                    <section id="modelFirstRun" class="guided-empty-state" role="status" hidden>
+                        <div>
+                            <h2 data-i18n="models.none_available">No provider models are available.</h2>
+                            <p data-i18n="models.selection_description">Select models discovered from enabled provider credentials.</p>
+                        </div>
+                        <div class="guided-empty-actions">
+                            <button type="button" class="btn" data-ui-action="switch-tab" data-tab="providers" data-i18n="providers">Providers</button>
+                        </div>
+                    </section>
+
+                    <div class="stats-container model-stats-container model-data-only">
                         <div class="stat-item"><span class="stat-number" id="modelStatAvailable">0</span><span class="stat-label" data-i18n="available_provider_models">Available provider models</span></div>
-                        <div class="stat-item"><span class="stat-number" id="modelStatSelected">0</span><span class="stat-label" data-i18n="assigned_models">Models assigned to omway</span></div>
+                        <div class="stat-item"><span class="stat-number" id="modelStatSelected">0</span><span class="stat-label" data-i18n="assigned_models">Models assigned to polaris</span></div>
                         <div class="stat-item"><span class="stat-number" id="modelStatUnavailable">0</span><span class="stat-label" data-i18n="unavailable_selections">Unavailable selections</span></div>
                     </div>
 
@@ -22,20 +33,40 @@
                         <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div></div>
                     </div>
 
-                    <div id="modelPoolWorkspace" class="model-pool-grid hidden">
+                    <div id="modelPoolWorkspace" class="model-pool-grid model-data-only hidden">
                         <section class="card model-pool-card">
                             <div class="model-pool-heading">
                                 <div>
                                     <div class="provider-eyebrow" data-i18n="models.virtual_model">Virtual Model</div>
-                                    <h2 class="card-title model-alias-title" data-i18n-technical>omway</h2>
+                                    <h2 class="card-title model-alias-title" data-i18n-technical>polaris</h2>
                                 </div>
                                 <span class="status-badge muted" id="modelPoolStatus" data-i18n="models.not_configured">Not configured</span>
                             </div>
-                            <p class="card-copy card-title-copy" data-i18n="models.virtual_model_description">Use omway in OpenAI, Anthropic, or Google GenAI clients. Requests try the selected models from top to bottom.</p>
-                            <div class="model-policy-note">
+                            <p class="card-copy card-title-copy" data-i18n="models.virtual_model_description">Use polaris in OpenAI, Anthropic, or Google GenAI clients. Requests try the selected models from top to bottom.</p>
+                            <p class="field-hint model-policy-summary">
                                 <strong data-i18n="models.priority_fallback">Priority fallback</strong>
                                 <span data-i18n="models.priority_fallback_description">Credentials are balanced within each model before routing continues to the next model.</span>
-                            </div>
+                            </p>
+                            <fieldset class="model-routing-policy">
+                                <legend data-i18n="models.credential_strategy">Credential strategy</legend>
+                                <div class="model-routing-policy-grid">
+                                    <div class="form-group">
+                                        <label for="modelRoutingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
+                                        <select id="modelRoutingStrategy" data-ui-change="model-routing-strategy">
+                                            <option value="balanced" data-i18n="settings.balanced">Balanced</option>
+                                            <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
+                                            <option value="weighted" data-i18n="settings.weighted">Weighted random</option>
+                                            <option value="least_latency" data-i18n="settings.least_latency">Least latency</option>
+                                            <option value="lowest_cost" data-i18n="settings.lowest_cost">Lowest cost</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="modelPreferredProviderGroup">
+                                        <label for="modelPreferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
+                                        <select id="modelPreferredProvider" data-ui-change="model-routing-strategy"><option value="" data-i18n="settings.automatic">Automatic</option></select>
+                                    </div>
+                                </div>
+                                <p class="field-hint hidden" id="modelRoutingLockNotice" data-i18n="quality.environment_managed">Managed by the runtime environment.</p>
+                            </fieldset>
                             <div class="model-section-heading">
                                 <div>
                                     <h3 data-i18n="models.fallback_order">Fallback Order</h3>
@@ -43,6 +74,13 @@
                                 </div>
                             </div>
                             <div id="selectedModelList" class="selected-model-list"></div>
+                            <p id="modelRouteUnsavedNotice" class="field-hint hidden" data-i18n="models.unsaved_changes">Save the route before testing the changed selection.</p>
+                            <div class="model-route-actions">
+                                <button type="button" class="btn btn-secondary" id="validateModelRouteBtn" data-ui-action="validate-model-route" data-i18n="models.validate_route">Validate route</button>
+                                <button type="button" class="btn btn-secondary" id="testModelRouteBtn" data-ui-action="test-model-route" data-i18n="models.test_playground">Test in Playground</button>
+                                <button type="button" class="btn btn-danger hidden" id="deleteModelRouteBtn" data-ui-action="delete-model-route" data-i18n="models.delete_route">Delete route</button>
+                                <button type="button" class="btn" id="saveModelPoolBtn" data-ui-action="save-model-pool" data-i18n="models.create_route">Create route</button>
+                            </div>
                         </section>
 
                         <section class="card model-catalog-card">
@@ -51,7 +89,7 @@
                                     <h2 class="card-title" data-i18n="models.provider_models">Provider Models</h2>
                                     <p data-i18n="models.selection_description">Select models discovered from enabled provider credentials.</p>
                                 </div>
-                                <input type="search" id="modelCatalogSearch" class="model-catalog-search" data-i18n-placeholder="models.search_models" placeholder="Search models" autocomplete="off" data-ui-input="model-catalog-search">
+                                <input type="search" id="modelCatalogSearch" class="model-catalog-search" data-i18n-placeholder="models.search_models" data-i18n-aria-label="models.search_models" aria-label="Search models" placeholder="Search models" autocomplete="off" data-ui-input="model-catalog-search">
                             </div>
                             <div id="modelCatalogList" class="model-catalog-list"></div>
                         </section>

@@ -26,6 +26,8 @@ async function loadAntigravitySettings(options = {}) {
 
             AppState.antigravityEnvLockedFields = new Set(data.env_locked || []);
 
+            AppState.antigravityConfiguredSecrets = new Set(data.configured_secrets || []);
+
             populateAntigravitySettings();
 
             form.classList.remove('hidden');
@@ -57,7 +59,16 @@ function populateAntigravitySettings() {
 
     setAntigravityConfigField('antigravityOauthClientId', c.antigravity_client_id || '');
 
-    setAntigravityConfigField('antigravityOauthClientSecret', c.antigravity_client_secret || '');
+    const secretField = document.getElementById('antigravityOauthClientSecret');
+    if (secretField) {
+        secretField.value = '';
+        secretField.dataset.secretConfigured = String(
+            AppState.antigravityConfiguredSecrets?.has('antigravity_client_secret')
+        );
+        secretField.placeholder = secretField.dataset.secretConfigured === 'true'
+            ? t('provider.form.client_secret_help')
+            : '';
+    }
 
     setAntigravityConfigField('antigravityApiUrl', c.antigravity_api_url || '');
 
@@ -76,6 +87,11 @@ function populateAntigravitySettings() {
     setAntigravityConfigCheckbox('antigravityStreamToNonstream', Boolean(c.stream_to_nonstream !== false));
 
     setAntigravityConfigCheckbox('antigravitySwitchCredential', Boolean(c.switch_credential_enabled));
+
+    applyProviderEnvironmentLocks(
+        'antigravity.settings',
+        Array.from(AppState.antigravityEnvLockedFields || [])
+    );
 
 }
 
@@ -121,6 +137,8 @@ async function saveAntigravitySettings() {
 
     try {
 
+        if (!validateProviderFormScope('antigravity.settings')) return;
+
         const getValue = (id, def = '') => document.getElementById(id)?.value.trim() || def;
 
         const getChecked = (id, def = false) => {
@@ -130,7 +148,6 @@ async function saveAntigravitySettings() {
 
         const config = {
             antigravity_client_id: getValue('antigravityOauthClientId'),
-            antigravity_client_secret: getValue('antigravityOauthClientSecret'),
             antigravity_api_url: getValue('antigravityApiUrl'),
             oauth_url: getValue('antigravityOauthUrl'),
             google_apis_url: getValue('antigravityGoogleApisUrl'),
@@ -141,6 +158,9 @@ async function saveAntigravitySettings() {
             stream_to_nonstream: getChecked('antigravityStreamToNonstream', true),
             switch_credential_enabled: getChecked('antigravitySwitchCredential')
         };
+
+        const clientSecret = getValue('antigravityOauthClientSecret');
+        if (clientSecret) config.antigravity_client_secret = clientSecret;
 
         const response = await fetch('./api/providers/antigravity/config', {
 
@@ -206,6 +226,8 @@ async function resetAntigravitySettings() {
 
             AppState.antigravityEnvLockedFields = new Set(data.env_locked || []);
 
+            AppState.antigravityConfiguredSecrets = new Set(data.configured_secrets || []);
+
             populateAntigravitySettings();
 
             setTimeout(() => loadAntigravitySettings(), 600);
@@ -230,33 +252,3 @@ async function resetAntigravitySettings() {
 // =====================================================================
 
 // =====================================================================
-
-const CONFIG_FIELD_KEYS = {
-    host: 'host',
-    port: 'port',
-    credentialsDir: 'credentials_dir',
-    proxy: 'proxy',
-    codeAssistClientId: 'code_assist_client_id',
-    codeAssistClientSecret: 'code_assist_client_secret',
-    codeAssistEndpoint: 'code_assist_endpoint',
-    autoBanEnabled: 'auto_disable_enabled',
-    autoBanErrorCodes: 'auto_disable_error_codes',
-    retry429Enabled: 'retry_429_enabled',
-    retry429MaxRetries: 'retry_429_max_retries',
-    retry429Interval: 'retry_429_interval',
-    compatibilityModeEnabled: 'compatibility_mode_enabled',
-    returnThoughtsToFrontend: 'return_thoughts_to_frontend',
-    antiTruncationMaxAttempts: 'anti_truncation_max_attempts',
-    tokenCompressionEnabled: 'token_compression_enabled',
-    tokenCompressionThreshold: 'token_compression_threshold',
-    tokenCompressionTarget: 'token_compression_target',
-    tokenCompressionMinRecentTurns: 'token_compression_min_recent_turns',
-    routingStrategy: 'routing_strategy',
-    preferredProvider: 'preferred_provider',
-    upstreamTimeoutSeconds: 'upstream_timeout_seconds',
-    runtimeLogLevel: 'log_level',
-    runtimeLogMaxMb: 'log_max_mb',
-    runtimeLogBackupCount: 'log_backup_count',
-    keepaliveUrl: 'keepalive_url',
-    keepaliveInterval: 'keepalive_interval'
-};

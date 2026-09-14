@@ -10,6 +10,7 @@ from core.models import ClaudeRequest, model_to_dict
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
+    cascade_close_async_iterator,
     prepend_async_item,
     read_first_async_item,
 )
@@ -105,6 +106,9 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
 
         return JSONResponse(content=anthropic_response, status_code=status_code)
 
+    anti_owned_streams = []
+    normal_owned_streams = []
+
     async def fake_stream_generator():
         from core.api.primary import non_stream_request
 
@@ -197,6 +201,7 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        anti_owned_streams.append(first_attempt_stream)
         try:
             first_chunk = await read_first_async_item(first_attempt_stream)
         except StopAsyncIteration:
@@ -221,6 +226,7 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
                     model_candidates=model_candidates,
                     model_routing=model_resolution.is_virtual,
                 )
+            anti_owned_streams.append(stream_gen)
             return StreamingResponse(stream_gen, media_type="text/event-stream")
 
         processor = AntiTruncationStreamProcessor(
@@ -237,9 +243,9 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
                 else:
                     yield chunk
 
-        async for anthropic_chunk in gemini_stream_to_anthropic_stream(
-            bytes_wrapper(), response_model, 200
-        ):
+        anthropic_stream = gemini_stream_to_anthropic_stream(bytes_wrapper(), response_model, 200)
+        anti_owned_streams.append(anthropic_stream)
+        async for anthropic_chunk in anthropic_stream:
             if anthropic_chunk:
                 yield anthropic_chunk
 
@@ -254,6 +260,7 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        normal_owned_streams.append(stream_gen)
         try:
             first_chunk = await read_first_async_item(stream_gen)
         except StopAsyncIteration:
@@ -291,9 +298,11 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
                     else:
                         yield chunk
 
-        async for anthropic_chunk in gemini_stream_to_anthropic_stream(
+        anthropic_stream = gemini_stream_to_anthropic_stream(
             gemini_chunk_wrapper(), response_model, 200
-        ):
+        )
+        normal_owned_streams.append(anthropic_stream)
+        async for anthropic_chunk in anthropic_stream:
             if anthropic_chunk:
                 yield anthropic_chunk
 
@@ -304,11 +313,13 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
     elif use_anti_truncation:
         log.info("Enabling anti-truncation streaming feature")
         return await build_streaming_response_or_error(
-            anti_truncation_generator(), error_protocol="anthropic"
+            cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams),
+            error_protocol="anthropic",
         )
     else:
         return await build_streaming_response_or_error(
-            normal_stream_generator(), error_protocol="anthropic"
+            cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams),
+            error_protocol="anthropic",
         )
 
 

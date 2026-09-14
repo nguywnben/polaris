@@ -17,12 +17,18 @@ if str(TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(TESTS_DIR))
 
 from core import gateway_pipeline
+from core.request_context import request_scope, set_operation_replay_required
 from core.response_cache import response_cache
 from fastapi import Response
 
 
 def _run(coro):
-    return asyncio.get_event_loop_policy().new_event_loop().run_until_complete(coro)
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
 
 def _gemini_body(text: str, temperature=None) -> dict:
@@ -44,6 +50,94 @@ GUARDRAILS_ON = {
 GUARDRAILS_OFF = {**GUARDRAILS_ON, "enabled": False}
 CACHE_ON = {"enabled": True, "ttl_seconds": 300, "max_entries": 100}
 CACHE_OFF = {**CACHE_ON, "enabled": False}
+
+
+class RuntimeAdmissionPipelineTests(unittest.IsolatedAsyncioTestCase):
+    async def test_unavailable_lifecycle_blocks_non_stream_before_guardrails(self) -> None:
+        from core.api import primary
+
+        blocked = Response(content=b"{}", status_code=503, media_type="application/json")
+        guardrails = AsyncMock()
+        upstream = AsyncMock()
+        with (
+            patch.object(
+                primary,
+                "runtime_admission_response",
+                return_value=blocked,
+                create=True,
+            ),
+            patch.object(primary, "apply_pre_call_guardrails", guardrails),
+            patch.object(primary, "_non_stream_request_upstream", upstream),
+        ):
+            response = await primary.non_stream_request(_gemini_body("blocked"))
+        self.assertIs(response, blocked)
+        guardrails.assert_not_awaited()
+        upstream.assert_not_awaited()
+
+    async def test_unavailable_lifecycle_blocks_stream_before_guardrails(self) -> None:
+        from core.api import primary
+
+        blocked = Response(content=b"{}", status_code=503, media_type="application/json")
+        guardrails = AsyncMock()
+        with (
+            patch.object(
+                primary,
+                "runtime_admission_response",
+                return_value=blocked,
+                create=True,
+            ),
+            patch.object(primary, "apply_pre_call_guardrails", guardrails),
+        ):
+            responses = [
+                response async for response in primary.stream_request(_gemini_body("blocked"))
+            ]
+        self.assertEqual(responses, [blocked])
+        guardrails.assert_not_awaited()
+
+    def test_runtime_admission_response_is_generic_and_fail_closed(self) -> None:
+        lifecycle = type("Lifecycle", (), {"admission_available": False})()
+        with patch("core.runtime_lifecycle.get_runtime_lifecycle", return_value=lifecycle):
+            response = gateway_pipeline.runtime_admission_response()
+        self.assertIsNotNone(response)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(json.loads(response.body)["error"]["type"], "runtime_unavailable")
+
+
+class ResponseCacheAccountingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cache_hit_records_zero_cost_success_without_upstream_call(self) -> None:
+        from core.api import primary
+
+        body = _gemini_body("accounted cache hit", temperature=0)
+        cached = Response(
+            content=json.dumps({"answer": 42}),
+            status_code=200,
+            media_type="application/json",
+        )
+        recorder = AsyncMock()
+        upstream = AsyncMock()
+        with (
+            patch.object(primary, "runtime_admission_response", return_value=None),
+            patch.object(
+                primary,
+                "apply_pre_call_guardrails",
+                new=AsyncMock(return_value=(None, body)),
+            ),
+            patch.object(
+                primary,
+                "lookup_response_cache",
+                new=AsyncMock(return_value=("cache-key", cached)),
+            ),
+            patch.object(primary, "record_response_cache_hit", recorder),
+            patch.object(primary, "_non_stream_request_upstream", upstream),
+        ):
+            response = await primary.non_stream_request(body)
+
+        self.assertIs(response, cached)
+        recorder.assert_awaited_once_with(
+            model_name="gemini-2.5-flash",
+            status_code=200,
+        )
+        upstream.assert_not_awaited()
 
 
 class GuardrailsPipelineTests(unittest.TestCase):
@@ -90,14 +184,16 @@ class GuardrailsPipelineTests(unittest.TestCase):
             blocking, _ = _run(gateway_pipeline.apply_pre_call_guardrails(body))
         self.assertIsNotNone(blocking)
 
-    def test_config_failure_fails_open(self):
+    def test_enabled_security_policy_failure_fails_closed(self):
         body = _gemini_body("hello world")
         with patch(
             "config.get_guardrails_config",
             new=AsyncMock(side_effect=RuntimeError("storage down")),
         ):
             blocking, result = _run(gateway_pipeline.apply_pre_call_guardrails(body))
-        self.assertIsNone(blocking)
+        self.assertIsNotNone(blocking)
+        self.assertEqual(blocking.status_code, 503)
+        self.assertEqual(json.loads(blocking.body)["error"]["type"], "guardrails_unavailable")
         self.assertIs(result, body)
 
 
@@ -135,7 +231,7 @@ class ResponseCachePipelineTests(unittest.TestCase):
             self.assertIsNotNone(cache_key)
             self.assertIsNone(cached)
 
-            gateway_pipeline.store_response_cache(cache_key, upstream)
+            _run(gateway_pipeline.store_response_cache(cache_key, upstream))
 
             cache_key2, cached2 = _run(gateway_pipeline.lookup_response_cache(body))
         self.assertEqual(cache_key, cache_key2)
@@ -144,12 +240,46 @@ class ResponseCachePipelineTests(unittest.TestCase):
         self.assertEqual(json.loads(cached2.body), {"answer": 42})
         self.assertEqual(cached2.headers.get(gateway_pipeline.CACHE_HIT_HEADER), "hit")
 
+    def test_nested_internal_request_is_cacheable_and_body_bound(self):
+        first = {
+            "model": "gemini-2.5-flash",
+            "request": _gemini_body("question A", temperature=0),
+        }
+        second = {
+            "model": "gemini-2.5-flash",
+            "request": _gemini_body("question B", temperature=0),
+        }
+        with patch("config.get_response_cache_config", new=AsyncMock(return_value=CACHE_ON)):
+            first_key, _ = _run(gateway_pipeline.lookup_response_cache(first))
+            second_key, _ = _run(gateway_pipeline.lookup_response_cache(second))
+
+        self.assertIsNotNone(first_key)
+        self.assertIsNotNone(second_key)
+        self.assertNotEqual(first_key, second_key)
+
+    def test_committed_operation_replay_fails_closed_without_cached_body(self):
+        body = _gemini_body("replay", temperature=0)
+        with (
+            request_scope("replayed-request"),
+            patch("config.get_response_cache_config", new=AsyncMock(return_value=CACHE_ON)),
+        ):
+            set_operation_replay_required(True)
+            cache_key, response = _run(gateway_pipeline.lookup_response_cache(body))
+
+        self.assertIsNone(cache_key)
+        self.assertIsNotNone(response)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            json.loads(response.body)["error"]["type"],
+            "operation_replay_unavailable",
+        )
+
     def test_error_responses_are_not_cached(self):
         body = _gemini_body("q", temperature=0)
         error_response = Response(content=b"{}", status_code=503, media_type="application/json")
         with patch("config.get_response_cache_config", new=AsyncMock(return_value=CACHE_ON)):
             cache_key, _ = _run(gateway_pipeline.lookup_response_cache(body))
-            gateway_pipeline.store_response_cache(cache_key, error_response)
+            _run(gateway_pipeline.store_response_cache(cache_key, error_response))
             _, cached = _run(gateway_pipeline.lookup_response_cache(body))
         self.assertIsNone(cached)
 
@@ -162,7 +292,7 @@ class ResponseCachePipelineTests(unittest.TestCase):
         )
         with patch("config.get_response_cache_config", new=AsyncMock(return_value=CACHE_ON)):
             cache_key, _ = _run(gateway_pipeline.lookup_response_cache(body))
-            gateway_pipeline.store_response_cache(cache_key, huge)
+            _run(gateway_pipeline.store_response_cache(cache_key, huge))
             _, cached = _run(gateway_pipeline.lookup_response_cache(body))
         self.assertIsNone(cached)
 

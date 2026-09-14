@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "advertised_families": [
+    "anthropic_messages",
+    "gemini_native",
+    "openai_chat_completions",
+    "openai_responses",
+    "vertex"
+  ],
+  "feature_vocabulary": [
+    "text_input",
+    "multimodal_input",
+    "system_messages",
+    "tools",
+    "structured_output",
+    "reasoning_control",
+    "reasoning_output",
+    "usage",
+    "finish_reasons",
+    "normalized_errors"
+  ],
+  "conversions": {
+    "anthropic_messages_to_gemini": {
+      "family": "anthropic_messages",
+      "features": {
+        "text_input": "translated",
+        "multimodal_input": "translated",
+        "system_messages": "translated",
+        "tools": "translated",
+        "structured_output": "translated",
+        "reasoning_control": "translated",
+        "reasoning_output": "translated",
+        "usage": "translated",
+        "finish_reasons": "translated",
+        "normalized_errors": "supported"
+      }
+    },
+    "gemini_native": {
+      "family": "gemini_native",
+      "features": {
+        "text_input": "supported",
+        "multimodal_input": "supported",
+        "system_messages": "supported",
+        "tools": "supported",
+        "structured_output": "supported",
+        "reasoning_control": "supported",
+        "reasoning_output": "supported",
+        "usage": "supported",
+        "finish_reasons": "supported",
+        "normalized_errors": "supported"
+      }
+    },
+    "openai_chat_to_gemini": {
+      "family": "openai_chat_completions",
+      "features": {
+        "text_input": "translated",
+        "multimodal_input": "translated",
+        "system_messages": "translated",
+        "tools": "translated",
+        "structured_output": "translated",
+        "reasoning_control": "rejected",
+        "reasoning_output": "translated",
+        "usage": "translated",
+        "finish_reasons": "translated",
+        "normalized_errors": "supported"
+      }
+    },
+    "openai_responses_to_chat": {
+      "family": "openai_responses",
+      "features": {
+        "text_input": "translated",
+        "multimodal_input": "translated",
+        "system_messages": "translated",
+        "tools": "translated",
+        "structured_output": "translated",
+        "reasoning_control": "rejected",
+        "reasoning_output": "translated",
+        "usage": "translated",
+        "finish_reasons": "translated",
+        "normalized_errors": "supported"
+      }
+    },
+    "vertex_gemini": {
+      "family": "vertex",
+      "features": {
+        "text_input": "supported",
+        "multimodal_input": "supported",
+        "system_messages": "supported",
+        "tools": "supported",
+        "structured_output": "supported",
+        "reasoning_control": "supported",
+        "reasoning_output": "supported",
+        "usage": "supported",
+        "finish_reasons": "supported",
+        "normalized_errors": "supported"
+      }
+    },
+    "vertex_openai_to_gemini": {
+      "family": "vertex",
+      "features": {
+        "text_input": "translated",
+        "multimodal_input": "translated",
+        "system_messages": "translated",
+        "tools": "translated",
+        "structured_output": "translated",
+        "reasoning_control": "rejected",
+        "reasoning_output": "translated",
+        "usage": "translated",
+        "finish_reasons": "translated",
+        "normalized_errors": "supported"
+      }
+    }
+  }
+}

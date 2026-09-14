@@ -27,6 +27,7 @@ GEMINI.md
 .env.*
 *.env.*
 !.env.example
+!deploy/compose.env.example
 .envrc
 
 # Secrets and key material

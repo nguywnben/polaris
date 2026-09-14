@@ -1,7 +1,7 @@
 apiVersion: zeabur.com/v1
 kind: Template
 metadata:
-  name: omni-gateway
+  name: polaris
 spec:
   description: >-
     A universal AI router for coding tools with smart auto-fallback,
@@ -16,29 +16,29 @@ spec:
     - key: PANEL_PASSWORD
       type: STRING
       name: Console password
-      description: Password used to access the Omni Gateway control panel.
+      description: Password used to access the Polaris control panel.
     - key: DOMAIN
       type: DOMAIN
       name: Domain
-      description: Public domain for the Omni Gateway service.
+      description: Public domain for the Polaris service.
     - key: IMAGE
       type: STRING
       name: Container image
       description: Published container image to deploy.
   readme: |
-    # Omni Gateway
+    # Polaris
 
-    Omni Gateway routes coding-tool traffic across OpenAI-compatible, Gemini-compatible,
+    Polaris routes coding-tool traffic across OpenAI-compatible, Gemini-compatible,
     Anthropic-compatible, and native backend formats.
 
     After deployment, open your assigned domain, sign in with the configured
     console password, and add credentials from the control panel.
   services:
-    - name: omni-gateway
+    - name: polaris
       template: PREBUILT
       spec:
-        id: omni-gateway
-        name: omni-gateway
+        id: polaris
+        name: polaris
         source:
           image: ${IMAGE}
         ports:

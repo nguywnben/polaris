@@ -1,6 +1,10 @@
 from core.models import GeminiRequest, model_to_dict
 from core.router.protocol_errors import adapt_protocol_error_response
-from core.router.stream_passthrough import build_streaming_response_or_error
+from core.router.stream_passthrough import (
+    build_streaming_response_or_error,
+    cascade_close_async_iterator,
+    sse_heartbeat_bytes,
+)
 from core.token_estimator import estimate_input_tokens
 from core.utils import authenticate_gemini_flexible
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
@@ -50,6 +54,8 @@ async def stream_generate_content(
     normalized_dict = model_to_dict(gemini_request)
     normalized_dict["model"] = model
 
+    owned_streams = []
+
     async def stream_generator():
         from core.api.vertex import stream_request
         from core.converter.gemini_fix import normalize_gemini_request
@@ -62,14 +68,23 @@ async def stream_generate_content(
             "request": normalized_req,
         }
 
-        async for chunk in stream_request(body=api_request, native=False):
+        upstream = stream_request(body=api_request, native=False)
+        owned_streams.append(upstream)
+        async for chunk in upstream:
             if isinstance(chunk, Response):
                 yield chunk
                 return
             if isinstance(chunk, (str, bytes)):
+                heartbeat = sse_heartbeat_bytes(chunk)
+                if heartbeat is not None:
+                    yield heartbeat
+                    continue
                 yield chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
 
-    return await build_streaming_response_or_error(stream_generator(), error_protocol="gemini")
+    return await build_streaming_response_or_error(
+        cascade_close_async_iterator(stream_generator(), owned_streams),
+        error_protocol="gemini",
+    )
 
 
 @router.post("/vertex/v1beta/models/{model:path}:countTokens")

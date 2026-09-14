@@ -12,12 +12,121 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from core.anthropic import AnthropicError
 from core.codex import CodexError
 from core.panel.credentials import get_credential_quota
 from core.xai import XaiError
 
 
 class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_claude_code_oauth_returns_account_rate_limits(self):
+        storage = AsyncMock()
+        storage.get_credential.return_value = {
+            "provider": "anthropic",
+            "credential_type": "oauth",
+            "access_token": "active-token",
+            "refresh_token": "refresh-token",
+        }
+        usage = {
+            "quota_type": "account_rate_limits",
+            "plan": "max_20x",
+            "windows": [
+                {
+                    "id": "session",
+                    "label": "5-Hour Limit",
+                    "used_percentage": 20,
+                    "remaining_percentage": 80,
+                    "reset_time": "2033-05-18T03:33:20+00:00",
+                }
+            ],
+        }
+
+        with (
+            patch(
+                "core.panel.credentials.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch(
+                "core.panel.credentials.fetch_anthropic_oauth_usage",
+                AsyncMock(return_value=usage),
+            ) as fetch,
+        ):
+            response = await get_credential_quota(
+                "claude-code-account.json",
+                token="panel-token",
+                mode="provider",
+            )
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["supported"])
+        self.assertEqual(payload["provider"], "anthropic")
+        self.assertEqual(payload["provider_variant"], "claude_code")
+        self.assertEqual(payload["windows"][0]["remaining_percentage"], 80)
+        self.assertNotIn("access_token", payload)
+        fetch.assert_awaited_once_with("active-token")
+
+    async def test_expired_claude_code_token_is_refreshed_once_before_quota_retry(self):
+        storage = AsyncMock()
+        storage.get_credential.return_value = {
+            "provider": "anthropic",
+            "credential_type": "oauth",
+            "access_token": "expired-token",
+            "refresh_token": "refresh-token",
+        }
+        refreshed = {
+            **storage.get_credential.return_value,
+            "access_token": "fresh-token",
+            "token": "fresh-token",
+        }
+        usage = AsyncMock(
+            side_effect=[
+                AnthropicError("Claude rejected this OAuth credential.", 401),
+                {
+                    "quota_type": "account_rate_limits",
+                    "plan": "max",
+                    "windows": [
+                        {
+                            "id": "weekly",
+                            "label": "7-Day All Models",
+                            "used_percentage": 40,
+                            "remaining_percentage": 60,
+                            "reset_time": None,
+                        }
+                    ],
+                },
+            ]
+        )
+
+        with (
+            patch(
+                "core.panel.credentials.get_storage_adapter",
+                AsyncMock(return_value=storage),
+            ),
+            patch("core.panel.credentials.fetch_anthropic_oauth_usage", usage),
+            patch(
+                "core.panel.credentials.refresh_claude_oauth_credential",
+                AsyncMock(return_value=refreshed),
+            ) as refresh,
+        ):
+            response = await get_credential_quota(
+                "claude-code-account.json",
+                token="panel-token",
+                mode="provider",
+            )
+
+        payload = json.loads(response.body)
+        self.assertTrue(payload["success"])
+        self.assertEqual(
+            [call.args[0] for call in usage.await_args_list],
+            ["expired-token", "fresh-token"],
+        )
+        refresh.assert_awaited_once()
+        storage.store_credential.assert_awaited_once_with(
+            "claude-code-account.json",
+            refreshed,
+            mode="primary",
+        )
+
     async def test_codex_oauth_returns_account_rate_limits(self):
         storage = AsyncMock()
         storage.get_credential.return_value = {
@@ -68,7 +177,7 @@ class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("access_token", payload)
         fetch.assert_awaited_once_with("active-token", "account-123")
 
-    async def test_openai_platform_api_key_reports_codex_quota_as_unsupported(self):
+    async def test_openai_platform_api_key_rejects_unsupported_quota_operation(self):
         storage = AsyncMock()
         storage.get_credential.return_value = {
             "provider": "openai",
@@ -87,9 +196,9 @@ class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
             )
 
         payload = json.loads(response.body)
-        self.assertTrue(payload["success"])
-        self.assertFalse(payload["supported"])
-        self.assertEqual(payload["provider"], "openai")
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(payload["error"]["code"], "credential_operation_unsupported")
+        self.assertEqual(payload["error"]["operation"], "quota")
         self.assertNotIn("api_key", payload)
 
     async def test_expired_codex_token_is_refreshed_once_before_quota_retry(self):
@@ -201,7 +310,7 @@ class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["monthly"]["remaining"], 3000)
         self.assertNotIn("access_token", payload)
 
-    async def test_xai_console_api_key_reports_quota_as_unsupported(self):
+    async def test_xai_console_api_key_rejects_unsupported_quota_operation(self):
         storage = AsyncMock()
         storage.get_credential.return_value = {
             "provider": "xai",
@@ -220,9 +329,9 @@ class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
             )
 
         payload = json.loads(response.body)
-        self.assertTrue(payload["success"])
-        self.assertFalse(payload["supported"])
-        self.assertEqual(payload["provider"], "xai")
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(payload["error"]["code"], "credential_operation_unsupported")
+        self.assertEqual(payload["error"]["operation"], "quota")
         self.assertNotIn("api_key", payload)
 
     async def test_expired_grok_build_token_is_refreshed_once_before_retry(self):

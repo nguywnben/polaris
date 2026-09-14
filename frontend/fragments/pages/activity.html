@@ -1,0 +1,38 @@
+                <div id="activityTab" class="tab-content">
+                    <header class="page-header">
+                        <div>
+                            <div class="page-kicker" data-i18n="activity.operations">Operations</div>
+                            <h1 class="page-title" data-i18n="activity.title">Activity</h1>
+                            <p class="page-description" data-i18n="activity.description">Investigate requests, management changes, security events, and runtime diagnostics from one workspace.</p>
+                        </div>
+                    </header>
+
+                    <section class="activity-filter-panel" aria-labelledby="activityFilterHeading">
+                        <h2 id="activityFilterHeading" class="card-title" data-i18n="activity.shared_filters">Shared investigation filters</h2>
+                        <form id="activityFilterForm" class="activity-filter-grid">
+                            <div class="form-group activity-filter-time"><label for="activityStartedAfter" data-i18n="activity.from_time">From</label><input type="datetime-local" id="activityStartedAfter" name="started_after"></div>
+                            <div class="form-group activity-filter-time"><label for="activityStartedBefore" data-i18n="activity.to_time">To</label><input type="datetime-local" id="activityStartedBefore" name="started_before"></div>
+                            <div class="form-group activity-filter-outcome">
+                                <label for="activityOutcome" data-i18n="trace.outcome">Outcome</label>
+                                <select id="activityOutcome" name="outcome"><option value="" data-i18n="trace.all">All</option><option value="succeeded" data-i18n="activity.outcome_succeeded">Succeeded</option><option value="failed" data-i18n="activity.outcome_failed">Failed</option><option value="denied" data-i18n="activity.outcome_denied">Denied or rate limited</option><option value="cancelled" data-i18n="activity.outcome_cancelled">Cancelled</option></select>
+                            </div>
+                            <div class="form-group activity-filter-provider"><label for="activityProvider" data-i18n="trace.provider">Provider</label><input id="activityProvider" name="provider" maxlength="128" autocomplete="off" placeholder="openai"></div>
+                            <div class="form-group activity-filter-actor">
+                                <label for="activityActorType" data-i18n="audit.actor_type">Actor type</label>
+                                <select id="activityActorType" name="actor_type" data-i18n-technical><option value="" data-i18n="trace.all">All</option><option value="local_owner">local_owner</option><option value="oidc_user">oidc_user</option><option value="panel_session">panel_session</option><option value="root_key">root_key</option><option value="virtual_key">virtual_key</option><option value="system">system</option></select>
+                            </div>
+                            <div class="form-group activity-filter-request"><label for="activityRequestId" data-i18n="trace.request_id">Request ID</label><input id="activityRequestId" name="request_id" maxlength="128" pattern="[A-Za-z0-9._:\-]{1,128}" autocomplete="off" placeholder="req-…"></div>
+                            <div class="activity-filter-actions"><button type="submit" class="btn" data-i18n="activity.apply_filters">Apply to Activity</button><button type="button" class="btn btn-secondary" data-ui-action="clear-activity-filters" data-i18n="trace.clear">Clear</button></div>
+                            <p id="activityFilterStatus" class="activity-filter-status" role="status" aria-live="polite"></p>
+                        </form>
+                    </section>
+
+                    <div class="activity-tabs" role="tablist" data-i18n-aria-label="activity.views" aria-label="Activity views">
+                        <button id="activityTracesTab" type="button" role="tab" aria-controls="activityTracesPanel" aria-selected="true" tabindex="0" data-ui-action="switch-activity-view" data-activity-view="traces" data-i18n="activity.requests">Request traces</button>
+                        <button id="activityAuditTab" type="button" role="tab" aria-controls="activityAuditPanel" aria-selected="false" tabindex="-1" data-ui-action="switch-activity-view" data-activity-view="audit" data-i18n="activity.audit_security">Audit &amp; security</button>
+                        <button id="activityRuntimeTab" type="button" role="tab" aria-controls="activityRuntimePanel" aria-selected="false" tabindex="-1" data-ui-action="switch-activity-view" data-activity-view="runtime" data-i18n="activity.runtime_logs">Runtime logs</button>
+                    </div>
+
+                    <!-- include:fragments/pages/audit.html -->
+                    <!-- include:fragments/pages/logs.html -->
+                </div>

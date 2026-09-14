@@ -15,9 +15,11 @@ from core.provider_registry import (
     CLAUDE_CODE,
     CLAUDE_PLATFORM,
     CODEX,
+    CREDENTIAL_OPERATIONS,
     GOOGLE_AI_STUDIO,
     GOOGLE_ANTIGRAVITY,
     GROK,
+    INFERENCE_PROTOCOLS,
     MODEL_SUPPORT_DECLARED,
     MODEL_SUPPORT_INFERRED,
     MODEL_SUPPORT_UNSUPPORTED,
@@ -28,15 +30,154 @@ from core.provider_registry import (
     XAI_CONSOLE,
     credential_model_support_level,
     credential_supports_model,
+    credential_supports_operation,
     get_credential_provider_display_name,
     get_credential_provider_variant,
+    get_credential_variant_capabilities,
     get_declared_credential_models,
     get_provider_capabilities,
+    list_credential_variant_capabilities,
     list_provider_capabilities,
 )
 
 
 class ProviderCapabilityTests(unittest.TestCase):
+    def test_every_advertised_variant_matches_the_production_capability_matrix(self):
+        common = {
+            "add",
+            "verify",
+            "test",
+            "model_discovery",
+            "disable",
+            "edit",
+            "export",
+            "delete",
+            "toggle",
+        }
+        oauth = common | {"refresh", "reauthenticate"}
+        expected_operations = {
+            GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
+            GOOGLE_AI_STUDIO: common,
+            GROK: oauth | {"quota"},
+            XAI_CONSOLE: common,
+            CODEX: oauth | {"quota"},
+            OPENAI_PLATFORM: common,
+            CLAUDE_CODE: oauth | {"quota"},
+            CLAUDE_PLATFORM: common,
+            OLLAMA: common,
+        }
+
+        variants = list_credential_variant_capabilities()
+
+        self.assertEqual(len(variants), len(expected_operations))
+        for variant in variants:
+            with self.subTest(variant=variant["variant_id"]):
+                self.assertEqual(
+                    set(variant["operations"]),
+                    expected_operations[variant["variant_id"]],
+                )
+                self.assertEqual(set(variant["inference_protocols"]), INFERENCE_PROTOCOLS)
+
+    def test_every_console_credential_variant_declares_operations(self):
+        variants = list_credential_variant_capabilities()
+
+        self.assertEqual(
+            {variant["variant_id"] for variant in variants},
+            {
+                GOOGLE_ANTIGRAVITY,
+                GOOGLE_AI_STUDIO,
+                GROK,
+                XAI_CONSOLE,
+                CODEX,
+                OPENAI_PLATFORM,
+                CLAUDE_CODE,
+                CLAUDE_PLATFORM,
+                OLLAMA,
+            },
+        )
+        self.assertTrue(all(variant["operations"] for variant in variants))
+        self.assertTrue(
+            all(set(variant["operations"]) <= CREDENTIAL_OPERATIONS for variant in variants)
+        )
+
+    def test_common_operations_are_conservative_and_variant_specific(self):
+        common = {
+            "add",
+            "verify",
+            "test",
+            "model_discovery",
+            "disable",
+            "edit",
+            "toggle",
+            "delete",
+            "export",
+        }
+        oauth = common | {"refresh", "reauthenticate"}
+        expected = {
+            GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
+            GOOGLE_AI_STUDIO: common,
+            GROK: oauth | {"quota"},
+            XAI_CONSOLE: common,
+            CODEX: oauth | {"quota"},
+            OPENAI_PLATFORM: common,
+            CLAUDE_CODE: oauth | {"quota"},
+            CLAUDE_PLATFORM: common,
+            OLLAMA: common,
+        }
+
+        self.assertEqual(
+            {
+                variant["variant_id"]: set(variant["operations"])
+                for variant in list_credential_variant_capabilities()
+            },
+            expected,
+        )
+
+        self.assertTrue(
+            credential_supports_operation(
+                {"provider": GOOGLE_ANTIGRAVITY, "credential_type": "oauth"},
+                "quota",
+            )
+        )
+        self.assertTrue(
+            credential_supports_operation({"provider": XAI, "credential_type": "oauth"}, "quota")
+        )
+        self.assertTrue(
+            credential_supports_operation({"provider": OPENAI, "credential_type": "oauth"}, "quota")
+        )
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": GOOGLE_AI_STUDIO, "credential_type": "api_key"},
+                "quota",
+            )
+        )
+        self.assertTrue(
+            credential_supports_operation(
+                {"provider": GOOGLE_ANTIGRAVITY, "credential_type": "oauth"},
+                "credit_mode",
+            )
+        )
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": XAI, "credential_type": "oauth"}, "credit_mode"
+            )
+        )
+
+    def test_unknown_variants_and_operations_fail_closed(self):
+        self.assertIsNone(get_credential_variant_capabilities("unknown-provider"))
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": "unknown-provider", "credential_type": "api_key"},
+                "delete",
+            )
+        )
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": OPENAI, "credential_type": "api_key"},
+                "arbitrary-operation",
+            )
+        )
+
     def test_catalog_has_stable_unique_provider_ids(self):
         providers = list_provider_capabilities()
 

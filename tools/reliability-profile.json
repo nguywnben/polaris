@@ -1,0 +1,22 @@
+{
+  "schema_version": "polaris.reliability-profile.v1",
+  "duration_seconds": 120,
+  "offered_rps": 5,
+  "concurrency": 8,
+  "request_timeout_seconds": 5,
+  "memory_sample_interval_seconds": 5,
+  "memory_warmup_seconds": 20,
+  "max_client_queue_depth": 8,
+  "dashboard_viewport": [1440, 900],
+  "thresholds": {
+    "gateway_p95_ms": 100,
+    "error_rate_exclusive": 0.001,
+    "max_rss_mib": 512,
+    "max_memory_growth_mib": 32,
+    "max_memory_slope_mib_per_minute": 1,
+    "max_schedule_lag_ms": 250,
+    "dashboard_usable_ms": 2500,
+    "graceful_shutdown_seconds": 15,
+    "restart_ready_seconds": 30
+  }
+}

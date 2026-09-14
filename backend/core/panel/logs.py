@@ -4,6 +4,13 @@ import os
 from urllib.parse import urlsplit
 
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.identity import (
+    AuthorizationDenied,
+    ManagementPrincipal,
+    ManagementRouteTransport,
+    UnclassifiedManagementRoute,
+    require_management_route,
+)
 from core.utils import PANEL_SESSION_COOKIE, verify_panel_token, verify_panel_token_value
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -14,6 +21,8 @@ from starlette.websockets import WebSocketState
 from .utils import ConnectionManager, internal_server_error
 
 router = APIRouter(prefix="/api/logs", tags=["logs"])
+
+MAX_LOG_DOWNLOAD_BYTES = 16 * 1024 * 1024
 
 
 manager = ConnectionManager()
@@ -61,6 +70,39 @@ def _read_log_chunk(path: str, offset: int, size: int) -> tuple[str, int]:
     return content.decode("utf-8", errors="replace"), len(content)
 
 
+def _read_bounded_log_export(path: str, *, max_bytes: int) -> tuple[bytes, bool]:
+    """Return the newest complete redacted log lines within a fixed byte ceiling."""
+    if max_bytes < 1:
+        raise ValueError("Log export limit must be positive.")
+    file_size = os.path.getsize(path)
+    offset = max(0, file_size - max_bytes)
+    with open(path, "rb") as file:
+        if offset:
+            file.seek(offset - 1)
+            previous = file.read(1)
+            file.seek(offset)
+            if previous not in (b"\r", b"\n"):
+                file.readline()
+            elif previous == b"\r" and file.read(1) == b"\n":
+                file.seek(offset)
+                file.readline()
+            else:
+                file.seek(offset)
+        raw = file.read(max_bytes)
+
+    lines = raw.splitlines(keepends=True)
+    selected: list[bytes] = []
+    byte_count = 0
+    for line in reversed(lines):
+        redacted = redact_text(line.decode("utf-8", errors="replace")).encode("utf-8")
+        if byte_count + len(redacted) > max_bytes:
+            break
+        selected.append(redacted)
+        byte_count += len(redacted)
+    selected.reverse()
+    return b"".join(selected), offset > 0 or len(selected) < len(lines)
+
+
 @router.post("/clear")
 async def clear_logs(token: str = Depends(verify_panel_token)):
     try:
@@ -101,17 +143,22 @@ async def download_logs(token: str = Depends(verify_panel_token)):
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"logs_{timestamp}.txt"
 
-        log.info(f"Downloading log file: {log_file_path}")
-
-        def sanitized_log_lines():
-            with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    yield redact_text(line)
+        log.info(f"Downloading bounded log file: {os.path.basename(log_file_path)}")
+        export, truncated = await asyncio.to_thread(
+            _read_bounded_log_export,
+            log_file_path,
+            max_bytes=MAX_LOG_DOWNLOAD_BYTES,
+        )
 
         return StreamingResponse(
-            sanitized_log_lines(),
+            iter((export,)),
             media_type="text/plain",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "X-Log-Byte-Count": str(len(export)),
+                "X-Log-Max-Bytes": str(MAX_LOG_DOWNLOAD_BYTES),
+                "X-Log-Truncated": str(truncated).lower(),
+            },
         )
 
     except HTTPException:
@@ -136,7 +183,10 @@ async def websocket_logs(websocket: WebSocket):
         return
 
     try:
-        await verify_panel_token_value(token)
+        verified_token = await verify_panel_token_value(token)
+        principal = getattr(verified_token, "principal", None)
+        if type(principal) is not ManagementPrincipal:
+            raise HTTPException(status_code=503, detail="Session service is unavailable.")
     except HTTPException as e:
         close_code = 4401 if e.status_code in {401, 428} else 4403
         await websocket.close(code=close_code, reason=str(e.detail))
@@ -144,8 +194,25 @@ async def websocket_logs(websocket: WebSocket):
         return
     except Exception as e:
         await websocket.close(code=1011, reason="Authentication error")
-        log.error(f"Error during WebSocket authentication: {e}")
+        log.error(f"WebSocket authentication failed ({type(e).__name__}).")
         return
+
+    try:
+        require_management_route(
+            principal,
+            transport=ManagementRouteTransport.WEBSOCKET,
+            method="WEBSOCKET",
+            path="/api/logs/stream",
+        )
+    except AuthorizationDenied:
+        await websocket.close(code=4403, reason="Management permission denied")
+        log.warning("WebSocket connection denied: management permission denied.")
+        return
+    except UnclassifiedManagementRoute:
+        await websocket.close(code=4403, reason="Management permission denied")
+        log.error("Protected management WebSocket is not classified.")
+        return
+    websocket.state.management_principal = principal
 
     if not await manager.connect(websocket):
         return
@@ -159,8 +226,8 @@ async def websocket_logs(websocket: WebSocket):
                 if line.strip():
                     await websocket.send_text(redact_text(line.strip()))
         except Exception as e:
-            await websocket.send_text(f"Error reading log file: {e}")
-            log.error(f"WebSocket initial log read error: {e}")
+            await websocket.send_text("Error reading log file.")
+            log.error(f"WebSocket initial log read failed ({type(e).__name__}).")
 
         last_size = await asyncio.to_thread(_log_file_size, log_file_path) or 0
         max_read_size = 8192
@@ -214,7 +281,10 @@ async def websocket_logs(websocket: WebSocket):
                                     await websocket.send_text(redact_text(line.rstrip()))
                             last_size += max(0, bytes_read - trailing_bytes)
                         except Exception as e:
-                            await websocket.send_text(f"Error reading new content: {e}")
+                            await websocket.send_text("Error reading new log content.")
+                            log.error(
+                                f"WebSocket incremental log read failed ({type(e).__name__})."
+                            )
 
                             last_size = current_size
 
@@ -233,6 +303,6 @@ async def websocket_logs(websocket: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        log.error(f"WebSocket logs error: {e}")
+        log.error(f"WebSocket logs failed ({type(e).__name__}).")
     finally:
         manager.disconnect(websocket)

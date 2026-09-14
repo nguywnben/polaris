@@ -2,32 +2,54 @@
                     <header class="page-header">
                         <div>
                             <div class="page-kicker" data-i18n="about">About</div>
-                            <h1 class="page-title">Omni Gateway</h1>
-                            <p class="page-description" data-i18n="about_description">A universal AI router for coding tools with smart auto-fallback, token-aware request cleanup, usage visibility, and seamless format translation.</p>
+                            <h1 class="page-title">Polaris</h1>
+                            <p class="page-description" data-i18n="about_description">A production self-hosted AI gateway for coding tools, with resilient routing, quality controls, and operational visibility.</p>
                         </div>
                         <div class="page-actions">
-                            <div class="update-check-action">
-                                <button type="button" class="btn btn-secondary" id="checkUpdateBtn" data-ui-action="check-updates" data-i18n="check_for_updates">Check for updates</button>
-                                <a id="updateGuideLink" class="update-guide-link" href="https://github.com/nguywnben/omni-gateway/blob/main/docs/updating.md" target="_blank" rel="noopener noreferrer" hidden data-i18n="about.update_guide_link">Read the update guide before upgrading.</a>
-                            </div>
+                            <button type="button" class="btn btn-secondary" id="checkUpdateBtn" data-ui-action="check-updates" data-i18n="check_for_updates">Check for updates</button>
                         </div>
                     </header>
 
-                    <div class="dashboard-grid">
-                        <section class="card span-7">
-                            <h2 class="card-title" data-i18n="about.project">Project</h2>
-                            <p class="card-copy" data-i18n="about.project_description">Omni Gateway provides one management plane for routing coding-tool requests across compatible AI formats, active credential pools, and resilient fallback behavior.</p>
-                            <p class="card-copy" style="margin-top: 14px;"><span data-i18n="about.repository">Repository</span>: <a href="https://github.com/nguywnben/omni-gateway" target="_blank" rel="noreferrer" data-i18n-technical>nguywnben/omni-gateway</a></p>
-                        </section>
-                        <section class="card span-5">
-                            <h2 class="card-title" data-i18n="about.operating_model">Operating Model</h2>
-                            <p class="card-copy card-title-copy" data-i18n="about.operating_model_description">Core capabilities available through the routing layer.</p>
-                            <div class="integration-list">
-                                <div class="code-block" data-i18n="about.feature_routing">Virtual model orchestration and smart auto-fallback</div>
-                                <div class="code-block" data-i18n="about.feature_tokens">Token-aware cleanup and usage visibility</div>
-                                <div class="code-block" data-i18n="about.feature_credentials">OAuth accounts, API keys, and local model servers in one pool</div>
-                                <div class="code-block" data-i18n="about.feature_translation">OpenAI, Anthropic, Google GenAI, and provider-native format translation</div>
-                            </div>
-                        </section>
+                    <div id="aboutState" data-page-state-host hidden></div>
+
+                    <div class="about-grid">
+                        <div class="about-column">
+                            <section class="card">
+                                <h2 class="card-title" data-i18n="about.project">Project</h2>
+                                <p class="card-copy" data-i18n="about.project_description">Polaris provides one management plane for routing coding-tool requests across compatible AI formats, active credential pools, and resilient fallback behavior.</p>
+                                <p class="card-copy about-repository"><span data-i18n="about.repository">Repository</span>: <a href="https://github.com/nguywnben/polaris" target="_blank" rel="noopener noreferrer" data-i18n-technical>nguywnben/polaris</a></p>
+                            </section>
+
+                            <section class="card" aria-labelledby="aboutSupportHeading">
+                                <h2 id="aboutSupportHeading" class="card-title" data-i18n="about.support_profile">Support Profile</h2>
+                                <p class="card-copy card-title-copy" data-i18n="about.support_description">Capabilities are grouped by their production support boundary for this self-hosted release.</p>
+                                <div id="aboutSupportTiers" class="support-tier-list" role="list" aria-busy="true"></div>
+                            </section>
+                        </div>
+
+                        <div class="about-column">
+                            <section class="card" aria-labelledby="aboutBuildHeading">
+                                <h2 id="aboutBuildHeading" class="card-title" data-i18n="about.build">Build</h2>
+                                <p class="card-copy card-title-copy" data-i18n="about.build_description">Version details reported by this running instance.</p>
+                                <dl id="aboutBuildFacts" class="about-fact-list" aria-busy="true"></dl>
+                            </section>
+
+                            <section class="card" aria-labelledby="aboutMaintenanceHeading">
+                                <h2 id="aboutMaintenanceHeading" class="card-title" data-i18n="about.maintenance">Maintenance</h2>
+                                <p class="card-copy card-title-copy" data-i18n="about.maintenance_description">Use the operator guides before changing or restoring this installation.</p>
+                                <nav class="about-link-list" data-i18n-aria-label="about.maintenance" aria-label="Maintenance">
+                                    <a id="updateGuideLink" href="https://github.com/nguywnben/polaris/blob/main/docs/updating.md" target="_blank" rel="noopener noreferrer" data-i18n="about.update_guide_link">Update and rollback guide</a>
+                                    <a id="backupGuideLink" href="https://github.com/nguywnben/polaris/blob/main/docs/backup-and-restore.md" target="_blank" rel="noopener noreferrer" data-i18n="about.backup_guide_link">Backup and restore guide</a>
+                                </nav>
+                            </section>
+
+                            <section class="card" aria-labelledby="aboutSponsorHeading">
+                                <h2 id="aboutSponsorHeading" class="card-title" data-i18n="about.sponsor">Support the project</h2>
+                                <p class="card-copy card-title-copy" data-i18n="about.sponsor_description">Help sustain development and maintenance of Polaris.</p>
+                                <div class="about-link-list">
+                                    <a id="sponsorLink" href="https://github.com/sponsors/nguywnben" target="_blank" rel="noopener noreferrer" data-i18n="about.sponsor_link">Sponsor Polaris on GitHub</a>
+                                </div>
+                            </section>
+                        </div>
                     </div>
                 </div>

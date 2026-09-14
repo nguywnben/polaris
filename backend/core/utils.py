@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import os
 import secrets
 import time
@@ -7,6 +8,19 @@ from urllib.parse import urlsplit
 
 import jwt
 from config import get_panel_password, trust_proxy_headers_enabled
+from core.identity import (
+    SESSION_TOKEN_PREFIX,
+    AuthorizationDenied,
+    InvalidPrincipal,
+    ManagementPrincipal,
+    ManagementRouteTransport,
+    SessionError,
+    SessionExpired,
+    UnclassifiedManagementRoute,
+    get_session_policy,
+    get_session_service,
+    require_management_route,
+)
 from fastapi import Depends, Header, HTTPException, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from log import log
@@ -191,6 +205,16 @@ async def authenticate_flexible(
         )
 
     from config import API_KEY_PREFIX, get_api_key
+    from core.quality_policy_runtime import compression_policy_from_request_header
+    from core.request_context import set_request_compression_policy
+
+    try:
+        request_compression_policy = compression_policy_from_request_header(
+            request.headers.get("x-polaris-compression")
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    set_request_compression_policy(request_compression_policy)
 
     api_key = await get_api_key()
 
@@ -207,7 +231,13 @@ async def authenticate_flexible(
         return token
 
     # Fall back to virtual API keys (per-key budgets, rate limits, scopes).
-    from core.request_context import set_api_key_id
+    from core.request_context import (
+        set_api_key_id,
+        set_key_compression_policy,
+        set_operation_replay_required,
+        set_virtual_key_reservation_id,
+    )
+    from core.router.protocol_errors import protocol_for_path
     from core.virtual_keys import extract_requested_model, virtual_key_manager
 
     record = await virtual_key_manager.verify(token)
@@ -220,6 +250,7 @@ async def authenticate_flexible(
         )
 
     requested_model = ""
+    body = None
     if request.method == "POST":
         try:
             body = await request.json()
@@ -229,9 +260,45 @@ async def authenticate_flexible(
     else:
         requested_model = extract_requested_model(request.url.path, None)
 
-    await virtual_key_manager.enforce(record, requested_model=requested_model)
+    candidate_models = None
+    if requested_model:
+        try:
+            from core.model_pool import ModelPoolError, resolve_model_request
+
+            quota_model = get_base_model_from_feature_model(requested_model)
+            model_resolution = await resolve_model_request(quota_model)
+            candidate_models = model_resolution.candidates
+        except ModelPoolError as exc:
+            log.debug(f"Could not pre-resolve model candidates for quota estimation: {exc}")
+            candidate_models = (requested_model,)
+
+    normalized_path = request.url.path.lower()
+    billable_body = (
+        None
+        if normalized_path.endswith(":counttokens") or normalized_path.endswith("/count_tokens")
+        else body
+    )
+    reservation_id = await virtual_key_manager.enforce(
+        record,
+        protocol=protocol_for_path(request.url.path) or "",
+        requested_model=requested_model,
+        request_body=billable_body,
+        candidate_models=candidate_models,
+        operation_id=str(getattr(request.state, "request_id", "") or ""),
+    )
+    try:
+        await virtual_key_manager.note_last_used(record)
+    except Exception:
+        await virtual_key_manager.release_reservation(reservation_id)
+        raise
+    replayed = bool(getattr(reservation_id, "replayed", False))
     set_api_key_id(record.id)
-    log.debug(f"Authentication successful using {auth_method} (virtual key id={record.id})")
+    set_key_compression_policy(record.compression_policy)
+    set_operation_replay_required(replayed)
+    set_virtual_key_reservation_id("" if replayed else reservation_id or "")
+    if reservation_id and not replayed:
+        request.state.virtual_key_reservation_id = reservation_id
+    log.debug(f"Authentication successful using {auth_method} (virtual key)")
     return token
 
 
@@ -245,15 +312,41 @@ PANEL_SESSION_AUDIENCE = "panel"
 PANEL_SESSION_ALGORITHM = "HS256"
 PANEL_SESSION_COOKIE = "panel_session"
 PANEL_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+_PANEL_AUTH_REFERENCE_KEY = secrets.token_bytes(32)
+_PANEL_AUTH_REFERENCE_DOMAIN = b"polaris:panel-auth-reference:v1\0"
+
+
+class _VerifiedPanelToken(str):
+    """A string-compatible token carrying the principal resolved by the session service."""
+
+    principal: ManagementPrincipal
+
+    def __new__(cls, value: str, principal: ManagementPrincipal):
+        if type(value) is not str or type(principal) is not ManagementPrincipal:
+            raise ValueError("Verified panel token is invalid.")
+        instance = str.__new__(cls, value)
+        instance.principal = principal
+        return instance
+
+
+def _verified_panel_principal(token: object) -> ManagementPrincipal:
+    """Require the session verifier's typed result; never synthesize authority."""
+    if type(token) is not _VerifiedPanelToken or type(token.principal) is not ManagementPrincipal:
+        raise HTTPException(status_code=503, detail="Session service is unavailable.")
+    return token.principal
 
 
 def _get_panel_session_ttl_seconds() -> int:
-    raw_ttl = os.getenv("PANEL_SESSION_TTL_SECONDS", "86400")
+    return get_session_policy().absolute_ttl_seconds
+
+
+def _get_legacy_session_migration_seconds() -> int:
+    raw_ttl = os.getenv("PANEL_LEGACY_SESSION_MIGRATION_SECONDS", "3600")
     try:
         ttl = int(raw_ttl)
     except ValueError:
-        ttl = 86400
-    return max(300, min(ttl, 2592000))
+        ttl = 3600
+    return max(300, min(ttl, 86400))
 
 
 def _panel_cookie_is_secure(request: Request) -> bool:
@@ -305,37 +398,56 @@ async def _get_panel_session_secret() -> bytes:
 
 
 async def create_panel_session_token() -> str:
-    """Create a signed control-panel session token."""
+    """Issue a revocable opaque control-panel session token."""
+    issued = await get_session_service().issue_local_owner(now=time.time())
+    return issued.token
+
+
+async def _verify_legacy_panel_session(token: str) -> str:
     secret = await _get_panel_session_secret()
-
-    now = int(time.time())
-    payload = {
-        "sub": "panel",
-        "aud": PANEL_SESSION_AUDIENCE,
-        "iat": now,
-        "exp": now + _get_panel_session_ttl_seconds(),
-    }
-    return jwt.encode(payload, secret, algorithm=PANEL_SESSION_ALGORITHM)
-
-
-async def verify_panel_token_value(token: str) -> str:
-    """Validate a signed control-panel session token."""
-
-    secret = await _get_panel_session_secret()
-
     try:
-        jwt.decode(
+        payload = jwt.decode(
             token,
             secret,
             algorithms=[PANEL_SESSION_ALGORITHM],
             audience=PANEL_SESSION_AUDIENCE,
+            options={"require": ["sub", "aud", "iat", "exp"]},
         )
+        issued_at = payload.get("iat")
+        if (
+            payload.get("sub") != "panel"
+            or type(issued_at) is not int
+            or time.time() >= issued_at + _get_legacy_session_migration_seconds()
+        ):
+            raise jwt.ExpiredSignatureError
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid session token.")
-
     return token
+
+
+async def verify_panel_token_value(token: str) -> str:
+    """Validate an opaque session or a bounded local-owner migration JWT."""
+    if not isinstance(token, str):
+        raise HTTPException(status_code=401, detail="Invalid session token.")
+    if token.startswith(SESSION_TOKEN_PREFIX):
+        try:
+            resolved = await get_session_service().resolve(token, now=time.time())
+            if type(resolved.principal) is not ManagementPrincipal:
+                raise RuntimeError("Session principal is unavailable.")
+        except SessionExpired:
+            raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+        except SessionError:
+            raise HTTPException(status_code=401, detail="Invalid session token.")
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail="Session service is unavailable.") from exc
+        return _VerifiedPanelToken(token, resolved.principal)
+    try:
+        verified = await _verify_legacy_panel_session(token)
+        return _VerifiedPanelToken(verified, ManagementPrincipal.local_owner())
+    except HTTPException:
+        raise
 
 
 def _normalize_http_origin(value: str) -> str:
@@ -379,16 +491,89 @@ def _verify_cookie_request_origin(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Cross-site console request rejected.")
 
 
+def _set_management_auth_reference(request: Request, token: str) -> None:
+    request.state.management_auth_reference = hmac.digest(
+        _PANEL_AUTH_REFERENCE_KEY,
+        _PANEL_AUTH_REFERENCE_DOMAIN + token.encode("utf-8", errors="strict"),
+        hashlib.sha256,
+    ).hex()
+
+
 async def verify_panel_token(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> str:
-    """Validate a cookie session, with Bearer support for legacy clients."""
+    """Validate a cookie session or an explicitly scoped management key."""
     token = request.cookies.get(PANEL_SESSION_COOKIE)
     if token:
         _verify_cookie_request_origin(request)
-    elif credentials:
-        token = credentials.credentials
-    if not token:
+        token = await verify_panel_token_value(token)
+        principal = _verified_panel_principal(token)
+        _authorize_panel_request(request, principal)
+        _set_management_auth_reference(request, token)
+        return token
+
+    if not credentials:
         raise HTTPException(status_code=401, detail="Authentication required.")
-    return await verify_panel_token_value(token)
+
+    token = credentials.credentials
+    from config import API_KEY_PREFIX
+
+    if not token.startswith(f"{API_KEY_PREFIX}vk-"):
+        token = await verify_panel_token_value(token)
+        principal = _verified_panel_principal(token)
+        _authorize_panel_request(request, principal)
+        _set_management_auth_reference(request, token)
+        return token
+
+    from core.request_context import set_api_key_id
+    from core.virtual_keys import virtual_key_manager
+
+    record = await virtual_key_manager.verify(token)
+    if record is None:
+        raise HTTPException(status_code=401, detail="Invalid API key.")
+    try:
+        principal = ManagementPrincipal.virtual_key(record.id, scopes=record.scopes)
+    except InvalidPrincipal as exc:
+        raise HTTPException(status_code=403, detail="Management permission denied.") from exc
+    _authorize_panel_request(request, principal)
+    _set_management_auth_reference(request, token)
+    await virtual_key_manager.note_last_used(record)
+    set_api_key_id(record.id)
+    return token
+
+
+def _trusted_route_template(request: Request) -> str | None:
+    """Return FastAPI's effective template while preserving a fail-closed fallback."""
+    route = request.scope.get("route")
+    fastapi_scope = request.scope.get("fastapi")
+    if isinstance(fastapi_scope, dict):
+        effective_context = fastapi_scope.get("effective_route_context")
+        if getattr(effective_context, "original_route", None) is route:
+            effective_path = getattr(effective_context, "path_format", None)
+            if type(effective_path) is str:
+                return effective_path
+    route_path = getattr(route, "path_format", None) or getattr(route, "path", None)
+    return route_path if type(route_path) is str else None
+
+
+def _authorize_panel_request(request: Request, principal: ManagementPrincipal) -> None:
+    """Enforce the policy for the trusted route template selected by FastAPI."""
+    # Retain the verified principal even when authorization fails so the audit
+    # middleware can attribute a denial without persisting raw credentials.
+    request.state.management_principal = principal
+    try:
+        require_management_route(
+            principal,
+            transport=ManagementRouteTransport.HTTP,
+            method=request.method,
+            path=_trusted_route_template(request),
+        )
+    except AuthorizationDenied as exc:
+        raise HTTPException(status_code=403, detail="Management permission denied.") from exc
+    except UnclassifiedManagementRoute as exc:
+        log.error("Protected management request reached an unclassified route.")
+        raise HTTPException(
+            status_code=500,
+            detail="Management authorization policy is incomplete.",
+        ) from exc

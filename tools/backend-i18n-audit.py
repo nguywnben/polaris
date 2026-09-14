@@ -6,14 +6,12 @@ import ast
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 PANEL = BACKEND / "core" / "panel"
 sys.path.insert(0, str(BACKEND))
 
 from core.i18n import can_localize_text  # noqa: E402
-
 
 USER_MESSAGE_KEYS = {"detail", "error", "message", "title", "restart_notice"}
 TECHNICAL_VALUES = {

@@ -1,0 +1,32 @@
+name: ${COMPOSE_PROJECT_NAME:?Set an isolated evidence project name}
+
+services:
+  app-a:
+    image: "${PRODUCTION_IMAGE:?Set the exact candidate production image}"
+    entrypoint: [python]
+    command: [backend/main.py]
+    init: true
+    read_only: true
+    user: "10001:10001"
+    restart: "no"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 768m
+    cpus: 1.0
+    ports: ["127.0.0.1:${APP_A_PORT:-14283}:4283"]
+    networks: [evidence]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=10001,gid=10001
+      - /app/backend/data/creds:rw,noexec,nosuid,size=32m,uid=10001,gid=10001
+      - /app/backend/data/logs:rw,noexec,nosuid,size=32m,uid=10001,gid=10001
+    environment:
+      WORKERS: "1"
+      POLARIS_RUNTIME_MODE: standalone
+      POLARIS_REPLICA_COUNT: "1"
+      POSTGRESQL_URI: postgresql://polaris@fixture:15432/polaris_evidence
+
+networks:
+  evidence:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME}_evidence

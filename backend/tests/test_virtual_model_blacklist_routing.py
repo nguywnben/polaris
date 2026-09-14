@@ -11,8 +11,16 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from core.api.primary import ProviderRequestContext, non_stream_request, stream_request
+from core.api.primary import (
+    ProviderRequestContext,
+    _non_stream_request_upstream,
+    _stream_request_upstream,
+    non_stream_request,
+    stream_request,
+)
 from core.api.utils import record_model_route_miss
+from core.coordination import CoordinationReconciliationRequiredError
+from core.request_trace_service import request_trace_scope
 from fastapi import Response
 
 
@@ -25,10 +33,124 @@ class FakeUpstreamResponse:
 
 
 class VirtualModelBlacklistRoutingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_non_stream_coordination_capacity_returns_bounded_503(self):
+        record = AsyncMock()
+        with (
+            patch(
+                "core.api.primary.get_antigravity_stream_to_nonstream",
+                AsyncMock(return_value=False),
+            ),
+            patch(
+                "core.api.primary.credential_manager.get_valid_model_credential",
+                AsyncMock(
+                    side_effect=CoordinationReconciliationRequiredError(
+                        "secret coordination detail"
+                    )
+                ),
+            ),
+            patch("core.api.primary.record_unassigned_api_call_error", record),
+        ):
+            response = await _non_stream_request_upstream({"model": "model-a"})
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b"temporarily unavailable", response.body)
+        self.assertNotIn(b"secret coordination detail", response.body)
+        record.assert_awaited_once_with(
+            status_code=503,
+            mode="primary",
+            model_name="model-a",
+            reason="coordination_unavailable",
+        )
+
+    async def test_stream_coordination_capacity_returns_bounded_503(self):
+        record = AsyncMock()
+        with (
+            patch(
+                "core.api.primary.credential_manager.get_valid_model_credential",
+                AsyncMock(
+                    side_effect=CoordinationReconciliationRequiredError(
+                        "secret coordination detail"
+                    )
+                ),
+            ),
+            patch("core.api.primary.record_unassigned_api_call_error", record),
+        ):
+            stream = _stream_request_upstream({"model": "model-a"})
+            response = await anext(stream)
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b"temporarily unavailable", response.body)
+        self.assertNotIn(b"secret coordination detail", response.body)
+        record.assert_awaited_once_with(
+            status_code=503,
+            mode="primary",
+            model_name="model-a",
+            reason="coordination_unavailable",
+        )
+
+    async def test_closing_stream_releases_the_active_credential_lease(self):
+        credential = {
+            "provider": "google_antigravity",
+            "token": "example-token",
+            "project_id": "example-project",
+        }
+        context = ProviderRequestContext(
+            provider_id="google_antigravity",
+            target_url="http://fixture.invalid/api/chat",
+            headers={},
+            payload={"model": "model-a"},
+            request_metrics={},
+        )
+
+        def fake_stream_post_async(**_kwargs):
+            async def chunks():
+                yield b'data: {"response":"partial"}\n\n'
+
+            return chunks()
+
+        release = AsyncMock()
+        with (
+            request_trace_scope("request-cancelled", "openai_chat") as trace_collector,
+            patch(
+                "core.api.primary.credential_manager.get_valid_model_credential",
+                AsyncMock(return_value=("model-a", "credential.json", credential)),
+            ),
+            patch("core.api.primary.credential_manager.release_credential", release),
+            patch("core.api.primary.prepare_provider_request", AsyncMock(return_value=context)),
+            patch(
+                "core.api.primary.get_retry_config",
+                AsyncMock(
+                    return_value={
+                        "retry_enabled": False,
+                        "max_retries": 0,
+                        "retry_interval": 0,
+                    }
+                ),
+            ),
+            patch(
+                "core.api.primary.get_antigravity_switch_credential_enabled",
+                AsyncMock(return_value=False),
+            ),
+            patch("core.api.primary.get_auto_disable_error_codes", AsyncMock(return_value=[])),
+            patch("core.api.primary.get_upstream_timeout_seconds", AsyncMock(return_value=30)),
+            patch("core.api.primary.stream_post_async", side_effect=fake_stream_post_async),
+        ):
+            stream = stream_request(body={"model": "model-a"})
+            self.assertEqual(await anext(stream), b'data: {"response":"partial"}\n\n')
+            await stream.aclose()
+
+        release.assert_awaited_once_with("credential.json", mode="primary")
+        self.assertTrue(
+            any(
+                decision.category == "upstream" and decision.reason == "cancelled"
+                for decision in trace_collector.decisions
+            )
+        )
+
     async def test_model_route_miss_sets_a_credential_scoped_cooldown(self):
         manager = AsyncMock()
 
-        with patch("core.api.utils.asyncio.to_thread", AsyncMock()) as record_mock:
+        with patch("core.api.utils.record_call", AsyncMock(return_value=True)) as record_mock:
             await record_model_route_miss(
                 manager,
                 "credential.json",
@@ -293,7 +415,7 @@ class VirtualModelBlacklistRoutingTests(unittest.IsolatedAsyncioTestCase):
                         media_type="application/json",
                     )
                 else:
-                    yield b'data: {"response":"ok"}\n\n'
+                    yield b'data: {"candidates":[{"finishReason":"STOP"}]}\n\n'
 
             return chunks()
 
@@ -347,7 +469,7 @@ class VirtualModelBlacklistRoutingTests(unittest.IsolatedAsyncioTestCase):
                 )
             ]
 
-        self.assertEqual(chunks, [b'data: {"response":"ok"}\n\n'])
+        self.assertEqual(chunks, [b'data: {"candidates":[{"finishReason":"STOP"}]}\n\n'])
         blacklist_mock.assert_awaited_once_with(
             "google_ai_studio",
             "gemini-retired",
@@ -406,7 +528,7 @@ class VirtualModelBlacklistRoutingTests(unittest.IsolatedAsyncioTestCase):
                         media_type="application/json",
                     )
                 else:
-                    yield b'data: {"response":"ok"}\n\n'
+                    yield b'data: {"candidates":[{"finishReason":"STOP"}]}\n\n'
 
             return chunks()
 
@@ -459,7 +581,7 @@ class VirtualModelBlacklistRoutingTests(unittest.IsolatedAsyncioTestCase):
                 )
             ]
 
-        self.assertEqual(chunks, [b'data: {"response":"ok"}\n\n'])
+        self.assertEqual(chunks, [b'data: {"candidates":[{"finishReason":"STOP"}]}\n\n'])
         blacklist_mock.assert_not_awaited()
         route_miss_mock.assert_awaited_once()
         self.assertEqual(route_mock.await_count, 2)

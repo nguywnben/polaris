@@ -28,8 +28,8 @@ async function updateEndpointUrls() {
                     const managedByEnv = Boolean(data.managed_by_env);
                     regenerateBtn.disabled = managedByEnv;
                     regenerateBtn.title = managedByEnv
-                        ? 'API key is managed by the API_KEY environment variable'
-                        : 'Regenerate API key';
+                        ? t('access.api_key_managed_env')
+                        : t('regenerate_api_key');
                 }
             }
         }
@@ -39,7 +39,7 @@ async function updateEndpointUrls() {
         if (apiKeyEl) {
             apiKeyEl.classList.remove('skeleton', 'skeleton-control');
             apiKeyEl.setAttribute('aria-busy', 'false');
-            apiKeyEl.setAttribute('aria-label', 'API key. Copy API key.');
+            apiKeyEl.setAttribute('aria-label', t('access.api_key_copy_label'));
         }
     }
 }
@@ -54,7 +54,7 @@ function setApiKeyVisibility(visible) {
     input.dataset.visible = visible ? 'true' : 'false';
 
     if (button) {
-        const label = visible ? 'Hide API key' : 'Show API key';
+        const label = visible ? t('access.hide_api_key') : t('show_api_key');
         button.title = label;
         button.setAttribute('aria-label', label);
         button.innerHTML = visible

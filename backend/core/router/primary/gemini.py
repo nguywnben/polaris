@@ -10,8 +10,10 @@ from core.models import GeminiRequest, model_to_dict
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
+    cascade_close_async_iterator,
     prepend_async_item,
     read_first_async_item,
+    sse_heartbeat_bytes,
 )
 from core.token_estimator import estimate_input_tokens
 from core.utils import (
@@ -108,6 +110,9 @@ async def stream_generate_content(
 
     normalized_dict["model"] = real_model
 
+    anti_owned_streams = []
+    normal_owned_streams = []
+
     async def fake_stream_generator():
         from core.api.primary import non_stream_request
         from core.converter.gemini_fix import normalize_gemini_request
@@ -201,6 +206,7 @@ async def stream_generate_content(
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        anti_owned_streams.append(first_attempt_stream)
         try:
             first_chunk = await read_first_async_item(first_attempt_stream)
         except StopAsyncIteration:
@@ -225,6 +231,7 @@ async def stream_generate_content(
                     model_candidates=model_candidates,
                     model_routing=model_resolution.is_virtual,
                 )
+            anti_owned_streams.append(stream_gen)
             return StreamingResponse(stream_gen, media_type="text/event-stream")
 
         processor = AntiTruncationStreamProcessor(
@@ -234,7 +241,13 @@ async def stream_generate_content(
             enable_prefill_mode=("claude" not in str(api_request.get("model", "")).lower()),
         )
 
-        async for chunk in processor.process_stream():
+        processor_stream = processor.process_stream()
+        anti_owned_streams.append(processor_stream)
+        async for chunk in processor_stream:
+            heartbeat = sse_heartbeat_bytes(chunk)
+            if heartbeat is not None:
+                yield heartbeat
+                continue
             if isinstance(chunk, (str, bytes)):
                 chunk_str = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
 
@@ -280,6 +293,7 @@ async def stream_generate_content(
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        normal_owned_streams.append(stream_gen)
         try:
             first_chunk = await read_first_async_item(stream_gen)
         except StopAsyncIteration:
@@ -290,6 +304,10 @@ async def stream_generate_content(
             return
 
         async for chunk in prepend_async_item(first_chunk, stream_gen):
+            heartbeat = sse_heartbeat_bytes(chunk)
+            if heartbeat is not None:
+                yield heartbeat
+                continue
             if isinstance(chunk, Response):
                 try:
                     error_content = (
@@ -347,11 +365,13 @@ async def stream_generate_content(
     elif use_anti_truncation:
         log.info("Enabling anti-truncation streaming feature")
         return await build_streaming_response_or_error(
-            anti_truncation_generator(), error_protocol="gemini"
+            cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams),
+            error_protocol="gemini",
         )
     else:
         return await build_streaming_response_or_error(
-            normal_stream_generator(), error_protocol="gemini"
+            cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams),
+            error_protocol="gemini",
         )
 
 

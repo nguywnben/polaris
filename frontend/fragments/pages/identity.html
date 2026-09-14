@@ -1,0 +1,117 @@
+                <div id="identityTab" class="tab-content">
+                    <header class="page-header">
+                        <div>
+                            <div class="page-kicker" data-i18n="identity.governance">Access &amp; team</div>
+                            <h1 class="page-title" data-i18n="identity.title">Identity and sessions</h1>
+                            <p class="page-description" data-i18n="identity.description">Review effective authority, direct OIDC identities, active management sessions, and recovery readiness.</p>
+                        </div>
+                        <div class="page-actions">
+                            <button type="button" class="btn" data-ui-action="identity-refresh" data-i18n="identity.refresh">Refresh identity state</button>
+                        </div>
+                    </header>
+
+                    <p id="identityPageStatus" class="identity-page-status" role="status" aria-live="polite"></p>
+                    <p id="identityModeNotice" class="identity-mode-notice" role="status" aria-live="polite" data-i18n="identity.mode_loading">Checking optional team access. Local recovery remains available.</p>
+
+                    <div class="identity-summary-grid">
+                        <section class="identity-panel identity-summary" aria-labelledby="identityPrincipalHeading">
+                            <div class="identity-panel-heading">
+                                <div>
+                                    <h2 id="identityPrincipalHeading" class="card-title" data-i18n="identity.current_principal">Current principal</h2>
+                                    <p class="card-copy" data-i18n="identity.current_principal_description">Authority used for this console request.</p>
+                                </div>
+                                <span id="identityPrincipalBadge" class="status-badge info" data-i18n="identity.loading">Loading</span>
+                            </div>
+                            <dl id="identityPrincipalSummary" class="identity-fact-list" aria-busy="true"></dl>
+                        </section>
+
+                        <section class="identity-panel identity-summary" aria-labelledby="identityOidcHeading">
+                            <div class="identity-panel-heading">
+                                <div>
+                                    <h2 id="identityOidcHeading" class="card-title" data-i18n="identity.oidc_readiness">OIDC readiness</h2>
+                                    <p class="card-copy" data-i18n="identity.oidc_readiness_description">Safe configuration projection and authorization epoch.</p>
+                                </div>
+                                <span id="identityOidcBadge" class="status-badge muted" data-i18n="identity.unavailable">Unavailable</span>
+                            </div>
+                            <dl id="identityOidcSummary" class="identity-fact-list" aria-busy="true"></dl>
+                            <button id="identityOidcAdvance" type="button" class="btn btn-secondary identity-summary-action hidden" data-ui-action="identity-oidc-advance" data-i18n="identity.advance_oidc">Invalidate OIDC sessions</button>
+                        </section>
+
+                        <section class="identity-panel identity-summary" aria-labelledby="identityRecoveryHeading">
+                            <div class="identity-panel-heading">
+                                <div>
+                                    <h2 id="identityRecoveryHeading" class="card-title" data-i18n="identity.recovery">Recovery readiness</h2>
+                                    <p class="card-copy" data-i18n="identity.recovery_description">Emergency local-owner access and effective ingress boundary.</p>
+                                </div>
+                                <span id="identityRecoveryBadge" class="status-badge muted" data-i18n="identity.unavailable">Unavailable</span>
+                            </div>
+                            <dl id="identityRecoverySummary" class="identity-fact-list" aria-busy="true"></dl>
+                        </section>
+                    </div>
+
+                    <div class="identity-layout">
+                        <section class="identity-panel" aria-labelledby="identityInventoryHeading">
+                            <div class="identity-panel-heading">
+                                <div>
+                                    <h2 id="identityInventoryHeading" class="card-title" data-i18n="identity.identities">Direct identities</h2>
+                                    <p class="card-copy" data-i18n="identity.identities_description">Exact issuer and subject bindings with durable role revisions.</p>
+                                </div>
+                                <button id="identityCreateButton" type="button" class="btn hidden" data-ui-action="identity-create" data-i18n="identity.create_identity">Create identity</button>
+                            </div>
+                            <p id="identityListStatus" class="identity-section-status" role="status" aria-live="polite"></p>
+                            <div id="identityList" class="identity-record-list" role="list" aria-busy="true"></div>
+                            <div class="identity-pagination">
+                                <button id="identityPreviousPage" type="button" class="btn btn-secondary" data-ui-action="identity-previous-page" disabled data-i18n="identity.previous">Previous</button>
+                                <span id="identityPageNumber" data-i18n="identity.page">Page {page}</span>
+                                <button id="identityNextPage" type="button" class="btn btn-secondary" data-ui-action="identity-next-page" disabled data-i18n="identity.next">Next</button>
+                            </div>
+                        </section>
+
+                        <section class="identity-panel" aria-labelledby="identitySessionsHeading">
+                            <div class="identity-panel-heading">
+                                <div>
+                                    <h2 id="identitySessionsHeading" class="card-title" data-i18n="identity.sessions">Active sessions</h2>
+                                    <p class="card-copy" data-i18n="identity.sessions_description">Bounded management sessions represented by non-authenticating references.</p>
+                                </div>
+                            </div>
+                            <p id="identitySessionStatus" class="identity-section-status" role="status" aria-live="polite"></p>
+                            <div id="identitySessionList" class="identity-record-list" role="list" aria-busy="true"></div>
+                            <div class="identity-pagination">
+                                <button id="identitySessionPreviousPage" type="button" class="btn btn-secondary" data-ui-action="identity-session-previous-page" disabled data-i18n="identity.previous">Previous</button>
+                                <span id="identitySessionPageNumber" data-i18n="identity.page">Page {page}</span>
+                                <button id="identitySessionNextPage" type="button" class="btn btn-secondary" data-ui-action="identity-session-next-page" disabled data-i18n="identity.next">Next</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <dialog id="identityCreateDialog" class="identity-dialog" aria-labelledby="identityCreateTitle">
+                        <form id="identityCreateForm">
+                            <div class="identity-dialog-header">
+                                <div>
+                                    <h2 id="identityCreateTitle" data-i18n="identity.create_identity">Create identity</h2>
+                                    <p data-i18n="identity.create_description">Bind one exact OIDC issuer and subject to a direct management role.</p>
+                                </div>
+                                <button type="button" class="icon-button" data-ui-action="identity-create-close" data-i18n-aria-label="identity.close" aria-label="Close">×</button>
+                            </div>
+                            <div class="identity-dialog-body">
+                                <div class="form-group"><label for="identityCreateIssuer" data-i18n="identity.issuer">Issuer</label><input id="identityCreateIssuer" name="issuer" type="url" required maxlength="2048" autocomplete="off"></div>
+                                <div class="form-group"><label for="identityCreateSubject" data-i18n="identity.subject">Subject</label><input id="identityCreateSubject" name="subject" required maxlength="255" autocomplete="off"></div>
+                                <div class="form-group"><label for="identityCreateRole" data-i18n="identity.role">Role</label><select id="identityCreateRole" name="role" required><option value="viewer" data-i18n-technical>viewer</option><option value="operator" data-i18n-technical>operator</option><option value="security_admin" data-i18n-technical>security_admin</option><option id="identityCreateOwnerOption" value="owner" data-i18n-technical>owner</option></select></div>
+                                <p id="identityCreateStatus" class="identity-section-status" role="status" aria-live="polite"></p>
+                            </div>
+                            <div class="identity-dialog-actions">
+                                <button type="button" class="btn btn-secondary" data-ui-action="identity-create-close" data-i18n="identity.cancel">Cancel</button>
+                                <button id="identityCreateSubmit" type="submit" class="btn" data-i18n="identity.create">Create</button>
+                            </div>
+                        </form>
+                    </dialog>
+
+                    <dialog id="identityConfirmDialog" class="identity-dialog identity-confirm-dialog" aria-labelledby="identityConfirmTitle">
+                        <div class="identity-dialog-header"><h2 id="identityConfirmTitle"></h2></div>
+                        <div class="identity-dialog-body"><p id="identityConfirmMessage"></p></div>
+                        <div class="identity-dialog-actions">
+                            <button type="button" class="btn btn-secondary" data-ui-action="identity-confirm-cancel" data-i18n="identity.cancel">Cancel</button>
+                            <button id="identityConfirmSubmit" type="button" class="btn btn-danger" data-ui-action="identity-confirm-submit" data-i18n="identity.confirm">Confirm</button>
+                        </div>
+                    </dialog>
+                </div>

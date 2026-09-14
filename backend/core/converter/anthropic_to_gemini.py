@@ -12,6 +12,7 @@ from core.converter.thought_signature import (
     is_skip_thought_signature_placeholder,
 )
 from core.converter.utils import merge_system_messages
+from core.protocol_contract import validate_gemini_response_part
 from fastapi import Response
 from log import log
 
@@ -35,7 +36,7 @@ def has_valid_thought_signature(block: Dict[str, Any]) -> bool:
         return True
 
     thinking = block.get("thinking", "")
-    thoughtsignature = block.get("thoughtSignature")
+    thoughtsignature = block.get("signature") or block.get("thoughtSignature")
 
     if not thinking and thoughtsignature is not None:
         return True
@@ -60,9 +61,9 @@ def sanitize_thinking_block(block: Dict[str, Any]) -> Dict[str, Any]:
 
     sanitized: Dict[str, Any] = {"type": block_type, "thinking": block.get("thinking", "")}
 
-    thoughtsignature = block.get("thoughtSignature")
+    thoughtsignature = block.get("signature") or block.get("thoughtSignature")
     if thoughtsignature:
-        sanitized["thoughtSignature"] = thoughtsignature
+        sanitized["signature"] = thoughtsignature
 
     return sanitized
 
@@ -164,9 +165,10 @@ def _anthropic_usage_from_metadata(usage_metadata: Any) -> Dict[str, int]:
 
     prompt_tokens_total = int(usage_metadata.get("promptTokenCount", 0) or 0)
     cached_tokens = _cached_content_token_count(usage_metadata)
+    reasoning_tokens = int(usage_metadata.get("thoughtsTokenCount", 0) or 0)
     usage = {
         "input_tokens": max(prompt_tokens_total - cached_tokens, 0),
-        "output_tokens": int(usage_metadata.get("candidatesTokenCount", 0) or 0),
+        "output_tokens": int(usage_metadata.get("candidatesTokenCount", 0) or 0) + reasoning_tokens,
     }
 
     if cached_tokens > 0:
@@ -355,12 +357,11 @@ def convert_tools(
 
 def _extract_tool_result_output(content: Any) -> str:
     if isinstance(content, list):
-        if not content:
-            return ""
-        first = content[0]
-        if isinstance(first, dict) and first.get("type") == "text":
-            return str(first.get("text", ""))
-        return str(first)
+        return "\n".join(
+            str(item.get("text", ""))
+            for item in content
+            if isinstance(item, dict) and item.get("type") == "text"
+        )
     if content is None:
         return ""
     return str(content)
@@ -408,9 +409,19 @@ def convert_messages_to_contents(
 
                 item_type = item.get("type")
                 if item_type == "thinking":
-                    continue
+                    if include_thinking:
+                        signature = item.get("signature") or item.get("thoughtSignature")
+                        parts.append(
+                            {
+                                "text": str(item.get("thinking") or ""),
+                                "thought": True,
+                                "thoughtSignature": signature,
+                            }
+                        )
                 elif item_type == "redacted_thinking":
-                    continue
+                    raise ValueError(
+                        "Anthropic redacted_thinking blocks cannot be translated safely."
+                    )
                 elif item_type == "text":
                     text = item.get("text", "")
                     if _is_non_whitespace_text(text):
@@ -426,6 +437,8 @@ def convert_messages_to_contents(
                                 }
                             }
                         )
+                    else:
+                        raise ValueError("Only base64 Anthropic image inputs are supported.")
                 elif item_type == "tool_use":
                     encoded_id = item.get("id") or ""
                     original_id, _ = decode_tool_id_and_signature(encoded_id)
@@ -465,7 +478,7 @@ def convert_messages_to_contents(
                         }
                     )
                 else:
-                    parts.append({"text": json.dumps(item, ensure_ascii=False)})
+                    raise ValueError(f"Unsupported Anthropic content block type: {item_type}.")
         else:
             if _is_non_whitespace_text(raw_content):
                 parts = [{"text": str(raw_content)}]
@@ -635,6 +648,14 @@ async def anthropic_to_gemini_request(payload: Dict[str, Any]) -> Dict[str, Any]
     filter_invalid_thinking_blocks(messages)
 
     generation_config = build_generation_config(payload)
+    output_format = (payload.get("output_config") or {}).get("format")
+    if output_format:
+        if output_format.get("type") != "json_schema" or not isinstance(
+            output_format.get("schema"), dict
+        ):
+            raise ValueError("Unsupported Anthropic structured output format.")
+        generation_config["responseMimeType"] = "application/json"
+        generation_config["responseSchema"] = clean_json_schema(output_format["schema"])
 
     contents = convert_messages_to_contents(messages, include_thinking=True)
 
@@ -696,8 +717,7 @@ def gemini_to_anthropic_response(
     has_tool_use = False
 
     for part in parts:
-        if not isinstance(part, dict):
-            continue
+        validate_gemini_response_part(part)
 
         if part.get("thought") is True:
             if is_skip_thought_signature_placeholder(part):
@@ -710,7 +730,7 @@ def gemini_to_anthropic_response(
 
             thoughtsignature = part.get("thoughtSignature")
             if thoughtsignature:
-                block["thoughtSignature"] = thoughtsignature
+                block["signature"] = thoughtsignature
 
             content.append(block)
             continue
@@ -756,6 +776,8 @@ def gemini_to_anthropic_response(
         stop_reason = "tool_use"
     elif finish_reason == "MAX_TOKENS":
         stop_reason = "max_tokens"
+    elif finish_reason in {"SAFETY", "RECITATION"}:
+        stop_reason = "refusal"
     else:
         stop_reason = "end_turn"
 
@@ -831,6 +853,9 @@ async def gemini_stream_to_anthropic_stream(
 
             log.debug(f"[GEMINI_TO_ANTHROPIC] Raw chunk: {chunk[:200] if chunk else b''}")
 
+            if chunk and chunk.lstrip().startswith(b":"):
+                yield chunk.strip() + b"\n\n"
+                continue
             if not chunk or not chunk.startswith(b"data: "):
                 log.debug("[GEMINI_TO_ANTHROPIC] Skipping chunk (not SSE format or empty)")
                 continue
@@ -850,6 +875,10 @@ async def gemini_stream_to_anthropic_stream(
             except Exception as e:
                 log.warning(f"[GEMINI_TO_ANTHROPIC] JSON parse error: {e}")
                 continue
+
+            if data.get("type") == "error" and isinstance(data.get("error"), dict):
+                yield _sse_event("error", data)
+                return
 
             if "response" in data:
                 response = data["response"]
@@ -1106,3 +1135,7 @@ async def gemini_stream_to_anthropic_stream(
             "error",
             {"type": "error", "error": {"type": "api_error", "message": str(e)}},
         )
+    finally:
+        from core.router.stream_passthrough import close_async_iterator
+
+        await close_async_iterator(gemini_stream)

@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import secrets
-import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -23,6 +22,10 @@ from config import (
 )
 from core.credential_manager import credential_manager
 from core.httpx_client import get_async, post_async
+from core.provider_authorization_coordination import (
+    ProviderAuthorizationError,
+    get_provider_authorization_service,
+)
 from core.provider_registry import (
     MAX_DECLARED_MODELS,
     MAX_MODEL_ID_LENGTH,
@@ -33,8 +36,6 @@ from core.provider_registry import (
 XAI_SCOPE = "openid profile email offline_access grok-cli:access api:access"
 XAI_REDIRECT_URI = "http://127.0.0.1:56121/callback"
 XAI_FLOW_TTL_SECONDS = 15 * 60
-MAX_OAUTH_FLOWS = 256
-_oauth_flows: Dict[str, Dict[str, Any]] = {}
 _stream_tool_calls: Dict[str, Dict[int, Dict[int, Dict[str, str]]]] = {}
 MAX_STREAM_TOOL_CALL_SESSIONS = 256
 
@@ -232,22 +233,29 @@ def _base64url(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
 
-def _prune_oauth_flows() -> None:
-    cutoff = time.time() - XAI_FLOW_TTL_SECONDS
-    for state in list(_oauth_flows):
-        if float(_oauth_flows[state].get("created_at", 0)) < cutoff:
-            _oauth_flows.pop(state, None)
-
-
 async def create_xai_oauth_url() -> Dict[str, str]:
-    _prune_oauth_flows()
-    if len(_oauth_flows) >= MAX_OAUTH_FLOWS:
-        _oauth_flows.pop(next(iter(_oauth_flows)), None)
     endpoints = await discover_xai_oauth_endpoints()
-    state = secrets.token_urlsafe(32)
     verifier = _base64url(os.urandom(96))
     challenge = _base64url(hashlib.sha256(verifier.encode("ascii")).digest())
     client_id = await get_xai_client_id()
+    try:
+        state = await get_provider_authorization_service().create(
+            "xai",
+            json.dumps(
+                {
+                    "client_id": client_id,
+                    "code_verifier": verifier,
+                    "schema_version": 1,
+                    "token_endpoint": endpoints["token_endpoint"],
+                },
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("ascii"),
+            ttl_seconds=XAI_FLOW_TTL_SECONDS,
+        )
+    except ProviderAuthorizationError:
+        raise XaiError("The Grok Build OAuth session could not be started.", 503) from None
     params = {
         "response_type": "code",
         "client_id": client_id,
@@ -259,12 +267,6 @@ async def create_xai_oauth_url() -> Dict[str, str]:
         "nonce": secrets.token_hex(16),
         "plan": "generic",
         "referrer": "cli-proxy-api",
-    }
-    _oauth_flows[state] = {
-        "created_at": time.time(),
-        "code_verifier": verifier,
-        "token_endpoint": endpoints["token_endpoint"],
-        "client_id": client_id,
     }
     return {
         "auth_url": f"{endpoints['authorization_endpoint']}?{urlencode(params)}",
@@ -313,16 +315,57 @@ async def _exchange_xai_token(data: Dict[str, str], token_endpoint: str) -> Dict
     return payload
 
 
+def _decode_xai_authorization(payload: bytes) -> Dict[str, str]:
+    try:
+        pairs = json.loads(payload, object_pairs_hook=lambda values: values)
+        if type(pairs) is not list or any(type(pair) is not tuple for pair in pairs):
+            raise ValueError
+        flow = dict(pairs)
+        if len(flow) != len(pairs) or set(flow) != {
+            "client_id",
+            "code_verifier",
+            "schema_version",
+            "token_endpoint",
+        }:
+            raise ValueError
+        client_id = flow["client_id"]
+        verifier = flow["code_verifier"]
+        token_endpoint = flow["token_endpoint"]
+        if (
+            flow["schema_version"] != 1
+            or type(client_id) is not str
+            or not 1 <= len(client_id) <= 1024
+            or not client_id.isprintable()
+            or type(verifier) is not str
+            or len(verifier) != 128
+            or any(
+                character not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+                for character in verifier
+            )
+            or type(token_endpoint) is not str
+        ):
+            raise ValueError
+        return {
+            "client_id": client_id,
+            "code_verifier": verifier,
+            "token_endpoint": _validate_discovered_endpoint(token_endpoint, "token endpoint"),
+        }
+    except Exception:
+        raise XaiError("The Grok Build OAuth session was not found or has expired.") from None
+
+
 async def complete_xai_oauth(code: str, state: str) -> Dict[str, Any]:
-    _prune_oauth_flows()
     code = str(code or "").strip()
     state = str(state or "").strip()
     if not code:
         raise XaiError("Enter the code shown on the Grok Build authorization page.")
     if "://" in code or "code=" in code:
         raise XaiError("Enter the Grok Build authorization code, not a callback URL.")
-    flow = _oauth_flows.pop(state, None)
-    if not state or not flow:
+    try:
+        flow = _decode_xai_authorization(
+            await get_provider_authorization_service().consume("xai", state)
+        )
+    except ProviderAuthorizationError:
         raise XaiError("The Grok Build OAuth session was not found or has expired.")
     tokens = await _exchange_xai_token(
         {
@@ -614,12 +657,14 @@ def xai_response_to_gemini(payload: Dict[str, Any]) -> Dict[str, Any]:
     if usage:
         prompt_details = usage.get("prompt_tokens_details") or {}
         completion_details = usage.get("completion_tokens_details") or {}
+        completion_tokens = int(usage.get("completion_tokens") or 0)
+        reasoning_tokens = int(completion_details.get("reasoning_tokens") or 0)
         result["usageMetadata"] = {
             "promptTokenCount": int(usage.get("prompt_tokens") or 0),
-            "candidatesTokenCount": int(usage.get("completion_tokens") or 0),
+            "candidatesTokenCount": max(completion_tokens - reasoning_tokens, 0),
             "totalTokenCount": int(usage.get("total_tokens") or 0),
             "cachedContentTokenCount": int(prompt_details.get("cached_tokens") or 0),
-            "thoughtsTokenCount": int(completion_details.get("reasoning_tokens") or 0),
+            "thoughtsTokenCount": reasoning_tokens,
         }
     return result
 
@@ -699,11 +744,13 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
     if usage:
         prompt_details = usage.get("prompt_tokens_details") or {}
         completion_details = usage.get("completion_tokens_details") or {}
+        completion_tokens = int(usage.get("completion_tokens") or 0)
+        reasoning_tokens = int(completion_details.get("reasoning_tokens") or 0)
         result["usageMetadata"] = {
             "promptTokenCount": int(usage.get("prompt_tokens") or 0),
-            "candidatesTokenCount": int(usage.get("completion_tokens") or 0),
+            "candidatesTokenCount": max(completion_tokens - reasoning_tokens, 0),
             "totalTokenCount": int(usage.get("total_tokens") or 0),
             "cachedContentTokenCount": int(prompt_details.get("cached_tokens") or 0),
-            "thoughtsTokenCount": int(completion_details.get("reasoning_tokens") or 0),
+            "thoughtsTokenCount": reasoning_tokens,
         }
     return f"data: {json.dumps(result)}"

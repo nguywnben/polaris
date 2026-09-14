@@ -54,24 +54,58 @@ function initStaticUiBindings() {
     const clickHandlers = {
         'toggle-mobile-menu': () => toggleMobileMenu(),
         'switch-tab': (element) => switchTab(element.dataset.tab),
+        'switch-activity-view': (element) => switchActivityView(element.dataset.activityView),
+        'clear-activity-filters': () => clearActivityFilters(),
+        'investigate-activity-request': (element) => investigateActivityRequest(element.dataset.requestId, 'traces', {navigateToActivity: true}),
         logout: () => logout(),
         'copy-api-key': () => copyInputValue('apiKey'),
         'toggle-api-key': () => toggleApiKeyVisibility(),
         'regenerate-api-key': () => regenerateApiKey(),
+        'virtual-key-create': () => openVirtualKeyForm(),
+        'virtual-key-refresh': () => loadVirtualKeys({ announce: true }),
+        'virtual-key-edit': (element) => editVirtualKey(element.dataset.keyId),
+        'virtual-key-usage': (element) => showVirtualKeyUsage(element.dataset.keyId),
+        'virtual-key-rotate': (element) => rotateVirtualKey(element.dataset.keyId),
+        'virtual-key-revoke': (element) => revokeVirtualKey(element.dataset.keyId),
+        'copy-access-client-example': () => copyAccessClientExample(),
+        'identity-refresh': () => loadIdentityConsole({ announce: true }),
+        'identity-create': () => openIdentityCreateDialog(),
+        'identity-create-close': () => closeIdentityCreateDialog(),
+        'identity-toggle': (element) => toggleManagedIdentity(element),
+        'identity-role': (element) => updateIdentityRole(element),
+        'identity-session-revoke': (element) => revokeIdentitySession(element),
+        'identity-oidc-advance': (element) => advanceIdentityOidcPolicy(element),
+        'identity-previous-page': () => changeIdentityPage('previous'),
+        'identity-next-page': () => changeIdentityPage('next'),
+        'identity-session-previous-page': () => changeIdentitySessionPage('previous'),
+        'identity-session-next-page': () => changeIdentitySessionPage('next'),
+        'identity-confirm-cancel': () => closeIdentityConfirmation(false),
+        'identity-confirm-submit': () => closeIdentityConfirmation(true),
         'copy-url': (element) => cpUrl(element),
         'refresh-pool': () => refreshPrimaryCredsList(),
         'select-pool-archive': () => selectPoolImportArchive(),
         'download-pool': () => downloadAllPrimaryCreds(),
         'batch-primary': (element) => batchPrimaryAction(element.dataset.batchAction),
         'batch-verify-primary': () => batchVerifyProviderCredentials(),
+        'select-all-matching-primary': () => selectAllMatchingPrimary(),
+        'clear-primary-selection': () => clearPrimarySelection(),
+        'reset-primary-filters': () => AppState.primaryCreds.resetFilters(),
         'change-primary-page': (element) => changePrimaryPage(Number(element.dataset.pageDelta)),
         'change-usage-page': (element) => changeUsagePage(Number(element.dataset.pageDelta)),
         'change-historical-usage-page': (element) => changeHistoricalUsagePage(Number(element.dataset.pageDelta)),
         'refresh-model-catalog': () => loadModelCatalog(true),
         'save-model-pool': () => saveModelPool(),
+        'validate-model-route': () => validateModelRoute({ announce: true }),
+        'test-model-route': () => testModelRouteInPlayground(),
+        'playground-add-message': () => addPlaygroundMessage(),
+        'playground-remove-message': (element) => removePlaygroundMessage(element.dataset.messageIndex),
+        'playground-cancel': () => cancelPlayground(),
+        'playground-copy-example': () => copyPlaygroundExample(),
+        'delete-model-route': () => deleteModelRoute(),
         'clear-model-blacklist': () => clearModelBlacklist(),
         'select-provider': (element) => selectProviderWorkspace(element.dataset.provider),
         'change-provider-catalog-page': (element) => changeProviderCatalogPage(Number(element.dataset.pageDelta)),
+        'retry-provider-capabilities': () => retryProviderCapabilities(),
         'select-ai-studio-files': () => document.getElementById('googleAiStudioFileInput')?.click(),
         'upload-ai-studio-files': () => uploadGoogleAiStudioFiles(),
         'clear-ai-studio-files': () => clearGoogleAiStudioFiles(),
@@ -127,6 +161,29 @@ function initStaticUiBindings() {
         'clear-primary-files': () => clearPrimaryFiles(),
         'save-antigravity-settings': () => saveAntigravitySettings(),
         'reset-antigravity-settings': () => resetAntigravitySettings(),
+        'save-quality-policy': () => saveQualityPolicy(),
+        'reset-quality-policy': () => resetQualityPolicy(),
+        'preview-quality-policy': () => previewQualityPolicy(),
+        'refresh-audit': () => refreshAuditConsole(),
+        'clear-audit-filters': () => clearAuditFilters(),
+        'audit-previous-page': () => changeAuditPage('previous'),
+        'audit-next-page': () => changeAuditPage('next'),
+        'view-audit-detail': (element) => openAuditDetail(element),
+        'close-audit-detail': () => closeAuditDetail(),
+        'copy-audit-request': () => copyAuditRequest(),
+        'pivot-audit-request': () => pivotAuditRequest(),
+        'related-trace-request': () => openRelatedTraceRequest(),
+        'export-audit': (element) => exportAuditEvents(element.dataset.exportFormat),
+        'refresh-traces': () => refreshTraceConsole(),
+        'clear-trace-filters': () => clearTraceFilters(),
+        'trace-previous-page': () => changeTracePage('previous'),
+        'trace-next-page': () => changeTracePage('next'),
+        'view-trace-detail': (element) => openTraceDetail(element),
+        'close-trace-detail': () => closeTraceDetail(),
+        'copy-trace-request': () => copyTraceRequest(),
+        'pivot-trace-request': () => pivotTraceRequest(),
+        'related-audit-request': () => openRelatedAuditRequest(),
+        'export-traces': (element) => exportTraces(element.dataset.exportFormat),
         'save-config': () => saveConfig(),
         'reset-config': () => resetConfig(),
         'set-current-keepalive-url': () => autoSetKeepaliveUrl(),
@@ -135,6 +192,10 @@ function initStaticUiBindings() {
         'check-updates': () => checkForUpdates()
     };
     const changeHandlers = {
+        'model-routing-strategy': () => syncModelRoutingPolicyControls(),
+        'playground-protocol': () => syncPlaygroundProtocol(),
+        'playground-draft': () => updatePlaygroundExample(),
+        'playground-example-format': () => updatePlaygroundExample(),
         'usage-period': (element) => setUsagePeriod(element.value),
         'pool-archive': (_element, event) => handlePoolImportArchive(event),
         'select-all-primary': () => toggleSelectAllPrimary(),
@@ -150,6 +211,12 @@ function initStaticUiBindings() {
         'ollama-files': (_element, event) => handleOllamaFileSelect(event),
         'primary-files': (_element, event) => handlePrimaryFileSelect(event),
         'routing-strategy': () => syncRoutingPolicyControls(),
+        'quality-profile': (element) => selectQualityProfile(element.value),
+        'virtual-key-status': (element) => updateVirtualKeyStatus(element.value),
+        'virtual-key-pricing': (element) => syncVirtualKeyPricingControl(element.form),
+        'virtual-key-scope': (element) => syncVirtualKeyScopeControl(element),
+        'access-client-protocol': () => renderAccessClientExample(),
+        'access-client-format': () => renderAccessClientExample(),
         'log-level': () => filterLogs()
     };
 
@@ -168,11 +235,22 @@ function initStaticUiBindings() {
     });
 
     document.addEventListener('input', (event) => {
+        if (event.target.matches('[data-quality-control]')) {
+            syncQualityPolicyControls();
+            document.getElementById('qualityPreviewResult')?.classList.add('hidden');
+        }
+        if (event.target.matches('[data-playground-input], #playgroundForm input')) {
+            syncPlaygroundMessagesFromDom();
+            updatePlaygroundExample();
+        }
         if (event.target.matches('[data-ui-input="model-catalog-search"]')) {
             renderModelCatalog();
         }
         if (event.target.matches('[data-ui-input="provider-catalog-search"]')) {
             filterProviderCatalog(event.target.value);
+        }
+        if (event.target.matches('[data-ui-input="virtual-key-search"]')) {
+            updateVirtualKeySearch(event.target.value);
         }
     });
 
@@ -184,6 +262,9 @@ function initStaticUiBindings() {
         event.preventDefault();
         completeInitialSetup();
     });
+    document.getElementById('setupPreflightButton')?.addEventListener('click', () => {
+        runSetupPreflight();
+    });
     document.getElementById('googleAiStudioCredentialForm')?.addEventListener('submit', addGoogleAIStudioCredential);
     document.getElementById('xaiCredentialForm')?.addEventListener('submit', addXaiApiKeyCredential);
     document.getElementById('openaiPlatformCredentialForm')?.addEventListener('submit', addOpenAIPlatformCredential);
@@ -192,6 +273,10 @@ function initStaticUiBindings() {
     document.getElementById('accessPasswordForm')?.addEventListener('submit', (event) => {
         event.preventDefault();
         saveAccessCredentials();
+    });
+    document.getElementById('playgroundForm')?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        runPlayground();
     });
 
     document.getElementById('apiKey')?.addEventListener('mousedown', (event) => event.preventDefault());
@@ -227,7 +312,7 @@ window.addEventListener('resize', () => {
 
     if (activeTab) updateTabSlider(activeTab, false);
 
-    if (window.innerWidth > 960) setMobileMenuState(false);
+    syncMobileNavigationState();
 
 });
 
@@ -242,43 +327,52 @@ function switchTab(tabName) {
 const PROVIDER_WORKSPACES = {
     google_antigravity: {
         selectorId: 'providerSelectorGoogleAntigravity',
-        panelId: 'providerWorkspaceGoogleAntigravity'
+        panelId: 'providerWorkspaceGoogleAntigravity',
+        settingsFamily: 'antigravity'
     },
     google_ai_studio: {
         selectorId: 'providerSelectorGoogleAiStudio',
-        panelId: 'providerWorkspaceGoogleAiStudio'
+        panelId: 'providerWorkspaceGoogleAiStudio',
+        settingsFamily: 'google-ai-studio'
     },
     grok: {
         selectorId: 'providerSelectorGrok',
-        panelId: 'providerWorkspaceGrok'
+        panelId: 'providerWorkspaceGrok',
+        settingsFamily: 'xai'
     },
     xai_console: {
         selectorId: 'providerSelectorXaiConsole',
-        panelId: 'providerWorkspaceXaiConsole'
+        panelId: 'providerWorkspaceXaiConsole',
+        settingsFamily: 'xai'
     },
     codex: {
         selectorId: 'providerSelectorCodex',
-        panelId: 'providerWorkspaceCodex'
+        panelId: 'providerWorkspaceCodex',
+        settingsFamily: 'openai'
     },
     openai_platform: {
         selectorId: 'providerSelectorOpenAiPlatform',
-        panelId: 'providerWorkspaceOpenAiPlatform'
+        panelId: 'providerWorkspaceOpenAiPlatform',
+        settingsFamily: 'openai'
     },
     claude_code: {
         selectorId: 'providerSelectorClaudeCode',
-        panelId: 'providerWorkspaceClaudeCode'
+        panelId: 'providerWorkspaceClaudeCode',
+        settingsFamily: 'anthropic'
     },
     claude_platform: {
         selectorId: 'providerSelectorClaudePlatform',
-        panelId: 'providerWorkspaceClaudePlatform'
+        panelId: 'providerWorkspaceClaudePlatform',
+        settingsFamily: 'anthropic'
     },
     ollama: {
         selectorId: 'providerSelectorOllama',
-        panelId: 'providerWorkspaceOllama'
+        panelId: 'providerWorkspaceOllama',
+        settingsFamily: null
     }
 };
 
-const PROVIDER_CATALOG_PAGE_SIZE = 6;
+const PROVIDER_CATALOG_PAGE_SIZE = 8;
 let providerCatalogCurrentPage = 1;
 let providerCatalogSearchQuery = '';
 
@@ -390,12 +484,10 @@ function selectProviderWorkspace(providerId, focusSelector = false) {
         panel?.classList.toggle('hidden', !isActive);
     });
 
-    const activePanel = document.getElementById(selected.panelId);
-    const header = activePanel?.querySelector('.provider-workspace-header');
-    const pagination = document.getElementById('providerCatalogPagination');
-    if (header && pagination && pagination.parentElement !== header) {
-        header.appendChild(pagination);
-    }
+    const paginationContainer = document.getElementById('providerCatalogPagination');
+    const activeHeader = document.getElementById(selected.panelId)
+        ?.querySelector(':scope > .provider-workspace-header');
+    if (paginationContainer) activeHeader?.append(paginationContainer);
 
     if (focusSelector) {
         const selector = document.getElementById(selected.selectorId);

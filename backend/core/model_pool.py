@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import re
 import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Iterable, Mapping, Optional, Sequence
 
+from core.governance_coordination import GovernanceGenerationObserver
+from core.routing_coordination import GOVERNANCE_SCOPE_MODEL_CATALOG
 from core.storage_adapter import get_storage_adapter
 from log import log
 
-DEFAULT_VIRTUAL_MODEL_ALIAS = "omway"
+DEFAULT_VIRTUAL_MODEL_ALIAS = "polaris"
 MODEL_POOL_CONFIG_KEY = "virtual_model_pool"
 MODEL_CATALOG_TTL_SECONDS = 5 * 60.0
 MODEL_CATALOG_STALE_RETRY_SECONDS = 30.0
 MAX_POOL_MODELS = 64
+MODEL_ROUTING_SCHEMA_VERSION = "model-routing.v1"
 _MODEL_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$")
 
 
@@ -97,8 +102,10 @@ class ModelCatalogService:
         self._expires_at = 0.0
         self._loaded = False
         self._last_refresh_error = ""
+        self._generation = GovernanceGenerationObserver(GOVERNANCE_SCOPE_MODEL_CATALOG)
 
     async def get_catalog(self, *, force_refresh: bool = False) -> list[ModelCatalogEntry]:
+        await self._generation.synchronize(self.invalidate)
         now = self._clock()
         if not force_refresh and self._loaded and self._expires_at > now:
             return list(self._entries)
@@ -178,10 +185,131 @@ def _normalize_pool_config(raw: Any) -> dict[str, Any]:
     }
 
 
+def decorate_virtual_model_pool(pool: Mapping[str, Any]) -> dict[str, Any]:
+    """Add an opaque revision and lifecycle state without changing stored data."""
+    normalized = _normalize_pool_config(dict(pool))
+    revision_source = json.dumps(
+        normalized,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return {
+        **normalized,
+        "configured": bool(normalized["selected_models"]),
+        "revision": hashlib.sha256(revision_source).hexdigest()[:24],
+    }
+
+
+def assess_virtual_model_pool(
+    selected_models: Sequence[Any],
+    catalog: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Return a bounded, credential-free validation result for one route draft."""
+    try:
+        selected = _normalize_selected_models(selected_models)
+    except ModelPoolError as exc:
+        return {
+            "valid": False,
+            "status": "unavailable",
+            "issues": [
+                {
+                    "code": "invalid_model_selection",
+                    "severity": "error",
+                    "model_id": "",
+                    "message": str(exc),
+                }
+            ],
+            "summary": {
+                "selected_models": 0,
+                "available_models": 0,
+                "unavailable_models": 0,
+                "provider_routes": 0,
+            },
+        }
+
+    by_model = {
+        str(entry.get("model_id") or ""): entry
+        for entry in catalog
+        if isinstance(entry, Mapping) and entry.get("model_id")
+    }
+    issues: list[dict[str, str]] = []
+    available_count = 0
+    provider_routes = 0
+    unavailable_count = 0
+    for model_id in selected:
+        entry = by_model.get(model_id)
+        if entry is None:
+            unavailable_count += 1
+            issues.append(
+                {
+                    "code": "model_not_discovered",
+                    "severity": "error",
+                    "model_id": model_id,
+                    "message": "This model is not in the current provider catalog.",
+                }
+            )
+            continue
+        providers = entry.get("routable_providers") or ()
+        if bool(entry.get("available")) and providers:
+            available_count += 1
+            provider_routes += len(providers)
+            continue
+        unavailable_count += 1
+        issues.append(
+            {
+                "code": "model_temporarily_unavailable",
+                "severity": "warning",
+                "model_id": model_id,
+                "message": "No enabled provider credential can currently route this model.",
+            }
+        )
+
+    if not selected:
+        issues.append(
+            {
+                "code": "route_has_no_models",
+                "severity": "error",
+                "model_id": "",
+                "message": "Select at least one discovered provider model.",
+            }
+        )
+    elif available_count == 0:
+        issues.append(
+            {
+                "code": "route_has_no_available_model",
+                "severity": "error",
+                "model_id": "",
+                "message": "The route needs at least one model with an available provider.",
+            }
+        )
+
+    has_error = any(issue["severity"] == "error" for issue in issues)
+    if not selected:
+        status = "draft"
+    elif available_count == 0 or has_error:
+        status = "unavailable"
+    elif unavailable_count:
+        status = "degraded"
+    else:
+        status = "ready"
+    return {
+        "valid": bool(selected) and available_count > 0 and not has_error,
+        "status": status,
+        "issues": issues,
+        "summary": {
+            "selected_models": len(selected),
+            "available_models": available_count,
+            "unavailable_models": unavailable_count,
+            "provider_routes": provider_routes,
+        },
+    }
+
+
 async def get_virtual_model_pool(storage_adapter=None) -> dict[str, Any]:
     storage = storage_adapter or await get_storage_adapter()
     raw = await storage.get_config(MODEL_POOL_CONFIG_KEY, {})
-    return _normalize_pool_config(raw)
+    return decorate_virtual_model_pool(_normalize_pool_config(raw))
 
 
 async def save_virtual_model_pool(
@@ -199,7 +327,7 @@ async def save_virtual_model_pool(
     }
     if not await storage.set_config(MODEL_POOL_CONFIG_KEY, config):
         raise ModelPoolError("The virtual model configuration could not be saved.")
-    return config
+    return decorate_virtual_model_pool(config)
 
 
 async def resolve_model_request(

@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "openai_chat": {
+    "request": {
+      "model": "fixture-model",
+      "messages": [
+        {"role": "developer", "content": "Return the requested schema."},
+        {
+          "role": "user",
+          "content": [
+            {"type": "text", "text": "Inspect this image."},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,aW1hZ2U="}}
+          ]
+        }
+      ],
+      "max_completion_tokens": 64,
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "lookup_weather",
+            "description": "Look up weather.",
+            "parameters": {
+              "type": "object",
+              "properties": {"city": {"type": "string"}},
+              "required": ["city"]
+            }
+          }
+        }
+      ],
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "answer",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {"answer": {"type": "string"}},
+            "required": ["answer"]
+          }
+        }
+      }
+    },
+    "expected": {
+      "system_text": "Return the requested schema.",
+      "user_text": "Inspect this image.",
+      "image_mime_type": "image/png",
+      "image_data": "aW1hZ2U=",
+      "max_output_tokens": 64,
+      "response_mime_type": "application/json",
+      "tool_name": "lookup_weather"
+    }
+  },
+  "openai_responses": {
+    "request": {
+      "model": "fixture-model",
+      "instructions": "Return JSON.",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {"type": "input_text", "text": "Weather in Da Nang?"},
+            {"type": "input_image", "image_url": "data:image/png;base64,aW1hZ2U="}
+          ]
+        },
+        {
+          "type": "function_call",
+          "call_id": "call_1",
+          "name": "lookup_weather",
+          "arguments": "{\"city\":\"Da Nang\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_1",
+          "output": "{\"temperature\":30}"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "name": "lookup_weather",
+          "description": "Look up weather.",
+          "parameters": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"]
+          }
+        }
+      ],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "weather",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {"temperature": {"type": "number"}},
+            "required": ["temperature"]
+          }
+        }
+      }
+    },
+    "expected": {
+      "message_roles": ["system", "user", "assistant", "tool"],
+      "tool_name": "lookup_weather",
+      "response_format_type": "json_schema",
+      "response_format_name": "weather"
+    }
+  },
+  "anthropic": {
+    "request": {
+      "model": "fixture-model",
+      "max_tokens": 96,
+      "system": [{"type": "text", "text": "Return the requested schema."}],
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {"type": "text", "text": "Inspect this image."},
+            {
+              "type": "image",
+              "source": {"type": "base64", "media_type": "image/png", "data": "aW1hZ2U="}
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {"type": "thinking", "thinking": "private plan", "signature": "signature-12345"},
+            {
+              "type": "tool_use",
+              "id": "toolu_1",
+              "name": "lookup_weather",
+              "input": {"city": "Da Nang"}
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": "30 C"}
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup_weather",
+          "description": "Look up weather.",
+          "input_schema": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"]
+          }
+        }
+      ],
+      "thinking": {"type": "enabled", "budget_tokens": 32},
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schema": {
+            "type": "object",
+            "properties": {"temperature": {"type": "number"}},
+            "required": ["temperature"]
+          }
+        }
+      }
+    },
+    "expected": {
+      "system_text": "Return the requested schema.",
+      "thinking_text": "private plan",
+      "thinking_signature": "signature-12345",
+      "thinking_budget": 32,
+      "response_mime_type": "application/json",
+      "tool_name": "lookup_weather"
+    }
+  },
+  "gemini": {
+    "request": {
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {"text": "Inspect this image."},
+            {"inlineData": {"mimeType": "image/png", "data": "aW1hZ2U="}}
+          ]
+        }
+      ],
+      "systemInstruction": {"parts": [{"text": "Return the requested schema."}]},
+      "tools": [
+        {
+          "functionDeclarations": [
+            {
+              "name": "lookup_weather",
+              "description": "Look up weather.",
+              "parametersJsonSchema": {
+                "type": "object",
+                "properties": {"city": {"type": "string"}},
+                "required": ["city"]
+              }
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 64,
+        "responseMimeType": "application/json",
+        "responseSchema": {
+          "type": "object",
+          "properties": {"temperature": {"type": "number"}},
+          "required": ["temperature"]
+        },
+        "thinkingConfig": {"includeThoughts": true, "thinkingBudget": 32}
+      }
+    }
+  }
+}

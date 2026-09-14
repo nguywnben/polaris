@@ -4,6 +4,7 @@ from collections import deque
 from typing import Set
 
 import config
+from core.credential_validation import validate_credential_filename as _validate_credential_filename
 from fastapi import HTTPException, WebSocket
 from log import log, redact_text
 from starlette.websockets import WebSocketState
@@ -163,18 +164,8 @@ def validate_mode(mode: str = "code_assist") -> str:
 
 
 def validate_credential_filename(filename: str) -> str:
-    """Validate a credential storage key before it reaches a backend or log entry."""
-    value = str(filename or "")
-    invalid = (
-        not value
-        or len(value) > 255
-        or not value.lower().endswith(".json")
-        or value in {".", ".."}
-        or any(character in value for character in ("/", "\\", "\x00", "\r", "\n"))
-    )
-    if invalid:
-        raise HTTPException(status_code=400, detail="Invalid credential file name.")
-    return value
+    """Compatibility export for existing panel modules."""
+    return _validate_credential_filename(filename)
 
 
 def public_mode_name(mode: str = "code_assist") -> str:

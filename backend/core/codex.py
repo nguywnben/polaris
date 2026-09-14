@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
-import secrets
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
@@ -17,13 +16,18 @@ from config import (
     get_codex_client_id,
     get_codex_user_agent,
 )
+from core.device_authorization_coordination import (
+    DeviceAuthorizationBusyError,
+    DeviceAuthorizationClaim,
+    DeviceAuthorizationError,
+    get_device_authorization_service,
+)
 from core.httpx_client import get_async, post_async
 from core.provider_registry import OPENAI, api_key_fingerprint
 from log import log
 
 CODEX_FLOW_TTL_SECONDS = 15 * 60
 CODEX_DEVICE_POLL_INTERVAL_SECONDS = 5
-MAX_CODEX_FLOWS = 128
 CODEX_DEFAULT_MODEL_IDS = [
     "gpt-5",
     "gpt-5-codex",
@@ -37,8 +41,6 @@ CODEX_DEFAULT_MODEL_IDS = [
 ]
 MAX_CODEX_MODELS = 500
 MAX_CODEX_MODEL_ID_LENGTH = 256
-
-_device_flows: Dict[str, Dict[str, Any]] = {}
 
 
 class CodexError(RuntimeError):
@@ -77,15 +79,6 @@ def _account_identity(tokens: Dict[str, Any]) -> tuple[str, str]:
     return account_id, email
 
 
-def _prune_device_flows() -> None:
-    cutoff = time.time() - CODEX_FLOW_TTL_SECONDS
-    for flow_id in list(_device_flows):
-        if float(_device_flows[flow_id].get("created_at", 0)) < cutoff:
-            _device_flows.pop(flow_id, None)
-    while len(_device_flows) > MAX_CODEX_FLOWS:
-        _device_flows.pop(next(iter(_device_flows)), None)
-
-
 async def _auth_endpoint(path: str) -> str:
     return f"{(await get_codex_auth_base()).rstrip('/')}/{path.lstrip('/')}"
 
@@ -103,7 +96,6 @@ def _provider_error(response: httpx.Response, fallback: str, status_code: int = 
 
 async def create_codex_device_flow() -> Dict[str, Any]:
     """Request a short-lived device code that the user completes at OpenAI."""
-    _prune_device_flows()
     try:
         response = await post_async(
             await _auth_endpoint("api/accounts/deviceauth/usercode"),
@@ -120,26 +112,94 @@ async def create_codex_device_flow() -> Dict[str, Any]:
     except ValueError as exc:
         raise CodexError("OpenAI returned an invalid device authorization response.", 502) from exc
 
+    if not isinstance(data, dict):
+        raise CodexError("OpenAI returned an invalid device authorization response.", 502)
     device_auth_id = str(data.get("device_auth_id") or "").strip()
     user_code = str(data.get("user_code") or data.get("usercode") or "").strip()
-    if not device_auth_id or not user_code:
+    if (
+        not 1 <= len(device_auth_id) <= 4096
+        or not device_auth_id.isprintable()
+        or not 1 <= len(user_code) <= 256
+        or not user_code.isprintable()
+    ):
         raise CodexError("OpenAI device authorization response was incomplete.", 502)
 
-    flow_id = secrets.token_urlsafe(24)
-    interval = max(3, int(data.get("interval") or CODEX_DEVICE_POLL_INTERVAL_SECONDS))
-    _device_flows[flow_id] = {
-        "created_at": time.time(),
-        "device_auth_id": device_auth_id,
-        "user_code": user_code,
-        "interval": interval,
-    }
+    try:
+        interval = min(
+            60,
+            max(3, int(data.get("interval") or CODEX_DEVICE_POLL_INTERVAL_SECONDS)),
+        )
+        expires_in = min(
+            CODEX_FLOW_TTL_SECONDS,
+            max(60, int(data.get("expires_in") or CODEX_FLOW_TTL_SECONDS)),
+        )
+        flow_id = await get_device_authorization_service().create(
+            json.dumps(
+                {
+                    "device_auth_id": device_auth_id,
+                    "interval": interval,
+                    "schema_version": 1,
+                    "user_code": user_code,
+                },
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("ascii"),
+            ttl_seconds=expires_in,
+        )
+    except (TypeError, ValueError, DeviceAuthorizationError):
+        raise CodexError("The Codex authorization session could not be started.", 503) from None
     return {
         "flow_id": flow_id,
         "user_code": user_code,
         "verification_uri": f"{(await get_codex_auth_base()).rstrip('/')}/codex/device",
         "interval": interval,
-        "expires_in": int(data.get("expires_in") or CODEX_FLOW_TTL_SECONDS),
+        "expires_in": expires_in,
     }
+
+
+def _decode_codex_device_flow(payload: bytes) -> Dict[str, Any]:
+    try:
+        pairs = json.loads(payload, object_pairs_hook=lambda values: values)
+        if type(pairs) is not list or any(type(pair) is not tuple for pair in pairs):
+            raise ValueError
+        flow = dict(pairs)
+        if len(flow) != len(pairs) or set(flow) != {
+            "device_auth_id",
+            "interval",
+            "schema_version",
+            "user_code",
+        }:
+            raise ValueError
+        device_auth_id = flow["device_auth_id"]
+        user_code = flow["user_code"]
+        interval = flow["interval"]
+        if (
+            flow["schema_version"] != 1
+            or type(device_auth_id) is not str
+            or not 1 <= len(device_auth_id) <= 4096
+            or not device_auth_id.isprintable()
+            or type(user_code) is not str
+            or not 1 <= len(user_code) <= 256
+            or not user_code.isprintable()
+            or type(interval) is not int
+            or not 3 <= interval <= 60
+        ):
+            raise ValueError
+        return {
+            "device_auth_id": device_auth_id,
+            "interval": interval,
+            "user_code": user_code,
+        }
+    except Exception:
+        raise CodexError("The Codex authorization session was invalid or expired.") from None
+
+
+async def _release_device_claim(claim: DeviceAuthorizationClaim) -> None:
+    try:
+        await asyncio.shield(get_device_authorization_service().release(claim))
+    except DeviceAuthorizationError:
+        log.warning("A Codex device authorization lease could not be released.")
 
 
 async def _poll_device_flow(flow: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -203,19 +263,49 @@ async def _exchange_codex_tokens(code_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def complete_codex_device_flow(flow_id: str) -> Dict[str, Any]:
-    _prune_device_flows()
-    flow = _device_flows.get(str(flow_id or "").strip())
-    if not flow:
+    try:
+        claim = await get_device_authorization_service().claim(
+            str(flow_id or "").strip(),
+            lease_seconds=45,
+        )
+    except DeviceAuthorizationBusyError:
+        return {
+            "pending": True,
+            "message": "Authorization is being checked. Try again shortly.",
+        }
+    except DeviceAuthorizationError:
         raise CodexError("The Codex authorization session was not found or has expired.")
-    device_data = await _poll_device_flow(flow)
+    try:
+        flow = _decode_codex_device_flow(claim.payload)
+    except CodexError:
+        try:
+            await get_device_authorization_service().consume(claim)
+        except DeviceAuthorizationError:
+            pass
+        raise
+    try:
+        device_data = await _poll_device_flow(flow)
+    except asyncio.CancelledError:
+        await _release_device_claim(claim)
+        raise
+    except Exception:
+        await _release_device_claim(claim)
+        raise
     if device_data is None:
+        try:
+            await get_device_authorization_service().release(claim)
+        except DeviceAuthorizationError:
+            raise CodexError("The Codex authorization session could not be updated.", 503) from None
         return {
             "pending": True,
             "message": "Authorization is still pending. Finish sign-in and try again.",
         }
 
+    try:
+        await get_device_authorization_service().consume(claim)
+    except DeviceAuthorizationError:
+        raise CodexError("The Codex authorization session could not be finalized.", 503) from None
     tokens = await _exchange_codex_tokens(device_data)
-    _device_flows.pop(str(flow_id), None)
     account_id, email = _account_identity(tokens)
     try:
         model_ids = await fetch_codex_model_ids(tokens["access_token"], account_id)
@@ -543,10 +633,16 @@ def codex_response_to_gemini(payload: Dict[str, Any]) -> Dict[str, Any]:
         ]
     }
     if usage:
+        input_details = usage.get("input_tokens_details") or {}
+        output_tokens = int(usage.get("output_tokens") or 0)
+        output_details = usage.get("output_tokens_details") or {}
+        reasoning_tokens = int(output_details.get("reasoning_tokens") or 0)
         result["usageMetadata"] = {
             "promptTokenCount": int(usage.get("input_tokens") or 0),
-            "candidatesTokenCount": int(usage.get("output_tokens") or 0),
+            "candidatesTokenCount": max(output_tokens - reasoning_tokens, 0),
+            "thoughtsTokenCount": reasoning_tokens,
             "totalTokenCount": int(usage.get("total_tokens") or 0),
+            "cachedContentTokenCount": int(input_details.get("cached_tokens") or 0),
         }
     return result
 
@@ -637,10 +733,16 @@ def codex_stream_line_to_gemini(line: Any) -> Optional[str]:
             ]
         }
         if isinstance(usage, dict):
+            input_details = usage.get("input_tokens_details") or {}
+            output_tokens = int(usage.get("output_tokens") or 0)
+            output_details = usage.get("output_tokens_details") or {}
+            reasoning_tokens = int(output_details.get("reasoning_tokens") or 0)
             result["usageMetadata"] = {
                 "promptTokenCount": int(usage.get("input_tokens") or 0),
-                "candidatesTokenCount": int(usage.get("output_tokens") or 0),
+                "candidatesTokenCount": max(output_tokens - reasoning_tokens, 0),
+                "thoughtsTokenCount": reasoning_tokens,
                 "totalTokenCount": int(usage.get("total_tokens") or 0),
+                "cachedContentTokenCount": int(input_details.get("cached_tokens") or 0),
             }
         return "data: " + json.dumps(result)
     return None

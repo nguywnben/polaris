@@ -13,6 +13,11 @@ from config import (
 from core.anthropic import AnthropicError, fetch_anthropic_model_ids
 from core.antigravity import AntigravityError, fetch_antigravity_model_ids
 from core.codex import CodexError, fetch_codex_model_ids, refresh_codex_oauth_credential
+from core.credential_fleet_query import (
+    CredentialFleetFilters,
+    build_credential_fleet_page,
+    load_credential_fleet_items,
+)
 from core.credential_manager import credential_manager
 from core.credential_pool import (
     deduplicate_credentials_by_account_email,
@@ -41,6 +46,7 @@ from core.pool_import import (
     MAX_POOL_ENTRY_BYTES,
     MAX_POOL_UNCOMPRESSED_BYTES,
 )
+from core.provider_connection_diagnostics import connection_diagnostic
 from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
@@ -52,9 +58,11 @@ from core.provider_registry import (
     OPENAI_PLATFORM,
     XAI,
     canonicalize_antigravity_credential_filename,
+    credential_supports_operation,
     get_credential_provider,
     get_credential_provider_variant,
-    get_declared_credential_models,
+    get_credential_variant_capabilities,
+    list_credential_variant_capabilities,
     normalize_provider_id,
 )
 from core.storage_adapter import get_storage_adapter
@@ -68,6 +76,39 @@ from fastapi import HTTPException, Response, UploadFile
 from log import log
 
 from .utils import INTERNAL_SERVER_ERROR_DETAIL, validate_credential_filename, validate_mode
+
+
+def reject_unsupported_credential_operation(
+    credential_data: dict,
+    operation: str,
+    *,
+    mode: str,
+) -> JSONResponse | None:
+    """Return a stable, secret-free rejection for an unsupported pool operation.
+
+    Code Assist keeps its legacy operation contract. The shared provider pool is
+    fail-closed so an unknown or mismatched credential variant cannot reach an
+    operation merely by crafting an API request.
+    """
+    if mode != "primary" or credential_supports_operation(credential_data, operation):
+        return None
+
+    inferred_variant = get_credential_provider_variant(credential_data)
+    capabilities = get_credential_variant_capabilities(inferred_variant)
+    variant_id = capabilities.variant_id if capabilities else "unknown"
+    diagnostic = connection_diagnostic("unsupported_operation")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "code": "credential_operation_unsupported",
+                "message": "This operation is not supported for the credential variant.",
+                "operation": operation,
+                "variant_id": variant_id,
+            },
+            "diagnostic": diagnostic.as_dict(),
+        },
+    )
 
 
 def _count_label(count: int, singular: str, plural: str | None = None) -> str:
@@ -466,6 +507,11 @@ async def get_creds_status_common(
     preview_filter: str = None,
     tier_filter: str = None,
     provider_filter: str = None,
+    provider_variant_filter: str = None,
+    credential_kind_filter: str = None,
+    health_filter: str = None,
+    quota_state_filter: str = None,
+    source_filter: str = None,
 ) -> JSONResponse:
     mode = validate_mode(mode)
 
@@ -485,34 +531,88 @@ async def get_creds_status_common(
         raise HTTPException(
             status_code=400, detail="Preview filter must be all, preview, or no_preview."
         )
-    if tier_filter and tier_filter not in ["all", "free", "pro", "ultra"]:
-        raise HTTPException(status_code=400, detail="Tier filter must be all, free, pro, or ultra.")
+    if tier_filter and tier_filter not in ["all", "free", "pro", "ultra", "not_applicable"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Tier filter must be all, free, pro, ultra, or not_applicable.",
+        )
+    if credential_kind_filter and credential_kind_filter not in [
+        "all",
+        "oauth",
+        "api_key",
+        "connection",
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail="Credential kind filter must be all, oauth, api_key, or connection.",
+        )
+    if health_filter and health_filter not in [
+        "all",
+        "healthy",
+        "degraded",
+        "unhealthy",
+        "disabled",
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail="Health filter must be all, healthy, degraded, unhealthy, or disabled.",
+        )
+    if quota_state_filter and quota_state_filter not in [
+        "all",
+        "available",
+        "limited",
+        "exhausted",
+        "unsupported",
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Quota state filter must be all, available, limited, exhausted, or unsupported."
+            ),
+        )
+    if source_filter and source_filter not in ["all", "managed", "environment"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Source filter must be all, managed, or environment.",
+        )
+    if error_code_filter and error_code_filter not in {"all", "none"}:
+        normalized_error_code = str(error_code_filter).strip()
+        if not (normalized_error_code.isdigit() and len(normalized_error_code) == 3):
+            raise HTTPException(
+                status_code=400,
+                detail="Error code filter must be all, none, or a three-digit status code.",
+            )
 
+    supported_variants = {item["variant_id"] for item in list_credential_variant_capabilities()}
     normalized_provider_filter = "all"
-    credential_type_filter = ""
+    normalized_variant_filter = str(provider_variant_filter or "all").strip().lower()
+    if normalized_variant_filter != "all" and normalized_variant_filter not in supported_variants:
+        raise HTTPException(
+            status_code=400,
+            detail="Provider variant filter must identify a supported credential variant.",
+        )
+
     raw_provider_filter = str(provider_filter or "all").strip().lower()
+    legacy_variant_filter = "all"
     if raw_provider_filter != "all":
         if raw_provider_filter in {"grok", "xai_oauth"}:
-            normalized_provider_filter = XAI
-            credential_type_filter = "oauth"
+            legacy_variant_filter = "grok"
         elif raw_provider_filter in {"xai_console", "xai_api_key"}:
-            normalized_provider_filter = XAI
-            credential_type_filter = "api_key"
+            legacy_variant_filter = "xai_console"
         elif raw_provider_filter in {"codex", "openai_codex"}:
-            normalized_provider_filter = OPENAI
-            credential_type_filter = "oauth"
+            legacy_variant_filter = "codex"
         elif raw_provider_filter in {"openai_platform", "openai_api_key"}:
-            normalized_provider_filter = OPENAI
-            credential_type_filter = "api_key"
+            legacy_variant_filter = "openai_platform"
         elif raw_provider_filter in {"claude_code", "claude"}:
-            normalized_provider_filter = ANTHROPIC
-            credential_type_filter = "oauth"
+            legacy_variant_filter = "claude_code"
         elif raw_provider_filter == "claude_platform":
-            normalized_provider_filter = ANTHROPIC
-            credential_type_filter = "api_key"
+            legacy_variant_filter = "claude_platform"
+        elif raw_provider_filter in supported_variants:
+            legacy_variant_filter = raw_provider_filter
         else:
             normalized_provider_filter = normalize_provider_id(provider_filter)
         if mode != "primary" or normalized_provider_filter not in {
+            "all",
             GOOGLE_ANTIGRAVITY,
             GOOGLE_AI_STUDIO,
             XAI,
@@ -526,88 +626,45 @@ async def get_creds_status_common(
                     "Provider filter must identify a supported provider or credential product."
                 ),
             )
+        if legacy_variant_filter != "all":
+            if (
+                normalized_variant_filter != "all"
+                and normalized_variant_filter != legacy_variant_filter
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Provider and provider variant filters conflict.",
+                )
+            normalized_variant_filter = legacy_variant_filter
 
     dedupe_result = await deduplicate_credentials_by_account_email(mode=mode)
 
     storage_adapter = await get_storage_adapter()
-    backend_info = await storage_adapter.get_backend_info()
-    backend_type = backend_info.get("backend_type", "unknown")
-
-    filter_by_provider = normalized_provider_filter != "all"
-    result = await storage_adapter._backend.get_credentials_summary(
-        offset=0 if filter_by_provider else offset,
-        limit=None if filter_by_provider else limit,
-        status_filter=status_filter,
+    all_creds = await load_credential_fleet_items(storage_adapter, mode=mode)
+    filters = CredentialFleetFilters(
+        provider=normalized_provider_filter,
+        provider_variant=normalized_variant_filter,
+        credential_kind=str(credential_kind_filter or "all"),
+        health=str(health_filter or "all"),
+        cooldown=str(cooldown_filter or "all"),
+        quota_state=str(quota_state_filter or "all"),
+        tier=str(tier_filter or "all"),
+        source=str(source_filter or "all"),
+        status=status_filter,
+        error_code=str(error_code_filter or "all"),
+        preview=str(preview_filter or "all"),
+    )
+    payload = build_credential_fleet_page(
+        all_creds,
+        filters,
+        offset=offset,
+        limit=limit,
         mode=mode,
-        error_code_filter=error_code_filter
-        if error_code_filter and error_code_filter != "all"
-        else None,
-        cooldown_filter=cooldown_filter if cooldown_filter and cooldown_filter != "all" else None,
-        preview_filter=preview_filter if preview_filter and preview_filter != "all" else None,
-        tier_filter=tier_filter if tier_filter and tier_filter != "all" else None,
     )
+    payload["provider_filter"] = raw_provider_filter
+    payload["deduplicated_count"] = dedupe_result.get("deleted_count", 0)
 
-    matching_creds = []
-    for summary in result["items"]:
-        filename = os.path.basename(summary["filename"])
-        credential_data = await storage_adapter.get_credential(filename, mode=mode) or {}
-        provider_id = get_credential_provider(credential_data)
-        if filter_by_provider and provider_id != normalized_provider_filter:
-            continue
-        if (
-            credential_type_filter
-            and str(credential_data.get("credential_type") or "oauth").strip().lower()
-            != credential_type_filter
-        ):
-            continue
-        cred_info = {
-            "filename": filename,
-            "user_email": summary["user_email"],
-            "credential_label": credential_data.get("credential_label"),
-            "credential_type": credential_data.get("credential_type", "oauth"),
-            "provider": provider_id,
-            "provider_variant": get_credential_provider_variant(credential_data),
-            "model_count": len(get_declared_credential_models(credential_data)),
-            "disabled": summary["disabled"],
-            "error_codes": summary["error_codes"],
-            "last_success": summary["last_success"],
-            "backend_type": backend_type,
-            "model_cooldowns": summary.get("model_cooldowns", {}),
-            "tier": summary.get("tier", "pro"),
-        }
-
-        if mode == "code_assist":
-            cred_info["preview"] = summary.get("preview", True)
-        else:
-            cred_info["enable_credit"] = summary.get("enable_credit", False)
-
-        matching_creds.append(cred_info)
-
-    if filter_by_provider:
-        total_count = len(matching_creds)
-        creds_list = matching_creds[offset : offset + limit]
-        stats = {
-            "total": total_count,
-            "normal": sum(1 for item in matching_creds if not item["disabled"]),
-            "disabled": sum(1 for item in matching_creds if item["disabled"]),
-        }
-    else:
-        total_count = result["total"]
-        creds_list = matching_creds
-        stats = result.get("stats", {"total": 0, "normal": 0, "disabled": 0})
-
-    return JSONResponse(
-        content={
-            "items": creds_list,
-            "total": total_count,
-            "offset": offset,
-            "limit": limit,
-            "has_more": (offset + limit) < total_count,
-            "stats": stats,
-            "provider_filter": raw_provider_filter,
-            "deduplicated_count": dedupe_result.get("deleted_count", 0),
-        }
-    )
+    return JSONResponse(content=payload)
 
 
 async def _get_download_filename(
@@ -883,6 +940,14 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
     if not credential_data:
         raise HTTPException(status_code=404, detail="Credential does not exist.")
 
+    rejection = reject_unsupported_credential_operation(
+        credential_data,
+        "verify",
+        mode=mode,
+    )
+    if rejection:
+        return rejection
+
     provider_id = get_credential_provider(credential_data)
     if mode == "primary" and provider_id == GOOGLE_AI_STUDIO:
         try:
@@ -902,7 +967,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -914,7 +979,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": validation.model_count,
                 "message": (
                     "Google AI Studio API key verified. Provider metadata was "
-                    "refreshed, the credential was enabled, and recorded errors were cleared."
+                    "refreshed, the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -948,7 +1013,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -960,7 +1025,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{'Grok Build OAuth credential' if credential_type == 'oauth' else 'SpaceXAI Console API key'} "
-                    "verified. Available models were refreshed, the credential was enabled, "
+                    "verified. Available models were refreshed, the enabled state was preserved, "
                     "and recorded errors were cleared."
                 ),
             }
@@ -1014,7 +1079,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         credential_name = (
@@ -1029,7 +1094,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{credential_name} verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1060,7 +1125,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         credential_name = (
@@ -1077,7 +1142,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     f"{credential_name} verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1103,7 +1168,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
         await storage_adapter.update_credential_state(
             filename,
-            {"disabled": False, "error_codes": [], "error_messages": {}},
+            {"error_codes": [], "error_messages": {}},
             mode=mode,
         )
         return JSONResponse(
@@ -1115,7 +1180,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 "model_count": len(model_ids),
                 "message": (
                     "Ollama connection verified. Available models were refreshed, "
-                    "the credential was enabled, and recorded errors were cleared."
+                    "the enabled state was preserved, and recorded errors were cleared."
                 ),
             }
         )
@@ -1180,7 +1245,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
     if project_id or subscription_tier:
         await storage_adapter.store_credential(filename, credential_data, mode=mode)
 
-        state_update = {"disabled": False, "error_codes": []}
+        state_update = {"error_codes": []}
 
         state_update["tier"] = subscription_tier
 
@@ -1190,7 +1255,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         await storage_adapter.update_credential_state(filename, state_update, mode=mode)
 
         log.info(
-            f"Verified {mode} credential: {filename}. Project ID: {project_id}. Tier: {subscription_tier}. Disabled status removed and error codes cleared."
+            f"Verified {mode} credential: {filename}. Project ID: {project_id}. Tier: {subscription_tier}. Enabled state preserved and error codes cleared."
         )
 
         response_data = {
@@ -1198,7 +1263,7 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
             "filename": filename,
             "project_id": project_id,
             "subscription_tier": subscription_tier,
-            "message": "Verification complete. Project ID was updated, the credential was re-enabled, and recorded error codes were cleared.",
+            "message": "Verification complete. Project ID was updated, the enabled state was preserved, and recorded error codes were cleared.",
         }
 
         if mode == "primary" and credit_amount is not None:

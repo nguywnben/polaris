@@ -11,7 +11,7 @@
 
 ## Reporting Vulnerabilities
 
-Report suspected vulnerabilities through a [private GitHub security advisory](https://github.com/nguywnben/omni-gateway/security/advisories/new). Do not open a public issue for active secrets, credential exposure, authentication bypasses, or deployment compromise.
+Report suspected vulnerabilities through a [private GitHub security advisory](https://github.com/nguywnben/polaris/security/advisories/new). Do not open a public issue for active secrets, credential exposure, authentication bypasses, or deployment compromise.
 
 Include the affected version or commit, deployment topology, reproduction steps, impact, and any proposed mitigation. Remove real credentials and personal data from evidence. This is a personal open-source project, so response times are best effort; reports are normally acknowledged within 72 hours.
 
@@ -20,7 +20,7 @@ After a fix is available, coordinate public disclosure through the advisory. Cre
 ## Operational Baseline
 
 - Use a unique `PANEL_PASSWORD` for the management console.
-- Use a separate `API_KEY` beginning with `sk-ogw-` for client traffic.
+- Use a separate `API_KEY` beginning with `sk-polaris-` for client traffic.
 - Keep the service behind TLS when exposed outside localhost.
 - Keep `MAX_REQUEST_BODY_MB` bounded and configure an equal or lower request-body limit at the reverse proxy.
 - Protect the bootstrap token printed for remote first-run setup, or preconfigure `PANEL_PASSWORD` for non-interactive deployment.

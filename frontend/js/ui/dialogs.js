@@ -195,11 +195,11 @@ function showModelTestModal(message, options = {}) {
         const modal = document.createElement('div');
         modal.className = 'message-modal-overlay';
 
-        const title = options.title || 'Test Model';
-        const confirmLabel = options.confirmLabel || 'Test';
+        const title = options.title || t('modal.model_test_title');
+        const confirmLabel = options.confirmLabel || t('modal.test');
         const cancelLabel = options.cancelLabel || t('btn_cancel');
-        const label = options.label || 'Model';
-        const placeholder = options.placeholder || 'Select a model';
+        const label = options.label || t('modal.model');
+        const placeholder = options.placeholder || t('modal.select_model');
         const choices = Array.isArray(options.options) ? options.options : [];
         const optionHtml = choices.map((choice) => `
             <option value="${escapeAttribute(choice.value)}">${escapeHtml(choice.label)}</option>
@@ -231,10 +231,13 @@ function showModelTestModal(message, options = {}) {
         const footer = modal.querySelector('.message-modal-footer');
         let settled = false;
         let running = false;
+        let activeController = null;
 
         const close = () => {
             if (settled) return;
             settled = true;
+            activeController?.abort();
+            activeController = null;
             document.removeEventListener('keydown', escHandler);
             void unmountModal(modal).then(() => resolve());
         };
@@ -243,6 +246,8 @@ function showModelTestModal(message, options = {}) {
             running = false;
             dialog.className = 'message-modal prompt model-test-modal';
             body.removeAttribute('aria-busy');
+            body.removeAttribute('aria-live');
+            body.removeAttribute('role');
             body.innerHTML = selectionHtml;
             footer.innerHTML = `
                 <button type="button" class="message-modal-btn" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
@@ -254,18 +259,23 @@ function showModelTestModal(message, options = {}) {
             select?.addEventListener('change', () => {
                 if (confirm) confirm.disabled = !select.value;
             });
+            select?.focus();
         };
 
         const renderResult = (result) => {
             const safeType = String(result?.type || 'info').replace(/[^\w-]/g, '') || 'info';
             running = false;
+            activeController = null;
             dialog.className = `message-modal informational model-test-modal ${safeType}`;
             body.removeAttribute('aria-busy');
+            body.setAttribute('role', safeType === 'error' ? 'alert' : 'status');
+            body.setAttribute('aria-live', safeType === 'error' ? 'assertive' : 'polite');
             body.innerHTML = String(result?.html || '');
             footer.innerHTML = `
                 <button type="button" class="message-modal-btn" data-dialog-close>${escapeHtml(t('btn_close'))}</button>
                 <button type="button" class="message-modal-btn message-modal-btn-primary" data-dialog-retry>${escapeHtml(t('btn_test_another_model'))}</button>
             `;
+            footer.querySelector('[data-dialog-close]')?.focus();
         };
 
         const runTest = async () => {
@@ -278,6 +288,8 @@ function showModelTestModal(message, options = {}) {
             if (!model || typeof options.onTest !== 'function') return;
 
             running = true;
+            const controller = new AbortController();
+            activeController = controller;
             body.setAttribute('aria-busy', 'true');
             select.disabled = true;
             if (confirm) {
@@ -290,20 +302,34 @@ function showModelTestModal(message, options = {}) {
             }
 
             try {
-                const result = await options.onTest(model);
+                const result = await options.onTest(model, activeController.signal);
                 if (!settled) renderResult(result);
             } catch (error) {
                 if (settled) return;
-                const errorMessage = error?.message || 'The selected model test could not be completed.';
+                if (controller.signal.aborted) {
+                    renderResult({
+                        type: 'info',
+                        html: buildApiResultHtml({
+                            intro: t('credential_test_cancelled'),
+                            rows: [
+                                [t('status'), t('credential_test_cancelled')],
+                                [t('modal.model'), model],
+                            ],
+                            summaryLabel: t('modal.model_test_title'),
+                        }),
+                    });
+                    return;
+                }
+                const errorMessage = error?.message || t('verification_failed');
                 renderResult({
                     type: 'error',
                     html: buildApiResultHtml({
-                        intro: 'The selected model test could not be completed.',
+                        intro: t('verification_failed'),
                         rows: [
-                            ['Result', 'Failed'],
-                            ['Model', model],
+                            [t('status'), t('failed')],
+                            [t('modal.model'), model],
                         ],
-                        summaryLabel: 'Failure summary',
+                        summaryLabel: t('modal.error_summary'),
                         note: errorMessage,
                     }),
                 });

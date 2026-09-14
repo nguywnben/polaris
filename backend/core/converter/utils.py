@@ -82,7 +82,7 @@ async def merge_system_messages(request_body: Dict[str, Any]) -> Dict[str, Any]:
     if compatibility_mode:
         converted_messages = []
         for message in messages:
-            if message.get("role") == "system":
+            if message.get("role") in {"system", "developer"}:
                 converted_message = message.copy()
                 converted_message["role"] = "user"
                 converted_messages.append(converted_message)
@@ -107,7 +107,7 @@ async def merge_system_messages(request_body: Dict[str, Any]) -> Dict[str, Any]:
             role = message.get("role", "")
             content = message.get("content", "")
 
-            if role == "system" and collecting_system:
+            if role in {"system", "developer"} and collecting_system:
                 if isinstance(content, str):
                     if content.strip():
                         system_parts.append({"text": content})
@@ -120,7 +120,7 @@ async def merge_system_messages(request_body: Dict[str, Any]) -> Dict[str, Any]:
                             system_parts.append({"text": item})
             else:
                 collecting_system = False
-                if role == "system":
+                if role in {"system", "developer"}:
                     converted_message = message.copy()
                     converted_message["role"] = "user"
                     remaining_messages.append(converted_message)

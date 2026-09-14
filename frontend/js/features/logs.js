@@ -1,4 +1,4 @@
-// Omni Gateway management console: settings.
+// Polaris management console: settings.
 
 function initLogAutoScrollPreference() {
 
@@ -255,6 +255,12 @@ function filterLogs() {
     } else {
 
         AppState.filteredLogs = AppState.allLogs.filter(log => log.toUpperCase().includes(filter));
+
+    }
+
+    if (typeof activityLogLineMatches === 'function') {
+
+        AppState.filteredLogs = AppState.filteredLogs.filter(log => activityLogLineMatches(log));
 
     }
 

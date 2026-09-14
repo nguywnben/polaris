@@ -49,14 +49,16 @@ async function startPrimaryAuth() {
             showStatus(t('primary_authentication_link_gen'), 'success');
 
         } else {
-
-            showStatus(t('error_dataerror_failed_to_generate', {data_error: data.detail || data.error || t('failed_to_generate_authentication_l_dup')}), 'error');
+            const requestError = createProviderRequestError(response, data);
+            showStatus(t('error_dataerror_failed_to_generate', {
+                data_error: formatProviderRequestError(requestError)
+            }), 'error');
 
         }
 
     } catch (error) {
 
-        showStatus(t('status_net_error', {error: error.message}), 'error');
+        showStatus(t('status_net_error', {error: formatProviderRequestError(error)}), 'error');
 
     } finally {
 
@@ -143,6 +145,7 @@ async function completePrimaryCredentialSave(data) {
 
     AppState.primaryAuthInProgress = false;
     setPrimaryCallbackUrlSectionVisible(false);
+    resetProviderTransientSecrets('antigravity.oauth');
 
     const saveResult = document.getElementById('primarySaveResult');
     const saveResultTitle = document.getElementById('primarySaveResultTitle');
@@ -234,14 +237,16 @@ async function getPrimaryCredentials() {
             await completePrimaryCredentialSave(data);
 
         } else {
-
-            showStatus(t('error_dataerror_failed_to_get_authe', {data_error: data.detail || data.error || t('failed_to_retrieve_authentication_f_dup')}), 'error');
+            const requestError = createProviderRequestError(response, data);
+            showStatus(t('error_dataerror_failed_to_get_authe', {
+                data_error: formatProviderRequestError(requestError)
+            }), 'error');
 
         }
 
     } catch (error) {
 
-        showStatus(t('status_net_error', {error: error.message}), 'error');
+        showStatus(t('status_net_error', {error: formatProviderRequestError(error)}), 'error');
 
     } finally {
 
@@ -271,10 +276,12 @@ async function savePrimaryCredentialsFromCallbackUrl(callbackUrl, btn = document
             const input = document.getElementById('primaryCallbackUrlInput');
             if (input) input.value = '';
         } else {
-            showStatus(data.detail || data.error || t('failed_to_fetch_credentials_from_ca'), 'error');
+            showStatus(formatProviderRequestError(createProviderRequestError(response, data)), 'error');
         }
     } catch (error) {
-        showStatus(t('failed_to_retrieve_credentials_from_dup', {error_message: error.message}), 'error');
+        showStatus(t('failed_to_retrieve_credentials_from_dup', {
+            error_message: formatProviderRequestError(error)
+        }), 'error');
     }
 }
 

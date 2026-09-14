@@ -11,8 +11,10 @@ from core.models import OpenAIChatCompletionRequest, model_to_dict
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
+    cascade_close_async_iterator,
     prepend_async_item,
     read_first_async_item,
+    sse_heartbeat_bytes,
 )
 from core.utils import (
     authenticate_bearer,
@@ -106,6 +108,9 @@ async def chat_completions(
         )
 
         return JSONResponse(content=openai_response, status_code=status_code)
+
+    anti_owned_streams = []
+    normal_owned_streams = []
 
     async def fake_stream_generator():
         from core.api.primary import non_stream_request
@@ -206,6 +211,7 @@ async def chat_completions(
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        anti_owned_streams.append(first_attempt_stream)
         try:
             first_chunk = await read_first_async_item(first_attempt_stream)
         except StopAsyncIteration:
@@ -230,6 +236,7 @@ async def chat_completions(
                     model_candidates=model_candidates,
                     model_routing=model_resolution.is_virtual,
                 )
+            anti_owned_streams.append(stream_gen)
 
             return StreamingResponse(stream_gen, media_type="text/event-stream")
 
@@ -244,11 +251,18 @@ async def chat_completions(
 
         response_id = str(uuid.uuid4())
 
-        async for chunk in processor.process_stream():
+        processor_stream = processor.process_stream()
+        anti_owned_streams.append(processor_stream)
+        async for chunk in processor_stream:
             if not chunk:
                 continue
 
             chunk_str = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
+
+            heartbeat = sse_heartbeat_bytes(chunk_str)
+            if heartbeat is not None:
+                yield heartbeat
+                continue
 
             if not chunk_str.strip():
                 continue
@@ -286,6 +300,7 @@ async def chat_completions(
             model_candidates=model_candidates,
             model_routing=model_resolution.is_virtual,
         )
+        normal_owned_streams.append(stream_gen)
         try:
             first_chunk = await read_first_async_item(stream_gen)
         except StopAsyncIteration:
@@ -320,6 +335,11 @@ async def chat_completions(
             else:
                 chunk_str = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
 
+                heartbeat = sse_heartbeat_bytes(chunk_str)
+                if heartbeat is not None:
+                    yield heartbeat
+                    continue
+
                 if not chunk_str.strip():
                     continue
 
@@ -351,9 +371,11 @@ async def chat_completions(
     elif use_anti_truncation:
         log.info("Enabling anti-truncation streaming feature")
         return await build_streaming_response_or_error(
-            anti_truncation_generator(), error_protocol="openai"
+            cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams),
+            error_protocol="openai",
         )
     else:
         return await build_streaming_response_or_error(
-            normal_stream_generator(), error_protocol="openai"
+            cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams),
+            error_protocol="openai",
         )

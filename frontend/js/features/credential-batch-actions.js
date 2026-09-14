@@ -1,6 +1,6 @@
 function formatBatchVerificationResult(result) {
 
-    if (!result.success) return `${result.filename}: ${result.error || 'Verification failed.'}`;
+    if (!result.success) return `${result.filename}: ${result.error || t('verification_failed')}`;
 
     const details = [];
 
@@ -20,7 +20,7 @@ function formatBatchVerificationResult(result) {
 
     }
 
-    if (details.length === 0) details.push(result.message || 'Verified');
+    if (details.length === 0) details.push(result.message || t('credentials.verified'));
 
     return `${result.filename}: ${details.join(', ')}`;
 
@@ -137,7 +137,7 @@ async function batchVerifyCredentials() {
     if (failCount === 0) {
 
         showStatus(t('all_verifications_successful_succes', {
-            credentials: `${successCount}/${selectedFiles.length} ${selectedFiles.length === 1 ? 'credential' : 'credentials'}`
+            credentials: `${successCount}/${selectedFiles.length} ${t('credential')}`
         }), 'success');
 
         showMessageModal(t('batch_verification_title'), summary, 'success');
@@ -145,7 +145,7 @@ async function batchVerifyCredentials() {
     } else if (successCount === 0) {
 
         showStatus(t('all_verifications_failed_failed_fai', {
-            credentials: formatCountLabel(selectedFiles.length, 'credential')
+            credentials: `${selectedFiles.length} ${t('credential')}`
         }), 'error');
 
         showMessageModal(t('batch_verification_title'), summary, 'error');
@@ -177,7 +177,7 @@ async function batchVerifyProviderCredentials() {
     if (!(await showConfirmModal(
 
         t('are_you_sure_you_want_to_batch_veri', {
-            credentials: formatCountLabel(selectedFiles.length, 'provider credential')
+            credentials: `${selectedFiles.length} ${t('provider')} ${t('credential')}`
         }),
 
         {title: t('confirm_verify_credentials_title'), confirmLabel: t('btn_verify_credentials')}
@@ -189,7 +189,7 @@ async function batchVerifyProviderCredentials() {
     }
 
     showStatus(t('parallel_testing_selectedfileslengt', {
-        credentials: formatCountLabel(selectedFiles.length, 'provider credential')
+        credentials: `${selectedFiles.length} ${t('provider')} ${t('credential')}`
     }), 'info');
 
     const promises = selectedFiles.map(async (filename) => {
@@ -271,7 +271,7 @@ async function batchVerifyProviderCredentials() {
     if (failCount === 0) {
 
         showStatus(t('all_verifications_successful_verifi', {
-            credentials: `${successCount}/${selectedFiles.length} ${selectedFiles.length === 1 ? 'provider credential' : 'provider credentials'}`
+            credentials: `${successCount}/${selectedFiles.length} ${t('provider')} ${t('credential')}`
         }), 'success');
 
         showMessageModal(t('provider_batch_verification_title'), summary, 'success');
@@ -279,7 +279,7 @@ async function batchVerifyProviderCredentials() {
     } else if (successCount === 0) {
 
         showStatus(t('verification_failed_for_all_failed', {
-            credentials: formatCountLabel(selectedFiles.length, 'provider credential')
+            credentials: `${selectedFiles.length} ${t('provider')} ${t('credential')}`
         }), 'error');
 
         showMessageModal(t('provider_batch_verification_title'), summary, 'error');
@@ -419,7 +419,7 @@ async function batchConfigurePreview() {
         showStatus(t('all_configured_successfully_preview', {
             successCount: successCount,
             selectedFiles_length: selectedFiles.length,
-            credential_noun: selectedFiles.length === 1 ? 'credential' : 'credentials'
+            credential_noun: t('credential')
         }), 'success');
 
         showMessageModal(t('bulk_preview_channel_configuration'), summary, 'success');
@@ -429,7 +429,7 @@ async function batchConfigurePreview() {
         showStatus(t('configuration_failed_for_all_failed', {
             failCount: failCount,
             selectedFiles_length: selectedFiles.length,
-            credential_noun: selectedFiles.length === 1 ? 'credential' : 'credentials'
+            credential_noun: t('credential')
         }), 'error');
 
         showMessageModal(t('bulk_preview_channel_configuration'), summary, 'error');
@@ -473,7 +473,7 @@ async function refreshAllEmails() {
             showStatus(t('email_refresh_complete_successfully', {
                 data_success_count: data.success_count,
                 data_total_count: data.total_count,
-                address_noun: Number(data.success_count) === 1 ? 'email address' : 'email addresses'
+                address_noun: t('modal.email')
             }), 'success');
 
             await AppState.creds.refresh();

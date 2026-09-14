@@ -248,8 +248,8 @@
 .message-result-details pre {
     margin: 10px 0 0;
     max-width: 100%;
-    overflow: auto;
     overflow-x: hidden;
+    overflow-y: auto;
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -265,7 +265,8 @@
 
 .message-modal-code {
     max-height: 46vh;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 12px;
     background: var(--bg-subtle);
     border: 1px solid var(--border);
@@ -460,6 +461,23 @@
     font-size: 13px;
     font-weight: 680;
     line-height: 1.3;
+}
+
+.credential-edit-modal {
+    width: min(100%, 560px);
+}
+
+.credential-edit-form-body {
+    display: grid;
+    gap: 16px;
+}
+
+.credential-edit-error {
+    padding: 10px 12px;
+    border-left: 2px solid var(--danger);
+    color: var(--danger);
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 .model-test-progress {

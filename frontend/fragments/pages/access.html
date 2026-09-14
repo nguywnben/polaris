@@ -1,0 +1,112 @@
+                <div id="accessTab" class="tab-content">
+                    <header class="page-header">
+                        <div>
+                            <div class="page-kicker" data-i18n="access.label">Access</div>
+                            <h1 class="page-title" data-i18n="access.title">API Access</h1>
+                            <p class="page-description" data-i18n="access.description">Issue restricted virtual keys for clients and copy a protocol-ready example.</p>
+                        </div>
+                    </header>
+
+                    <div class="dashboard-grid">
+                        <section class="card span-6">
+                            <h2 class="card-title" data-i18n="access.root_key">Root integration key</h2>
+                            <p class="card-copy card-title-copy" data-i18n="access.root_key_description">Keep this unrestricted deployment key for owner recovery. Use virtual keys for normal clients and automation.</p>
+                            <div class="metric-row">
+                                <div class="copy-field">
+                                    <label for="apiKey" data-i18n="api_key">API key</label>
+                                    <div class="secret-field">
+                                        <input type="password" id="apiKey" value="" class="skeleton skeleton-control" readonly data-i18n-title="copy_api_key" title="Copy API key" data-i18n-aria-label="loading_api_key" aria-label="Loading API key" aria-busy="true" data-ui-action="copy-api-key">
+                                        <button type="button" id="toggleApiKeyVisibilityBtn" class="btn btn-secondary icon-btn" data-ui-action="toggle-api-key" data-i18n-title="show_api_key" title="Show API key" data-i18n-aria-label="show_api_key" aria-label="Show API key">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        </button>
+                                        <button type="button" id="regenerateApiKeyBtn" class="btn btn-secondary icon-btn" data-ui-action="regenerate-api-key" data-i18n-title="regenerate_api_key" title="Regenerate API key">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.8-3"></path><path d="M4 5v4h4"></path><path d="M4 13a8 8 0 0 0 14.8 3"></path><path d="M20 19v-4h-4"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="copy-field">
+                                    <label data-i18n="openai_base_url">OpenAI base URL</label>
+                                    <button type="button" class="endpoint-code-card" id="openaiEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
+                                </div>
+                                <div class="copy-field">
+                                    <label data-i18n="anthropic_base_url">Anthropic base URL</label>
+                                    <button type="button" class="endpoint-code-card" id="anthropicEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
+                                </div>
+                                <div class="copy-field">
+                                    <label data-i18n="google_genai_base_url">Google GenAI base URL</label>
+                                    <button type="button" class="endpoint-code-card" id="googleGenaiEndpointUrl" data-i18n-title="copy_base_url" title="Copy base URL" data-i18n-aria-label="copy_base_url" aria-label="Copy base URL" data-ui-action="copy-url"><span data-i18n="loading">Loading</span></button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card span-6 access-client-card" aria-labelledby="accessClientHeading">
+                            <div class="access-client-header">
+                                <div>
+                                    <h2 class="card-title" id="accessClientHeading" data-i18n="playground.client_example">Client example</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="playground.example_hint">Uses a visible placeholder, never your console session or a stored key.</p>
+                                </div>
+                                <div class="access-client-protocol">
+                                    <label for="accessProtocol" data-i18n="playground.protocol">Protocol</label>
+                                    <select id="accessProtocol" data-ui-change="access-client-protocol">
+                                        <option value="openai_chat" data-i18n-technical>OpenAI Chat Completions</option>
+                                        <option value="openai_responses" data-i18n-technical>OpenAI Responses</option>
+                                        <option value="anthropic" data-i18n-technical>Anthropic Messages</option>
+                                        <option value="gemini" data-i18n-technical>Google GenAI</option>
+                                    </select>
+                                </div>
+                                <div class="access-client-protocol">
+                                    <label for="accessClientFormat" data-i18n="playground.example_format">Format</label>
+                                    <select id="accessClientFormat" data-ui-change="access-client-format" data-i18n-technical>
+                                        <option value="curl">cURL (Bash)</option>
+                                        <option value="powershell">PowerShell</option>
+                                        <option value="python" data-compatibility-signatures="OpenAI(base_url, api_key); Anthropic(base_url, api_key); genai.Client(api_key, http_options)">Python SDK</option>
+                                        <option value="node" data-compatibility-signatures="new OpenAI({ baseURL, apiKey }); new Anthropic({ baseURL, apiKey }); new GoogleGenAI({ apiKey, httpOptions })">Node.js SDK</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="access-client-example">
+                                <pre tabindex="0"><code id="accessClientExample"></code></pre>
+                                <button type="button" class="btn btn-secondary btn-small" id="copyAccessClientExample" data-ui-action="copy-access-client-example" data-i18n="playground.copy_example">Copy example</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="card virtual-key-section" id="virtualKeySection" aria-labelledby="virtualKeyHeading">
+                        <div class="virtual-key-header">
+                            <div>
+                                <div class="page-kicker" data-i18n="access.virtual_keys_label">Governed access</div>
+                                <h2 class="card-title" id="virtualKeyHeading" data-i18n="access.virtual_keys">Virtual API keys</h2>
+                                <p class="card-copy card-title-copy" data-i18n="access.virtual_keys_description">Issue least-privilege client keys with independent scopes, model access, rate limits, budgets, and expiry.</p>
+                            </div>
+                            <div class="page-actions">
+                                <button type="button" class="btn btn-secondary" data-ui-action="virtual-key-refresh" data-i18n="access.refresh_keys">Refresh</button>
+                                <button type="button" class="btn btn-compact" data-ui-action="virtual-key-create" data-i18n="access.create_key">Create key</button>
+                            </div>
+                        </div>
+
+                        <div class="virtual-key-filters" role="search" data-i18n-aria-label="access.filter_keys" aria-label="Filter virtual keys">
+                            <div class="virtual-key-filter-field">
+                                <label for="virtualKeySearch" data-i18n="access.search_keys">Search keys</label>
+                                <input type="search" id="virtualKeySearch" autocomplete="off" data-ui-input="virtual-key-search" data-i18n-placeholder="access.search_keys_placeholder" placeholder="Name or key ID">
+                            </div>
+                            <div class="virtual-key-filter-field">
+                                <label for="virtualKeyStatusFilter" data-i18n="access.status">Status</label>
+                                <select id="virtualKeyStatusFilter" data-ui-change="virtual-key-status">
+                                    <option value="" data-i18n="access.all_statuses">All statuses</option>
+                                    <option value="active" data-i18n="access.status_active">Active</option>
+                                    <option value="disabled" data-i18n="access.status_disabled">Disabled</option>
+                                    <option value="expired" data-i18n="access.status_expired">Expired</option>
+                                    <option value="revoked" data-i18n="access.status_revoked">Revoked</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="virtualKeyState" data-page-state-host hidden></div>
+                        <div id="virtualKeyList" class="virtual-key-list" aria-live="polite" aria-busy="true"></div>
+                        <div id="virtualKeyEmptyState" class="virtual-key-empty hidden" role="status">
+                            <strong data-i18n="access.no_keys">No virtual keys found</strong>
+                            <span data-i18n="access.no_keys_description">Create a least-privilege key or adjust the filters.</span>
+                            <button type="button" class="btn btn-compact" data-ui-action="virtual-key-create" data-i18n="access.create_key">Create key</button>
+                        </div>
+                    </section>
+                </div>

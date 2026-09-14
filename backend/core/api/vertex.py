@@ -5,9 +5,19 @@ import os
 import random
 import re
 import string
+from datetime import timedelta
 from typing import Any, Dict, Optional, Tuple
 
+from config import get_token_compression_config, get_upstream_timeout_seconds
 from core.converter.thought_signature import decode_tool_id_and_signature
+from core.httpx_client import MAX_STREAM_LINE_BYTES, UpstreamStreamProtocolError
+from core.request_trace_service import trace_decision
+from core.token_compression import (
+    CompressionResult,
+    CompressionSettings,
+    compress_gemini_request,
+    compression_trace_reason,
+)
 from fastapi import Response
 from log import log
 
@@ -62,6 +72,7 @@ _RRESP_RE = re.compile(r'rresp","(.*?)"')
 
 
 _FINISH_REASON_UNSPECIFIED = "FINISH_REASON_UNSPECIFIED"
+_MAX_VERTEX_STREAM_BUFFER_BYTES = MAX_STREAM_LINE_BYTES
 
 
 _QUOTA_KEYWORDS = ("Resource has been exhausted", "quota", "RESOURCE_EXHAUSTED", "429")
@@ -75,6 +86,29 @@ _SUPPORTED_VAR_FIELDS = [
     "safetySettings",
     "generationConfig",
 ]
+
+
+def _trace_compression(model: str, result: CompressionResult) -> None:
+    trace_decision(
+        category="compression",
+        action="applied" if result.applied else "skipped",
+        result="succeeded" if result.applied else "skipped",
+        reason=compression_trace_reason(result),
+        provider="vertex",
+        model=model,
+        original_tokens=result.original_estimated_tokens,
+        final_tokens=result.final_estimated_tokens,
+    )
+
+
+async def _compress_request(model: str, request: Any) -> CompressionResult:
+    candidate = request if isinstance(request, dict) else {}
+    result = compress_gemini_request(
+        dict(candidate),
+        CompressionSettings(**await get_token_compression_config()),
+    )
+    _trace_compression(model, result)
+    return result
 
 
 def _random_string(n: int) -> str:
@@ -591,11 +625,62 @@ def _get_finish_reason(chunk: Dict[str, Any]) -> str:
     return ""
 
 
+def _trace_vertex_stream_failure(model: str, status_code: int) -> None:
+    trace_decision(
+        category="upstream",
+        action="failed",
+        result="failed",
+        reason=(
+            "cancelled"
+            if status_code == 499
+            else "timeout"
+            if status_code == 504
+            else "rate_limited"
+            if status_code == 429
+            else "provider_error"
+        ),
+        provider="vertex",
+        model=model,
+        status_code=status_code,
+    )
+
+
+def _vertex_stream_error_response(status_code: int, message: str) -> Response:
+    status = {
+        401: "UNAUTHENTICATED",
+        429: "RESOURCE_EXHAUSTED",
+        504: "DEADLINE_EXCEEDED",
+    }.get(status_code, "BAD_GATEWAY")
+    return Response(
+        content=json.dumps({"error": {"code": status_code, "message": message, "status": status}}),
+        status_code=status_code,
+        media_type="application/json",
+    )
+
+
 async def stream_request(
     body: Dict[str, Any],
     native: bool = False,
 ):
+    model = str(body.get("model") or "")
+    trace_decision(
+        category="upstream",
+        action="attempted",
+        result="succeeded",
+        reason="healthy_candidate",
+        provider="vertex",
+        model=model,
+    )
     if not WREQ_AVAILABLE:
+        trace_decision(
+            category="upstream",
+            action="failed",
+            result="failed",
+            reason="provider_error",
+            provider="vertex",
+            model=model,
+            status_code=503,
+        )
         yield Response(
             content='{"error":{"code":503,"message":"wreq not installed, vertex channel unavailable","status":"UNAVAILABLE"}}',
             status_code=503,
@@ -603,12 +688,14 @@ async def stream_request(
         )
         return
 
-    model = body.get("model", "")
-    gemini_payload = body.get("request", {})
+    compression_result = await _compress_request(model, body.get("request", {}))
+    gemini_payload = dict(compression_result.request)
 
     max_retries = 3
     recaptcha_token: Optional[str] = None
     is_first_auth = True
+    usage_metadata: Dict[str, Any] = {}
+    timeout_seconds = await get_upstream_timeout_seconds()
 
     for attempt in range(max_retries + 1):
         log.debug(f"[VERTEX STREAM] attempt {attempt + 1}/{max_retries + 1}, model={model}")
@@ -619,19 +706,8 @@ async def stream_request(
 
         if not recaptcha_token:
             if attempt >= max_retries:
-                yield Response(
-                    content=json.dumps(
-                        {
-                            "error": {
-                                "code": 401,
-                                "message": "Could not fetch reCAPTCHA token",
-                                "status": "UNAUTHENTICATED",
-                            }
-                        }
-                    ),
-                    status_code=401,
-                    media_type="application/json",
-                )
+                _trace_vertex_stream_failure(model, 401)
+                yield _vertex_stream_error_response(401, "Could not fetch reCAPTCHA token")
                 return
             await asyncio.sleep(1)
             continue
@@ -645,30 +721,27 @@ async def stream_request(
         quota_retry = False
 
         try:
-            resp = await wreq.post(
-                _get_batch_graphql_url(),
-                json=payload,
-                headers=headers,
-                emulation=Emulation.Chrome131,
-            )
+            async with asyncio.timeout(timeout_seconds):
+                resp = await wreq.post(
+                    _get_batch_graphql_url(),
+                    json=payload,
+                    headers=headers,
+                    emulation=Emulation.Chrome131,
+                    read_timeout=timedelta(seconds=timeout_seconds),
+                )
+        except asyncio.CancelledError:
+            _trace_vertex_stream_failure(model, 499)
+            raise
         except Exception as e:
             log.error(f"[VERTEX STREAM] wreq post exception: {e}")
             if attempt < max_retries:
                 await asyncio.sleep(1 + attempt)
                 recaptcha_token = None
                 continue
-            yield Response(
-                content=json.dumps(
-                    {
-                        "error": {
-                            "code": 500,
-                            "message": "The upstream streaming request failed unexpectedly.",
-                            "status": "INTERNAL",
-                        }
-                    }
-                ),
-                status_code=500,
-                media_type="application/json",
+            status_code = 504 if isinstance(e, TimeoutError) else 502
+            _trace_vertex_stream_failure(model, status_code)
+            yield _vertex_stream_error_response(
+                status_code, "The upstream streaming request failed unexpectedly."
             )
             return
 
@@ -693,6 +766,7 @@ async def stream_request(
                 need_retry = True
             else:
                 if attempt >= max_retries or content_yielded:
+                    _trace_vertex_stream_failure(model, resp.status)
                     yield Response(
                         content=err_body.encode("utf-8"),
                         status_code=resp.status,
@@ -710,6 +784,7 @@ async def stream_request(
             if need_retry and attempt < max_retries:
                 await asyncio.sleep(1 + attempt)
                 continue
+            _trace_vertex_stream_failure(model, resp.status)
             yield Response(
                 content=err_body.encode("utf-8") if err_body else b"",
                 status_code=resp.status,
@@ -723,8 +798,23 @@ async def stream_request(
                     buffer = b""
                     async for raw_chunk in streamer:
                         if raw_chunk:
+                            if len(buffer) + len(raw_chunk) > _MAX_VERTEX_STREAM_BUFFER_BYTES:
+                                raise UpstreamStreamProtocolError(
+                                    "Vertex upstream stream frame exceeds "
+                                    f"{_MAX_VERTEX_STREAM_BUFFER_BYTES} bytes"
+                                )
                             buffer += raw_chunk
-                            text = buffer.decode("utf-8", errors="replace")
+                            try:
+                                text = buffer.decode("utf-8")
+                            except UnicodeDecodeError as exc:
+                                if (
+                                    exc.end == len(buffer)
+                                    and exc.reason == "unexpected end of data"
+                                ):
+                                    continue
+                                raise UpstreamStreamProtocolError(
+                                    "Vertex upstream stream contains invalid UTF-8"
+                                ) from exc
                             log.debug(f"[VERTEX STREAM] raw buffer: {text[:500]}")
                             last_end = 0
                             for obj, end_pos in _parse_json_objects(text):
@@ -745,11 +835,23 @@ async def stream_request(
                                 if chunk is not None:
                                     content_yielded = True
                                     is_first_auth = False
+                                    if isinstance(chunk.get("usageMetadata"), dict):
+                                        usage_metadata = chunk["usageMetadata"]
                                     sse = f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                                     yield sse.encode("utf-8") if native else sse
 
                                     fr = _get_finish_reason(chunk)
                                     if fr and fr != _FINISH_REASON_UNSPECIFIED:
+                                        from core.api.utils import (
+                                            record_unassigned_api_call_success,
+                                        )
+
+                                        await record_unassigned_api_call_success(
+                                            mode="vertex",
+                                            model_name=model,
+                                            token_usage=usage_metadata,
+                                            request_metrics=compression_result.as_metrics(),
+                                        )
                                         return
 
                             if auth_retry or need_retry or quota_retry:
@@ -758,12 +860,32 @@ async def stream_request(
                             buffer = (
                                 text[last_end:].encode("utf-8") if last_end < len(text) else b""
                             )
+        except asyncio.CancelledError:
+            _trace_vertex_stream_failure(model, 499)
+            raise
         except Exception as e:
             log.error(f"[VERTEX STREAM] stream read error: {e}")
-            if not content_yielded and attempt < max_retries:
+            status_code = 504 if isinstance(e, TimeoutError) else 502
+            if content_yielded:
+                _trace_vertex_stream_failure(model, status_code)
+                yield _vertex_stream_error_response(
+                    status_code, "The upstream streaming response ended unexpectedly."
+                )
+                return
+            if attempt < max_retries:
                 need_retry = True
+            else:
+                _trace_vertex_stream_failure(model, status_code)
+                yield _vertex_stream_error_response(
+                    status_code, "The upstream streaming request failed unexpectedly."
+                )
+                return
 
         if content_yielded:
+            _trace_vertex_stream_failure(model, 502)
+            yield _vertex_stream_error_response(
+                502, "The upstream streaming response ended unexpectedly."
+            )
             return
 
         if auth_retry:
@@ -786,27 +908,40 @@ async def stream_request(
 
         break
 
-    yield Response(
-        content=json.dumps(
-            {"error": {"code": 500, "message": "All retries exhausted", "status": "INTERNAL"}}
-        ),
-        status_code=500,
-        media_type="application/json",
-    )
+    _trace_vertex_stream_failure(model, 502)
+    yield _vertex_stream_error_response(502, "All upstream streaming attempts failed")
 
 
 async def non_stream_request(
     body: Dict[str, Any],
 ) -> Response:
+    model = str(body.get("model") or "")
+    trace_decision(
+        category="upstream",
+        action="attempted",
+        result="succeeded",
+        reason="healthy_candidate",
+        provider="vertex",
+        model=model,
+    )
     if not WREQ_AVAILABLE:
+        trace_decision(
+            category="upstream",
+            action="failed",
+            result="failed",
+            reason="provider_error",
+            provider="vertex",
+            model=model,
+            status_code=503,
+        )
         return Response(
             content='{"error":{"code":503,"message":"wreq not installed, vertex channel unavailable","status":"UNAVAILABLE"}}',
             status_code=503,
             media_type="application/json",
         )
 
-    model = body.get("model", "")
-    gemini_payload = body.get("request", {})
+    compression_result = await _compress_request(model, body.get("request", {}))
+    gemini_payload = dict(compression_result.request)
 
     max_retries = 3
 
@@ -941,6 +1076,14 @@ async def non_stream_request(
                 media_type="application/json",
             )
 
+        from core.api.utils import record_unassigned_api_call_success
+
+        await record_unassigned_api_call_success(
+            mode="vertex",
+            model_name=model,
+            token_usage=result.get("usageMetadata") if isinstance(result, dict) else None,
+            request_metrics=compression_result.as_metrics(),
+        )
         return Response(
             content=json.dumps(result, ensure_ascii=False).encode("utf-8"),
             status_code=200,

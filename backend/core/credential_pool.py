@@ -1,11 +1,16 @@
 """Credential pool write policy."""
 
-import asyncio
 import os
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from core.credential_pool_mutation import (
+    CredentialPoolMutation,
+    CredentialPoolRecord,
+    CredentialPoolWrite,
+    normalize_pool_mode,
+)
 from core.provider_registry import (
     GOOGLE_ANTIGRAVITY,
     canonicalize_antigravity_credential_filename,
@@ -14,15 +19,6 @@ from core.provider_registry import (
 )
 from core.storage_adapter import get_storage_adapter
 from log import log
-
-_POOL_LOCKS: Dict[str, asyncio.Lock] = {
-    "code_assist": asyncio.Lock(),
-    "primary": asyncio.Lock(),
-}
-
-
-def _normalize_mode(mode: str) -> str:
-    return "primary" if mode in ("primary", "provider") else "code_assist"
 
 
 def _safe_filename(filename: str, fallback_prefix: str = "credential") -> str:
@@ -104,8 +100,10 @@ def _best_expiry_key(item: Dict[str, Any]) -> tuple[datetime, int]:
     )
 
 
-async def _find_unique_filename(
-    storage_adapter, requested_filename: str, credential_data: Dict[str, Any], mode: str
+def _find_unique_filename(
+    records: tuple[CredentialPoolRecord, ...],
+    requested_filename: str,
+    credential_data: Dict[str, Any],
 ) -> str:
     filename = _safe_filename(
         requested_filename, normalize_project_id(credential_data) or "credential"
@@ -114,11 +112,13 @@ async def _find_unique_filename(
     if not ext:
         ext = ".json"
 
-    existing_names = set(await storage_adapter.list_credentials(mode=mode))
+    existing_names = {record.filename for record in records}
     if filename not in existing_names:
         return filename
 
-    existing_data = await storage_adapter.get_credential(filename, mode=mode)
+    existing_data = next(
+        (record.credential_data for record in records if record.filename == filename), None
+    )
     if get_credential_provider(existing_data or {}) == get_credential_provider(
         credential_data
     ) and get_known_credential_email(existing_data or {}) == get_known_credential_email(
@@ -134,27 +134,142 @@ async def _find_unique_filename(
         index += 1
 
 
-async def _get_existing_email(
-    storage_adapter, filename: str, credential_data: Dict[str, Any], mode: str
-) -> str:
-    try:
-        state = await storage_adapter.get_credential_state(filename, mode=mode)
-        email = normalize_credential_email(state.get("user_email"))
-        if email:
-            return email
-    except Exception:
-        pass
-    return get_known_credential_email(credential_data)
+def _record_email(record: CredentialPoolRecord) -> str:
+    return normalize_credential_email(record.user_email) or get_known_credential_email(
+        record.credential_data
+    )
 
 
-async def _store_with_email_state(
-    storage_adapter, filename: str, credential_data: Dict[str, Any], email: str, mode: str
-) -> None:
-    success = await storage_adapter.store_credential(filename, credential_data, mode=mode)
-    if not success:
-        raise RuntimeError("Storage adapter rejected the credential.")
+def _plan_upsert(
+    records: tuple[CredentialPoolRecord, ...],
+    filename: str,
+    credential_data: Dict[str, Any],
+    *,
+    email: str,
+    static_identity: str,
+    is_antigravity: bool,
+) -> CredentialPoolMutation:
+    if static_identity:
+        matches = [
+            record
+            for record in records
+            if get_static_credential_identity(record.credential_data) == static_identity
+        ]
+        if not matches:
+            target_filename = _find_unique_filename(records, filename, credential_data)
+            return CredentialPoolMutation(
+                writes=(CredentialPoolWrite(target_filename, credential_data, None),),
+                deletes=(),
+                result={
+                    "action": "created",
+                    "stored": True,
+                    "filename": target_filename,
+                    "email": None,
+                    "identity": static_identity,
+                    "message": "API key added to the provider pool.",
+                },
+            )
+        keep = min(matches, key=lambda item: item.rotation_order)
+        updated = dict(credential_data)
+        if keep.credential_data.get("created_at") and not updated.get("created_at"):
+            updated["created_at"] = keep.credential_data["created_at"]
+        deleted = [record.filename for record in matches if record.filename != keep.filename]
+        return CredentialPoolMutation(
+            writes=(CredentialPoolWrite(keep.filename, updated, None),),
+            deletes=tuple(deleted),
+            result={
+                "action": "updated",
+                "stored": True,
+                "filename": keep.filename,
+                "email": None,
+                "identity": static_identity,
+                "deleted_duplicates": deleted,
+                "message": "The existing API key credential was revalidated and updated.",
+            },
+        )
+
+    incoming = dict(credential_data)
+    incoming_expiry = parse_credential_expiry(incoming)
     if email:
-        await storage_adapter.update_credential_state(filename, {"user_email": email}, mode=mode)
+        incoming["user_email"] = email
+    if is_antigravity:
+        filename = canonicalize_antigravity_credential_filename(filename, incoming, email=email)
+    if not email:
+        target_filename = _find_unique_filename(records, filename, incoming)
+        return CredentialPoolMutation(
+            writes=(CredentialPoolWrite(target_filename, incoming, None),),
+            deletes=(),
+            result={
+                "action": "created",
+                "stored": True,
+                "filename": target_filename,
+                "email": None,
+                "message": "Credential added to the pool. Email was not available, so duplicate detection was skipped.",
+            },
+        )
+
+    provider = get_credential_provider(incoming)
+    matches = [
+        record
+        for record in records
+        if get_credential_provider(record.credential_data) == provider
+        and _record_email(record) == email
+    ]
+    if not matches:
+        target_filename = _find_unique_filename(records, filename, incoming)
+        return CredentialPoolMutation(
+            writes=(CredentialPoolWrite(target_filename, incoming, email),),
+            deletes=(),
+            result={
+                "action": "created",
+                "stored": True,
+                "filename": target_filename,
+                "email": email,
+                "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
+                "message": "Credential added to the pool.",
+            },
+        )
+
+    ranked = [
+        {
+            "record": record,
+            "expiry": parse_credential_expiry(record.credential_data),
+            "index": record.rotation_order,
+        }
+        for record in matches
+    ]
+    best = max(ranked, key=_best_expiry_key)
+    keep = best["record"]
+    deleted = [record.filename for record in matches if record.filename != keep.filename]
+    if _is_incoming_newer(incoming_expiry, best["expiry"]):
+        return CredentialPoolMutation(
+            writes=(CredentialPoolWrite(keep.filename, incoming, email),),
+            deletes=tuple(deleted),
+            result={
+                "action": "replaced",
+                "stored": True,
+                "filename": keep.filename,
+                "email": email,
+                "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
+                "existing_expiry": best["expiry"].isoformat() if best["expiry"] else None,
+                "deleted_duplicates": deleted,
+                "message": "Credential replaced because the new expiry is later.",
+            },
+        )
+    return CredentialPoolMutation(
+        writes=(),
+        deletes=tuple(deleted),
+        result={
+            "action": "skipped",
+            "stored": False,
+            "filename": keep.filename,
+            "email": email,
+            "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
+            "existing_expiry": best["expiry"].isoformat() if best["expiry"] else None,
+            "deleted_duplicates": deleted,
+            "message": "Credential was not added because the pool already has the same email with an equal or later expiry.",
+        },
+    )
 
 
 async def upsert_credential_by_email(
@@ -164,201 +279,41 @@ async def upsert_credential_by_email(
 ) -> Dict[str, Any]:
     """Store one credential per account or API-key identity."""
     storage_adapter = await get_storage_adapter()
-    mode = _normalize_mode(mode)
+    mode = normalize_pool_mode(mode)
     is_antigravity = (
         mode == "primary" and get_credential_provider(credential_data) == GOOGLE_ANTIGRAVITY
     )
-    lock = _POOL_LOCKS[mode]
-
-    async with lock:
-        static_identity = get_static_credential_identity(credential_data)
-        if static_identity:
-            matches = []
-            for index, existing_filename in enumerate(
-                await storage_adapter.list_credentials(mode=mode)
-            ):
-                existing_data = await storage_adapter.get_credential(existing_filename, mode=mode)
-                if get_static_credential_identity(existing_data or {}) == static_identity:
-                    matches.append(
-                        {
-                            "filename": existing_filename,
-                            "data": existing_data or {},
-                            "index": index,
-                        }
-                    )
-
-            if not matches:
-                target_filename = await _find_unique_filename(
-                    storage_adapter, filename, credential_data, mode
-                )
-                await _store_with_email_state(
-                    storage_adapter, target_filename, credential_data, "", mode
-                )
-                return {
-                    "action": "created",
-                    "stored": True,
-                    "filename": target_filename,
-                    "email": None,
-                    "identity": static_identity,
-                    "message": "API key added to the provider pool.",
-                }
-
-            keep = min(matches, key=lambda item: item["index"])
-            keep_filename = keep["filename"]
-            if keep["data"].get("created_at") and not credential_data.get("created_at"):
-                credential_data["created_at"] = keep["data"]["created_at"]
-            await _store_with_email_state(storage_adapter, keep_filename, credential_data, "", mode)
-            deleted_duplicates = []
-            for item in matches:
-                if item["filename"] == keep_filename:
-                    continue
-                if await storage_adapter.delete_credential(item["filename"], mode=mode):
-                    deleted_duplicates.append(item["filename"])
-            return {
-                "action": "updated",
-                "stored": True,
-                "filename": keep_filename,
-                "email": None,
-                "identity": static_identity,
-                "deleted_duplicates": deleted_duplicates,
-                "message": "The existing API key credential was revalidated and updated.",
-            }
-
-        email = await resolve_credential_email(credential_data)
-        incoming_expiry = parse_credential_expiry(credential_data)
-
-        if email:
-            credential_data["user_email"] = email
-
-        if is_antigravity:
-            filename = canonicalize_antigravity_credential_filename(
-                filename,
-                credential_data,
-                email=email,
-            )
-
-        if not email:
-            target_filename = await _find_unique_filename(
-                storage_adapter, filename, credential_data, mode
-            )
-            await _store_with_email_state(
-                storage_adapter, target_filename, credential_data, "", mode
-            )
-            return {
-                "action": "created",
-                "stored": True,
-                "filename": target_filename,
-                "email": None,
-                "message": "Credential added to the pool. Email was not available, so duplicate detection was skipped.",
-            }
-
-        matches: List[Dict[str, Any]] = []
-        for index, existing_filename in enumerate(
-            await storage_adapter.list_credentials(mode=mode)
-        ):
-            existing_data = await storage_adapter.get_credential(existing_filename, mode=mode)
-            if get_credential_provider(existing_data or {}) != get_credential_provider(
-                credential_data
-            ):
-                continue
-            existing_email = await _get_existing_email(
-                storage_adapter, existing_filename, existing_data or {}, mode
-            )
-            if existing_email == email:
-                matches.append(
-                    {
-                        "filename": existing_filename,
-                        "data": existing_data or {},
-                        "expiry": parse_credential_expiry(existing_data or {}),
-                        "index": index,
-                    }
-                )
-
-        if not matches:
-            target_filename = await _find_unique_filename(
-                storage_adapter, filename, credential_data, mode
-            )
-            await _store_with_email_state(
-                storage_adapter, target_filename, credential_data, email, mode
-            )
-            return {
-                "action": "created",
-                "stored": True,
-                "filename": target_filename,
-                "email": email,
-                "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
-                "message": "Credential added to the pool.",
-            }
-
-        best_existing = max(matches, key=_best_expiry_key)
-        keep_filename = best_existing["filename"]
-        deleted_duplicates = []
-
-        if _is_incoming_newer(incoming_expiry, best_existing["expiry"]):
-            await _store_with_email_state(
-                storage_adapter, keep_filename, credential_data, email, mode
-            )
-
-            for item in matches:
-                if item["filename"] == keep_filename:
-                    continue
-                if await storage_adapter.delete_credential(item["filename"], mode=mode):
-                    deleted_duplicates.append(item["filename"])
-
-            log.info(
-                f"Replaced credential for email={email} with a later expiry. Kept filename={keep_filename}."
-            )
-            return {
-                "action": "replaced",
-                "stored": True,
-                "filename": keep_filename,
-                "email": email,
-                "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
-                "existing_expiry": best_existing["expiry"].isoformat()
-                if best_existing["expiry"]
-                else None,
-                "deleted_duplicates": deleted_duplicates,
-                "message": "Credential replaced because the new expiry is later.",
-            }
-
-        for item in matches:
-            if item["filename"] == keep_filename:
-                continue
-            if await storage_adapter.delete_credential(item["filename"], mode=mode):
-                deleted_duplicates.append(item["filename"])
-
-        return {
-            "action": "skipped",
-            "stored": False,
-            "filename": keep_filename,
-            "email": email,
-            "incoming_expiry": incoming_expiry.isoformat() if incoming_expiry else None,
-            "existing_expiry": best_existing["expiry"].isoformat()
-            if best_existing["expiry"]
-            else None,
-            "deleted_duplicates": deleted_duplicates,
-            "message": "Credential was not added because the pool already has the same email with an equal or later expiry.",
-        }
+    static_identity = get_static_credential_identity(credential_data)
+    email = "" if static_identity else await resolve_credential_email(credential_data)
+    return await storage_adapter.mutate_credential_pool(
+        mode,
+        lambda records: _plan_upsert(
+            records,
+            filename,
+            credential_data,
+            email=email,
+            static_identity=static_identity,
+            is_antigravity=is_antigravity,
+        ),
+    )
 
 
 async def deduplicate_credentials_by_account_email(mode: str = "code_assist") -> Dict[str, Any]:
     """Remove duplicate credentials by account email or API-key fingerprint."""
     storage_adapter = await get_storage_adapter()
-    mode = _normalize_mode(mode)
-    lock = _POOL_LOCKS[mode]
+    mode = normalize_pool_mode(mode)
 
-    async with lock:
+    def planner(records: tuple[CredentialPoolRecord, ...]) -> CredentialPoolMutation:
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         no_email_count = 0
         total_count = 0
 
-        for index, filename in enumerate(await storage_adapter.list_credentials(mode=mode)):
+        for record in records:
             total_count += 1
-            credential_data = await storage_adapter.get_credential(filename, mode=mode)
+            filename = record.filename
+            credential_data = record.credential_data
             static_identity = get_static_credential_identity(credential_data or {})
-            email = await _get_existing_email(
-                storage_adapter, filename, credential_data or {}, mode
-            )
+            email = _record_email(record)
             provider_id = get_credential_provider(credential_data or {})
             identity = static_identity or (f"email:{provider_id}:{email}" if email else "")
             if not identity:
@@ -370,7 +325,7 @@ async def deduplicate_credentials_by_account_email(mode: str = "code_assist") ->
                     "filename": filename,
                     "data": credential_data or {},
                     "expiry": parse_credential_expiry(credential_data or {}),
-                    "index": index,
+                    "index": record.rotation_order,
                     "email": email or None,
                     "identity": identity,
                 }
@@ -389,9 +344,8 @@ async def deduplicate_credentials_by_account_email(mode: str = "code_assist") ->
             for item in items:
                 if item["filename"] == keep_item["filename"]:
                     continue
-                if await storage_adapter.delete_credential(item["filename"], mode=mode):
-                    deleted_files.append(item["filename"])
-                    deleted_count += 1
+                deleted_files.append(item["filename"])
+                deleted_count += 1
 
             groups.append(
                 {
@@ -411,15 +365,23 @@ async def deduplicate_credentials_by_account_email(mode: str = "code_assist") ->
                 "by account identity."
             )
 
-        return {
-            "deleted_count": deleted_count,
-            "kept_count": total_count - deleted_count,
-            "total_count": total_count,
-            "unique_emails_count": sum(1 for identity in grouped if identity.startswith("email:")),
-            "unique_identities_count": len(grouped),
-            "no_email_count": no_email_count,
-            "duplicate_groups": groups,
-        }
+        return CredentialPoolMutation(
+            writes=(),
+            deletes=tuple(filename for group in groups for filename in group["deleted_files"]),
+            result={
+                "deleted_count": deleted_count,
+                "kept_count": total_count - deleted_count,
+                "total_count": total_count,
+                "unique_emails_count": sum(
+                    1 for identity in grouped if identity.startswith("email:")
+                ),
+                "unique_identities_count": len(grouped),
+                "no_email_count": no_email_count,
+                "duplicate_groups": groups,
+            },
+        )
+
+    return await storage_adapter.mutate_credential_pool(mode, planner)
 
 
 upsert_credential_by_project_id = upsert_credential_by_email

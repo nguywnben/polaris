@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Compatibility path for native Python installs. Canonical production: docs/installation.md.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,5 +19,5 @@ fi
 echo "[INFO] Installing Python dependencies..."
 uv pip install --require-hashes -r requirements.lock
 
-echo "[INFO] Starting Omni Gateway..."
+echo "[INFO] Starting Polaris..."
 exec .venv/bin/python backend/main.py

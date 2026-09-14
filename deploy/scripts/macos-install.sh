@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Compatibility path for native Python installs. Canonical production: docs/installation.md.
 set -euo pipefail
 
 log() {
@@ -28,7 +29,7 @@ log "Installing required tools..."
 brew update
 brew install git uv
 
-PROJECT_DIR="${PROJECT_DIR:-omni-gateway}"
+PROJECT_DIR="${PROJECT_DIR:-polaris}"
 REPOSITORY_URL="${REPOSITORY_URL:-}"
 
 if [ -f "./backend/main.py" ]; then
@@ -52,5 +53,5 @@ fi
 log "Installing Python dependencies..."
 uv pip install --require-hashes -r requirements.lock
 
-log "Starting Omni Gateway..."
+log "Starting Polaris..."
 exec .venv/bin/python backend/main.py

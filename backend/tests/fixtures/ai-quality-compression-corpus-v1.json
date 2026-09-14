@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "structured_current_request",
+      "settings": {"enabled": true, "threshold_tokens": 128, "target_tokens": 80, "min_recent_turns": 2},
+      "expected": {"applied": true, "current_request": "CURRENT-STRUCTURED", "protected_fields": ["systemInstruction", "tools", "toolConfig", "generationConfig", "safetySettings", "metadata"]},
+      "request": {
+        "systemInstruction": {"parts": [{"text": "Preserve the operator instruction exactly."}]},
+        "tools": [{"functionDeclarations": [{"name": "lookup", "description": "Look up a stable record.", "parameters": {"type": "object", "properties": {"id": {"type": "string"}}}}]}],
+        "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4096},
+        "safetySettings": [{"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"}],
+        "metadata": {"trace": {"enabled": true}, "tags": ["fixed", "quality"]},
+        "contents": [
+          {"role": "user", "parts": [{"text": "old-1 uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"}]},
+          {"role": "model", "parts": [{"text": "old-1 mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"}]},
+          {"role": "user", "parts": [{"text": "old-2 uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"}]},
+          {"role": "model", "parts": [{"text": "old-2 mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"}]},
+          {"role": "user", "parts": [{"text": "recent-1 uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"}]},
+          {"role": "model", "parts": [{"text": "recent-1 mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"}]},
+          {"role": "user", "parts": [{"text": "CURRENT-STRUCTURED uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"}]},
+          {"role": "model", "parts": [{"text": "current answer placeholder"}]}
+        ]
+      }
+    },
+    {
+      "name": "complete_tool_pair",
+      "settings": {"enabled": true, "threshold_tokens": 128, "target_tokens": 64, "min_recent_turns": 1},
+      "expected": {"applied": true, "current_request": "CURRENT-TOOL", "protected_fields": ["systemInstruction", "tools"]},
+      "request": {
+        "systemInstruction": {"parts": [{"text": "Do not invent tool results."}]},
+        "tools": [{"functionDeclarations": [{"name": "lookup"}]}],
+        "contents": [
+          {"role": "user", "parts": [{"text": "old context xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]},
+          {"role": "model", "parts": [{"text": "old answer yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"}]},
+          {"role": "user", "parts": [{"text": "look up record 7"}]},
+          {"role": "model", "parts": [{"functionCall": {"name": "lookup", "args": {"id": "7"}}}]},
+          {"role": "user", "parts": [{"functionResponse": {"name": "lookup", "response": {"value": "stable"}}}]},
+          {"role": "model", "parts": [{"text": "record 7 is stable"}]},
+          {"role": "user", "parts": [{"text": "CURRENT-TOOL explain the result"}]}
+        ]
+      }
+    },
+    {
+      "name": "explicit_off",
+      "settings": {"enabled": false, "threshold_tokens": 128, "target_tokens": 64, "min_recent_turns": 1},
+      "expected": {"applied": false, "reason": "disabled", "current_request": "CURRENT-OFF", "protected_fields": ["systemInstruction"]},
+      "request": {
+        "systemInstruction": {"parts": [{"text": "Compression is disabled."}]},
+        "contents": [
+          {"role": "user", "parts": [{"text": "old xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]},
+          {"role": "model", "parts": [{"text": "old yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"}]},
+          {"role": "user", "parts": [{"text": "CURRENT-OFF"}]}
+        ]
+      }
+    },
+    {
+      "name": "malformed_tool_history",
+      "settings": {"enabled": true, "threshold_tokens": 128, "target_tokens": 64, "min_recent_turns": 1},
+      "expected": {"applied": false, "reason": "invalid_tool_history", "current_request": "CURRENT-MALFORMED", "protected_fields": []},
+      "request": {
+        "contents": [
+          {"role": "user", "parts": [{"text": "old xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}]},
+          {"role": "model", "parts": [{"functionCall": {"args": {}}}]},
+          {"role": "user", "parts": [{"text": "CURRENT-MALFORMED zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"}]}
+        ]
+      }
+    }
+  ]
+}

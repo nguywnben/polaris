@@ -1,16 +1,102 @@
+const SYSTEM_CONFIG_FIELD_KEYS = Object.freeze({
+    host: 'host',
+    port: 'port',
+    credentialsDir: 'credentials_dir',
+    proxy: 'proxy',
+    codeAssistClientId: 'code_assist_client_id',
+    codeAssistClientSecret: 'code_assist_client_secret',
+    codeAssistEndpoint: 'code_assist_endpoint',
+    autoBanEnabled: 'auto_disable_enabled',
+    autoBanErrorCodes: 'auto_disable_error_codes',
+    retry429Enabled: 'retry_429_enabled',
+    retry429MaxRetries: 'retry_429_max_retries',
+    retry429Interval: 'retry_429_interval',
+    routingStrategy: 'routing_strategy',
+    preferredProvider: 'preferred_provider',
+    upstreamTimeoutSeconds: 'upstream_timeout_seconds',
+    runtimeLogLevel: 'log_level',
+    runtimeLogMaxMb: 'log_max_mb',
+    runtimeLogBackupCount: 'log_backup_count',
+    keepaliveUrl: 'keepalive_url',
+    keepaliveInterval: 'keepalive_interval'
+});
+
+function normalizeSettingsMetadata(payload) {
+    if (!Array.isArray(payload)) throw new Error(t('settings.metadata_invalid'));
+    const expectedKeys = new Set(Object.values(SYSTEM_CONFIG_FIELD_KEYS));
+    const metadata = new Map();
+    for (const item of payload) {
+        if (!item || typeof item !== 'object' || !expectedKeys.has(item.config_key)) continue;
+        if (
+            item.surface !== 'system'
+            || !['basic', 'advanced', 'experimental'].includes(item.group)
+            || !['live', 'restart', 'read_only'].includes(item.apply)
+            || !['string', 'integer', 'number', 'boolean', 'csv', 'space_list', 'integer_list', 'json'].includes(item.value_type)
+            || typeof item.environment_locked !== 'boolean'
+            || typeof item.secret !== 'boolean'
+        ) {
+            throw new Error(t('settings.metadata_invalid'));
+        }
+        metadata.set(item.config_key, Object.freeze({...item}));
+    }
+    if (metadata.size !== expectedKeys.size) throw new Error(t('settings.metadata_incomplete'));
+    return metadata;
+}
+
+function settingsConfigKey(field) {
+    return field?.dataset?.configKey || SYSTEM_CONFIG_FIELD_KEYS[field?.id] || '';
+}
+
+function renderSettingsMetadata(metadata) {
+    const counts = {live: 0, restart: 0, managed: 0};
+    for (const field of document.querySelectorAll('[data-config-key]')) {
+        const item = metadata.get(settingsConfigKey(field));
+        if (!item) continue;
+        counts[item.apply] = (counts[item.apply] || 0) + 1;
+        if (item.environment_locked) counts.managed += 1;
+        field.dataset.applyMode = item.apply;
+        field.dataset.settingsGroup = item.group;
+        const container = field.closest('.form-group, .switch-row');
+        if (!container) continue;
+        container.classList.toggle('is-environment-managed', item.environment_locked);
+        if (item.environment_locked) {
+            field.title = t('settings.managed_environment');
+        } else {
+            field.removeAttribute('title');
+        }
+    }
+    const summary = document.getElementById('settingsApplySummary');
+    if (summary) {
+        summary.textContent = t('settings.apply_summary', Object.fromEntries(
+            Object.entries(counts).map(([key, value]) => [key, formatConsoleNumber(value)])
+        ));
+    }
+}
+
+globalThis.document?.addEventListener?.('polaris:locale-change', () => {
+    if (AppState.settingsMetadata instanceof Map) {
+        renderSettingsMetadata(AppState.settingsMetadata);
+    }
+});
+
 async function loadConfig(options = {}) {
 
-    const loading = document.getElementById('configLoading');
+    const loadingElements = ['configLoading']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
 
-    const form = document.getElementById('configForm');
+    const formElements = ['configForm']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
 
     const preserveContent = options.preserveContent ?? AppState.configLoaded;
+    clearPageState('configState');
 
     try {
 
-        if (loading && !preserveContent) loading.hidden = false;
+        if (!preserveContent) loadingElements.forEach(element => { element.hidden = false; });
 
-        if (!preserveContent) form.classList.add('hidden');
+        if (!preserveContent) formElements.forEach(element => element.classList.add('hidden'));
 
         const response = await fetch('./api/config/get', { headers: getAuthHeaders() });
 
@@ -18,31 +104,49 @@ async function loadConfig(options = {}) {
 
         if (response.ok) {
 
+            const metadata = normalizeSettingsMetadata(data.metadata);
+
             AppState.currentConfig = data.config;
 
             AppState.configLoaded = true;
 
             AppState.envLockedFields = new Set(data.env_locked || []);
 
+            AppState.settingsMetadata = metadata;
+
             populateConfigForm();
 
-            form.classList.remove('hidden');
+            renderSettingsMetadata(metadata);
+
+            const retentionLoaders = [];
+            if (typeof loadTraceRetention === 'function') retentionLoaders.push(loadTraceRetention());
+            if (typeof loadAuditRetention === 'function') retentionLoaders.push(loadAuditRetention());
+            await Promise.all(retentionLoaders);
+
+            formElements.forEach(element => element.classList.remove('hidden'));
+            clearPageState('configState');
 
             // showStatus(t('configuration_loaded_successfully'), 'success');
 
         } else {
-
-            showStatus(t('failed_to_load_configuration_datade', {data_detail____data_error: data.detail || data.error || t('unknown_error')}), 'error');
-
+            throw new Error(t('failed_to_load_configuration_datade', {data_detail____data_error: data.detail || data.error || t('unknown_error')}));
         }
 
     } catch (error) {
 
-        showStatus(t('status_net_error', {error: error.message}), 'error');
+        const message = error.message || t('status_net_error', {error: t('unknown_error')});
+        showPageState('configState', {
+            kind: preserveContent ? 'stale' : 'error',
+            title: t(preserveContent ? 'warning' : 'error'),
+            message,
+            actionLabel: t('refresh'),
+            onAction: () => loadConfig({preserveContent: AppState.configLoaded})
+        });
+        showStatus(message, 'error');
 
     } finally {
 
-        if (loading) loading.hidden = true;
+        loadingElements.forEach(element => { element.hidden = true; });
 
     }
 
@@ -64,7 +168,12 @@ function populateConfigForm() {
 
     setConfigField('codeAssistClientId', c.code_assist_client_id || '');
 
-    setConfigField('codeAssistClientSecret', c.code_assist_client_secret || '');
+    setConfigField('codeAssistClientSecret', '');
+
+    const codeAssistSecret = document.getElementById('codeAssistClientSecret');
+    if (codeAssistSecret) {
+        codeAssistSecret.dataset.configured = String(Boolean(c.code_assist_client_secret_configured));
+    }
 
     setConfigField('codeAssistEndpoint', c.code_assist_endpoint || '');
 
@@ -77,20 +186,6 @@ function populateConfigForm() {
     setConfigField('retry429MaxRetries', c.retry_429_max_retries ?? 5);
 
     setConfigField('retry429Interval', c.retry_429_interval ?? 1);
-
-    setConfigCheckbox('compatibilityModeEnabled', Boolean(c.compatibility_mode_enabled));
-
-    setConfigCheckbox('returnThoughtsToFrontend', Boolean(c.return_thoughts_to_frontend !== false));
-
-    setConfigField('antiTruncationMaxAttempts', c.anti_truncation_max_attempts || 3);
-
-    setConfigCheckbox('tokenCompressionEnabled', Boolean(c.token_compression_enabled !== false));
-
-    setConfigField('tokenCompressionThreshold', c.token_compression_threshold ?? 32000);
-
-    setConfigField('tokenCompressionTarget', c.token_compression_target ?? 24000);
-
-    setConfigField('tokenCompressionMinRecentTurns', c.token_compression_min_recent_turns ?? 4);
 
     setConfigField('routingStrategy', c.routing_strategy || 'balanced');
 
@@ -120,7 +215,7 @@ function setConfigField(fieldId, value) {
 
         field.value = value;
 
-        const configKey = CONFIG_FIELD_KEYS[fieldId] || fieldId.replace(/([A-Z])/g, '_$1').toLowerCase();
+        const configKey = settingsConfigKey(field);
 
         if (AppState.envLockedFields.has(configKey)) {
 
@@ -148,7 +243,7 @@ function setConfigCheckbox(fieldId, checked) {
 
     field.checked = checked;
 
-    const configKey = CONFIG_FIELD_KEYS[fieldId] || fieldId.replace(/([A-Z])/g, '_$1').toLowerCase();
+    const configKey = settingsConfigKey(field);
 
     const isLocked = AppState.envLockedFields.has(configKey);
 
@@ -160,26 +255,21 @@ function setConfigCheckbox(fieldId, checked) {
 
 }
 
-async function saveConfig() {
-
-    try {
-
-        const getValue = (id, def = '') => document.getElementById(id)?.value.trim() || def;
-
-        const getInt = (id, def = 0) => parseInt(document.getElementById(id)?.value) || def;
-
-        const getFloat = (id, def = 0.0) => parseFloat(document.getElementById(id)?.value) || def;
-
-        const getChecked = (id, def = false) => {
-            const field = document.getElementById(id);
-            return field ? field.checked : def;
-        };
-
-        const config = {
+function collectSystemConfigForm() {
+    const getValue = (id, fallback = '') => document.getElementById(id)?.value.trim() || fallback;
+    const getNumber = (id, fallback, parser) => {
+        const parsed = parser(document.getElementById(id)?.value ?? '');
+        return Number.isFinite(parsed) ? parsed : fallback;
+    };
+    const getChecked = (id, fallback = false) => {
+        const field = document.getElementById(id);
+        return field ? field.checked : fallback;
+    };
+    const config = {
 
             host: getValue('host', '0.0.0.0'),
 
-            port: getInt('port', 4283),
+            port: getNumber('port', 4283, Number.parseInt),
 
             code_assist_endpoint: getValue('codeAssistEndpoint'),
 
@@ -189,8 +279,6 @@ async function saveConfig() {
 
             code_assist_client_id: getValue('codeAssistClientId'),
 
-            code_assist_client_secret: getValue('codeAssistClientSecret'),
-
             auto_disable_enabled: getChecked('autoBanEnabled'),
 
             auto_disable_error_codes: getValue('autoBanErrorCodes').split(',')
@@ -199,41 +287,41 @@ async function saveConfig() {
 
             retry_429_enabled: getChecked('retry429Enabled'),
 
-            retry_429_max_retries: getInt('retry429MaxRetries', 5),
+            retry_429_max_retries: getNumber('retry429MaxRetries', 5, Number.parseInt),
 
-            retry_429_interval: getFloat('retry429Interval', 1),
-
-            compatibility_mode_enabled: getChecked('compatibilityModeEnabled'),
-
-            return_thoughts_to_frontend: getChecked('returnThoughtsToFrontend'),
-
-            anti_truncation_max_attempts: getInt('antiTruncationMaxAttempts', 3),
-
-            token_compression_enabled: getChecked('tokenCompressionEnabled', true),
-
-            token_compression_threshold: getInt('tokenCompressionThreshold', 32000),
-
-            token_compression_target: getInt('tokenCompressionTarget', 24000),
-
-            token_compression_min_recent_turns: getInt('tokenCompressionMinRecentTurns', 4),
+            retry_429_interval: getNumber('retry429Interval', 1, Number.parseFloat),
 
             routing_strategy: getValue('routingStrategy', 'balanced'),
 
             preferred_provider: getValue('preferredProvider'),
 
-            upstream_timeout_seconds: getFloat('upstreamTimeoutSeconds', 300),
+            upstream_timeout_seconds: getNumber('upstreamTimeoutSeconds', 300, Number.parseFloat),
 
             log_level: getValue('runtimeLogLevel', 'info'),
 
-            log_max_mb: getInt('runtimeLogMaxMb', 10),
+            log_max_mb: getNumber('runtimeLogMaxMb', 10, Number.parseInt),
 
-            log_backup_count: getInt('runtimeLogBackupCount', 3),
+            log_backup_count: getNumber('runtimeLogBackupCount', 3, Number.parseInt),
 
             keepalive_url: getValue('keepaliveUrl'),
 
-            keepalive_interval: getInt('keepaliveInterval', 60)
+            keepalive_interval: getNumber('keepaliveInterval', 60, Number.parseInt)
 
         };
+    const replacementSecret = getValue('codeAssistClientSecret');
+    if (replacementSecret) config.code_assist_client_secret = replacementSecret;
+    const locked = globalThis.AppState?.envLockedFields;
+    if (locked instanceof Set) {
+        for (const key of locked) delete config[key];
+    }
+    return config;
+}
+
+async function saveConfig() {
+
+    try {
+
+        const config = collectSystemConfigForm();
 
         const response = await fetch('./api/config/save', {
 

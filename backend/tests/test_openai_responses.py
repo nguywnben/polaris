@@ -5,14 +5,19 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from starlette.responses import StreamingResponse
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from core.httpx_client import UpstreamStreamProtocolError
 from core.models import OpenAIResponsesRequest
 from core.router.primary.responses import (
     _iter_chat_events,
+    _responses_stream,
     chat_to_responses_response,
     create_response,
     responses_to_chat_request,
@@ -20,6 +25,61 @@ from core.router.primary.responses import (
 
 
 class OpenAIResponsesTests(unittest.IsolatedAsyncioTestCase):
+    async def test_stream_parser_rejects_an_unbounded_partial_frame(self):
+        async def chunks():
+            yield b"x" * 17
+
+        with (
+            patch("core.router.primary.responses._MAX_SSE_FRAME_BYTES", 16),
+            self.assertRaisesRegex(UpstreamStreamProtocolError, "exceeds"),
+        ):
+            _ = [event async for event in _iter_chat_events(chunks())]
+
+    async def test_responses_stream_forwards_heartbeat_and_closes_chat_body(self):
+        closed = False
+
+        async def chunks():
+            nonlocal closed
+            try:
+                yield b": upstream-ping\n\n"
+                yield b'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'
+            finally:
+                closed = True
+
+        request = OpenAIResponsesRequest(model="gemini-test", input="hello", stream=True)
+        stream = _responses_stream(StreamingResponse(chunks()), request)
+        emitted = [await anext(stream) for _ in range(4)]
+        await stream.aclose()
+
+        self.assertTrue(emitted[-1].startswith(b":"))
+        self.assertTrue(closed)
+
+    async def test_responses_stream_emits_error_when_chat_stream_has_no_done(self):
+        async def chunks():
+            yield b'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n'
+
+        request = OpenAIResponsesRequest(model="gemini-test", input="hello", stream=True)
+        stream = _responses_stream(StreamingResponse(chunks()), request)
+        payload = b"".join([chunk async for chunk in stream])
+
+        self.assertIn(b"event: error", payload)
+        self.assertNotIn(b"event: response.completed", payload)
+
+    async def test_responses_stream_caps_accumulated_final_output(self):
+        async def chunks():
+            yield b'data: {"choices":[{"delta":{"content":"12345"}}]}\n\n'
+            yield b'data: {"choices":[{"delta":{"content":"67890"}}]}\n\n'
+            yield b"data: [DONE]\n\n"
+
+        request = OpenAIResponsesRequest(model="gemini-test", input="hello", stream=True)
+        with patch("core.router.primary.responses._MAX_RESPONSES_OUTPUT_BYTES", 8):
+            payload = b"".join(
+                [chunk async for chunk in _responses_stream(StreamingResponse(chunks()), request)]
+            )
+
+        self.assertIn(b"event: error", payload)
+        self.assertNotIn(b"event: response.completed", payload)
+
     def test_string_input_and_instructions_translate_to_chat_messages(self):
         request = OpenAIResponsesRequest(
             model="gemini-2.5-flash",

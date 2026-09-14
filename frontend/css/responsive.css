@@ -22,12 +22,12 @@
         gap: 12px;
     }
 
-    .skeleton-config {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
     .config-column {
         gap: 12px;
+    }
+
+    .skeleton-config {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .config-two-column,
@@ -184,6 +184,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .credential-filter-header {
+        align-items: flex-start;
+    }
+
     .mobile-topbar {
         min-height: 58px;
         min-height: calc(58px + env(safe-area-inset-top));
@@ -273,11 +277,13 @@
         touch-action: manipulation;
     }
 
+    input:not([type]),
     input[type="text"],
     input[type="password"],
     input[type="number"],
     input[type="url"],
     input[type="search"],
+    input[type="datetime-local"],
     select,
     textarea {
         min-height: 44px;
@@ -413,8 +419,9 @@
     .credentials,
     #logContainer {
         max-width: 100%;
-        overflow-x: auto;
-        word-break: normal;
+        overflow-x: hidden;
+        white-space: pre-wrap;
+        word-break: break-word;
         overflow-wrap: anywhere;
     }
 
@@ -462,12 +469,12 @@
         min-width: 0;
     }
 
-    #logsTab .filter-container {
+    #activityRuntimePanel .filter-container {
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: end;
     }
 
-    #logsTab .switch-row {
+    #activityRuntimePanel .switch-row {
         min-height: 44px;
         align-items: center;
     }
@@ -516,11 +523,8 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .cred-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .cred-actions .cred-btn {
+    .cred-actions .cred-btn,
+    .cred-actions-secondary summary {
         min-height: 44px;
     }
 
@@ -537,9 +541,37 @@
         overflow-wrap: anywhere;
     }
 
-    .usage-table-wrapper {
-        overscroll-behavior-inline: contain;
-        -webkit-overflow-scrolling: touch;
+    .usage-table:not(.slo-route-table),
+    .usage-table:not(.slo-route-table) tbody {
+        display: block;
+    }
+
+    .usage-table:not(.slo-route-table) thead {
+        display: none;
+    }
+
+    .usage-table:not(.slo-route-table) tr {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-bottom: 1px solid var(--border);
+    }
+
+    .usage-table:not(.slo-route-table) tr:last-child {
+        border-bottom: 0;
+    }
+
+    .usage-table:not(.slo-route-table) td,
+    .usage-table:not(.slo-route-table) td:first-child,
+    .usage-table:not(.slo-route-table) td:not(:first-child) {
+        width: auto;
+        min-width: 0;
+        padding: 10px;
+        border-bottom: 0;
+    }
+
+    .usage-table:not(.slo-route-table) td:first-child {
+        grid-column: 1 / -1;
+        background: var(--bg-subtle);
     }
 
     .usage-provider-summary {
@@ -591,5 +623,22 @@
 
     #poolTab .stat-item {
         padding: 10px;
+    }
+}
+
+@media (max-width: 760px) {
+    .guided-empty-state {
+        min-height: 0;
+        display: grid;
+        padding: 18px;
+    }
+
+    .guided-empty-actions,
+    .guided-empty-actions .btn {
+        width: 100%;
+    }
+
+    #dashboardTab.has-no-traffic #dashboardStats {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

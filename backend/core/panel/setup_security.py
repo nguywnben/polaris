@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ipaddress
 import os
-import secrets
 from dataclasses import dataclass
 
 from config import trust_proxy_headers_enabled
@@ -12,13 +11,27 @@ from fastapi import HTTPException, Request
 
 SETUP_TOKEN_ENV = "SETUP_TOKEN"
 SETUP_TOKEN_HEADER = "x-setup-token"
-_generated_setup_token = secrets.token_urlsafe(24)
+SETUP_TOKEN_MIN_LENGTH = 24
+OWNER_PASSWORD_MIN_LENGTH = 12
+OWNER_PASSWORD_MAX_LENGTH = 256
+_COMMON_OWNER_PASSWORDS = frozenset(
+    {
+        "administrator",
+        "letmein123456",
+        "polaris",
+        "polaris",
+        "password1234",
+        "qwerty123456",
+    }
+)
 
 
 @dataclass(frozen=True)
 class SetupAccessPolicy:
     token_required: bool
     local_request: bool
+    token_configured: bool
+    token_strong: bool
 
 
 def _request_client_host(request: Request) -> str:
@@ -45,16 +58,35 @@ def is_local_setup_request(request: Request) -> bool:
 
 def get_setup_access_policy(request: Request) -> SetupAccessPolicy:
     local_request = is_local_setup_request(request)
-    explicitly_configured = bool(os.getenv(SETUP_TOKEN_ENV, "").strip())
+    configured_token = os.getenv(SETUP_TOKEN_ENV, "").strip()
+    explicitly_configured = bool(configured_token)
     return SetupAccessPolicy(
         token_required=explicitly_configured or not local_request,
         local_request=local_request,
+        token_configured=explicitly_configured,
+        token_strong=(
+            len(configured_token) >= SETUP_TOKEN_MIN_LENGTH and len(set(configured_token)) >= 8
+        ),
     )
 
 
-def get_setup_bootstrap_token() -> str:
-    """Return the configured or process-local bootstrap token for remote setup."""
-    return os.getenv(SETUP_TOKEN_ENV, "").strip() or _generated_setup_token
+def validate_owner_password(password: str) -> None:
+    """Enforce a bounded policy that still permits memorable passphrases."""
+    if len(password) < OWNER_PASSWORD_MIN_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at least {OWNER_PASSWORD_MIN_LENGTH} characters.",
+        )
+    if len(password) > OWNER_PASSWORD_MAX_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at most {OWNER_PASSWORD_MAX_LENGTH} characters.",
+        )
+    if password.casefold() in _COMMON_OWNER_PASSWORDS or len(set(password)) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Choose a less common password or a longer unique passphrase.",
+        )
 
 
 def verify_setup_access(request: Request, supplied_token: str | None) -> None:
@@ -62,13 +94,24 @@ def verify_setup_access(request: Request, supplied_token: str | None) -> None:
     if not policy.token_required:
         return
 
-    expected_token = get_setup_bootstrap_token()
+    if not policy.token_configured or not policy.token_strong:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Remote setup requires a strong SETUP_TOKEN configured in the service "
+                "environment. Restart the service after changing it."
+            ),
+        )
+
+    import secrets
+
+    expected_token = os.getenv(SETUP_TOKEN_ENV, "").strip()
     candidate = (supplied_token or request.headers.get(SETUP_TOKEN_HEADER, "")).strip()
     if not candidate or not secrets.compare_digest(candidate, expected_token):
         raise HTTPException(
             status_code=403,
             detail=(
                 "A valid setup token is required for remote initial setup. "
-                "Read the container or application logs to retrieve it."
+                "Use the SETUP_TOKEN configured by the service operator."
             ),
         )

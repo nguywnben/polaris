@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "profile": "PROD-SELFHOST-R1",
+  "captured_on": "2026-09-12",
+  "inventory": {
+    "large_modules": {
+      "threshold_lines": 1500,
+      "modules": [
+        {
+          "path": "frontend/js/core/i18n.js",
+          "lines": 5468
+        },
+        {
+          "path": "backend/core/redis_state_store.py",
+          "lines": 4159
+        },
+        {
+          "path": "frontend/js/core/page-locales.js",
+          "lines": 2891
+        },
+        {
+          "path": "backend/core/state_store.py",
+          "lines": 2493
+        },
+        {
+          "path": "backend/core/api/primary.py",
+          "lines": 2103
+        },
+        {
+          "path": "backend/core/panel/credentials.py",
+          "lines": 1728
+        },
+        {
+          "path": "backend/core/identity/sessions.py",
+          "lines": 1576
+        },
+        {
+          "path": "backend/core/storage/mongodb_manager.py",
+          "lines": 1573
+        },
+        {
+          "path": "backend/core/converter/openai_to_gemini.py",
+          "lines": 1513
+        }
+      ]
+    },
+    "storage_families": [
+      {
+        "family": "audit",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/audit_mongodb.py",
+            "lines": 169
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/audit_postgresql.py",
+            "lines": 227
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/audit_sqlite.py",
+            "lines": 218
+          }
+        ]
+      },
+      {
+        "family": "durable_family",
+        "implementations": [
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/durable_family_postgresql.py",
+            "lines": 160
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/durable_family_sqlite.py",
+            "lines": 344
+          }
+        ]
+      },
+      {
+        "family": "identity",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/identity_mongodb.py",
+            "lines": 443
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/identity_postgresql.py",
+            "lines": 608
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/identity_sqlite.py",
+            "lines": 589
+          }
+        ]
+      },
+      {
+        "family": "migration",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/migration_mongodb.py",
+            "lines": 115
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/migration_postgresql.py",
+            "lines": 135
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/migration_sqlite.py",
+            "lines": 157
+          }
+        ]
+      },
+      {
+        "family": "request_trace",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/request_trace_mongodb.py",
+            "lines": 145
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/request_trace_postgresql.py",
+            "lines": 190
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/request_trace_sqlite.py",
+            "lines": 213
+          }
+        ]
+      },
+      {
+        "family": "state_manager",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/mongodb_manager.py",
+            "lines": 1573
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/postgresql_manager.py",
+            "lines": 1236
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/sqlite_manager.py",
+            "lines": 1471
+          }
+        ]
+      },
+      {
+        "family": "usage_ledger",
+        "implementations": [
+          {
+            "backend": "mongodb",
+            "path": "backend/core/storage/usage_ledger_mongodb.py",
+            "lines": 835
+          },
+          {
+            "backend": "postgresql",
+            "path": "backend/core/storage/usage_ledger_postgresql.py",
+            "lines": 956
+          },
+          {
+            "backend": "sqlite",
+            "path": "backend/core/storage/usage_ledger_sqlite.py",
+            "lines": 1433
+          }
+        ]
+      }
+    ],
+    "pydantic_deprecations": [
+      {
+        "path": "backend/core/models.py",
+        "line": 13,
+        "kind": "legacy_dict_call"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 231,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 386,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 460,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 584,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 807,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/models.py",
+        "line": 837,
+        "kind": "class_based_config"
+      },
+      {
+        "path": "backend/core/panel/quality_policy.py",
+        "line": 43,
+        "kind": "class_based_config"
+      }
+    ],
+    "broad_exception_handlers": {
+      "handlers": 502,
+      "without_reraise": 321,
+      "files": 103,
+      "by_area": {
+        "access_security": 70,
+        "experimental_coordination": 11,
+        "protocol_routing": 59,
+        "provider_credentials": 77,
+        "runtime_operations": 149,
+        "storage": 136
+      },
+      "top_hotspots": [
+        {
+          "path": "backend/core/storage/mongodb_manager.py",
+          "handlers": 36,
+          "without_reraise": 33
+        },
+        {
+          "path": "backend/core/storage/postgresql_manager.py",
+          "handlers": 24,
+          "without_reraise": 22
+        },
+        {
+          "path": "backend/main.py",
+          "handlers": 29,
+          "without_reraise": 21
+        },
+        {
+          "path": "backend/core/storage/sqlite_manager.py",
+          "handlers": 26,
+          "without_reraise": 21
+        },
+        {
+          "path": "backend/core/auth.py",
+          "handlers": 18,
+          "without_reraise": 18
+        },
+        {
+          "path": "backend/core/credential_manager.py",
+          "handlers": 12,
+          "without_reraise": 12
+        },
+        {
+          "path": "backend/core/google_oauth_api.py",
+          "handlers": 14,
+          "without_reraise": 11
+        },
+        {
+          "path": "backend/core/api/primary.py",
+          "handlers": 11,
+          "without_reraise": 11
+        },
+        {
+          "path": "backend/core/api/utils.py",
+          "handlers": 11,
+          "without_reraise": 11
+        },
+        {
+          "path": "backend/core/panel/identity_routes.py",
+          "handlers": 12,
+          "without_reraise": 10
+        },
+        {
+          "path": "backend/core/panel/credential_operations.py",
+          "handlers": 9,
+          "without_reraise": 8
+        },
+        {
+          "path": "backend/core/panel/virtual_keys.py",
+          "handlers": 8,
+          "without_reraise": 8
+        },
+        {
+          "path": "backend/log.py",
+          "handlers": 7,
+          "without_reraise": 7
+        },
+        {
+          "path": "backend/core/panel/credentials.py",
+          "handlers": 22,
+          "without_reraise": 6
+        },
+        {
+          "path": "backend/core/api/vertex.py",
+          "handlers": 6,
+          "without_reraise": 6
+        }
+      ]
+    },
+    "skipped_and_live_tests": {
+      "skip_sites": [
+        {
+          "path": "backend/tests/test_activity_console.py",
+          "line": 27,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_coordination_redis_live.py",
+          "line": 186,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_credential_fleet_console.py",
+          "line": 21,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_durable_family_migration.py",
+          "line": 154,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_frontend_i18n.py",
+          "line": 46,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_ha_topology_evidence_live.py",
+          "line": 33,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_identity_console.py",
+          "line": 36,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_identity_repository_live.py",
+          "line": 32,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_identity_repository_live.py",
+          "line": 67,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_navigation_console.py",
+          "line": 26,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_production_dashboard.py",
+          "line": 34,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_routing_coordination_redis_live.py",
+          "line": 31,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_security_coordination_redis_live.py",
+          "line": 43,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_ui_feedback_contract.py",
+          "line": 52,
+          "kind": "skipTest"
+        },
+        {
+          "path": "backend/tests/test_usage_ledger_live.py",
+          "line": 150,
+          "kind": "skipUnless"
+        },
+        {
+          "path": "backend/tests/test_usage_ledger_live.py",
+          "line": 185,
+          "kind": "skipUnless"
+        }
+      ],
+      "live_modules": [
+        "backend/tests/test_coordination_redis_live.py",
+        "backend/tests/test_durable_family_migration.py",
+        "backend/tests/test_ha_topology_evidence_live.py",
+        "backend/tests/test_identity_repository_live.py",
+        "backend/tests/test_routing_coordination_redis_live.py",
+        "backend/tests/test_security_coordination_redis_live.py",
+        "backend/tests/test_usage_ledger_live.py"
+      ]
+    },
+    "frontend_test_gaps": {
+      "javascript_modules": 51,
+      "package_manifest_present": false,
+      "native_javascript_tests": [],
+      "backend_dom_contract_modules": [
+        "backend/tests/test_access_virtual_keys_frontend.py",
+        "backend/tests/test_activity_console.py",
+        "backend/tests/test_credential_fleet_console.py",
+        "backend/tests/test_frontend_i18n.py",
+        "backend/tests/test_frontend_password_forms.py",
+        "backend/tests/test_identity_console.py",
+        "backend/tests/test_model_routing_console.py",
+        "backend/tests/test_navigation_console.py",
+        "backend/tests/test_playground_console.py",
+        "backend/tests/test_production_dashboard.py",
+        "backend/tests/test_quality_policy_console.py",
+        "backend/tests/test_settings_about_console.py",
+        "backend/tests/test_ui_feedback_contract.py"
+      ],
+      "browser_harness_configs": []
+    }
+  },
+  "risks": [
+    {
+      "id": "RISK-LARGE-001",
+      "category": "large_modules",
+      "severity": "medium",
+      "summary": "The largest backend module is experimental Redis coordination code.",
+      "owners": [
+        "POST-R1"
+      ],
+      "disposition": "Freeze feature expansion; retain only bounded security and correctness fixes.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-LARGE-002",
+      "category": "large_modules",
+      "severity": "high",
+      "summary": "Large state and storage managers concentrate persistence and migration risk.",
+      "owners": [
+        "P5.1"
+      ],
+      "disposition": "Assess and extract only when required by storage-tier or migration work.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-LARGE-003",
+      "category": "large_modules",
+      "severity": "high",
+      "summary": "Large protocol routing and conversion modules can amplify AI-output regressions.",
+      "owners": [
+        "P2.3",
+        "P2.4"
+      ],
+      "disposition": "Protect with protocol fixtures before task-local correction or extraction.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-LARGE-004",
+      "category": "large_modules",
+      "severity": "high",
+      "summary": "The large identity session module contains security-sensitive lifecycle logic.",
+      "owners": [
+        "P5.2"
+      ],
+      "disposition": "Change only behind targeted adversarial session tests.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-LARGE-005",
+      "category": "large_modules",
+      "severity": "medium",
+      "summary": "Large locale and credential-console modules raise review and regression cost.",
+      "owners": [
+        "P3.5",
+        "P4.6"
+      ],
+      "disposition": "Use workflow-owned, test-backed extraction only when those tasks touch them.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-STORAGE-001",
+      "category": "storage_families",
+      "severity": "high",
+      "summary": "Seven persistence families have parallel backend implementations and parity cost.",
+      "owners": [
+        "P5.1"
+      ],
+      "disposition": "Make SQLite core, PostgreSQL advanced, and MongoDB compatibility without new parity scope.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-PYDANTIC-001",
+      "category": "pydantic_deprecations",
+      "severity": "medium",
+      "summary": "Eight Pydantic v1-style sites remain in protocol and quality-policy models.",
+      "owners": [
+        "P2.3",
+        "P4.1",
+        "P5.1"
+      ],
+      "disposition": "Modernize only with the owning model contracts; do not perform a global rewrite.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-EXCEPTION-001",
+      "category": "broad_exception_handlers",
+      "severity": "high",
+      "summary": "Broad catches can hide protocol, provider, storage, authentication, and shutdown failures.",
+      "owners": [
+        "P2.2",
+        "P2.4",
+        "P5.1",
+        "P5.2"
+      ],
+      "disposition": "Review task-local boundaries and preserve only deliberate, observable fallbacks.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-TEST-001",
+      "category": "skipped_and_live_tests",
+      "severity": "medium",
+      "summary": "Optional PostgreSQL and MongoDB paths rely on environment-gated live coverage.",
+      "owners": [
+        "P5.1"
+      ],
+      "disposition": "Keep opt-in and report separately while adding deterministic tier-specific contracts.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-TEST-002",
+      "category": "skipped_and_live_tests",
+      "severity": "medium",
+      "summary": "Redis and topology live tests depend on explicitly experimental infrastructure.",
+      "owners": [
+        "POST-R1"
+      ],
+      "disposition": "Keep outside R1 gates under the P0.3 experimental suite partition.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-FRONTEND-001",
+      "category": "frontend_test_gaps",
+      "severity": "high",
+      "summary": "Fifty-one JavaScript modules rely on recursive syntax, DOM contracts, and fixed browser journeys rather than native module-level JavaScript unit tests.",
+      "owners": [
+        "P5.4"
+      ],
+      "disposition": "Keep recursive syntax and the fixed browser gate required; add native unit coverage only when changing a stateful module boundary.",
+      "file_size_refactor_authorized": false
+    },
+    {
+      "id": "RISK-FRONTEND-002",
+      "category": "frontend_test_gaps",
+      "severity": "high",
+      "summary": "The maintained Playwright harness covers nine critical journeys and eleven routes at four widths, but remains journey-level rather than exhaustive module behavior coverage.",
+      "owners": [
+        "P3.2",
+        "P5.4"
+      ],
+      "disposition": "Keep the browser harness required and add focused DOM or contract coverage with each affected workflow without expanding the fixed release matrix.",
+      "file_size_refactor_authorized": false
+    }
+  ]
+}

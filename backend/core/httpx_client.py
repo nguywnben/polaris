@@ -7,6 +7,48 @@ import httpx
 from config import get_proxy_config
 from log import log
 
+STREAM_READ_CHUNK_BYTES = 64 * 1024
+MAX_STREAM_LINE_BYTES = 1024 * 1024
+
+
+class UpstreamStreamProtocolError(RuntimeError):
+    """Raised when an upstream stream violates bounded framing rules."""
+
+
+async def iter_bounded_lines(
+    response: httpx.Response,
+    *,
+    max_line_bytes: int = MAX_STREAM_LINE_BYTES,
+):
+    """Decode newline-delimited upstream data without an unbounded line buffer."""
+    if max_line_bytes <= 0:
+        raise ValueError("max_line_bytes must be positive")
+
+    buffer = bytearray()
+    async for chunk in response.aiter_bytes(chunk_size=STREAM_READ_CHUNK_BYTES):
+        buffer.extend(chunk)
+        while True:
+            newline_index = buffer.find(b"\n")
+            if newline_index < 0:
+                break
+            if newline_index > max_line_bytes:
+                raise UpstreamStreamProtocolError(
+                    f"upstream stream line exceeds {max_line_bytes} bytes"
+                )
+            line = bytes(buffer[:newline_index])
+            del buffer[: newline_index + 1]
+            if line.endswith(b"\r"):
+                line = line[:-1]
+            yield line.decode("utf-8", errors="replace")
+
+        if len(buffer) > max_line_bytes:
+            raise UpstreamStreamProtocolError(
+                f"upstream stream line exceeds {max_line_bytes} bytes"
+            )
+
+    if buffer:
+        yield bytes(buffer).decode("utf-8", errors="replace")
+
 
 class HttpxClientManager:
     """Reuse HTTP clients for the lifetime of one application event loop."""
@@ -131,8 +173,8 @@ async def stream_post_async(
                 return
 
             if native:
-                async for chunk in r.aiter_bytes():
+                async for chunk in r.aiter_bytes(chunk_size=STREAM_READ_CHUNK_BYTES):
                     yield chunk
             else:
-                async for line in r.aiter_lines():
+                async for line in iter_bounded_lines(r):
                     yield line
