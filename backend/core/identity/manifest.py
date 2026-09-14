@@ -54,6 +54,7 @@ _MANAGEMENT_ROUTE_MANIFEST = (
         ("GET", "/api/credentials/status"),
         ("GET", "/api/credentials/models/{filename}"),
         ("GET", "/api/credentials/detail/{filename}"),
+        ("GET", "/api/credentials/configuration/{filename}"),
         ("GET", "/api/credentials/errors/{filename}"),
         ("GET", "/api/credentials/quota/{filename}"),
     ),
@@ -66,6 +67,7 @@ _MANAGEMENT_ROUTE_MANIFEST = (
         ("POST", "/api/credentials/upload"),
         ("POST", "/api/credentials/deduplicate-by-email"),
         ("POST", "/api/credentials/import"),
+        ("PATCH", "/api/credentials/configuration/{filename}"),
     ),
     *_http(
         ManagementPermission.CREDENTIALS_OPERATE,

@@ -73,6 +73,14 @@ class ManagementRouteManifestCoverageTests(unittest.TestCase):
 
     def test_sensitive_routes_have_distinct_least_privilege_permissions(self):
         expected = {
+            (
+                "GET",
+                "/api/credentials/configuration/{filename}",
+            ): ManagementPermission.CREDENTIALS_READ,
+            (
+                "PATCH",
+                "/api/credentials/configuration/{filename}",
+            ): ManagementPermission.CREDENTIALS_MANAGE,
             ("GET", "/api/auth/keys"): ManagementPermission.ROOT_KEY_READ,
             ("POST", "/api/auth/keys/reset"): ManagementPermission.ROOT_KEY_ROTATE,
             ("POST", "/api/config/access"): ManagementPermission.CONFIGURATION_MANAGE,

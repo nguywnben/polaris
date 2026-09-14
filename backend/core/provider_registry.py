@@ -54,6 +54,19 @@ _LEGACY_OPERATION_ORDER = (
     "preview_channel",
 )
 LEGACY_CREDENTIAL_OPERATIONS = frozenset(_LEGACY_OPERATION_ORDER)
+_LEGACY_VARIANT_OPERATION_SNAPSHOT = {
+    GOOGLE_ANTIGRAVITY: frozenset(
+        {"verify", "test", "toggle", "delete", "export", "quota", "credit_mode"}
+    ),
+    GOOGLE_AI_STUDIO: frozenset({"verify", "test", "toggle", "delete", "export"}),
+    GROK: frozenset({"verify", "test", "toggle", "delete", "export", "quota"}),
+    XAI_CONSOLE: frozenset({"verify", "test", "toggle", "delete", "export"}),
+    CODEX: frozenset({"verify", "test", "toggle", "delete", "export", "quota"}),
+    OPENAI_PLATFORM: frozenset({"verify", "test", "toggle", "delete", "export"}),
+    CLAUDE_CODE: frozenset({"verify", "test", "toggle", "delete", "export"}),
+    CLAUDE_PLATFORM: frozenset({"verify", "test", "toggle", "delete", "export"}),
+    OLLAMA: frozenset({"verify", "test", "toggle", "delete", "export"}),
+}
 INFERENCE_PROTOCOLS = frozenset(
     {
         "anthropic_messages",
@@ -485,6 +498,9 @@ def list_legacy_credential_variant_capabilities() -> list[Dict[str, Any]]:
     """Project the pre-R1 catalog shape for clients pinned to ``/api/providers``."""
     variants = []
     for item in list_credential_variant_capabilities():
+        operations = _LEGACY_VARIANT_OPERATION_SNAPSHOT.get(
+            item["variant_id"], frozenset(item["operations"])
+        )
         variants.append(
             {
                 "variant_id": item["variant_id"],
@@ -492,9 +508,7 @@ def list_legacy_credential_variant_capabilities() -> list[Dict[str, Any]]:
                 "display_name": item["display_name"],
                 "credential_type": item["credential_type"],
                 "operations": [
-                    operation
-                    for operation in _LEGACY_OPERATION_ORDER
-                    if operation in item["operations"]
+                    operation for operation in _LEGACY_OPERATION_ORDER if operation in operations
                 ],
             }
         )
