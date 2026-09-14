@@ -169,6 +169,7 @@ function populateConfigForm() {
     setConfigField('codeAssistClientId', c.code_assist_client_id || '');
 
     setConfigField('codeAssistClientSecret', '');
+    setSetupSecretVisibility(document.getElementById('codeAssistClientSecret'), false);
 
     const codeAssistSecret = document.getElementById('codeAssistClientSecret');
     if (codeAssistSecret) {
@@ -310,7 +311,7 @@ function collectSystemConfigForm() {
         };
     const replacementSecret = getValue('codeAssistClientSecret');
     if (replacementSecret) config.code_assist_client_secret = replacementSecret;
-    const locked = globalThis.AppState?.envLockedFields;
+    const locked = typeof AppState !== 'undefined' ? AppState.envLockedFields : undefined;
     if (locked instanceof Set) {
         for (const key of locked) delete config[key];
     }
@@ -318,6 +319,10 @@ function collectSystemConfigForm() {
 }
 
 async function saveConfig() {
+
+    for (const field of document.querySelectorAll('#configForm [data-config-key]')) {
+        if (!field.disabled && !field.reportValidity()) return;
+    }
 
     try {
 
@@ -424,7 +429,10 @@ async function saveAccessCredentials() {
             'confirmPanelPassword'
         ]) {
             const field = document.getElementById(id);
-            if (field) field.value = '';
+            if (field) {
+                field.value = '';
+                setSetupSecretVisibility(field, false);
+            }
         }
         showStatus(data.message || t('configuration_saved_successfully'), 'success');
         await loadConfig();

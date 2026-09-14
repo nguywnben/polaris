@@ -26,6 +26,20 @@ IDENTITY_SCRIPT = ROOT / "frontend/js/features/identity.js"
 
 
 class SettingsConsoleContractTests(unittest.TestCase):
+    def test_invalid_settings_are_not_submitted(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+globalThis.document = {{querySelectorAll: () => [{{disabled: false, reportValidity: () => false}}]}};
+globalThis.fetch = () => {{throw new Error('Invalid form reached the network');}};
+globalThis.showStatus = () => {{throw new Error('Save must stop before collection/network');}};
+globalThis.t = value => value;
+vm.runInThisContext({json.dumps(source)});
+saveConfig();
+"""
+        result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_every_system_control_maps_to_the_authoritative_schema(self) -> None:
         fragment = SETTINGS.read_text(encoding="utf-8")
         rendered = set(re.findall(r'data-config-key="([a-z0-9_]+)"', fragment))
@@ -81,6 +95,9 @@ if (Object.hasOwn(config, 'code_assist_client_secret')) throw new Error('blank s
 values.codeAssistClientSecret = 'replacement-secret';
 const updated = globalThis.contract.collectSystemConfigForm();
 if (updated.code_assist_client_secret !== 'replacement-secret') throw new Error('secret update lost');
+vm.runInThisContext('const AppState = {{envLockedFields: new Set(["host", "code_assist_client_secret"])}};');
+const locked = globalThis.contract.collectSystemConfigForm();
+if ('host' in locked || 'code_assist_client_secret' in locked) throw new Error('environment-managed fields submitted');
 """
         result = subprocess.run(
             [node, "-e", harness],
@@ -94,6 +111,26 @@ if (updated.code_assist_client_secret !== 'replacement-secret') throw new Error(
 
 
 class AboutAndIdentityConsoleContractTests(unittest.TestCase):
+    def test_support_counts_are_labelled_and_empty_snapshot_is_explicit(self) -> None:
+        source = ABOUT_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const host = {{replaceChildren(...nodes) {{this.children = nodes;}}, setAttribute() {{}}}};
+globalThis.document = {{getElementById: () => host, addEventListener() {{}},
+  createElement: tag => ({{tag, children: [], append(...nodes) {{this.children.push(...nodes);}}, setAttribute() {{}}}})}};
+globalThis.t = key => key;
+globalThis.formatConsoleNumber = String;
+vm.runInThisContext({json.dumps(source)});
+renderAboutCapabilities([{{tier:'core',state:'active'}},{{tier:'core',state:'blocked'}}]);
+const stats = host.children[0].children[1];
+if (stats.tag !== 'dl' || stats.children.length !== 4) throw new Error('Missing labelled state counts');
+if (stats.children.map(row => row.children[1].textContent).join() !== '1,0,0,1') throw new Error('Wrong counts');
+renderAboutCapabilities([]);
+if (host.children[0]?.textContent !== 'about.no_capabilities') throw new Error('Empty snapshot has no explanation');
+"""
+        result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_about_exposes_build_support_and_maintenance_entry_points(self) -> None:
         fragment = ABOUT.read_text(encoding="utf-8")
         for element_id in (

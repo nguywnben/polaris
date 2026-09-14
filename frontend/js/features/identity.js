@@ -130,15 +130,25 @@ function renderIdentityPrincipal() {
     const container = document.getElementById('identityPrincipalSummary');
     if (!container || !IdentityConsoleState.principal) return;
     const principal = IdentityConsoleState.principal;
+    const permissions = identityFact('identity.permissions', '');
+    permissions.className = 'identity-permissions';
+    const values = permissions.children[1];
+    if (principal.permissions.length) {
+        const list = identityElement('ul', 'identity-permission-list');
+        for (const permission of principal.permissions) {
+            list.appendChild(identityElement('li', 'identity-technical-value', permission));
+        }
+        values.appendChild(list);
+    } else {
+        values.textContent = t('identity.none');
+    }
     container.replaceChildren(
         identityFact('identity.identity_id', principal.identityId, { technical: true }),
         identityFact('identity.principal_type', identityProtocolLabel(principal.principalType), { technical: true }),
         identityFact('identity.role', identityRoleLabel(principal.role)),
         identityFact('identity.role_source', identityProtocolLabel(principal.roleSource), { technical: true }),
         identityFact('identity.authentication', identityProtocolLabel(principal.authenticationContext), { technical: true }),
-        identityFact('identity.permissions', principal.permissions.length
-            ? principal.permissions.join(', ')
-            : t('identity.none'), { technical: true })
+        permissions
     );
     container.setAttribute('aria-busy', 'false');
     identityStatusBadge('identityPrincipalBadge', 'identity.authorized', 'success');
@@ -275,6 +285,10 @@ function renderIdentityRecord(record) {
     const mutable = record.identityId !== 'local-owner';
     const ownerAllowed = record.role !== 'owner' || identityCan('owners.manage');
     const editable = mutable && ownerAllowed && identityCan('identity.manage');
+    if (!editable) {
+        facts.appendChild(identityFact('identity.role', identityRoleLabel(record.role)));
+        return article;
+    }
     const actions = identityElement('div', 'identity-record-actions');
     const roleSelect = identityRoleSelect(record, editable);
     actions.appendChild(roleSelect);

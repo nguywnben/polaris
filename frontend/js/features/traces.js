@@ -14,7 +14,7 @@ const TRACE_EXPORT_FILENAME_PATTERN = /^polaris-traces-\d{8}T\d{6}Z\.(?:jsonl|cs
 
 const TraceConsoleState = {
     traces: [], filters: {}, cursor: null, cursorStack: [], nextCursor: null,
-    loaded: false, loading: false, requestId: 0, abortController: null,
+    loaded: false, loading: false, loadError: false, requestId: 0, abortController: null,
     exporting: false, selectedTrace: null, detailReturnFocus: null, retention: null,
     detailRequestId: 0, detailAbortController: null
 };
@@ -174,9 +174,9 @@ function renderTraces() {
         button.type = 'button'; button.dataset.uiAction = 'view-trace-detail'; button.dataset.traceId = trace.trace_id;
         card.append(primary, metadata, button); item.append(card); list.append(item);
     }
-    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded) list.append(traceText('li', 'trace-empty', t('trace.empty')));
+    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded && !TraceConsoleState.loading && !TraceConsoleState.loadError) list.append(traceText('li', 'trace-empty', t('trace.empty')));
     const pagination = traceElement('tracePreviousPage')?.closest('.trace-pagination');
-    if (pagination) pagination.hidden = !TraceConsoleState.traces.length;
+    if (pagination) pagination.hidden = !TraceConsoleState.traces.length && !TraceConsoleState.cursorStack.length;
     if (traceElement('tracePreviousPage')) traceElement('tracePreviousPage').disabled = TraceConsoleState.loading || !TraceConsoleState.cursorStack.length;
     if (traceElement('traceNextPage')) traceElement('traceNextPage').disabled = TraceConsoleState.loading || !TraceConsoleState.nextCursor;
     if (traceElement('tracePageNumber')) traceElement('tracePageNumber').textContent = t('trace.page', { page: TraceConsoleState.cursorStack.length + 1 });
@@ -187,6 +187,7 @@ async function loadTraces() {
     const requestId = ++TraceConsoleState.requestId;
     const controller = new AbortController();
     TraceConsoleState.abortController = controller; TraceConsoleState.loading = true;
+    TraceConsoleState.loadError = false;
     traceElement('traceList')?.setAttribute('aria-busy', 'true'); setTraceStatus('trace.loading'); renderTraces();
     try {
         const response = await fetch(`./api/traces?${buildTraceParams(TraceConsoleState.filters)}`, { signal: controller.signal });
@@ -197,6 +198,7 @@ async function loadTraces() {
         TraceConsoleState.traces = page.traces; TraceConsoleState.nextCursor = page.nextCursor; TraceConsoleState.loaded = true; setTraceStatus('');
     } catch (_error) {
         if (requestId !== TraceConsoleState.requestId || controller.signal.aborted) return;
+        TraceConsoleState.loadError = true;
         TraceConsoleState.traces = []; TraceConsoleState.nextCursor = null; TraceConsoleState.loaded = true; setTraceStatus('trace.load_failed');
     } finally {
         if (requestId !== TraceConsoleState.requestId) return;

@@ -93,25 +93,33 @@ function renderAboutCapabilities(capabilities) {
         const copy = document.createElement('div');
         const title = document.createElement('h3');
         const description = document.createElement('p');
-        const status = document.createElement('p');
+        const status = document.createElement('dl');
         title.textContent = t(`about.tier_${tier}`);
         description.textContent = t(`about.tier_${tier}_description`);
         status.className = 'support-tier-status';
-        const counts = Object.fromEntries(ABOUT_STATES.map((state) => [
-            state,
-            formatConsoleNumber(capabilities.filter((item) => item.tier === tier && item.state === state).length)
-        ]));
-        status.textContent = t('about.tier_status', counts);
+        ABOUT_STATES.forEach((state) => {
+            const count = capabilities.filter((item) => item.tier === tier && item.state === state).length;
+            status.append(aboutFact(`about.state_${state}`, formatConsoleNumber(count)));
+        });
         copy.append(title, description);
         row.append(copy, status);
         return row;
     });
+    if (!rows.length) {
+        const empty = document.createElement('p');
+        empty.className = 'card-copy';
+        empty.setAttribute('role', 'listitem');
+        empty.textContent = t('about.no_capabilities');
+        rows.push(empty);
+    }
     container.replaceChildren(...rows);
     container.setAttribute('aria-busy', 'false');
 }
 
 async function loadAboutPage(options = {}) {
     const preserveContent = options.preserveContent ?? Boolean(AppState.aboutLoaded);
+    const busyHosts = ['aboutBuildFacts', 'aboutSupportTiers'];
+    busyHosts.forEach((id) => document.getElementById(id)?.setAttribute('aria-busy', 'true'));
     clearPageState('aboutState');
     try {
         const [versionResponse, capabilityResponse] = await Promise.all([
@@ -136,6 +144,8 @@ async function loadAboutPage(options = {}) {
             actionLabel: t('refresh'),
             onAction: () => loadAboutPage({preserveContent: Boolean(AppState.aboutLoaded)})
         });
+    } finally {
+        busyHosts.forEach((id) => document.getElementById(id)?.setAttribute('aria-busy', 'false'));
     }
 }
 

@@ -161,6 +161,35 @@ assert(AppState.activeActivityView === 'audit', 'request pivot did not select ta
             self.assertNotIn(f'id="{form_id}"', audit)
             self.assertEqual(settings.count(f'id="{form_id}"'), 1)
 
+    def test_load_errors_never_render_as_empty_results(self) -> None:
+        for feature, state, render, list_id in (
+            ('traces.js', 'TraceConsoleState', 'renderTraces', 'traceList'),
+            ('audit.js', 'AuditConsoleState', 'renderAuditEvents', 'auditEventList'),
+        ):
+            source = (FRONTEND / 'js/features' / feature).read_text(encoding='utf-8')
+            harness = f"""
+const vm = require('vm');
+const items = [];
+global.document = {{addEventListener() {{}}, getElementById(id) {{
+    return id === '{list_id}' ? {{replaceChildren() {{items.length = 0;}}, append(item) {{items.push(item);}}}} : null;
+}}, createElement() {{return {{}};}}}};
+global.t = key => key;
+vm.runInThisContext({json.dumps(source)});
+{state}.loaded = true;
+{state}.loadError = true;
+{render}();
+if (items.length) throw new Error('Load failure must not render an empty-result message');
+{state}.loadError = false;
+{state}.loading = true;
+{render}();
+if (items.length) throw new Error('Loading must not render an empty-result message');
+{state}.loading = false;
+{render}();
+if (items.length !== 1) throw new Error('Successful empty response needs an empty message');
+"""
+            result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

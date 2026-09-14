@@ -5,6 +5,10 @@ virtual API keys. It uses the closed identity API, does not enable OIDC by itsel
 remove or replace local-owner recovery. OIDC remains disabled until the complete operator trust
 configuration is valid.
 
+“Identity and sessions” is always listed in the authenticated console sidebar, including when
+team access is disabled or its status cannot be loaded. Opening the page does not enable OIDC
+or grant permissions; existing API authorization and local-owner recovery remain unchanged.
+
 ## Operator surfaces
 
 The page presents five bounded surfaces:
@@ -23,6 +27,18 @@ The page presents five bounded surfaces:
 Protocol values such as `owner`, `security_admin`, `oidc_user`, `direct_binding`,
 `direct_loopback_only`, and authentication-method codes remain exact. Surrounding explanatory copy
 is curated for every supported locale.
+
+The principal summary uses a full-width, responsive permission list, followed by independently
+sized OIDC/recovery panels. Identity and session records use flat dividers rather than nested
+cards. Non-editable identities, including the protected local owner, show a read-only role fact
+instead of disabled edit controls. Server authorization and confirmation boundaries are unchanged.
+
+The lifecycle-owned in-memory coordination store anchors its clock to Unix time at startup,
+then advances it using monotonic elapsed time. Session inventory therefore contains calendar
+timestamps rather than process-relative dates in 1970, while later NTP/manual wall-clock
+adjustments cannot revive or prematurely expire sessions. Calendar corrections take effect on
+the next process start. Regression coverage verifies both forward/backward wall-clock jumps
+and real session inventory rendered by the browser.
 
 ## Permission-derived controls
 

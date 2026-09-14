@@ -1,12 +1,11 @@
                 <div id="identityTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="identity.governance">Access &amp; team</div>
                             <h1 class="page-title" data-i18n="identity.title">Identity and sessions</h1>
                             <p class="page-description" data-i18n="identity.description">Review effective authority, direct OIDC identities, active management sessions, and recovery readiness.</p>
                         </div>
                         <div class="page-actions">
-                            <button type="button" class="btn" data-ui-action="identity-refresh" data-i18n="identity.refresh">Refresh identity state</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-ui-action="identity-refresh" data-i18n="identity.refresh">Refresh identity state</button>
                         </div>
                     </header>
 
@@ -14,7 +13,7 @@
                     <p id="identityModeNotice" class="identity-mode-notice" role="status" aria-live="polite" data-i18n="identity.mode_loading">Checking optional team access. Local recovery remains available.</p>
 
                     <div class="identity-summary-grid">
-                        <section class="identity-panel identity-summary" aria-labelledby="identityPrincipalHeading">
+                        <section class="identity-panel identity-summary identity-principal" aria-labelledby="identityPrincipalHeading">
                             <div class="identity-panel-heading">
                                 <div>
                                     <h2 id="identityPrincipalHeading" class="card-title" data-i18n="identity.current_principal">Current principal</h2>
@@ -56,7 +55,7 @@
                                     <h2 id="identityInventoryHeading" class="card-title" data-i18n="identity.identities">Direct identities</h2>
                                     <p class="card-copy" data-i18n="identity.identities_description">Exact issuer and subject bindings with durable role revisions.</p>
                                 </div>
-                                <button id="identityCreateButton" type="button" class="btn hidden" data-ui-action="identity-create" data-i18n="identity.create_identity">Create identity</button>
+                                <button id="identityCreateButton" type="button" class="btn btn-small hidden" data-ui-action="identity-create" data-i18n="identity.create_identity">Create identity</button>
                             </div>
                             <p id="identityListStatus" class="identity-section-status" role="status" aria-live="polite"></p>
                             <div id="identityList" class="identity-record-list" role="list" aria-busy="true"></div>

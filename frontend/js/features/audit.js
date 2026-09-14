@@ -64,6 +64,7 @@ const AuditConsoleState = {
     nextCursor: null,
     loaded: false,
     loading: false,
+    loadError: false,
     eventRequestId: 0,
     eventAbortController: null,
     exporting: false,
@@ -283,12 +284,12 @@ function renderAuditEvents() {
         item.append(card);
         list.append(item);
     }
-    if (!AuditConsoleState.events.length && AuditConsoleState.loaded) {
+    if (!AuditConsoleState.events.length && AuditConsoleState.loaded && !AuditConsoleState.loading && !AuditConsoleState.loadError) {
         const item = createAuditText('li', 'audit-empty-state', t('audit.empty'));
         list.append(item);
     }
     const pagination = auditElement('auditPreviousPage')?.closest('.audit-pagination');
-    if (pagination) pagination.hidden = !AuditConsoleState.events.length;
+    if (pagination) pagination.hidden = !AuditConsoleState.events.length && !AuditConsoleState.cursorStack.length;
     const previous = auditElement('auditPreviousPage');
     const next = auditElement('auditNextPage');
     if (previous) previous.disabled = AuditConsoleState.loading || !AuditConsoleState.cursorStack.length;
@@ -303,6 +304,7 @@ async function loadAuditEvents() {
     const controller = new AbortController();
     AuditConsoleState.eventAbortController = controller;
     AuditConsoleState.loading = true;
+    AuditConsoleState.loadError = false;
     const list = auditElement('auditEventList');
     if (list) list.setAttribute('aria-busy', 'true');
     setAuditStatus('audit.loading');
@@ -322,6 +324,7 @@ async function loadAuditEvents() {
         setAuditStatus('');
     } catch (_error) {
         if (requestId !== AuditConsoleState.eventRequestId) return;
+        AuditConsoleState.loadError = true;
         AuditConsoleState.events = [];
         AuditConsoleState.nextCursor = null;
         AuditConsoleState.loaded = true;

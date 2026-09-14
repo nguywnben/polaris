@@ -42,6 +42,8 @@ class IdentityConsoleContractTests(unittest.TestCase):
     reset: resetIdentityConsoleState,
     api: identityApi,
     renderOidc: renderIdentityOidc,
+    renderPrincipal: renderIdentityPrincipal,
+    renderRecord: renderIdentityRecord,
     toggle: toggleManagedIdentity,
     updateRole: updateIdentityRole,
     submitCreate: submitIdentityCreate,
@@ -69,17 +71,18 @@ class TestElement {{
         this.isConnected = true;
         this.open = false;
         this.listeners = new Map();
+        this.children = [];
     }}
     addEventListener(type, listener) {{
         if (!this.listeners.has(type)) this.listeners.set(type, []);
         this.listeners.get(type).push(listener);
     }}
-    append() {{}}
-    appendChild() {{}}
+    append(...children) {{ this.children.push(...children); }}
+    appendChild(child) {{ this.children.push(child); return child; }}
     close() {{ this.open = false; }}
     focus() {{ this.focused = true; }}
     matches() {{ return true; }}
-    replaceChildren() {{}}
+    replaceChildren(...children) {{ this.children = children; }}
     setAttribute() {{}}
     dispatchEvent(event) {{
         for (const listener of this.listeners.get(event.type) || []) listener(event);
@@ -130,6 +133,38 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_permissions_are_individual_items_and_local_owner_is_read_only(self):
+        self._run_identity_contract(
+            """
+const summary = new HTMLElement();
+global.__elements.set('identityPrincipalSummary', summary);
+contract.state.principal = {
+    identityId: 'local-owner', principalType: 'local_owner', role: 'owner',
+    roleSource: 'local_bootstrap', authenticationContext: 'opaque_session',
+    permissions: ['identity.read', 'sessions.manage']
+};
+contract.renderPrincipal();
+const permissions = summary.children.find(child => child.className === 'identity-permissions');
+assert(permissions, 'permissions lack a dedicated full-width region');
+const list = permissions.children[1].children[0];
+assert(list.children.length === 2, 'permissions are not individually scannable');
+assert(list.children[0].textContent === 'identity.read', 'permission value changed');
+contract.state.permissions = new Set(['identity.manage', 'owners.manage']);
+const record = {
+    identityId: 'local-owner', role: 'owner', enabled: true, issuer: null, subject: null,
+    roleSource: 'local_bootstrap', updatedAt: '2026-09-14T00:00:00Z', revision: 1,
+    bindingRevision: 1
+};
+const owner = contract.renderRecord(record);
+assert(!owner.children.some(child => child.className === 'identity-record-actions'),
+    'local owner still exposes inapplicable edit controls');
+const editable = contract.renderRecord({ ...record, identityId: 'idn_example' });
+assert(editable.children.some(child => child.className === 'identity-record-actions'),
+    'authorized identity lost edit controls');
+""",
+            include_feature=True,
+        )
 
     def test_identity_destination_is_reachable_and_bundled(self):
         body = serve_control_panel().body.decode("utf-8")

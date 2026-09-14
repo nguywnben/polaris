@@ -219,8 +219,9 @@ assert(build('openai_chat', 'http://localhost', 'node').includes('client.mjs'), 
         )
         self.assertRegex(
             self.styles,
-            r"(?s)\.access-client-header\s*>\s*div\s*\{.*?grid-column: 1 / -1",
+            r"(?s)\.access-client-header\s*>\s*div:first-child\s*\{.*?grid-column: 1 / -1",
         )
+        self.assertNotRegex(self.styles, r"\.access-client-header\s*>\s*div\s*\{")
         self.assertRegex(
             self.styles,
             r"(?s)@media \(max-width: 600px\).*?\.access-client-header.*?grid-template-columns: minmax\(0, 1fr\)",
@@ -231,6 +232,26 @@ assert(build('openai_chat', 'http://localhost', 'node').includes('client.mjs'), 
         self.assertIn("secretInput.removeAttribute('value')", self.feature)
         self.assertIn("modal.replaceChildren()", self.feature)
         self.assertIn("pagehide", self.feature)
+
+    def test_filtered_empty_collection_keeps_filters_available(self):
+        self._run_client_example_contract("""
+const nodes = {};
+for (const id of ['virtualKeyList', 'virtualKeyEmptyState', 'virtualKeySection']) {
+    nodes[id] = { classList: { toggle(name, value) { this[name] = value; } }, replaceChildren() {} };
+}
+globalThis.document = { getElementById: id => nodes[id] || null };
+VirtualKeyAccessState.query = 'not-found';
+VirtualKeyAccessState.records = [];
+renderVirtualKeys();
+assert(!nodes.virtualKeySection.classList['is-pristine-empty'], 'Keep filters when a query is active');
+VirtualKeyAccessState.query = '';
+VirtualKeyAccessState.status = 'active';
+renderVirtualKeys();
+assert(!nodes.virtualKeySection.classList['is-pristine-empty'], 'Keep filters when status is active');
+VirtualKeyAccessState.status = '';
+renderVirtualKeys();
+assert(nodes.virtualKeySection.classList['is-pristine-empty'], 'Pristine empty hides filters');
+""")
 
     def test_destructive_lifecycle_actions_require_explicit_confirmation(self):
         self.assertIn("showConfirmModal(t('access.rotate_confirm'", self.feature)

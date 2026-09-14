@@ -176,9 +176,11 @@ class ProductSurfaceInventoryTests(unittest.TestCase):
         self.assertNotIn("quản trị doanh nghiệp", active_copy)
         self.assertNotIn("Virtual API keys let one gateway", readme_vi)
         self.assertNotIn("Polaris records request volume", readme_vi)
-        self.assertIn("Team access", sidebar)
-        self.assertIn('data-conditional-navigation="team-access"', sidebar)
-        self.assertIn("Access &amp; team", identity)
+        self.assertIn("Identity and sessions", sidebar)
+        self.assertIn('data-tab="identity"', sidebar)
+        self.assertNotIn('data-conditional-navigation="team-access"', sidebar)
+        self.assertIn('data-i18n="identity.title">Identity and sessions</h1>', identity)
+        self.assertNotIn('class="page-kicker"', identity)
         self.assertIn(
             '"en": {"identity.already_exists": "An identity with this exact issuer and subject already exists.", "identity.governance": "Access & team"}',
             identity_locales,
