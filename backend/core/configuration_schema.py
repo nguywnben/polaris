@@ -210,7 +210,7 @@ XAI_API_URL=https://api.x.ai/v1
 XAI_OAUTH_API_URL=https://cli-chat-proxy.grok.com/v1
 XAI_OAUTH_ISSUER=https://auth.x.ai
 XAI_CLIENT_ID=
-XAI_USER_AGENT=grok-cli/omni-gateway
+XAI_USER_AGENT=grok-cli/polaris
 OAUTH_URL=https://oauth2.googleapis.com
 GOOGLE_APIS_URL=https://www.googleapis.com
 RESOURCE_MANAGER_URL=https://cloudresourcemanager.googleapis.com
@@ -225,7 +225,7 @@ ANTHROPIC_API_URL=https://api.anthropic.com/v1
 CLAUDE_OAUTH_AUTHORIZE_URL=https://claude.ai/oauth/authorize
 CLAUDE_OAUTH_TOKEN_URL=https://api.anthropic.com/v1/oauth/token
 CLAUDE_CLIENT_ID=9d1c250a-e61b-44d9-88ed-5944d1962f5e
-CLAUDE_USER_AGENT=claude-cli/omni-gateway
+CLAUDE_USER_AGENT=claude-cli/polaris
 VERTEX_ANON_API_KEY=
 AUTO_DISABLE=false
 AUTO_DISABLE_ERROR_CODES=403
@@ -266,7 +266,7 @@ OTEL_EXPORTER_OTLP_HEADERS=
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 LANGFUSE_HOST=https://cloud.langfuse.com
-LOG_FILE=./backend/data/logs/omni-gateway.log
+LOG_FILE=./backend/data/logs/polaris.log
 KEEPALIVE_URL=
 KEEPALIVE_INTERVAL=60
 """.strip()
@@ -522,9 +522,7 @@ def parse_environment(environ: Mapping[str, str]) -> ParsedEnvironment:
         field = _BY_ENV.get(name)
         if field is None:
             if name.startswith("OMNI_"):
-                warnings.append(
-                    f"Unknown Omni Gateway environment variable {name}; check its spelling."
-                )
+                warnings.append(f"Unknown Polaris environment variable {name}; check its spelling.")
             continue
         if not isinstance(raw_value, str):
             raise ConfigurationError(f"{name} must be text in the process environment.")

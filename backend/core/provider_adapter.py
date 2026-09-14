@@ -1,4 +1,4 @@
-"""Universal Provider Plugin Interface & Registry for Omni Gateway.
+"""Universal Provider Plugin Interface & Registry for Polaris.
 
 Enables zero-boilerplate pluggable architecture to add arbitrary future providers
 (e.g., DeepSeek, Mistral, Bedrock, Vertex AI, Cohere, Together AI, vLLM, SGLang)

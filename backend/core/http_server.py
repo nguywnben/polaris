@@ -5,7 +5,7 @@ from __future__ import annotations
 from hypercorn.config import Config
 
 # Hypercorn intentionally rotates persistent connections after a bounded number
-# of requests. The default (1,000) can expire a connection inside Omni Gateway's
+# of requests. The default (1,000) can expire a connection inside Polaris's
 # frozen 4,096-request HA measurement phase, so retain a finite ceiling above it.
 HYPERCORN_KEEP_ALIVE_MAX_REQUESTS = 10_000
 

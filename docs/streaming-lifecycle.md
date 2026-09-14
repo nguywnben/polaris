@@ -1,6 +1,6 @@
 # Streaming Lifecycle Contract
 
-Omni Gateway applies one bounded lifecycle to OpenAI Chat, OpenAI Responses, Anthropic Messages,
+Polaris applies one bounded lifecycle to OpenAI Chat, OpenAI Responses, Anthropic Messages,
 Gemini, Vertex OpenAI, and Vertex Gemini streams. The contract covers provider streams, protocol
 adapters, optional anti-truncation continuation, quota reservations, credential leases, and request
 traces.

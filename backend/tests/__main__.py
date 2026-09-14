@@ -15,7 +15,7 @@ from backend.tests.suite_manifest import (
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run a named Omni Gateway backend test suite.")
+    parser = argparse.ArgumentParser(description="Run a named Polaris backend test suite.")
     parser.add_argument(
         "--suite",
         choices=("core", "all"),

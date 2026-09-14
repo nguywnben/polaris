@@ -1,6 +1,6 @@
 # Canonical Installation
 
-This is the single production installation path for Omni Gateway R1. It runs the supported
+This is the single production installation path for Polaris R1. It runs the supported
 standalone topology—one application worker and one replica—through Docker Compose with SQLite in
 one named volume. Do not add Redis, an external database, or the advanced override during the
 first installation.
@@ -37,8 +37,8 @@ continuing:
 Use a release tag so the checked-out Compose file and the image version stay reproducible:
 
 ```text
-git clone --branch v1.5.0 --depth 1 https://github.com/nguywnben/omni-gateway.git
-cd omni-gateway
+git clone --branch v1.5.0 --depth 1 https://github.com/nguywnben/polaris.git
+cd polaris
 ```
 
 If the repository already exists, check out the intended release in a clean working tree instead

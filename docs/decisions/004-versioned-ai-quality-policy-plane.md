@@ -7,7 +7,7 @@ P4.1; virtual-key lifecycle presentation remains scheduled for P4.4.
 
 ## Context
 
-Omni Gateway currently exposes context optimization, guardrails, response caching, and related
+Polaris currently exposes context optimization, guardrails, response caching, and related
 runtime settings as independent global values. Operators cannot select a quality intent, preview
 the effective request policy, or explain why content was changed. Per-request controls would also
 create a governance bypass if they could weaken deployment safety settings.

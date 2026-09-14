@@ -78,15 +78,15 @@ class ComposeUpdateTests(unittest.TestCase):
 
     def test_target_reference_rejects_floating_or_untagged_images(self) -> None:
         for value in (
-            "nguywnben/omni-gateway",
-            "nguywnben/omni-gateway:latest",
-            "nguywnben/omni-gateway:edge",
+            "nguywnben/polaris",
+            "nguywnben/polaris:latest",
+            "nguywnben/polaris:edge",
             "latest",
         ):
             with self.subTest(value=value), self.assertRaises(UpdateError):
                 validate_image_reference(value)
 
-        validate_image_reference("nguywnben/omni-gateway:1.5.0")
+        validate_image_reference("nguywnben/polaris:1.5.0")
         validate_image_reference("localhost:5000/omni-gateway:1.5.0")
         validate_image_reference("registry.example/omni@sha256:" + "a" * 64)
         validate_image_reference("sha256:" + "b" * 64)
@@ -134,7 +134,7 @@ class ComposeUpdateTests(unittest.TestCase):
             health_timeout=45,
         )
 
-        result = updater.update("nguywnben/omni-gateway:1.5.0", dry_run=True)
+        result = updater.update("nguywnben/polaris:1.5.0", dry_run=True)
 
         self.assertEqual(result.status, "dry_run")
         self.assertEqual(runtime.calls, [("preflight",)])
@@ -152,7 +152,7 @@ class ComposeUpdateTests(unittest.TestCase):
             health_timeout=45,
         )
 
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
 
         self.assertEqual(result.status, "updated")
         self.assertIsNotNone(result.record_path)
@@ -167,7 +167,7 @@ class ComposeUpdateTests(unittest.TestCase):
             runtime.calls,
             [
                 ("preflight",),
-                ("resolve_image", "nguywnben/omni-gateway:1.5.0"),
+                ("resolve_image", "nguywnben/polaris:1.5.0"),
                 ("create_backup", "container-1", "correct horse battery staple"),
                 ("deploy", "sha256:" + "2" * 64),
                 ("wait_healthy", 45),
@@ -183,7 +183,7 @@ class ComposeUpdateTests(unittest.TestCase):
             health_timeout=30,
         )
 
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
 
         self.assertEqual(result.status, "rolled_back_after_failed_update")
         record = json.loads(result.record_path.read_text(encoding="utf-8"))
@@ -213,7 +213,7 @@ class ComposeUpdateTests(unittest.TestCase):
             passphrase_provider=lambda _confirm: "correct horse battery staple",
             health_timeout=30,
         )
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
         runtime.current_image = "sha256:" + "3" * 64
 
         with self.assertRaisesRegex(UpdateError, "active image"):
@@ -228,7 +228,7 @@ class ComposeUpdateTests(unittest.TestCase):
             passphrase_provider=lambda _confirm: "correct horse battery staple",
             health_timeout=30,
         )
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
 
         rolled_back = updater.rollback(result.record_path)
 
@@ -246,7 +246,7 @@ class ComposeUpdateTests(unittest.TestCase):
             passphrase_provider=lambda _confirm: "correct horse battery staple",
             health_timeout=30,
         )
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
         record = json.loads(result.record_path.read_text(encoding="utf-8"))
         Path(record["backup_path"]).write_bytes(b"tampered")
         calls_before_rollback = list(runtime.calls)
@@ -265,7 +265,7 @@ class ComposeUpdateTests(unittest.TestCase):
             passphrase_provider=lambda _confirm: "correct horse battery staple",
             health_timeout=30,
         )
-        result = updater.update("nguywnben/omni-gateway:1.5.0")
+        result = updater.update("nguywnben/polaris:1.5.0")
         record_path = result.record_path
 
         original_record = record_path.read_bytes()

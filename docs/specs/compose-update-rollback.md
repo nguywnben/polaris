@@ -60,7 +60,7 @@ recreate. A dry run displays the rollback plan without mutation.
 
 ## Recovery Artifacts
 
-The default host directory is `~/.omni-gateway/recovery`; operators may override it with
+The default host directory is `~/.polaris/recovery`; operators may override it with
 `--recovery-dir`. Archive and record creation is atomic and permission-restricted where the host
 supports POSIX modes. Artifacts are retained until the operator explicitly removes them.
 

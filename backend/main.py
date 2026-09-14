@@ -103,7 +103,7 @@ def _get_worker_count() -> int:
         raise RuntimeError("WORKERS must be the integer 1.") from exc
     if workers != 1:
         raise RuntimeError(
-            "Omni Gateway supports WORKERS=1 only. "
+            "Polaris supports WORKERS=1 only. "
             "Credential reservations, cooldowns, and usage aggregation are not yet coordinated "
             "across multiple worker processes."
         )
@@ -112,7 +112,7 @@ def _get_worker_count() -> int:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("Starting the Omni Gateway service.")
+    log.info("Starting the Polaris service.")
 
     try:
         import config
@@ -223,7 +223,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        log.info("Starting Omni Gateway shutdown.")
+        log.info("Starting Polaris shutdown.")
 
         try:
             await keep_alive_service.stop()
@@ -290,11 +290,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             log.error(f"Storage adapter shutdown failed ({type(e).__name__}).")
 
-        log.info("Omni Gateway stopped.")
+        log.info("Polaris stopped.")
 
 
 app = FastAPI(
-    title="Omni Gateway",
+    title="Polaris",
     description="Universal AI router with smart auto-fallback, token-aware request cleanup, usage visibility, and seamless format translation.",
     version=get_application_version(),
     lifespan=lifespan,
@@ -716,7 +716,7 @@ def main():
         host = await get_server_host()
 
         log.info("=" * 60)
-        log.info("Starting Omni Gateway.")
+        log.info("Starting Polaris.")
         log.info("=" * 60)
         log.info(f"Control panel: http://127.0.0.1:{port}")
         log.info("=" * 60)

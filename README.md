@@ -1,14 +1,14 @@
 <div align="center">
   <h1>
-    <img src="frontend/assets/logo.png" alt="Omni Gateway Logo" width="48" height="48" style="vertical-align: middle;" /> <span style="vertical-align: middle;">Omni Gateway</span>
+    <img src="frontend/assets/logo.png" alt="Polaris Logo" width="48" height="48" style="vertical-align: middle;" /> <span style="vertical-align: middle;">Polaris</span>
   </h1>
   <p><b>Universal AI Router & Unified Multi-Provider Gateway for AI Coding Tools</b></p>
 
   <p>
-    <a href="https://github.com/nguywnben/omni-gateway/releases"><img src="https://img.shields.io/github/v/release/nguywnben/omni-gateway?style=flat-square&color=blue" alt="Release"></a>
-    <a href="https://github.com/nguywnben/omni-gateway/blob/main/LICENSE"><img src="https://img.shields.io/github/license/nguywnben/omni-gateway?style=flat-square&color=green" alt="License"></a>
-    <a href="https://github.com/nguywnben/omni-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/nguywnben/omni-gateway/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status"></a>
-    <a href="https://hub.docker.com/r/nguywnben/omni-gateway"><img src="https://img.shields.io/docker/pulls/nguywnben/omni-gateway?style=flat-square&logo=docker" alt="Docker Pulls"></a>
+    <a href="https://github.com/nguywnben/polaris/releases"><img src="https://img.shields.io/github/v/release/nguywnben/polaris?style=flat-square&color=blue" alt="Release"></a>
+    <a href="https://github.com/nguywnben/polaris/blob/main/LICENSE"><img src="https://img.shields.io/github/license/nguywnben/polaris?style=flat-square&color=green" alt="License"></a>
+    <a href="https://github.com/nguywnben/polaris/actions"><img src="https://img.shields.io/github/actions/workflow/status/nguywnben/polaris/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status"></a>
+    <a href="https://hub.docker.com/r/nguywnben/polaris"><img src="https://img.shields.io/docker/pulls/nguywnben/polaris?style=flat-square&logo=docker" alt="Docker Pulls"></a>
     <img src="https://img.shields.io/badge/python-3.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12 | 3.14">
     <img src="https://img.shields.io/badge/i18n-15%20languages-orange?style=flat-square" alt="15 Languages">
   </p>
@@ -32,9 +32,9 @@
 The console supports 15 languages. English and Vietnamese receive semantic review; the other 13
 community locales are compatibility translations and fall back to English when a message is absent.
 
-A universal AI router for coding tools. Omni Gateway provides smart auto-fallback, token-aware request cleanup, usage visibility, and seamless format translation so local agents, IDE assistants, and automation scripts can use free and premium LLM capacity through one stable API surface.
+A universal AI router for coding tools. Polaris provides smart auto-fallback, token-aware request cleanup, usage visibility, and seamless format translation so local agents, IDE assistants, and automation scripts can use free and premium LLM capacity through one stable API surface.
 
-> **Product boundary:** Omni Gateway is production-ready for self-hosting by one person or
+> **Product boundary:** Polaris is production-ready for self-hosting by one person or
 > a trusted team. The supported production topology is one application worker and one replica;
 > Docker Compose, local-owner access, SQLite, provider routing, and the documented SDK routes form
 > the core profile. PostgreSQL, OIDC team access, reverse-proxy operation, and external telemetry
@@ -42,9 +42,9 @@ A universal AI router for coding tools. Omni Gateway provides smart auto-fallbac
 > multi-replica operation and Kubernetes deployment are outside the product boundary. See
 > the [Production Self-Hosted R1 specification](docs/specs/production-self-hosted.md).
 
-## Why Omni Gateway
+## Why Polaris
 
-Modern coding workflows often mix clients and providers: OpenAI-compatible tools, Gemini-native SDKs, Anthropic-style agents, Google-backed credentials, and experimental model routes. Omni Gateway sits between those clients and model backends so each tool can keep speaking the format it already understands while the gateway handles routing, retries, request cleanup, and response normalization.
+Modern coding workflows often mix clients and providers: OpenAI-compatible tools, Gemini-native SDKs, Anthropic-style agents, Google-backed credentials, and experimental model routes. Polaris sits between those clients and model backends so each tool can keep speaking the format it already understands while the gateway handles routing, retries, request cleanup, and response normalization.
 
 ## Core Capabilities
 
@@ -65,11 +65,11 @@ Modern coding workflows often mix clients and providers: OpenAI-compatible tools
 
 ## Console Preview
 
-![Omni Gateway credential pool](docs/assets/screenshots/credential-pool.png)
+![Polaris credential pool](docs/assets/screenshots/credential-pool.png)
 
 ## Supported Providers
 
-Omni Gateway adapts requests seamlessly across leading AI providers, local runtime engines, and OAuth endpoints:
+Polaris adapts requests seamlessly across leading AI providers, local runtime engines, and OAuth endpoints:
 
 | Provider | Auth Type | Supported Protocols | Auto-Failover | Streaming |
 | :--- | :---: | :---: | :---: | :---: |
@@ -90,7 +90,7 @@ client tools
   OpenAI SDKs | Google GenAI SDKs | Anthropic SDKs | IDE integrations
         |
         v
-Omni Gateway
+Polaris
   authentication -> format translation -> token-aware cleanup -> routing -> fallback -> streaming
         |
         v
@@ -98,7 +98,7 @@ provider adapters
   Google Antigravity | Google AI Studio | Grok Build | SpaceXAI Console | Codex | OpenAI Platform | Claude Code | Claude Platform | Ollama
 ```
 
-The public API stays stable while provider-specific adapters evolve behind Omni Gateway.
+The public API stays stable while provider-specific adapters evolve behind Polaris.
 
 ## Repository Structure
 
@@ -121,10 +121,14 @@ checks through the first authenticated Dashboard; its
 Linux, macOS, and architecture status without implying unsupported ARM64 coverage.
 
 The default profile needs no external service and stores all application data in the
-`omni-gateway-data` named volume. Its minimal environment template pins release `1.5.0`; production
+`polaris-data` named volume. Its minimal environment template pins release `1.5.0`; production
 updates use the encrypted, health-checked [Compose update and rollback guide](docs/updating.md).
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.
+
+Existing installations moving from the former repository or container coordinates should follow
+the [Polaris migration guide](docs/migrations/polaris.md) so their current data volume remains
+attached during the rename.
 
 For diagnosis and safe recovery, use the [Production troubleshooting guide](docs/troubleshooting.md).
 It starts with health and readiness checks, preserves the data volume, and records the exact
@@ -169,7 +173,7 @@ Local development uses the same first-run setup screen as the Docker deployment.
 
 ## Configuration
 
-Omni Gateway reads configuration from environment variables first, then stored configuration, then defaults.
+Polaris reads configuration from environment variables first, then stored configuration, then defaults.
 The complete [generated configuration reference](docs/reference/configuration.md) identifies every
 field's type, Basic/Advanced/Experimental group, Settings owner, and whether it applies live,
 requires restart, or is environment-only. Startup rejects malformed values with the exact variable
@@ -234,7 +238,7 @@ name; likely misspelled `OMNI_*` variables produce a warning.
 | `XAI_OAUTH_API_URL` | `https://cli-chat-proxy.grok.com/v1` | Optional Grok Build OAuth subscription endpoint override. |
 | `XAI_OAUTH_ISSUER` | `https://auth.x.ai` | Optional Grok Build OAuth issuer override. Only HTTPS hosts under `x.ai` are accepted by the console. |
 | `XAI_CLIENT_ID` | bundled public client | Optional override for the Grok Build PKCE OAuth client ID. |
-| `XAI_USER_AGENT` | `grok-cli/omni-gateway` | Optional shared HTTP User-Agent override for Grok Build OAuth and SpaceXAI Console API requests. |
+| `XAI_USER_AGENT` | `grok-cli/polaris` | Optional shared HTTP User-Agent override for Grok Build OAuth and SpaceXAI Console API requests. |
 | `OPENAI_API_URL` | `https://api.openai.com/v1` | Optional OpenAI Platform API endpoint override. It can also be managed from the Providers page. |
 | `CODEX_API_URL` | `https://chatgpt.com/backend-api/codex` | Optional Codex inference and account-model endpoint override. |
 | `CODEX_USAGE_URL` | `https://chatgpt.com/backend-api/wham/usage` | Optional Codex account rate-limit endpoint override. |
@@ -245,7 +249,7 @@ name; likely misspelled `OMNI_*` variables produce a warning.
 | `CLAUDE_OAUTH_AUTHORIZE_URL` | `https://claude.ai/oauth/authorize` | Optional Claude Code PKCE authorization endpoint override. Only Anthropic and Claude hosts are accepted by the console. |
 | `CLAUDE_OAUTH_TOKEN_URL` | `https://api.anthropic.com/v1/oauth/token` | Optional Claude Code token endpoint override. Only Anthropic and Claude hosts are accepted by the console. |
 | `CLAUDE_CLIENT_ID` | bundled public client | Optional override for the Claude Code PKCE OAuth client ID. |
-| `CLAUDE_USER_AGENT` | `claude-cli/omni-gateway` | Optional User-Agent override for Claude Code and Claude Platform requests. |
+| `CLAUDE_USER_AGENT` | `claude-cli/polaris` | Optional User-Agent override for Claude Code and Claude Platform requests. |
 | `ANTIGRAVITY_USER_AGENT` | `antigravity/cli/1.0.1 windows/amd64` | Optional Google Antigravity protocol User-Agent override. |
 | `ANTIGRAVITY_PAYLOAD_USER_AGENT` | `antigravity` | Optional payload-level Google Antigravity userAgent override. |
 | `PROMETHEUS_EXPORT_ENABLED` | `false` | Explicitly enables authenticated `GET /metrics` export. |
@@ -259,7 +263,7 @@ name; likely misspelled `OMNI_*` variables produce a warning.
 | `LOG_LEVEL` | `info` | Runtime log level. |
 | `LOG_MAX_MB` | `10` | Maximum active log file size before rotation. |
 | `LOG_BACKUP_COUNT` | `3` | Number of rotated log files retained. |
-| `LOG_FILE` | `./backend/data/logs/omni-gateway.log` | File log destination. In Docker, persist `/app/backend/data/logs` with a host volume. |
+| `LOG_FILE` | `./backend/data/logs/polaris.log` | File log destination. In Docker, persist `/app/backend/data/logs` with a host volume. |
 
 ### Compression controls
 
@@ -279,7 +283,7 @@ the provider tokenizer remains authoritative.
 
 ## SDK Surfaces
 
-Omni Gateway is designed around the standard URL behavior of the official Python SDKs. Configure each client exactly as shown below; the gateway does not require non-standard duplicated path prefixes.
+Polaris is designed around the standard URL behavior of the official Python SDKs. Configure each client exactly as shown below; the gateway does not require non-standard duplicated path prefixes.
 
 The examples use the virtual model `omway`. Configure its ordered provider-model fallback on the Models page first, or replace it with a concrete model ID.
 
@@ -310,7 +314,7 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
-Responses compatibility supports text, image inputs, non-streaming function tools, and SSE text streaming. OpenAI-hosted built-in tools, stored response history, and streaming function calls are rejected explicitly because Omni Gateway does not execute, persist, or silently discard those OpenAI-specific behaviors.
+Responses compatibility supports text, image inputs, non-streaming function tools, and SSE text streaming. OpenAI-hosted built-in tools, stored response history, and streaming function calls are rejected explicitly because Polaris does not execute, persist, or silently discard those OpenAI-specific behaviors.
 
 ### Anthropic Python SDK
 
@@ -354,7 +358,7 @@ response = client.models.generate_content(
 
 ### Supported Routes
 
-Omni Gateway exposes SDK-compatible routes without a product namespace:
+Polaris exposes SDK-compatible routes without a product namespace:
 
 - `POST /v1/chat/completions`
 - `POST /v1/responses`
@@ -371,13 +375,13 @@ Authentication, request-validation, routing, upstream, and pre-stream failures u
 
 ## Model Features
 
-The Models page builds the virtual model `omway` from models discovered across enabled provider credentials. Arrange its members in priority order once, then use `omway` from any supported SDK. Omni Gateway balances healthy credentials that support the first model and continues through the configured model order when that model is unavailable. Concrete provider model IDs remain available for clients that need deterministic model selection. Saving an empty selection disables `omway` without affecting provider credentials.
+The Models page builds the virtual model `omway` from models discovered across enabled provider credentials. Arrange its members in priority order once, then use `omway` from any supported SDK. Polaris balances healthy credentials that support the first model and continues through the configured model order when that model is unavailable. Concrete provider model IDs remain available for clients that need deterministic model selection. Saving an empty selection disables `omway` without affecting provider credentials.
 
 Model discovery is provider-aware: a shared model can be backed by multiple providers, while provider-specific models only use compatible credentials. Each verified credential stores its own provider catalog, and the router gives declared credential support priority over generic provider inference. Refreshing the catalog rechecks current provider availability; unavailable selections remain visible in the configuration until they are restored or removed.
 
-When an upstream returns `404` for a concrete model, Omni Gateway records an unavailable route for that credential and model rather than suppressing the entire provider. The route is temporarily avoided immediately and remains visible under **Unavailable Model Routes** until it is removed or the credential is revalidated. This prevents one account's subscription or regional entitlement from affecting other accounts at the same provider. If no enabled credential declares or can infer support for a requested concrete model, the gateway returns a clear no-compatible-credential error instead of sending the request to a random provider.
+When an upstream returns `404` for a concrete model, Polaris records an unavailable route for that credential and model rather than suppressing the entire provider. The route is temporarily avoided immediately and remains visible under **Unavailable Model Routes** until it is removed or the credential is revalidated. This prevents one account's subscription or regional entitlement from affecting other accounts at the same provider. If no enabled credential declares or can infer support for a requested concrete model, the gateway returns a clear no-compatible-credential error instead of sending the request to a random provider.
 
-Omni Gateway recognizes feature prefixes and suffixes in model names:
+Polaris recognizes feature prefixes and suffixes in model names:
 
 - `fake-streaming/{model}` or the configured pseudo-streaming prefix for clients that require SSE output.
 - `streaming-anti-truncation/{model}` or the configured anti-truncation prefix for long-form streaming recovery.
@@ -388,22 +392,22 @@ Provider adapters normalize these feature names before sending upstream requests
 
 ## Usage and Cost Visibility
 
-Omni Gateway records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates direct OpenAI, Anthropic, Gemini, and xAI entries, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
+Polaris records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates direct OpenAI, Anthropic, Gemini, and xAI entries, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
 
 Virtual API keys let one gateway serve multiple clients under separate limits. Each key carries optional daily and monthly USD budgets enforced from the cost ledger, requests-per-minute and tokens-per-minute sliding windows, an expiry timestamp, and a model allowlist with glob patterns. Keys are stored as SHA-256 hashes; the plaintext secret is shown exactly once at creation time.
 
 ## Credential Workflow
 
-1. Start Omni Gateway.
+1. Start Polaris.
 2. Open `http://YOUR_SERVER_IP:4283` on a VPS, or `http://127.0.0.1:4283` for local development.
 3. Complete the first-run checks and create the console owner password. For remote setup, configure a unique `SETUP_TOKEN` of at least 24 characters before startup and enter it on the setup screen; alternatively preconfigure `PANEL_PASSWORD`.
 4. Add an account, API key, or Ollama connection from the Providers page.
 5. Verify credentials and watch cooldown/error state in the panel.
 6. Point your coding tool to one of the API surfaces above.
 
-When adding a Google Antigravity credential, Google redirects the browser to `http://localhost:4283/callback` after sign-in. On a local machine, Omni Gateway shows an OAuth success page. On a VPS, that `localhost` address belongs to the user's browser machine, so the page may not load; copy the full URL from the browser address bar, return to the Providers page, paste it into `Callback URL`, and click `Save credential`.
+When adding a Google Antigravity credential, Google redirects the browser to `http://localhost:4283/callback` after sign-in. On a local machine, Polaris shows an OAuth success page. On a VPS, that `localhost` address belongs to the user's browser machine, so the page may not load; copy the full URL from the browser address bar, return to the Providers page, paste it into `Callback URL`, and click `Save credential`.
 
-Google AI Studio uses API-key authentication instead of OAuth. Add a key from the Providers page; Omni Gateway validates it against Google's model catalog, stores it as a provider credential, and routes compatible Gemini or Gemma requests through it. The smart router can fall back between AI Studio and Google Antigravity for shared Gemini models while keeping provider-specific models on compatible credentials.
+Google AI Studio uses API-key authentication instead of OAuth. Add a key from the Providers page; Polaris validates it against Google's model catalog, stores it as a provider credential, and routes compatible Gemini or Gemma requests through it. The smart router can fall back between AI Studio and Google Antigravity for shared Gemini models while keeping provider-specific models on compatible credentials.
 
 Google AI Studio batch import accepts JSON files and ZIP archives containing JSON files. A JSON document may contain one key, an `api_keys` array, or an array of key objects:
 
@@ -419,13 +423,13 @@ Google AI Studio batch import accepts JSON files and ZIP archives containing JSO
 
 Every imported key is validated before storage. Duplicate keys within the same import are skipped, existing keys are revalidated and updated, and invalid entries are reported without exposing the key value.
 
-Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Omni Gateway generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Pool page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
+Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Pool page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
 
-Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Omni Gateway stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before entering the pool. Both products support JSON and ZIP import with provider-specific validation and deduplication.
+Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Polaris stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before entering the pool. Both products support JSON and ZIP import with provider-specific validation and deduplication.
 
 Claude Code uses Anthropic's PKCE OAuth flow. Generate an authorization link, finish authorization, then paste the returned authorization code into the Providers page. Claude Platform accepts Anthropic API keys. Both products discover the models exposed to each credential, use the Anthropic Messages transport, refresh Claude Code access tokens when possible, and support validated JSON or ZIP import.
 
-Ollama connections are configured per endpoint and may include an optional bearer API key for protected or cloud servers. Omni Gateway discovers models through `/api/tags` and routes inference through `/api/chat`. When Omni Gateway runs in Docker, `localhost` refers to the container itself; use a host-gateway address or another network-reachable Ollama endpoint.
+Ollama connections are configured per endpoint and may include an optional bearer API key for protected or cloud servers. Polaris discovers models through `/api/tags` and routes inference through `/api/chat`. When Polaris runs in Docker, `localhost` refers to the container itself; use a host-gateway address or another network-reachable Ollama endpoint.
 
 Pool imports and Google Antigravity batch imports accept archives up to 10 MB, at most 500 files, individual credential files up to 2 MB, and at most 25 MB of uncompressed data. Google AI Studio, OpenAI, Anthropic, and Ollama provider imports use stricter limits of 2 MB per imported file, 200 JSON entries, and 5 MB of uncompressed data.
 
@@ -441,9 +445,9 @@ Credential mode names:
 ## Storage
 
 Single-instance deployments use SQLite-backed storage in the application data directory. Docker
-Compose persists all of `/app/backend/data` in the `omni-gateway-data` named volume. Direct
+Compose persists all of `/app/backend/data` in the `polaris-data` named volume. Direct
 `docker run` deployments must mount `/app/backend/data/creds` and `/app/backend/data/logs` to
-durable host paths such as `/opt/omni-gateway/creds` and `/opt/omni-gateway/logs`.
+durable host paths such as `/opt/polaris/creds` and `/opt/polaris/logs`.
 
 SQLite is the Core storage authority and the recommended production default. PostgreSQL is an
 Advanced option for operators who manage their own database lifecycle. MongoDB is retained as a
@@ -507,7 +511,7 @@ The production baseline is Python 3.12, and CI currently verifies Python 3.12 an
 - Never commit credential JSON files or `.env`.
 - Use a dedicated `API_KEY` for client integrations and a separate `PANEL_PASSWORD` for console access.
 - Restrict access to the persistent credential volume or external database and enable platform-level encryption at rest; provider tokens must remain retrievable by the router.
-- Put Omni Gateway behind a reverse proxy with TLS when reachable outside localhost.
+- Put Polaris behind a reverse proxy with TLS when reachable outside localhost.
 - Configure the reverse proxy to preserve `Host` and pass `X-Forwarded-Proto`; set `PANEL_COOKIE_SECURE=true` when HTTPS termination is guaranteed.
 - Set `TRUST_PROXY_HEADERS=true` only when the service is reachable exclusively through a trusted proxy that replaces `X-Forwarded-For` and `X-Forwarded-Proto`.
 - Use `GET /health` for process liveness and `GET /ready` for storage-aware readiness checks.
@@ -518,8 +522,8 @@ The production baseline is Python 3.12, and CI currently verifies Python 3.12 an
 - Set `CORS_ORIGINS` to explicit trusted origins when browser clients need cross-origin access.
 - Use the authenticated [encrypted backup and restore workflow](docs/backup-and-restore.md) before
   upgrading or moving a standalone SQLite deployment. Keep the archive and its passphrase outside
-  the `omni-gateway-data` volume.
-- Docker image publishing uses the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets for Docker Hub, and the built-in `GITHUB_TOKEN` for GitHub Packages at `ghcr.io/nguywnben/omni-gateway`. Set the optional `IMAGE_NAME` repository variable only when publishing to a custom Docker Hub image name.
+  the `polaris-data` volume.
+- Docker image publishing uses the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets for Docker Hub, and the built-in `GITHUB_TOKEN` for GitHub Packages at `ghcr.io/nguywnben/polaris`. Set the optional `IMAGE_NAME` repository variable only when publishing to a custom Docker Hub image name.
 - Keep `WORKERS=1` and one application replica for the 1.x series; external storage is not a substitute for distributed coordination.
 - Use the canonical `/api/credentials` management routes. The beta `/api/creds` aliases were removed in 1.0.0.
 - Follow [Upgrading to 1.0](docs/upgrading-to-1.0.md) before migrating a beta deployment.
@@ -538,7 +542,7 @@ The production baseline is Python 3.12, and CI currently verifies Python 3.12 an
 
 ## Acknowledgements & Inspirations
 
-Omni Gateway stands on the shoulders of the open-source AI routing, telemetry, and gateway community. We express our gratitude to the creators and maintainers of these projects:
+Polaris stands on the shoulders of the open-source AI routing, telemetry, and gateway community. We express our gratitude to the creators and maintainers of these projects:
 
 | Project | Description | Stars |
 | :--- | :--- | :---: |
@@ -550,4 +554,4 @@ Omni Gateway stands on the shoulders of the open-source AI routing, telemetry, a
 
 ## License
 
-Omni Gateway is released under the [MIT License](LICENSE).
+Polaris is released under the [MIT License](LICENSE).

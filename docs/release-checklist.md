@@ -1,6 +1,6 @@
 # Release Checklist
 
-Use this checklist when preparing a tagged Omni Gateway release.
+Use this checklist when preparing a tagged Polaris release.
 
 ## Automated Gates
 

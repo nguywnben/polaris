@@ -594,7 +594,7 @@ class PortableBackupService:
         stamp = created_at.replace("-", "").replace(":", "").replace("+00:00", "Z")
         return BackupArtifact(
             encrypted,
-            f"omni-gateway-backup-{stamp}{BACKUP_EXTENSION}",
+            f"polaris-backup-{stamp}{BACKUP_EXTENSION}",
             created_at,
             manifest,
         )
@@ -727,7 +727,7 @@ class PortableBackupService:
         live_schema, _ = await asyncio.to_thread(_inspect_database, self._database)
         if live_schema != validated.manifest["schema_fingerprint"]:
             raise BackupArchiveError(
-                "Backup database schema is incompatible with this Omni Gateway instance."
+                "Backup database schema is incompatible with this Polaris instance."
             )
 
     def _plan(

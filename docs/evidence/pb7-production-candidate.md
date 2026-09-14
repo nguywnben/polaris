@@ -6,7 +6,7 @@
 
 ## Candidate decision
 
-Omni Gateway is balanced around one supported deployment topology: one application process, one
+Polaris is balanced around one supported deployment topology: one application process, one
 worker, one replica, with SQLite as the default durable store. The candidate preserves the
 complete gateway, provider, routing, AI-quality, access-control, observability, recovery, and web
 console journeys while removing inactive distributed-system machinery that was disproportionate

@@ -39,7 +39,7 @@ class ReleaseCandidateContractTests(unittest.TestCase):
         self.assertEqual(DEFAULT_APPLICATION_VERSION, RELEASE_VERSION)
 
         compose_environment = (ROOT / "deploy" / "compose.env.example").read_text(encoding="utf-8")
-        self.assertIn(f"IMAGE=nguywnben/omni-gateway:{RELEASE_VERSION}", compose_environment)
+        self.assertIn(f"IMAGE=nguywnben/polaris:{RELEASE_VERSION}", compose_environment)
 
         installation = (ROOT / "docs" / "installation.md").read_text(encoding="utf-8")
         self.assertIn(f"current `{RELEASE_VERSION}` release", installation)
@@ -53,11 +53,11 @@ class ReleaseCandidateContractTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn(f"## [{RELEASE_VERSION}] - {RELEASE_DATE}", changelog)
         self.assertIn(
-            f"[Unreleased]: https://github.com/nguywnben/omni-gateway/compare/v{RELEASE_VERSION}...HEAD",
+            f"[Unreleased]: https://github.com/nguywnben/polaris/compare/v{RELEASE_VERSION}...HEAD",
             changelog,
         )
         self.assertIn(
-            f"[{RELEASE_VERSION}]: https://github.com/nguywnben/omni-gateway/compare/v1.4.0...v{RELEASE_VERSION}",
+            f"[{RELEASE_VERSION}]: https://github.com/nguywnben/polaris/compare/v1.4.0...v{RELEASE_VERSION}",
             changelog,
         )
 

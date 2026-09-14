@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions and discussions
-    url: https://github.com/nguywnben/omni-gateway/issues
+    url: https://github.com/nguywnben/polaris/issues
     about: Ask usage questions or discuss routing scenarios.
   - name: Project documentation
-    url: https://github.com/nguywnben/omni-gateway
+    url: https://github.com/nguywnben/polaris
     about: Read setup, endpoint, and configuration guidance.

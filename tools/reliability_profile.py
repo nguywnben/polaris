@@ -1,7 +1,7 @@
 """Run a production reliability profile against an exact Git candidate.
 
 The runner exports ``HEAD`` into a disposable directory, starts one standalone
-Omni Gateway process with SQLite, and uses one loopback deterministic Ollama
+Polaris process with SQLite, and uses one loopback deterministic Ollama
 fixture. The routine profile is release-blocking; the ten-minute soak is optional.
 Neither mode reads ``.env`` or contacts a real provider.
 """

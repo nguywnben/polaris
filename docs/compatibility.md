@@ -1,6 +1,6 @@
 # Compatibility and Deprecation Policy
 
-Omni Gateway R1 preserves the interfaces already used by self-hosted clients and the management
+Polaris R1 preserves the interfaces already used by self-hosted clients and the management
 console. The machine-readable baseline is
 `docs/compatibility/r1-compatibility-v1.json`; verify it with:
 

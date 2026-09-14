@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the current Omni Gateway architecture, dependency rules, runtime state, completed module boundaries, and release constraints. It documents boundaries rather than duplicating implementation details.
+This document describes the current Polaris architecture, dependency rules, runtime state, completed module boundaries, and release constraints. It documents boundaries rather than duplicating implementation details.
 
 ## System Context
 

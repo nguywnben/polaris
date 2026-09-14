@@ -88,7 +88,7 @@ without executing twice.
 Guarded execution also requires an 8–128 character idempotency key. Completed responses and
 in-flight reservations are bounded to 256 entries, contain no credential content, and prevent
 concurrent requests with the same key from executing a mutation twice. This coordination state is
-process-local by design while Omni Gateway remains single-worker. It is not permission to enable
+process-local by design while Polaris remains single-worker. It is not permission to enable
 multiple workers; Phase 6 must move preview and idempotency coordination behind the accepted
 distributed-state boundary first.
 

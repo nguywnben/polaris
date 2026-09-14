@@ -109,10 +109,10 @@ class InstallSupportContractTests(unittest.TestCase):
                 "SETUP_TOKEN",
             },
         )
-        self.assertRegex(values["IMAGE"], r"^nguywnben/omni-gateway:\d+\.\d+\.\d+$")
-        self.assertEqual(values["IMAGE"], f"nguywnben/omni-gateway:{DEFAULT_APPLICATION_VERSION}")
+        self.assertRegex(values["IMAGE"], r"^nguywnben/polaris:\d+\.\d+\.\d+$")
+        self.assertEqual(values["IMAGE"], f"nguywnben/polaris:{DEFAULT_APPLICATION_VERSION}")
         self.assertEqual(values["HOST_PORT"], "4283")
-        self.assertEqual(values["DATA_VOLUME"], "omni-gateway-data")
+        self.assertEqual(values["DATA_VOLUME"], "polaris-data")
         self.assertEqual(values["API_KEY"], "")
         self.assertEqual(values["PANEL_PASSWORD"], "")
         self.assertEqual(values["SETUP_TOKEN"], "")

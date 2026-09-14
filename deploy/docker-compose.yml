@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${IMAGE:-nguywnben/omni-gateway:latest}
+    image: ${IMAGE:-nguywnben/polaris:latest}
     pull_policy: missing
     restart: unless-stopped
     init: true
@@ -48,4 +48,4 @@ services:
 
 volumes:
   data:
-    name: ${DATA_VOLUME:-omni-gateway-data}
+    name: ${DATA_VOLUME:-polaris-data}

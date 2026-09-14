@@ -11,7 +11,7 @@
 
 ## Reporting Vulnerabilities
 
-Report suspected vulnerabilities through a [private GitHub security advisory](https://github.com/nguywnben/omni-gateway/security/advisories/new). Do not open a public issue for active secrets, credential exposure, authentication bypasses, or deployment compromise.
+Report suspected vulnerabilities through a [private GitHub security advisory](https://github.com/nguywnben/polaris/security/advisories/new). Do not open a public issue for active secrets, credential exposure, authentication bypasses, or deployment compromise.
 
 Include the affected version or commit, deployment topology, reproduction steps, impact, and any proposed mitigation. Remove real credentials and personal data from evidence. This is a personal open-source project, so response times are best effort; reports are normally acknowledged within 72 hours.
 

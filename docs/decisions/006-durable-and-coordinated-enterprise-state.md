@@ -10,7 +10,7 @@ Accepted as the prerequisite for multi-worker and multi-replica support.
 
 ## Context
 
-Omni Gateway supports durable credential/configuration backends, but reservations, cooldowns,
+Polaris supports durable credential/configuration backends, but reservations, cooldowns,
 sessions, rate windows, response-cache coordination, and parts of usage aggregation still assume a
 single process. Shared SQL or MongoDB storage alone does not make those runtime decisions atomic.
 Advertising horizontal scale before coordinating them would allow overspend, duplicate selection,

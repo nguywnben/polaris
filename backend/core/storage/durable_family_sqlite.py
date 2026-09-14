@@ -1,4 +1,4 @@
-"""Concrete durable-family migration adapter over Omni Gateway SQLite tables."""
+"""Concrete durable-family migration adapter over Polaris SQLite tables."""
 
 from __future__ import annotations
 

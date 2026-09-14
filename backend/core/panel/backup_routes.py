@@ -164,7 +164,7 @@ def _workflow_error(operation: str, exc: Exception) -> JSONResponse:
         return _error(
             503,
             "backup_restore_failed",
-            "Restore failed and Omni Gateway kept or recovered the previous state.",
+            "Restore failed and Polaris kept or recovered the previous state.",
         )
     return _error(
         503,
@@ -248,7 +248,7 @@ async def create_sanitized_export(token: str = Depends(verify_panel_token)):
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         return _download(
             content,
-            filename=f"omni-gateway-sanitized-{stamp}.json",
+            filename=f"polaris-sanitized-{stamp}.json",
             media_type="application/json",
             headers={"X-Omni-Restorable": "false"},
         )

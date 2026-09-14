@@ -7,7 +7,7 @@ import sys
 
 import httpx
 
-SMOKE_PASSWORD = "Omni-Gateway-Smoke-2026"
+SMOKE_PASSWORD = "Polaris-Smoke-2026"
 
 
 def require_status(response: httpx.Response, expected: int, label: str) -> None:

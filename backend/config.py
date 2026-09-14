@@ -67,7 +67,7 @@ DEFAULT_XAI_API_URL = "https://api.x.ai/v1"
 DEFAULT_XAI_OAUTH_API_URL = "https://cli-chat-proxy.grok.com/v1"
 DEFAULT_XAI_OAUTH_ISSUER = "https://auth.x.ai"
 DEFAULT_XAI_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
-DEFAULT_XAI_USER_AGENT = "grok-cli/omni-gateway"
+DEFAULT_XAI_USER_AGENT = "grok-cli/polaris"
 DEFAULT_OPENAI_API_URL = "https://api.openai.com/v1"
 DEFAULT_CODEX_API_URL = "https://chatgpt.com/backend-api/codex"
 DEFAULT_CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage"
@@ -78,7 +78,7 @@ DEFAULT_ANTHROPIC_API_URL = "https://api.anthropic.com/v1"
 DEFAULT_CLAUDE_OAUTH_AUTHORIZE_URL = "https://claude.ai/oauth/authorize"
 DEFAULT_CLAUDE_OAUTH_TOKEN_URL = "https://api.anthropic.com/v1/oauth/token"
 DEFAULT_CLAUDE_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-DEFAULT_CLAUDE_USER_AGENT = "claude-cli/omni-gateway"
+DEFAULT_CLAUDE_USER_AGENT = "claude-cli/polaris"
 
 
 ENV_MAPPINGS = {

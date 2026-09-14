@@ -67,7 +67,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `XAI_OAUTH_API_URL` | advanced | string | `https://cli-chat-proxy.grok.com/v1` | live | provider |
 | `XAI_OAUTH_ISSUER` | advanced | string | `https://auth.x.ai` | live | provider |
 | `XAI_CLIENT_ID` | advanced | string | `(empty)` | live | provider |
-| `XAI_USER_AGENT` | advanced | string | `grok-cli/omni-gateway` | live | provider |
+| `XAI_USER_AGENT` | advanced | string | `grok-cli/polaris` | live | provider |
 | `OAUTH_URL` | advanced | string | `https://oauth2.googleapis.com` | live | provider |
 | `GOOGLE_APIS_URL` | advanced | string | `https://www.googleapis.com` | live | provider |
 | `RESOURCE_MANAGER_URL` | advanced | string | `https://cloudresourcemanager.googleapis.com` | live | provider |
@@ -82,7 +82,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `CLAUDE_OAUTH_AUTHORIZE_URL` | advanced | string | `https://claude.ai/oauth/authorize` | live | provider |
 | `CLAUDE_OAUTH_TOKEN_URL` | advanced | string | `https://api.anthropic.com/v1/oauth/token` | live | provider |
 | `CLAUDE_CLIENT_ID` | advanced | string | `9d1c250a-e61b-44d9-88ed-5944d1962f5e` | live | provider |
-| `CLAUDE_USER_AGENT` | advanced | string | `claude-cli/omni-gateway` | live | provider |
+| `CLAUDE_USER_AGENT` | advanced | string | `claude-cli/polaris` | live | provider |
 | `VERTEX_ANON_API_KEY` | advanced | string / secret | `(empty)` | read_only | environment |
 | `AUTO_DISABLE` | advanced | boolean | `false` | live | system |
 | `AUTO_DISABLE_ERROR_CODES` | advanced | integer_list | `403` | live | system |
@@ -123,6 +123,6 @@ Values marked `secret` never expose a default through the Settings API.
 | `LANGFUSE_PUBLIC_KEY` | advanced | string / secret | `(empty)` | read_only | environment |
 | `LANGFUSE_SECRET_KEY` | advanced | string / secret | `(empty)` | read_only | environment |
 | `LANGFUSE_HOST` | advanced | string | `https://cloud.langfuse.com` | read_only | environment |
-| `LOG_FILE` | advanced | string | `./backend/data/logs/omni-gateway.log` | read_only | environment |
+| `LOG_FILE` | advanced | string | `./backend/data/logs/polaris.log` | read_only | environment |
 | `KEEPALIVE_URL` | advanced | string | `(empty)` | live | system |
 | `KEEPALIVE_INTERVAL` | advanced | integer | `60` | live | system |

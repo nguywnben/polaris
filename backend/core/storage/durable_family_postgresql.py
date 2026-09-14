@@ -1,4 +1,4 @@
-"""Concrete durable-family migration adapter over Omni Gateway PostgreSQL tables."""
+"""Concrete durable-family migration adapter over Polaris PostgreSQL tables."""
 
 from __future__ import annotations
 

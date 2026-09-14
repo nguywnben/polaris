@@ -1,4 +1,4 @@
-// Omni Gateway management console: settings.
+// Polaris management console: settings.
 
 function initLogAutoScrollPreference() {
 

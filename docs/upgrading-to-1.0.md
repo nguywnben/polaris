@@ -1,4 +1,4 @@
-# Upgrading to Omni Gateway 1.0
+# Upgrading to Polaris 1.0
 
 Version 1.0.0 establishes the stable API, configuration, storage, and container-channel baseline. Upgrade a disposable copy first when moving an existing beta deployment.
 
@@ -61,7 +61,7 @@ Production deployments should pin a version tag or image digest. Use `latest` on
 ## Upgrade Procedure
 
 ```bash
-sudo docker pull nguywnben/omni-gateway:1.0.0
+sudo docker pull nguywnben/polaris:1.0.0
 sudo docker stop omni-gateway
 sudo docker rm omni-gateway
 ```

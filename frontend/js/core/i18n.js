@@ -1,4 +1,4 @@
-// Omni Gateway management console: core.
+// Polaris management console: core.
 
 const TRANSLATIONS = {
     en: {

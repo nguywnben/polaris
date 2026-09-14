@@ -1,4 +1,4 @@
-"""Run the required Chromium smoke across Omni Gateway's nine critical journeys.
+"""Run the required Chromium smoke across Polaris's nine critical journeys.
 
 The harness starts a fresh loopback-only runtime with disposable storage. Provider and
 inference responses are fulfilled inside the isolated browser context, so the smoke never
@@ -26,7 +26,7 @@ from urllib.request import urlopen
 from playwright.sync_api import Page, Route, expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-PASSWORD = "Omni-Gateway-Browser-Smoke-2026"
+PASSWORD = "Polaris-Browser-Smoke-2026"
 PROVIDER_SECRET = "browser-smoke-provider-secret"
 REQUEST_ID = "req-browser-smoke-001"
 JOURNEYS = (
@@ -506,7 +506,7 @@ def run_journeys(page: Page, base_url: str, expected_dashboard_title: str) -> li
     expect(page.locator("#playgroundOutput")).to_contain_text("fixture answer")
     expect(page.locator("#playgroundMetadataRequestId")).to_have_text(REQUEST_ID)
     example = page.locator("#playgroundExample")
-    expect(example).to_contain_text("YOUR_OMNI_GATEWAY_KEY")
+    expect(example).to_contain_text("YOUR_POLARIS_KEY")
     expect(example).not_to_contain_text(PROVIDER_SECRET)
     page.locator("#playgroundStream").check()
     page.locator("#playgroundRun").click()
@@ -577,7 +577,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--expect-dashboard-title",
-        default="Omni Gateway",
+        default="Polaris",
         help="Assertion override used only to prove that a frontend regression fails the gate.",
     )
     args = parser.parse_args()

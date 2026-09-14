@@ -1,4 +1,4 @@
-// Omni Gateway management console: dashboard.
+// Polaris management console: dashboard.
 
 const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 5;
 

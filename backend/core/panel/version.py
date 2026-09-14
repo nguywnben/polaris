@@ -13,7 +13,7 @@ from log import log
 from paths import PROJECT_ROOT
 
 router = APIRouter(prefix="/api/version", tags=["version"])
-LATEST_RELEASE_URL = "https://api.github.com/repos/nguywnben/omni-gateway/releases/latest"
+LATEST_RELEASE_URL = "https://api.github.com/repos/nguywnben/polaris/releases/latest"
 _SEMVER_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$")
 
 

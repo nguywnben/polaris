@@ -2,7 +2,7 @@
 
 ## Decision
 
-Omni Gateway already covers the complete self-hosted gateway journey. The next release must not
+Polaris already covers the complete self-hosted gateway journey. The next release must not
 expand the product surface. It must make the existing surface consistently production-grade for
 one person or a trusted small team and remove unreachable enterprise machinery that still taxes
 maintenance, dependencies, documentation, and verification.

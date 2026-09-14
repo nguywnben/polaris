@@ -1,6 +1,6 @@
 # Storage Support and Recovery
 
-Omni Gateway supports one application worker and one replica. Choosing an external database
+Polaris supports one application worker and one replica. Choosing an external database
 does not enable horizontal scaling. The selected backend owns credentials, configuration,
 identities, audit events, request traces, usage/cost records, and budget reservations.
 
@@ -13,16 +13,16 @@ identities, audit events, request traces, usage/cost records, and budget reserva
 | MongoDB | **Compatibility** | `MONGODB_URI` and optional `MONGODB_DATABASE` | Existing deployments remain usable and receive correctness/security fixes. MongoDB is accessed directly without a Redis cache; live MongoDB evidence is not a release blocker. Transaction-capable deployment is required by the durable usage ledger. |
 
 Configure at most one external URI. If the selected PostgreSQL or MongoDB instance is unavailable,
-startup fails closed; Omni Gateway never silently writes to a new SQLite database. Redis is not a
+startup fails closed; Polaris never silently writes to a new SQLite database. Redis is not a
 storage backend or cache dependency of the supported runtime.
 
 ## Core SQLite behavior
 
 The canonical Compose profile persists `credentials.db` and its SQLite sidecar files in the
-`omni-gateway-data` volume. Direct deployments must persist the complete credentials directory,
+`polaris-data` volume. Direct deployments must persist the complete credentials directory,
 not copy a live database file by itself.
 
-At startup Omni Gateway performs a bounded, read-only `quick_check` on an existing database before
+At startup Polaris performs a bounded, read-only `quick_check` on an existing database before
 running schema changes. Corrupt or unreadable state stops startup with recovery guidance. Additive
 schema compatibility changes, table creation, and credential filename repair then run in one
 writer transaction; a later failure rolls the entire startup migration back. Every application

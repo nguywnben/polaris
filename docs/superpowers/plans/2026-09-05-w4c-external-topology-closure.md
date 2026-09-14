@@ -2,7 +2,7 @@
 
 > **For Codex:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` to execute this plan task by task. Every production behavior change follows `superpowers:test-driven-development`; every completed task receives specification and code-quality review before the next task starts.
 
-**Goal:** Close Wave 4 only after Omni Gateway enforces the accepted HA safety invariants in production code and an isolated, reproducible two-replica Redis/PostgreSQL topology passes the complete ADR-008 acceptance matrix.
+**Goal:** Close Wave 4 only after Polaris enforces the accepted HA safety invariants in production code and an isolated, reproducible two-replica Redis/PostgreSQL topology passes the complete ADR-008 acceptance matrix.
 
 **Architecture:** Keep standalone as the default and the production HA activation allowlist empty while implementation and candidate evidence are developed. Safety belongs in the real coordination, lifecycle, migration, and operator owners; the external evidence system only injects an immutable candidate verifier through existing typed seams, drives the real application, introduces controlled faults, and independently verifies durable outcomes. Evidence may make a candidate eligible for review, but only a separately reviewed activation record can change the production topology ceiling.
 

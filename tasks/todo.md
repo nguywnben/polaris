@@ -1,4 +1,4 @@
-# Omni Gateway Production Self-Hosted R1 — Fixed Checklist
+# Polaris Production Self-Hosted R1 — Fixed Checklist
 
 Progress denominator: **36/36** implementation tasks. Planning artifacts do not count as completed
 implementation. The denominator cannot change without an approved `CR-###` in `tasks/plan.md`.

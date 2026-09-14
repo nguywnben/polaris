@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Omni Gateway serves clients built for the OpenAI, Anthropic, and Google GenAI SDKs. Product-specific path prefixes force users to override SDK behavior, create duplicated segments, and make otherwise compatible IDE integrations fail. Provider names also change more frequently than the client protocols they implement.
+Polaris serves clients built for the OpenAI, Anthropic, and Google GenAI SDKs. Product-specific path prefixes force users to override SDK behavior, create duplicated segments, and make otherwise compatible IDE integrations fail. Provider names also change more frequently than the client protocols they implement.
 
 ## Decision
 

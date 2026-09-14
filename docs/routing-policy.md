@@ -1,6 +1,6 @@
 # Routing, Fallback, Cooldown, and Health
 
-Omni Gateway R1 uses one canonical credential router for the supported standalone deployment: one
+Polaris R1 uses one canonical credential router for the supported standalone deployment: one
 worker and one replica. The router combines model eligibility, credential state, bounded health
 penalties, concurrency leases, and the configured strategy before any provider request is sent.
 

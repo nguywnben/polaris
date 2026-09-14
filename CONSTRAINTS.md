@@ -1,4 +1,4 @@
-# Omni Gateway Production Constraints
+# Polaris Production Constraints
 
 ## Status
 
@@ -9,7 +9,7 @@
 
 ## Product Boundary
 
-Omni Gateway is a self-hosted AI gateway, not a hosted commercial control plane. The supported
+Polaris is a self-hosted AI gateway, not a hosted commercial control plane. The supported
 production baseline is one application instance on one machine, normally installed with Docker
 Compose. It must remain useful without Redis, PostgreSQL, MongoDB, Kubernetes, an external identity
 provider, or an observability vendor.

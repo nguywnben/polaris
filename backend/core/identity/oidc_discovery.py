@@ -125,7 +125,7 @@ async def discover_oidc(
     policy: OidcPolicy,
     client: OidcDiscoveryClient,
 ) -> OidcDiscoveryDocument:
-    """Fetch and reduce metadata to the exact capabilities Omni Gateway can trust."""
+    """Fetch and reduce metadata to the exact capabilities Polaris can trust."""
     if type(policy) is not OidcPolicy or not policy.enabled or policy.issuer is None:
         raise OidcDiscoveryError
     discovery_url = policy.issuer.rstrip("/") + "/.well-known/openid-configuration"

@@ -55,7 +55,7 @@ or `code`, not on human-readable text.
 | `unsupported_operation` | Variant does not implement the operation | Use an operation declared by the capability matrix |
 | `timeout` | Complete test exceeded its deadline | Check reachability and retry |
 | `cancelled` | Console/client cancelled the test | Start another test when ready |
-| `internal` | Omni Gateway could not complete the test | Retry once, then inspect local logs |
+| `internal` | Polaris could not complete the test | Retry once, then inspect local logs |
 
 HTTP 429 proves that the credential reached the provider, so the route preserves the existing
 `success: true` connection result while returning a `rate_limit` or `quota` diagnostic and

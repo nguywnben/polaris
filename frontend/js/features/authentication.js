@@ -1,4 +1,4 @@
-// Omni Gateway management console: console.
+// Polaris management console: console.
 
 const SETUP_CHECK_ELEMENTS = {
 

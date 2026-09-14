@@ -1,4 +1,4 @@
-"""Response Caching Layer for Omni Gateway.
+"""Response Caching Layer for Polaris.
 
 Provides fast exact-match lookup for LLM responses to reduce latency,
 save provider quota, and avoid duplicate API calls.

@@ -1,6 +1,6 @@
 # Updating and Rolling Back Compose
 
-Omni Gateway R1 supports an immutable-image update workflow for the canonical standalone SQLite
+Polaris R1 supports an immutable-image update workflow for the canonical standalone SQLite
 Compose deployment. The workflow performs preflight, encrypted backup, image replacement, health
 verification, and automatic rollback as one operation. It does not support Docker `run`, external
 databases, Kubernetes, multiple workers, or multiple replicas.
@@ -16,7 +16,7 @@ databases, Kubernetes, multiple workers, or multiple replicas.
 3. Store the backup passphrase in a password manager. It is prompted through the terminal and is
    never accepted as an argument, stored in the recovery record, or logged.
 4. Ensure the host recovery directory has enough free space. Its default is
-   `~/.omni-gateway/recovery`, outside the Docker data volume.
+   `~/.polaris/recovery`, outside the Docker data volume.
 
 If the release also changes the maintained Compose files, fetch and select that exact release
 before the dry run; do not update from a floating branch:
@@ -35,7 +35,7 @@ From the repository root on Linux/macOS:
 
 ```bash
 python3 tools/compose_update.py update \
-  --target-image nguywnben/omni-gateway:<version> \
+  --target-image nguywnben/polaris:<version> \
   --dry-run
 ```
 
@@ -43,7 +43,7 @@ On Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe tools/compose_update.py update `
-  --target-image nguywnben/omni-gateway:<version> `
+  --target-image nguywnben/polaris:<version> `
   --dry-run
 ```
 
@@ -58,7 +58,7 @@ For an advanced deployment, repeat `--compose-file` in the same order used to st
 
 ```bash
 python3 tools/compose_update.py update \
-  --target-image nguywnben/omni-gateway:<version> \
+  --target-image nguywnben/polaris:<version> \
   --compose-file deploy/docker-compose.yml \
   --compose-file deploy/compose.advanced.yml \
   --dry-run
@@ -74,7 +74,7 @@ Repeat the accepted command without `--dry-run`:
 
 ```bash
 python3 tools/compose_update.py update \
-  --target-image nguywnben/omni-gateway:<version>
+  --target-image nguywnben/polaris:<version>
 ```
 
 The tool then:
@@ -121,11 +121,11 @@ Use the record printed by the successful update:
 
 ```bash
 python3 tools/compose_update.py rollback \
-  --record ~/.omni-gateway/recovery/update-<timestamp>-<id>.json \
+  --record ~/.polaris/recovery/update-<timestamp>-<id>.json \
   --dry-run
 
 python3 tools/compose_update.py rollback \
-  --record ~/.omni-gateway/recovery/update-<timestamp>-<id>.json
+  --record ~/.polaris/recovery/update-<timestamp>-<id>.json
 ```
 
 PowerShell accepts the same arguments with

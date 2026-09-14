@@ -1,4 +1,4 @@
-"""Strict authenticated-encryption envelope for Omni Gateway backups.
+"""Strict authenticated-encryption envelope for Polaris backups.
 
 The envelope intentionally has one algorithm suite. Unsupported versions and
 parameters fail before key derivation, which prevents downgrade and resource-

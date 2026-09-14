@@ -1,4 +1,4 @@
-# Omni Gateway Production Baseline Audit — 2026-09-08
+# Polaris Production Baseline Audit — 2026-09-08
 
 ## Purpose
 

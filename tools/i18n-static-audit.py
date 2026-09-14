@@ -38,7 +38,7 @@ TECHNICAL_TEXT = re.compile(
     r"(?:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+)|"
     r"(?:req-.+|Prometheus|OpenTelemetry|openai|gpt-\d+)|"
     r"(?:OAuth|JSON|ZIP|API Key|Endpoint)|"
-    r"(?:Omni Gateway|Google Antigravity|Google AI Studio|Grok Build|SpaceXAI Console|"
+    r"(?:Polaris|Google Antigravity|Google AI Studio|Grok Build|SpaceXAI Console|"
     r"Codex|OpenAI Platform|Claude Code|Claude Platform|Ollama|Gemini CLI)|"
     r"(?:Client ID|Client secret|HTTP User-Agent|Payload user agent|Project ID)|"
     r"(?:GET|POST|PUT|DELETE|PATCH|HEAD|HTTP|WebSocket|PKCE)"

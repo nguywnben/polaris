@@ -8,7 +8,7 @@ This specification supersedes the target and release criteria in
 
 ## Product Definition
 
-Omni Gateway is a self-hosted gateway that lets an individual or a small trusted team connect
+Polaris is a self-hosted gateway that lets an individual or a small trusted team connect
 multiple AI provider accounts, expose stable OpenAI/Anthropic/Google-compatible endpoints, route
 requests intelligently, and understand quality, reliability, and cost from one local console.
 

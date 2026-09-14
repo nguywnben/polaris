@@ -1,4 +1,4 @@
-# Omni Gateway — Fixed Production Balance Plan R2
+# Polaris — Fixed Production Balance Plan R2
 
 ## Control Record
 

@@ -1,4 +1,4 @@
-// Omni Gateway management console: ui.
+// Polaris management console: ui.
 
 function ensureTerminalPunctuation(message) {
 

@@ -10,7 +10,7 @@ slices and acceptance evidence.
 
 ## Objective
 
-Complete Phase 6 without weakening the supported standalone deployment. Omni Gateway will gain
+Complete Phase 6 without weakening the supported standalone deployment. Polaris will gain
 explicit management principals, four server-enforced roles, standards-based OIDC, revocable
 sessions, durable governance data, Redis-backed runtime coordination, and a tested HA activation
 path. Success means authorization and hard limits remain correct during concurrency and failover;

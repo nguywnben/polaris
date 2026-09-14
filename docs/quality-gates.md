@@ -1,6 +1,6 @@
 # Quality Gates
 
-Omni Gateway uses one gate runner with increasing scope. Run commands from the repository root with
+Polaris uses one gate runner with increasing scope. Run commands from the repository root with
 the active project virtual environment.
 
 ## Gate Selection

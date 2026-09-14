@@ -1,6 +1,6 @@
 # Protocol Translation Contract
 
-Omni Gateway accepts five advertised public ingress families and routes them through a canonical
+Polaris accepts five advertised public ingress families and routes them through a canonical
 Gemini-shaped request/response boundary. The versioned contract is defined by
 `backend/tests/fixtures/protocol-contract-corpus-v1.json`; request and response examples are locked
 by the adjacent `protocol-request-golden-v1.json` and `protocol-response-golden-v1.json` fixtures.

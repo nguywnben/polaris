@@ -2,7 +2,7 @@
 
 ## Our Commitment
 
-We are committed to making participation in Omni Gateway respectful, inclusive, and free from harassment for everyone, regardless of background, identity, experience, or level of technical expertise.
+We are committed to making participation in Polaris respectful, inclusive, and free from harassment for everyone, regardless of background, identity, experience, or level of technical expertise.
 
 ## Expected Behavior
 

@@ -19,5 +19,5 @@ fi
 echo "[INFO] Installing Python dependencies..."
 uv pip install --require-hashes -r requirements.lock
 
-echo "[INFO] Starting Omni Gateway..."
+echo "[INFO] Starting Polaris..."
 exec .venv/bin/python backend/main.py

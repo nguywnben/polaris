@@ -175,7 +175,7 @@ class ProductSurfaceInventoryTests(unittest.TestCase):
             self.assertNotIn(stale_term, active_copy)
         self.assertNotIn("quản trị doanh nghiệp", active_copy)
         self.assertNotIn("Virtual API keys let one gateway", readme_vi)
-        self.assertNotIn("Omni Gateway records request volume", readme_vi)
+        self.assertNotIn("Polaris records request volume", readme_vi)
         self.assertIn("Team access", sidebar)
         self.assertIn('data-conditional-navigation="team-access"', sidebar)
         self.assertIn("Access &amp; team", identity)

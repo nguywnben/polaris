@@ -71,7 +71,7 @@ class CanonicalComposeTests(unittest.TestCase):
             mounts,
             [{"type": "volume", "source": "data", "target": "/app/backend/data"}],
         )
-        self.assertEqual(compose["volumes"]["data"]["name"], "${DATA_VOLUME:-omni-gateway-data}")
+        self.assertEqual(compose["volumes"]["data"]["name"], "${DATA_VOLUME:-polaris-data}")
         self.assertNotIn("container_name", service)
 
     def test_default_profile_preserves_container_safety_and_lifecycle_controls(self):

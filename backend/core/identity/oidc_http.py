@@ -454,7 +454,7 @@ class OidcHttpClient:
                 "Accept: application/json, application/jwk-set+json\r\n"
                 "Accept-Encoding: identity\r\n"
                 "Connection: close\r\n"
-                "User-Agent: Omni-Gateway-OIDC/1\r\n"
+                "User-Agent: Polaris-OIDC/1\r\n"
                 "\r\n"
             ).encode("ascii")
             return await self._send_json(parsed, request)
@@ -489,7 +489,7 @@ class OidcHttpClient:
                 f"Content-Length: {len(body)}\r\n"
                 f"{authorization}"
                 "Connection: close\r\n"
-                "User-Agent: Omni-Gateway-OIDC/1\r\n"
+                "User-Agent: Polaris-OIDC/1\r\n"
                 "\r\n"
             ).encode("ascii") + body
             return await self._send_json(parsed, request)

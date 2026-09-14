@@ -81,7 +81,7 @@ _CATEGORY_COPY: dict[DiagnosticCategory, tuple[str, str, bool]] = {
         True,
     ),
     "network": (
-        "Omni Gateway could not reach the provider.",
+        "Polaris could not reach the provider.",
         "Check outbound connectivity, DNS, and the configured provider endpoint.",
         True,
     ),
@@ -122,7 +122,7 @@ _CATEGORY_COPY: dict[DiagnosticCategory, tuple[str, str, bool]] = {
     ),
     "internal": (
         "The provider connection test could not be completed.",
-        "Retry once; if the problem continues, review the Omni Gateway logs.",
+        "Retry once; if the problem continues, review the Polaris logs.",
         True,
     ),
 }

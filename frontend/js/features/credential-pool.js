@@ -1,4 +1,4 @@
-// Omni Gateway management console: credentials.
+// Polaris management console: credentials.
 
 function refreshCredsStatus() { AppState.creds.refresh(); }
 

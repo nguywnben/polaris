@@ -1,6 +1,6 @@
 # Changelog
 
-All notable user-facing changes are documented in this file. Omni Gateway follows [Semantic Versioning](https://semver.org/). The historical `0.x` beta series allowed breaking changes; compatibility changes after `1.0.0` require an appropriate major version.
+All notable user-facing changes are documented in this file. Polaris follows [Semantic Versioning](https://semver.org/). The historical `0.x` beta series allowed breaking changes; compatibility changes after `1.0.0` require an appropriate major version.
 
 ## [Unreleased]
 
@@ -8,13 +8,18 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 - Added protocol-aware Node.js SDK examples to Playground alongside cURL and Python.
 - Added automatic model-pricing synchronization with a validated last-known-good snapshot and
-  manual `model_pricing.json` precedence, so newly priced models do not require an Omni Gateway
+  manual `model_pricing.json` precedence, so newly priced models do not require a Polaris
   release while inference remains available during catalog outages.
 - Added a 120-second release-blocking reliability profile for routine self-hosted releases while
   preserving the original ten-minute profile as an explicit optional soak.
 
 ### Changed
 
+- Renamed the product and public distribution coordinates to Polaris, including the GitHub
+  repository, Docker Hub image, GHCR package, console, deployment manifests, and observability
+  identity. Former container coordinates remain temporary aliases, while stable client and
+  persisted security identifiers remain compatible; see the
+  [Polaris migration guide](docs/migrations/polaris.md).
 - Standardized locale-aware console metrics: high-level values at 10,000 and above now use
   compact notation with exact hover and assistive labels, while detailed views retain grouped
   full-precision values and small USD costs keep sub-cent precision.
@@ -242,7 +247,7 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 
 ### Added
 
-- Added a conditional update guide in the About page that appears only when a newer Omni Gateway release is available.
+- Added a conditional update guide in the About page that appears only when a newer Polaris release is available.
 - Added a production-oriented update and rollback guide for pinned Docker and Docker Compose deployments.
 
 ### Changed
@@ -436,19 +441,19 @@ All notable user-facing changes are documented in this file. Omni Gateway follow
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/omni-gateway/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/nguywnben/omni-gateway/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/nguywnben/omni-gateway/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/nguywnben/omni-gateway/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/nguywnben/omni-gateway/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/nguywnben/omni-gateway/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/nguywnben/omni-gateway/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/nguywnben/omni-gateway/compare/v1.1.4...v1.2.0
-[1.1.4]: https://github.com/nguywnben/omni-gateway/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/nguywnben/omni-gateway/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/nguywnben/omni-gateway/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/nguywnben/omni-gateway/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/nguywnben/omni-gateway/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nguywnben/omni-gateway/compare/v0.2.0-beta...v1.0.0
-[0.2.0-beta]: https://github.com/nguywnben/omni-gateway/compare/v0.1.0-beta...v0.2.0-beta
-[0.1.0-beta]: https://github.com/nguywnben/omni-gateway/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/nguywnben/polaris/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/nguywnben/polaris/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/nguywnben/polaris/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/nguywnben/polaris/compare/v1.1.4...v1.2.0
+[1.1.4]: https://github.com/nguywnben/polaris/compare/v1.1.3...v1.1.4
+[1.1.3]: https://github.com/nguywnben/polaris/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/nguywnben/polaris/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/nguywnben/polaris/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/nguywnben/polaris/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/nguywnben/polaris/compare/v0.2.0-beta...v1.0.0
+[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...v0.2.0-beta
+[0.1.0-beta]: https://github.com/nguywnben/polaris/releases/tag/v0.1.0-beta

@@ -1,6 +1,6 @@
 # Provider Capability Contract
 
-Omni Gateway exposes one server-owned capability matrix for every provider and authentication
+Polaris exposes one server-owned capability matrix for every provider and authentication
 variant advertised by the production self-hosted console. The management API and credential UI
 must use this matrix instead of provider-name conditionals.
 
@@ -102,5 +102,5 @@ Capabilities must describe behavior that exists now; planned adapter work is not
 
 Claude Code subscription usage is fetched on demand from the account endpoint used by current
 Claude Code clients. That endpoint can rate-limit and is not a documented public Anthropic API, so
-Omni Gateway caches successful snapshots and 429 responses for three minutes, parses both known
+Polaris caches successful snapshots and 429 responses for three minutes, parses both known
 response shapes, and returns a sanitized temporary error instead of repeatedly probing upstream.

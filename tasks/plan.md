@@ -1,4 +1,4 @@
-# Omni Gateway — Fixed Production Self-Hosted Plan R1
+# Polaris — Fixed Production Self-Hosted Plan R1
 
 ## Control Record
 

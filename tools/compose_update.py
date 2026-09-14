@@ -1,4 +1,4 @@
-"""Safely update or roll back the supported Omni Gateway Compose service."""
+"""Safely update or roll back the supported Polaris Compose service."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from typing import Protocol
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_COMPOSE_FILE = ROOT / "deploy" / "docker-compose.yml"
-DEFAULT_RECOVERY_DIR = Path.home() / ".omni-gateway" / "recovery"
+DEFAULT_RECOVERY_DIR = Path.home() / ".polaris" / "recovery"
 MAX_BACKUP_BYTES = 64 * 1024 * 1024
 MAX_RECORD_BYTES = 64 * 1024
 _IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")

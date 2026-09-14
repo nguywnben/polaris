@@ -3,7 +3,7 @@ const PLAYGROUND_MAX_MESSAGE_CHARS = 65536;
 const PLAYGROUND_MAX_TOTAL_CHARS = 524288;
 const PLAYGROUND_MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
 const PLAYGROUND_RENDER_INTERVAL_MS = 50;
-const PLAYGROUND_KEY_PLACEHOLDER = '<YOUR_OMNI_GATEWAY_KEY>';
+const PLAYGROUND_KEY_PLACEHOLDER = '<YOUR_POLARIS_KEY>';
 const PLAYGROUND_HANDOFF_KEY = 'omni_gateway_playground_handoff_v1';
 const PLAYGROUND_PROTOCOLS = new Set([
     'openai_chat', 'openai_responses', 'anthropic_messages', 'gemini'

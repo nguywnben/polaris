@@ -1,6 +1,6 @@
-# Contributing to Omni Gateway
+# Contributing to Polaris
 
-Thank you for improving Omni Gateway. Contributions should keep the public API predictable, provider behavior isolated, and deployment defaults safe for operators.
+Thank you for improving Polaris. Contributions should keep the public API predictable, provider behavior isolated, and deployment defaults safe for operators.
 
 ## Before You Start
 
@@ -11,7 +11,7 @@ Thank you for improving Omni Gateway. Contributions should keep the public API p
 
 ## Development Setup
 
-Omni Gateway supports Python 3.12 and newer versions covered by CI.
+Polaris supports Python 3.12 and newer versions covered by CI.
 
 ```bash
 python -m venv .venv

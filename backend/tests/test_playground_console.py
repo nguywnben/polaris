@@ -121,7 +121,7 @@ const draft = {protocol: 'openai_chat', model: 'omway', stream: false,
     temperature: null, topP: null, maxTokens: 256};
         for (const format of ['curl', 'powershell', 'python', 'node']) {
             const text = example(draft, format, 'http://127.0.0.1:4283');
-            assert(text.includes('<YOUR_OMNI_GATEWAY_KEY>'), `missing placeholder in ${format}`);
+            assert(text.includes('<YOUR_POLARIS_KEY>'), `missing placeholder in ${format}`);
             assert(!text.includes('session-token') && !text.includes('AIza'), `secret in ${format}`);
         }
 assert(example(draft, 'curl', 'http://127.0.0.1:4283').includes('/v1/chat/completions'), 'chat URL');

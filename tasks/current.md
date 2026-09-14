@@ -1,4 +1,4 @@
-# Omni Gateway — Current State
+# Polaris — Current State
 
 ## Completed Production Balance Workstream
 
@@ -95,7 +95,7 @@ Do not push unless the user requests it.
   removed 7,447 net lines, chiefly stale community README copies that advertised retired runtime
   paths without maintainer semantic review.
 - `docs/evidence/p5.6-release-candidate-handoff.md`
-- Omni Gateway 1.5.0 is prepared for single-worker/single-replica production self-hosting. The
+- Polaris 1.5.0 is prepared for single-worker/single-replica production self-hosting. The
   release evidence records all local gate results, clean-install rehearsal, rollback command,
   support tiers and known limitations without an enterprise, HA, Kubernetes, or ARM64 claim.
 - `docs/evidence/p5.4-browser-harness-ci.md`

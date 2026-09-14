@@ -49,11 +49,9 @@ def build_otlp_metrics_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
         "resourceMetrics": [
             {
                 "resource": {
-                    "attributes": [
-                        {"key": "service.name", "value": {"stringValue": "omni-gateway"}}
-                    ]
+                    "attributes": [{"key": "service.name", "value": {"stringValue": "polaris"}}]
                 },
-                "scopeMetrics": [{"scope": {"name": "omni-gateway"}, "metrics": metrics}],
+                "scopeMetrics": [{"scope": {"name": "polaris"}, "metrics": metrics}],
             }
         ]
     }

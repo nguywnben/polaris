@@ -232,7 +232,7 @@ fi
 
 # Determine working directory
 log_info "Checking project directory..."
-PROJECT_DIR="${PROJECT_DIR:-omni-gateway}"
+PROJECT_DIR="${PROJECT_DIR:-polaris}"
 REPOSITORY_URL="${REPOSITORY_URL:-}"
 
 if [ -f "./backend/main.py" ]; then
@@ -306,5 +306,5 @@ if [ ! -f "backend/main.py" ]; then
 fi
 
 # Start the application
-log_info "Starting Omni Gateway..."
+log_info "Starting Polaris..."
 python3 backend/main.py

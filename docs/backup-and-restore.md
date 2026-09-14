@@ -1,6 +1,6 @@
 # Backup and Restore
 
-Omni Gateway R1 provides an authenticated, passphrase-encrypted backup workflow for the supported
+Polaris R1 provides an authenticated, passphrase-encrypted backup workflow for the supported
 standalone SQLite deployment. The workflow is intentionally separate from the credential-pool ZIP
 export: a portable `.ogb` archive can restore the complete core state, while a sanitized export is
 diagnostic-only and cannot restore access.
@@ -32,12 +32,12 @@ must not be treated as a recovery artifact.
   SQLite integrity, foreign keys, table names, schema inventory, and validation time are bounded.
 - Archive format, state schema, and the exact core SQLite schema fingerprint must be compatible.
   Known inert compatibility tables may be carried without changing the core fingerprint. R1 fails
-  closed rather than attempting an implicit cross-schema migration; update Omni Gateway through
+  closed rather than attempting an implicit cross-schema migration; update Polaris through
   the supported version path before restoring an older schema.
 - Portable restore is unavailable for PostgreSQL and MongoDB. PostgreSQL operators and existing
   MongoDB compatibility deployments must own and verify database-native recovery separately.
 
-Store backup files away from the Omni Gateway data volume and apply the same access controls as
+Store backup files away from the Polaris data volume and apply the same access controls as
 provider credentials. A strong, unique passphrase and an encrypted operator password manager are
 recommended.
 
@@ -64,7 +64,7 @@ intended.
 
 ## Restore and rollback behavior
 
-1. Omni Gateway decrypts and validates the complete archive in a private work directory.
+1. Polaris decrypts and validates the complete archive in a private work directory.
 2. It checks archive/state versions and the exact live SQLite schema fingerprint.
 3. It creates an encrypted pre-restore `.ogb` snapshot under
    `backend/data/creds/backups/` inside the persistent volume.
@@ -72,7 +72,7 @@ intended.
 5. State-backed services and caches are rebound to the restored keys and records.
 6. The response returns the opaque pre-restore snapshot ID and requires console reauthentication.
 
-If replacement or runtime rebinding fails, Omni Gateway restores the previous database and reloads
+If replacement or runtime rebinding fails, Polaris restores the previous database and reloads
 the prior runtime state. A failure to complete that automatic rollback returns a distinct service
 error and retains the encrypted pre-restore snapshot for manual recovery. Never delete that
 snapshot until routing, authentication, and usage state have been verified.

@@ -27,7 +27,7 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       ENABLE_LOG: "0"
-      CREDENTIALS_DIR: /tmp/omni-gateway-tests/credentials
+      CREDENTIALS_DIR: /tmp/polaris-tests/credentials
     permissions:
       contents: read
 
@@ -120,10 +120,10 @@ jobs:
       - name: "Required: application smoke"
         if: matrix.python-version == '3.12'
         env:
-          CREDENTIALS_DIR: /tmp/omni-gateway-ci/creds
-          LOG_FILE: /tmp/omni-gateway-ci/logs/runtime.log
+          CREDENTIALS_DIR: /tmp/polaris-ci/creds
+          LOG_FILE: /tmp/polaris-ci/logs/runtime.log
         run: |
-          python backend/main.py > /tmp/omni-gateway-ci.log 2>&1 &
+          python backend/main.py > /tmp/polaris-ci.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
@@ -131,7 +131,7 @@ jobs:
               break
             fi
             if [ "$attempt" -eq 30 ]; then
-              cat /tmp/omni-gateway-ci.log
+              cat /tmp/polaris-ci.log
               exit 1
             fi
             sleep 1
@@ -158,10 +158,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      COMPOSE_PROJECT_NAME: omni-gateway-ci
-      IMAGE: omni-gateway:ci
+      COMPOSE_PROJECT_NAME: polaris-ci
+      IMAGE: polaris:ci
       HOST_PORT: "4283"
-      DATA_VOLUME: omni-gateway-ci-data
+      DATA_VOLUME: polaris-ci-data
       SETUP_TOKEN: container-smoke-token-2026-secure
     permissions:
       contents: read
@@ -181,7 +181,7 @@ jobs:
         run: python -m pip install "httpx==0.28.1"
 
       - name: Build container image
-        run: docker build --tag omni-gateway:ci --file deploy/Dockerfile .
+        run: docker build --tag polaris:ci --file deploy/Dockerfile .
 
       - name: Start canonical Compose profile
         run: |
@@ -333,7 +333,7 @@ jobs:
           release_args=(
             "$RELEASE_TAG"
             --repo "$GITHUB_REPOSITORY"
-            --title "Omni Gateway ${RELEASE_TAG#v}"
+            --title "Polaris ${RELEASE_TAG#v}"
             --notes-file "$RUNNER_TEMP/release-notes.md"
             --verify-tag
           )

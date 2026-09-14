@@ -1,7 +1,7 @@
 """Virtual API keys with per-key budgets, rate limits, and model allowlists.
 
 Design distilled from LiteLLM's proxy auth (`user_api_key_auth.py` /
-`auth_checks.py`) adapted to Omni Gateway's single-process architecture:
+`auth_checks.py`) adapted to Polaris's single-process architecture:
 
 - Keys are stored in the storage backend under the ``virtual_keys`` config
   entry. Only the SHA-256 hash of the secret is persisted; the plaintext is

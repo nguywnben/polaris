@@ -211,7 +211,7 @@ class DynamicPricingService:
     async def _download_catalog(self) -> Any:
         headers = {
             "Accept": "application/json",
-            "User-Agent": "Omni-Gateway pricing-sync",
+            "User-Agent": "Polaris pricing-sync",
         }
         content = bytearray()
         async with http_client.get_streaming_client(timeout=CATALOG_TIMEOUT_SECONDS) as client:

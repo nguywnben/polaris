@@ -61,7 +61,7 @@ services:
       PRICING_SYNC_INTERVAL_HOURS: ${PRICING_SYNC_INTERVAL_HOURS:-24}
 
       # File logging and opt-in aggregate telemetry
-      LOG_FILE: ${LOG_FILE:-./backend/data/logs/omni-gateway.log}
+      LOG_FILE: ${LOG_FILE:-./backend/data/logs/polaris.log}
       LOG_MAX_MB: ${LOG_MAX_MB:-10}
       LOG_BACKUP_COUNT: ${LOG_BACKUP_COUNT:-3}
       PROMETHEUS_EXPORT_ENABLED: ${PROMETHEUS_EXPORT_ENABLED:-false}

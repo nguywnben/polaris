@@ -106,7 +106,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.xai.get_xai_user_agent",
-                AsyncMock(return_value="grok-cli/omni-gateway"),
+                AsyncMock(return_value="grok-cli/polaris"),
             ),
         ):
             models = await fetch_xai_model_ids("xai-example-key")
@@ -118,7 +118,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             request.await_args.kwargs["headers"]["User-Agent"],
-            "grok-cli/omni-gateway",
+            "grok-cli/polaris",
         )
 
     async def test_oauth_model_discovery_uses_grok_build_catalog_and_headers(self):
@@ -131,7 +131,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch(
                 "core.xai.get_xai_user_agent",
-                AsyncMock(return_value="grok-cli/omni-gateway"),
+                AsyncMock(return_value="grok-cli/polaris"),
             ),
         ):
             models = await fetch_xai_oauth_model_ids("grok-oauth-token")
@@ -327,7 +327,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             "xai_api_url": "https://api.x.ai/v1",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "locked-client-id",
-            "xai_user_agent": "grok-cli/omni-gateway",
+            "xai_user_agent": "grok-cli/polaris",
         }
         with (
             patch(
@@ -363,7 +363,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
             "xai_api_url": "https://api.x.ai/v1",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "client-id",
-            "xai_user_agent": "grok-cli/omni-gateway",
+            "xai_user_agent": "grok-cli/polaris",
         }
         with (
             patch(

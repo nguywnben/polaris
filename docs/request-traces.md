@@ -1,6 +1,6 @@
 # Request Decision Trace Contract
 
-Omni Gateway persists one bounded, redacted decision trace for each supported inference request.
+Polaris persists one bounded, redacted decision trace for each supported inference request.
 The trace is operational evidence, not a prompt-observability store: request content, response
 content, authorization values, API keys, credential filenames, arbitrary metadata, and exception
 text are outside the schema and fail strict record validation.

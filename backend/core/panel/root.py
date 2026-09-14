@@ -208,7 +208,7 @@ def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLRespons
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{safe_title} - Omni Gateway</title>
+    <title>{safe_title} - Polaris</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
@@ -288,7 +288,7 @@ def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLRespons
             <span class="brand-mark" aria-hidden="true">
                 <img src="/frontend/assets/logo.png" alt="">
             </span>
-            <span class="brand-title">Omni Gateway</span>
+            <span class="brand-title">Polaris</span>
         </div>
         <h1>{safe_title}</h1>
         <p>{safe_message}</p>

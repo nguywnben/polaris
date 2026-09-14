@@ -1,4 +1,4 @@
-# Spec: Omni Gateway Enterprise Overhaul
+# Spec: Polaris Enterprise Overhaul
 
 ## Status
 
@@ -8,7 +8,7 @@ enterprise/HA objectives no longer block the production self-hosted baseline.
 
 ## Objective
 
-Turn Omni Gateway from a capable single-instance AI router into an enterprise-ready gateway
+Turn Polaris from a capable single-instance AI router into an enterprise-ready gateway
 whose behavior is safe to operate, easy to explain, and measurable. The primary users are AI
 platform administrators, developers integrating SDK clients, security teams, and operators
 responsible for provider capacity and cost.
@@ -19,13 +19,13 @@ as independently releasable vertical slices rather than a single rewrite.
 
 ### Reference-project findings
 
-| Project | Capability worth adopting | Constraint for Omni Gateway |
+| Project | Capability worth adopting | Constraint for Polaris |
 | --- | --- | --- |
 | 9Router | Tiered fallback, quota-aware multi-account routing, usage and reset visibility | Avoid provider-count growth without a stable adapter contract |
 | CLIProxyAPI | Credential conductor, cooldown-aware selection, provider-specific auth lifecycle | Actions must be capability-aware instead of assuming every credential is Google-shaped |
 | Portkey Gateway | Pipeline hooks, guardrail checks, cache/retry composition | Start with typed built-in stages; do not expose arbitrary executable plugins |
 | Langfuse | Request traces, sessions, scores, evaluations, project/member governance | Embed operational traces first; keep full prompt/eval lifecycle as an integration boundary |
-| LiteLLM | Virtual keys, budgets, teams, guardrails, router settings, caching, audit logs | Preserve Omni Gateway's smaller and safer management surface |
+| LiteLLM | Virtual keys, budgets, teams, guardrails, router settings, caching, audit logs | Preserve Polaris's smaller and safer management surface |
 | OmniRoute | Compression profiles, per-request policy, task-fit routing, scoped keys, health autopilot | Do not adopt semantic compression claims without an evaluation gate |
 
 ### Product principles
