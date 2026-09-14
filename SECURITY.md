@@ -20,7 +20,7 @@ After a fix is available, coordinate public disclosure through the advisory. Cre
 ## Operational Baseline
 
 - Use a unique `PANEL_PASSWORD` for the management console.
-- Use a separate `API_KEY` beginning with `sk-ogw-` for client traffic.
+- Use a separate `API_KEY` beginning with `sk-polaris-` for client traffic.
 - Keep the service behind TLS when exposed outside localhost.
 - Keep `MAX_REQUEST_BODY_MB` bounded and configure an equal or lower request-body limit at the reverse proxy.
 - Protect the bootstrap token printed for remote first-run setup, or preconfigure `PANEL_PASSWORD` for non-interactive deployment.

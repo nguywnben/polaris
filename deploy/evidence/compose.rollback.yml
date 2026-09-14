@@ -22,9 +22,9 @@ services:
       - /app/backend/data/logs:rw,noexec,nosuid,size=32m,uid=10001,gid=10001
     environment:
       WORKERS: "1"
-      OMNI_RUNTIME_MODE: standalone
-      OMNI_REPLICA_COUNT: "1"
-      POSTGRESQL_URI: postgresql://omni@fixture:15432/omni_evidence
+      POLARIS_RUNTIME_MODE: standalone
+      POLARIS_REPLICA_COUNT: "1"
+      POSTGRESQL_URI: postgresql://polaris@fixture:15432/polaris_evidence
 
 networks:
   evidence:

@@ -11,7 +11,7 @@ from typing import Any
 
 from core.configuration_schema import CONFIGURATION_FIELDS, ConfigValueType
 
-SANITIZED_EXPORT_FORMAT = "omni-gateway-sanitized-state"
+SANITIZED_EXPORT_FORMAT = "polaris-sanitized-state"
 SANITIZED_EXPORT_VERSION = 1
 
 _INVENTORY_CONFIG_KEYS = {

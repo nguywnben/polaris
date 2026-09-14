@@ -11,7 +11,7 @@ HYPERCORN_KEEP_ALIVE_MAX_REQUESTS = 10_000
 
 
 def configure_hypercorn(config: Config) -> Config:
-    """Apply the connection lifecycle policy shared by every Omni server entrypoint."""
+    """Apply the connection lifecycle policy shared by every Polaris server entrypoint."""
 
     config.keep_alive_max_requests = HYPERCORN_KEEP_ALIVE_MAX_REQUESTS
     return config

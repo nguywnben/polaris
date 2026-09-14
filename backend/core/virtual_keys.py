@@ -122,11 +122,11 @@ def render_virtual_key_quota_metrics() -> str:
     with _QUOTA_METRIC_LOCK:
         snapshot = dict(_QUOTA_METRICS)
     lines = [
-        "# HELP omni_virtual_key_quota_events_total Virtual-key quota lifecycle events.",
-        "# TYPE omni_virtual_key_quota_events_total counter",
+        "# HELP polaris_virtual_key_quota_events_total Virtual-key quota lifecycle events.",
+        "# TYPE polaris_virtual_key_quota_events_total counter",
     ]
     for event in sorted(snapshot):
-        lines.append(f'omni_virtual_key_quota_events_total{{event="{event}"}} {snapshot[event]}')
+        lines.append(f'polaris_virtual_key_quota_events_total{{event="{event}"}} {snapshot[event]}')
     return "\n".join(lines) + "\n"
 
 
@@ -763,7 +763,7 @@ class VirtualKeyManager:
             raise ValueError("Quota operation identity is invalid.")
         deterministic_suffix = (
             hashlib.sha256(
-                b"omni-gateway:quota-reservation:v1\0"
+                b"polaris:quota-reservation:v1\0"
                 + record.id.encode("utf-8")
                 + b"\0"
                 + supplied_operation.encode("utf-8")

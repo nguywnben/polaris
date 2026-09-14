@@ -19,8 +19,8 @@ CORE_ENVIRONMENT = {
     "HOST",
     "PORT",
     "WORKERS",
-    "OMNI_RUNTIME_MODE",
-    "OMNI_REPLICA_COUNT",
+    "POLARIS_RUNTIME_MODE",
+    "POLARIS_REPLICA_COUNT",
     "LOG_LEVEL",
 }
 
@@ -57,8 +57,8 @@ class CanonicalComposeTests(unittest.TestCase):
         self.assertEqual(environment["HOST"], "0.0.0.0")
         self.assertEqual(str(environment["PORT"]), "4283")
         self.assertEqual(str(environment["WORKERS"]), "1")
-        self.assertEqual(environment["OMNI_RUNTIME_MODE"], "standalone")
-        self.assertEqual(str(environment["OMNI_REPLICA_COUNT"]), "1")
+        self.assertEqual(environment["POLARIS_RUNTIME_MODE"], "standalone")
+        self.assertEqual(str(environment["POLARIS_REPLICA_COUNT"]), "1")
         for optional in ADVANCED_ENVIRONMENT:
             self.assertNotIn(optional, environment)
 
@@ -95,7 +95,7 @@ class CanonicalComposeTests(unittest.TestCase):
         self.assertTrue(ADVANCED_ENVIRONMENT <= set(environment))
         self.assertFalse(CORE_ENVIRONMENT & set(environment))
         self.assertNotIn("REDIS_URL", environment)
-        self.assertNotIn("OMNI_EXPERIMENTAL_COORDINATION", environment)
+        self.assertNotIn("POLARIS_EXPERIMENTAL_COORDINATION", environment)
 
     def test_image_build_does_not_copy_or_define_runtime_secrets(self):
         dockerfile = (ROOT / "deploy" / "Dockerfile").read_text(encoding="utf-8")

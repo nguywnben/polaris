@@ -231,7 +231,7 @@ trusting a stored completion flag.
 The final deterministic evidence on 2026-09-05 is:
 
 - 164 focused quota/HA tests passed; seven live Redis tests skipped because
-  `OMNI_TEST_REDIS_URI` was not configured;
+  `POLARIS_TEST_REDIS_URI` was not configured;
 - 1,320 backend tests passed; 30 opt-in live-backend tests skipped;
 - the 100,000-retained-record synthetic case and the small case both inspected exactly one record
   and 61 buckets;

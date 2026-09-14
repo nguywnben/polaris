@@ -52,13 +52,13 @@ MAX_ACTIVE_SESSIONS = 100_000
 _SESSION_TOKEN_PATTERN = re.compile(r"^ogs_[A-Za-z0-9_-]{43}$")
 _SESSION_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _SESSION_REFERENCE_PATTERN = re.compile(r"^ssr_[0-9a-f]{32}$")
-_SESSION_HMAC_DOMAIN = b"omni-gateway:management-session:v1\0"
-_SESSION_REFERENCE_DOMAIN = b"omni-gateway:management-session-reference:v1\0"
+_SESSION_HMAC_DOMAIN = b"polaris:management-session:v1\0"
+_SESSION_REFERENCE_DOMAIN = b"polaris:management-session-reference:v1\0"
 _SESSION_MASTER_KEY_CONFIG = "_internal_session_master_key_v1"
 _SESSION_MASTER_KEY_BYTES = 32
-_SESSION_PAYLOAD_AAD = b"omni-gateway:management-session-payload:v1"
-_SESSION_PAYLOAD_KEY_DOMAIN = b"omni-gateway:management-session-payload-key:v1\0"
-_SESSION_PRINCIPAL_INDEX_DOMAIN = b"omni-gateway:management-session-principal:v1\0"
+_SESSION_PAYLOAD_AAD = b"polaris:management-session-payload:v1"
+_SESSION_PAYLOAD_KEY_DOMAIN = b"polaris:management-session-payload-key:v1\0"
+_SESSION_PRINCIPAL_INDEX_DOMAIN = b"polaris:management-session-principal:v1\0"
 _SESSION_METRIC_ACTIONS = frozenset({"issue", "resolve", "revoke", "revoke_principal"})
 _SESSION_METRIC_OUTCOMES = frozenset({"succeeded", "not_found", "expired", "stale", "failed"})
 _session_metric_lock = threading.Lock()
@@ -98,12 +98,12 @@ def render_management_session_metrics() -> str:
     with _session_metric_lock:
         snapshot = dict(_session_metrics)
     lines = [
-        "# HELP omni_management_session_operations_total Management session lifecycle outcomes.",
-        "# TYPE omni_management_session_operations_total counter",
+        "# HELP polaris_management_session_operations_total Management session lifecycle outcomes.",
+        "# TYPE polaris_management_session_operations_total counter",
     ]
     for (action, outcome), count in sorted(snapshot.items()):
         lines.append(
-            "omni_management_session_operations_total"
+            "polaris_management_session_operations_total"
             f'{{action="{action}",outcome="{outcome}"}} {count}'
         )
     return "\n".join(lines) + "\n"

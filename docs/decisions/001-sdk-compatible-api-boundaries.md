@@ -21,13 +21,13 @@ Expose inference endpoints at the paths expected by supported SDKs:
 - Google GenAI routes under `/v1beta` and `/v1` as requested by the SDK.
 - Management operations under `/api`, separate from inference contracts.
 
-Keep provider identity behind capability and routing interfaces rather than embedding it in public inference paths. Keep product branding in the console and documentation. Retain `sk-ogw-` only as the API-key identification prefix.
+Keep provider identity behind capability and routing interfaces rather than embedding it in public inference paths. Keep product branding in the console and documentation. Retain `sk-polaris-` only as the API-key identification prefix.
 
 ## Alternatives Considered
 
 ### Product-prefixed inference routes
 
-Paths such as `/omni/v1` or `/gateway/v1` make ownership visible but require non-standard client configuration and can produce duplicated SDK paths. Rejected because compatibility is the primary contract.
+Paths such as `/polaris/v1` or `/gateway/v1` make ownership visible but require non-standard client configuration and can produce duplicated SDK paths. Rejected because compatibility is the primary contract.
 
 ### One generic request schema
 

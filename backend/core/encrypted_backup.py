@@ -19,7 +19,7 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-BACKUP_ENVELOPE_FORMAT = "omni-gateway-encrypted-backup"
+BACKUP_ENVELOPE_FORMAT = "polaris-encrypted-backup"
 BACKUP_ENVELOPE_VERSION = 1
 BACKUP_KDF = "scrypt"
 BACKUP_CIPHER = "aes-256-gcm"

@@ -15,11 +15,10 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
 
 ### Changed
 
-- Renamed the product and public distribution coordinates to Polaris, including the GitHub
-  repository, Docker Hub image, GHCR package, console, deployment manifests, and observability
-  identity. Former container coordinates remain temporary aliases, while stable client and
-  persisted security identifiers remain compatible; see the
-  [Polaris migration guide](docs/migrations/polaris.md).
+- Completed the breaking pre-release cutover to Polaris across the repository, containers,
+  console, API keys, virtual model route, environment variables, headers, browser state,
+  telemetry, backup formats, and cryptographic domains. No compatibility aliases are retained;
+  see the [Polaris identifier contract](docs/migrations/polaris.md).
 - Standardized locale-aware console metrics: high-level values at 10,000 and above now use
   compact notation with exact hover and assistive labels, while detailed views retain grouped
   full-precision values and small USD costs keep sub-cent precision.
@@ -68,7 +67,7 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
   views, session-only correlation state, and a 16 MiB redacted raw-log download ceiling.
 - Added restrictive per-virtual-key and per-request compression controls. Keys can inherit or
   disable the global policy through an additive revision-checked management endpoint, while
-  authenticated requests can use `x-omni-compression: off`; neither can weaken global policy.
+  authenticated requests can use `x-polaris-compression: off`; neither can weaken global policy.
 - Added a versioned adversarial AI Quality corpus, deterministic property matrix, and one successful
   HTTP request for every advertised public protocol against bounded deterministic upstreams.
 - Added authenticated, bounded routing-health diagnostics with actionable eligibility, capacity,
@@ -159,7 +158,7 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
   named volume; optional storage, identity, routing, guardrail, cache, and telemetry controls now
   require the explicit advanced override, and CI verifies state across container recreation.
 - Invalid documented environment values now fail startup with field-specific remediation instead
-  of relying on scattered fallback behavior; unknown `OMNI_*` controls emit spelling warnings.
+  of relying on scattered fallback behavior; unknown `POLARIS_*` controls emit spelling warnings.
 - System Settings validation and field ownership are schema-derived, removing the duplicated route
   whitelist and per-field validation block while keeping provider, quality, and access ownership
   separate.
@@ -229,7 +228,7 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
 - Added a Prometheus `GET /metrics` endpoint with per-provider request, token, cost, and latency counters plus cache statistics, protected by an optional `METRICS_TOKEN` bearer requirement.
 - Added optional Langfuse trace export that emits model, provider, token counts, and latency for successful calls without sending prompt or response bodies.
 - Added dashboard analytics: a provider health matrix, token distribution breakdown, hourly traffic timeline, and pagination for the usage tables.
-- Added a Helm chart at `deploy/helm/omni-gateway` with persistent storage, probes, secret management, optional Ingress, and an optional Prometheus ServiceMonitor.
+- Added a Helm chart at `deploy/helm/polaris` with persistent storage, probes, secret management, optional Ingress, and an optional Prometheus ServiceMonitor.
 
 ### Changed
 
@@ -352,7 +351,7 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
 ### Fixed
 
 - Retried fixed-model requests through alternate compatible credentials and providers after an upstream `404` without changing the requested model.
-- Kept persistent provider-model blacklisting exclusive to virtual `omway` fallback while applying short credential-model cooldowns to failed fixed routes.
+- Kept persistent provider-model blacklisting exclusive to virtual `polaris` fallback while applying short credential-model cooldowns to failed fixed routes.
 
 ## [1.1.1] - 2026-07-15
 
@@ -375,7 +374,7 @@ All notable user-facing changes are documented in this file. Polaris follows [Se
 
 ### Added
 
-- Added provider-aware model discovery, credential model testing, virtual `omway` routing, and a manageable blacklist for unavailable virtual-model routes.
+- Added provider-aware model discovery, credential model testing, virtual `polaris` routing, and a manageable blacklist for unavailable virtual-model routes.
 - Added Google AI Studio API-key credentials, JSON/ZIP import, model catalog discovery, credential backup restoration, and provider-specific pool views.
 - Added stable OpenAI, Anthropic, and Google GenAI error envelopes across authentication, validation, upstream, and pre-stream failures.
 - Added bounded request identifiers through `X-Request-ID` for client-side correlation.

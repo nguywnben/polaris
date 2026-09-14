@@ -40,12 +40,12 @@ from core.runtime_policy import RuntimePolicy
 from core.state_store import InMemoryStateStore
 from core.virtual_keys import virtual_key_manager
 
-_ROUTING_KEY_DOMAIN = b"omni-gateway:runtime-routing-identifiers:v1\0"
-_ATTEMPT_KEY_DOMAIN = b"omni-gateway:runtime-auth-attempt-identifiers:v1\0"
-_PRIMARY_SESSION_KEY_DOMAIN = b"omni-gateway:runtime-primary-session-identifiers:v1\0"
-_PROVIDER_AUTHORIZATION_KEY_DOMAIN = b"omni-gateway:runtime-provider-authorization-identifiers:v1\0"
-_DEVICE_AUTHORIZATION_KEY_DOMAIN = b"omni-gateway:runtime-device-authorization-identifiers:v1\0"
-_CREDENTIAL_BATCH_KEY_DOMAIN = b"omni-gateway:runtime-credential-batch-identifiers:v1\0"
+_ROUTING_KEY_DOMAIN = b"polaris:runtime-routing-identifiers:v1\0"
+_ATTEMPT_KEY_DOMAIN = b"polaris:runtime-auth-attempt-identifiers:v1\0"
+_PRIMARY_SESSION_KEY_DOMAIN = b"polaris:runtime-primary-session-identifiers:v1\0"
+_PROVIDER_AUTHORIZATION_KEY_DOMAIN = b"polaris:runtime-provider-authorization-identifiers:v1\0"
+_DEVICE_AUTHORIZATION_KEY_DOMAIN = b"polaris:runtime-device-authorization-identifiers:v1\0"
+_CREDENTIAL_BATCH_KEY_DOMAIN = b"polaris:runtime-credential-batch-identifiers:v1\0"
 
 
 class RuntimeState(StrEnum):
@@ -282,14 +282,14 @@ def render_runtime_metrics() -> str:
         }
     )
     return (
-        "# HELP omni_runtime_ready Whether the process-local runtime lifecycle is ready.\n"
-        "# TYPE omni_runtime_ready gauge\n"
-        f"omni_runtime_ready {int(bool(snapshot['ready']))}\n"
-        "# HELP omni_runtime_coordination_available Whether process-local coordination is available.\n"
-        "# TYPE omni_runtime_coordination_available gauge\n"
-        f"omni_runtime_coordination_available {int(bool(snapshot['coordination_available']))}\n"
-        "# HELP omni_runtime_info Fixed runtime topology and lifecycle state.\n"
-        "# TYPE omni_runtime_info gauge\n"
-        "omni_runtime_info"
+        "# HELP polaris_runtime_ready Whether the process-local runtime lifecycle is ready.\n"
+        "# TYPE polaris_runtime_ready gauge\n"
+        f"polaris_runtime_ready {int(bool(snapshot['ready']))}\n"
+        "# HELP polaris_runtime_coordination_available Whether process-local coordination is available.\n"
+        "# TYPE polaris_runtime_coordination_available gauge\n"
+        f"polaris_runtime_coordination_available {int(bool(snapshot['coordination_available']))}\n"
+        "# HELP polaris_runtime_info Fixed runtime topology and lifecycle state.\n"
+        "# TYPE polaris_runtime_info gauge\n"
+        "polaris_runtime_info"
         f'{{mode="{snapshot["mode"]}",state="{snapshot["state"]}"}} 1\n'
     )

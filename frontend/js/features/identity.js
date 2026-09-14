@@ -925,4 +925,4 @@ function initIdentityBindings() {
 }
 
 document.addEventListener('DOMContentLoaded', initIdentityBindings);
-document.addEventListener('omni:locale-change', renderIdentityConsoleForLocale);
+document.addEventListener('polaris:locale-change', renderIdentityConsoleForLocale);

@@ -1,7 +1,7 @@
-(function initializeOmniTheme() {
+(function initializePolarisTheme() {
     'use strict';
 
-    const STORAGE_KEY = 'omni_gateway_theme';
+    const STORAGE_KEY = 'polaris_theme';
     const SUPPORTED_PREFERENCES = new Set(['system', 'light', 'dark']);
     const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -47,7 +47,7 @@
             // Theme selection still applies for this page when browser storage is unavailable.
         }
         syncControl(result.preference);
-        document.dispatchEvent(new CustomEvent('omni:theme-changed', { detail: result }));
+        document.dispatchEvent(new CustomEvent('polaris:theme-changed', { detail: result }));
         return result;
     }
 
@@ -62,12 +62,12 @@
     systemThemeQuery.addEventListener('change', () => {
         if (readPreference() === 'system') {
             const result = applyTheme('system');
-            document.dispatchEvent(new CustomEvent('omni:theme-changed', { detail: result }));
+            document.dispatchEvent(new CustomEvent('polaris:theme-changed', { detail: result }));
         }
     });
 
     applyTheme(readPreference());
-    window.OmniTheme = Object.freeze({ readPreference, setPreference });
+    window.PolarisTheme = Object.freeze({ readPreference, setPreference });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeControl, { once: true });

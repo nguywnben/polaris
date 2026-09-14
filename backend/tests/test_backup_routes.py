@@ -50,7 +50,7 @@ class _BackupService:
         self.create_backup = AsyncMock(
             return_value=BackupArtifact(
                 content=b"encrypted-backup",
-                filename="omni-gateway-backup-20260909T000000Z.ogb",
+                filename="polaris-backup-20260909T000000Z.ogb",
                 created_at="2026-09-09T00:00:00+00:00",
                 manifest={"archive_version": 1},
             )
@@ -129,7 +129,7 @@ class BackupRouteTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, b"encrypted-backup")
-        self.assertEqual(response.media_type, "application/vnd.omni-gateway.backup+json")
+        self.assertEqual(response.media_type, "application/vnd.polaris.backup+json")
         self.assertIn("attachment", response.headers["content-disposition"])
         self.assertEqual(response.headers["cache-control"], "no-store")
         service.create_backup.assert_awaited_once_with("long enough secret")
@@ -184,7 +184,7 @@ class BackupRouteTests(unittest.IsolatedAsyncioTestCase):
             response = await create_sanitized_export(token="session")
 
         self.assertEqual(response.media_type, "application/json")
-        self.assertEqual(response.headers["x-omni-restorable"], "false")
+        self.assertEqual(response.headers["x-polaris-restorable"], "false")
         self.assertIn("sanitized", response.headers["content-disposition"])
 
     async def test_failures_use_stable_secret_free_errors(self) -> None:

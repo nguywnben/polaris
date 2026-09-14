@@ -236,7 +236,7 @@ git commit -m "feat(quota): add bounded rate-window reference"
 - Modify: `backend/tests/test_coordination_redis_live.py`
 
 **Interfaces:**
-- Produces: `QUOTA_RESERVE_SCRIPT`, `QUOTA_COMMIT_SCRIPT`, and `QUOTA_RELEASE_SCRIPT` with headers `omni:quota_*:v2`.
+- Produces: `QUOTA_RESERVE_SCRIPT`, `QUOTA_COMMIT_SCRIPT`, and `QUOTA_RELEASE_SCRIPT` with headers `polaris:quota_*:v2`.
 - Extends `_quota_keys(...)` with `quota:rate-buckets` and `quota:state-schema` keys while preserving the existing hash tag.
 - Schema marker encoding: `2|<epoch>|ready`; malformed, missing over non-empty state, v1, future, stale, or expiring markers fail closed.
 - Bucket encoding: `2|<absolute_second>|<requests>|<tokens>` in fields `0` through `60`.
@@ -247,7 +247,7 @@ git commit -m "feat(quota): add bounded rate-window reference"
 def test_quota_v2_scripts_are_constant_bounded(self) -> None:
     for name in ("quota_reserve", "quota_commit", "quota_release"):
         source = SCRIPT_SOURCES[name].upper()
-        self.assertIn(f"OMNI:{name}:V2".upper(), source)
+        self.assertIn(f"POLARIS:{name}:V2".upper(), source)
         self.assertNotIn("HGETALL', KEYS[2]", source)
         self.assertNotIn("FOR RESERVATION_ID", source)
         self.assertIn("RATE_BUCKET_COUNT = 61", source)
@@ -309,7 +309,7 @@ Append rate and schema keys to `_quota_keys`; retain the existing locator and op
 
 Run: `.venv\Scripts\python.exe -m unittest backend.tests.test_redis_state_store backend.tests.test_coordination_redis_live -v`
 
-Expected: dependency-free cases PASS; live Redis cases SKIP only when `OMNI_TEST_REDIS_URI` is absent.
+Expected: dependency-free cases PASS; live Redis cases SKIP only when `POLARIS_TEST_REDIS_URI` is absent.
 
 - [x] **Step 6: Commit the Redis v2 foundation**
 
@@ -571,7 +571,7 @@ git commit -m "feat(ha): gate quota state v2 reconciliation"
 
 **Interfaces:**
 - Produces: reproducible static/synthetic bounded-work evidence and an explicit retained external-topology blocker.
-- Preserves: empty `SUPPORTED_HA_ACTIVATION_RECORDS`, `WORKERS=1`, `OMNI_REPLICA_COUNT=1`, and Helm `replicaCount: 1`.
+- Preserves: empty `SUPPORTED_HA_ACTIVATION_RECORDS`, `WORKERS=1`, `POLARIS_REPLICA_COUNT=1`, and Helm `replicaCount: 1`.
 
 - [x] **Step 1: Run the focused quota and HA matrix**
 

@@ -157,19 +157,19 @@ def get_credential_audit_events() -> tuple[dict[str, Any], ...]:
 def render_credential_operation_metrics() -> str:
     """Render fixed-cardinality Prometheus counters and duration histograms."""
     lines = [
-        "# HELP omni_credential_operations_total Credential mutation attempts by bounded outcome.",
-        "# TYPE omni_credential_operations_total counter",
+        "# HELP polaris_credential_operations_total Credential mutation attempts by bounded outcome.",
+        "# TYPE polaris_credential_operations_total counter",
     ]
     with _evidence_lock:
         metric_keys = sorted(_operation_counts)
         for key in metric_keys:
             label = _metric_label(key)
-            lines.append(f"omni_credential_operations_total{label} {_operation_counts[key]}")
+            lines.append(f"polaris_credential_operations_total{label} {_operation_counts[key]}")
 
         lines.extend(
             [
-                "# HELP omni_credential_operation_duration_seconds Credential mutation duration.",
-                "# TYPE omni_credential_operation_duration_seconds histogram",
+                "# HELP polaris_credential_operation_duration_seconds Credential mutation duration.",
+                "# TYPE polaris_credential_operation_duration_seconds histogram",
             ]
         )
         for key in metric_keys:
@@ -177,20 +177,20 @@ def render_credential_operation_metrics() -> str:
             for bucket in _DURATION_BUCKETS_SECONDS:
                 count = _duration_buckets.get((*key, bucket), 0)
                 lines.append(
-                    "omni_credential_operation_duration_seconds_bucket"
+                    "polaris_credential_operation_duration_seconds_bucket"
                     f'{{{label_values},le="{bucket:g}"}} {count}'
                 )
             count = _duration_counts[key]
             lines.append(
-                "omni_credential_operation_duration_seconds_bucket"
+                "polaris_credential_operation_duration_seconds_bucket"
                 f'{{{label_values},le="+Inf"}} {count}'
             )
             lines.append(
-                f"omni_credential_operation_duration_seconds_sum{{{label_values}}} "
+                f"polaris_credential_operation_duration_seconds_sum{{{label_values}}} "
                 f"{_duration_sums[key]:.6f}"
             )
             lines.append(
-                f"omni_credential_operation_duration_seconds_count{{{label_values}}} {count}"
+                f"polaris_credential_operation_duration_seconds_count{{{label_values}}} {count}"
             )
     return "\n".join(lines) + "\n"
 

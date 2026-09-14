@@ -39,8 +39,8 @@ class FakeRuntime:
     def context(self) -> dict[str, object]:
         return {
             "compose_files": ["deploy/docker-compose.yml"],
-            "project_name": "omni-gateway-test",
-            "data_volume": "omni-gateway-test-data",
+            "project_name": "polaris-test",
+            "data_volume": "polaris-test-data",
         }
 
     def resolve_image(self, reference: str) -> str:
@@ -87,13 +87,13 @@ class ComposeUpdateTests(unittest.TestCase):
                 validate_image_reference(value)
 
         validate_image_reference("nguywnben/polaris:1.5.0")
-        validate_image_reference("localhost:5000/omni-gateway:1.5.0")
-        validate_image_reference("registry.example/omni@sha256:" + "a" * 64)
+        validate_image_reference("localhost:5000/polaris:1.5.0")
+        validate_image_reference("registry.example/polaris@sha256:" + "a" * 64)
         validate_image_reference("sha256:" + "b" * 64)
 
         for value in (
-            "https://registry.example/omni:1.5.0",
-            "user@registry.example/omni:1.5.0",
+            "https://registry.example/polaris:1.5.0",
+            "user@registry.example/polaris:1.5.0",
         ):
             with self.subTest(value=value), self.assertRaises(UpdateError):
                 validate_image_reference(value)

@@ -97,7 +97,7 @@ jobs:
               "/api/auth/keys",
               "/api/credentials/status",
               "/api/model-catalog",
-              "/api/model-pools/omway",
+              "/api/model-pools/polaris",
           }
           missing = sorted(required - paths)
           forbidden_prefixes = tuple(

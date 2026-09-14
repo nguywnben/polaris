@@ -29,7 +29,7 @@ from core.security_coordination import IdentitySecurityCoordinationStore
 
 _OIDC_TRANSACTION_MASTER_KEY_CONFIG = "_internal_oidc_transaction_master_key_v1"
 _OIDC_TRANSACTION_MASTER_KEY_BYTES = 32
-_OIDC_TRANSACTION_HMAC_DOMAIN = b"omni-gateway:oidc-transaction-master:v1\0"
+_OIDC_TRANSACTION_HMAC_DOMAIN = b"polaris:oidc-transaction-master:v1\0"
 
 
 class OidcLoginError(RuntimeError):

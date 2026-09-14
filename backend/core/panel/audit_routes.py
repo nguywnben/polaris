@@ -269,7 +269,7 @@ async def export_audit_events(
         media_type=export.media_type,
         headers={
             "Content-Disposition": (
-                f'attachment; filename="omni-audit-{generated_at}.{export.extension}"'
+                f'attachment; filename="polaris-audit-{generated_at}.{export.extension}"'
             ),
             "X-Audit-Event-Count": str(export.event_count),
             "X-Audit-Byte-Count": str(export.byte_count),

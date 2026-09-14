@@ -91,7 +91,7 @@ restrict network ingress or enable the loopback-only control according to their 
 ## Operations and Evidence
 
 Prometheus output includes only the fixed-cardinality counter
-`omni_management_session_operations_total{action,outcome}`. Actions are session lifecycle
+`polaris_management_session_operations_total{action,outcome}`. Actions are session lifecycle
 operations such as issue, resolve, revoke, and principal revocation; outcomes are bounded states
 such as succeeded, not found, expired, stale, or failed. Principal IDs, session IDs, tokens, client
 addresses, and exception messages are never metric labels.

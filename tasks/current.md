@@ -287,7 +287,7 @@ Do not push unless the user requests it.
   shutdown exited 0 in 0.96 seconds with a read-only root filesystem.
 - `docs/evidence/p1.1-authoritative-configuration-schema.md`
 - All 124 documented environment variables now have one typed Basic/Advanced/Experimental schema;
-  startup validates scalar boundaries before storage initialization and warns on unknown `OMNI_*`
+  startup validates scalar boundaries before storage initialization and warns on unknown `POLARIS_*`
   controls.
 - Settings field ownership, secret-safe metadata, environment locks, restart classification,
   writable/resettable keys, generated documentation, and `.env`/Compose parity derive from or are

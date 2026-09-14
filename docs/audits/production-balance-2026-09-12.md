@@ -30,7 +30,7 @@ The current branch is not a valid production candidate despite the completed R1 
 
 - `python tools/quality_gate.py fast` fails because one committed test file is not formatted.
 - `backend.tests.test_compatibility_guard` reports two failures because
-  `PUT /api/model-pools/omway` changed its request schema after R1.
+  `PUT /api/model-pools/polaris` changed its request schema after R1.
 - Seven Pydantic v1-style configuration sites still emit deprecation warnings.
 - The maintainability inventory records 502 broad exception handlers, including 321 that do not
   re-raise. Many are legitimate process/API boundaries, but the core authentication, inference,
@@ -100,4 +100,3 @@ The current branch is not a valid production candidate despite the completed R1 
 - No attempt to make MongoDB equal to SQLite/PostgreSQL or community translations equal to the
   curated locales.
 - No new Wave, Phase, suffix, hidden denominator, or follow-on task discovered during execution.
-

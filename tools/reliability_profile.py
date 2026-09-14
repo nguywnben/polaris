@@ -41,8 +41,8 @@ PROFILE_PATHS = {
     "routine": PROFILE_PATH,
     "soak": ROOT / "tools" / "reliability-soak-profile.json",
 }
-MODEL_ID = "omni-p55-deterministic"
-OWNER_PASSWORD = "Omni-Reliability-Synthetic-Owner-2026"
+MODEL_ID = "polaris-p55-deterministic"
+OWNER_PASSWORD = "Polaris-Reliability-Synthetic-Owner-2026"
 MIB = 2**20
 
 
@@ -173,7 +173,7 @@ def load_profile(path: Path = PROFILE_PATH) -> ReliabilityProfile:
     ):
         raise ValueError("Dashboard viewport must contain two bounded integer dimensions.")
     schema_version = raw.get("schema_version")
-    if schema_version != "omni.reliability-profile.v1":
+    if schema_version != "polaris.reliability-profile.v1":
         raise ValueError("Reliability profile schema version is unsupported.")
     canonical = json.dumps(raw, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return ReliabilityProfile(
@@ -385,7 +385,7 @@ def _free_port() -> int:
 
 class _ProviderHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "OmniP55Fixture/1"
+    server_version = "PolarisP55Fixture/1"
 
     def log_message(self, _format: str, *_args: object) -> None:
         return
@@ -552,7 +552,7 @@ class CandidateRuntime:
             WORKERS="1",
             PANEL_PASSWORD="",
             SETUP_TOKEN="",
-            OMNI_RUNTIME_MODE="standalone",
+            POLARIS_RUNTIME_MODE="standalone",
             ENABLE_LOG="0",
             ENABLE_METRICS="0",
             OTEL_EXPORTER_OTLP_ENDPOINT="",
@@ -636,7 +636,7 @@ def _bootstrap(base_url: str, provider_url: str) -> tuple[str, dict[str, str]]:
         if MODEL_ID not in {entry.get("model_id") for entry in catalog.json().get("catalog", [])}:
             raise RuntimeError("Deterministic model was not discovered through the gateway.")
         route = client.post(
-            "/api/model-routes/omway",
+            "/api/model-routes/polaris",
             json={"selected_models": [MODEL_ID], "enabled": True},
         )
         route.raise_for_status()
@@ -644,13 +644,13 @@ def _bootstrap(base_url: str, provider_url: str) -> tuple[str, dict[str, str]]:
             "/api/virtual-keys",
             json={
                 "name": "Reliability profile",
-                "allowed_models": ["omway"],
+                "allowed_models": ["polaris"],
                 "scopes": ["inference:openai"],
             },
         )
         key_response.raise_for_status()
         key = str(key_response.json().get("key") or "")
-        if not key.startswith("sk-ogw-"):
+        if not key.startswith("sk-polaris-"):
             raise RuntimeError("Virtual key bootstrap did not return the one-time secret.")
         cookies = {cookie.name: cookie.value for cookie in client.cookies.jar}
     return key, cookies
@@ -837,7 +837,7 @@ async def _run_workload(
                         "/v1/chat/completions",
                         headers={**headers, "X-Request-ID": f"p55-{sequence:08d}"},
                         json={
-                            "model": "omway",
+                            "model": "polaris",
                             "messages": [
                                 {
                                     "role": "user",
@@ -970,7 +970,7 @@ def _post_restart_request(base_url: str, api_key: str) -> int:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "omway",
+                "model": "polaris",
                 "messages": [{"role": "user", "content": "post-restart-check"}],
                 "max_tokens": 4,
                 "stream": False,
@@ -1040,7 +1040,7 @@ def run_profile(profile: ReliabilityProfile) -> dict[str, Any]:
                 graceful_shutdown_complete=shutdown_complete,
             )
             return {
-                "schema_version": "omni.reliability-result.v1",
+                "schema_version": "polaris.reliability-result.v1",
                 "candidate_commit": candidate,
                 "source_checkout": "git-archive",
                 "profile": {

@@ -89,19 +89,19 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
 
     def test_renders_per_provider_counters(self):
         output = render_prometheus_metrics(SAMPLE_ROWS)
-        self.assertIn('omni_requests_total{provider="google_ai_studio"} 10', output)
-        self.assertIn('omni_requests_success_total{provider="google_ai_studio"} 9', output)
-        self.assertIn('omni_requests_failed_total{provider="google_ai_studio"} 1', output)
-        self.assertIn('omni_tokens_total{provider="openai_platform"} 900', output)
-        self.assertIn('omni_cost_usd_total{provider="google_ai_studio"} 0.500000', output)
-        self.assertIn("omni_uptime_seconds", output)
-        self.assertIn("omni_response_cache_hits_total", output)
+        self.assertIn('polaris_requests_total{provider="google_ai_studio"} 10', output)
+        self.assertIn('polaris_requests_success_total{provider="google_ai_studio"} 9', output)
+        self.assertIn('polaris_requests_failed_total{provider="google_ai_studio"} 1', output)
+        self.assertIn('polaris_tokens_total{provider="openai_platform"} 900', output)
+        self.assertIn('polaris_cost_usd_total{provider="google_ai_studio"} 0.500000', output)
+        self.assertIn("polaris_uptime_seconds", output)
+        self.assertIn("polaris_response_cache_hits_total", output)
 
     def test_help_and_type_lines_present(self):
         output = render_prometheus_metrics(SAMPLE_ROWS)
-        self.assertIn("# HELP omni_requests_total", output)
-        self.assertIn("# TYPE omni_requests_total counter", output)
-        self.assertIn("# TYPE omni_uptime_seconds gauge", output)
+        self.assertIn("# HELP polaris_requests_total", output)
+        self.assertIn("# TYPE polaris_requests_total counter", output)
+        self.assertIn("# TYPE polaris_uptime_seconds gauge", output)
 
     def test_unknown_provider_labels_are_collapsed(self):
         rows = [dict(SAMPLE_ROWS[0], provider='weird"provider\\name')]
@@ -111,10 +111,10 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
 
     def test_empty_rows_still_render_process_metrics(self):
         output = render_prometheus_metrics([])
-        self.assertIn("omni_uptime_seconds", output)
-        self.assertIn("omni_response_cache_entries", output)
-        self.assertIn("omni_virtual_key_quota_events_total", output)
-        self.assertIn("omni_storage_ready 1", output)
+        self.assertIn("polaris_uptime_seconds", output)
+        self.assertIn("polaris_response_cache_entries", output)
+        self.assertIn("polaris_virtual_key_quota_events_total", output)
+        self.assertIn("polaris_storage_ready 1", output)
 
     def test_red_metrics_have_only_fixed_labels(self):
         snapshot = {
@@ -130,8 +130,8 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
             "routes": [{"model": "must-not-be-a-label", "route": "secret-route"}],
         }
         output = render_prometheus_metrics([], snapshot)
-        self.assertIn('omni_red_duration_milliseconds{quantile="0.95"} 2', output)
-        self.assertIn('omni_exhaustion_events{category="quota"} 2', output)
+        self.assertIn('polaris_red_duration_milliseconds{quantile="0.95"} 2', output)
+        self.assertIn('polaris_exhaustion_events{category="quota"} 2', output)
         self.assertNotIn("must-not-be-a-label", output)
         self.assertNotIn("secret-route", output)
 
@@ -149,24 +149,24 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
             )
 
         output = render_prometheus_metrics([])
-        self.assertIn("# TYPE omni_credential_operations_total counter", output)
+        self.assertIn("# TYPE polaris_credential_operations_total counter", output)
         self.assertIn(
             'operation="toggle",outcome="succeeded",mode="provider",variant="google_ai_studio"',
             output,
         )
-        self.assertIn("# TYPE omni_credential_operation_duration_seconds histogram", output)
+        self.assertIn("# TYPE polaris_credential_operation_duration_seconds histogram", output)
         self.assertNotIn("must-not-appear", output)
 
     def test_coordination_metrics_are_exposed_with_fixed_labels_and_empty_metadata(self):
         empty = render_prometheus_metrics([])
-        self.assertIn("# HELP omni_coordination_operations_total", empty)
-        self.assertIn("# TYPE omni_coordination_operations_total counter", empty)
+        self.assertIn("# HELP polaris_coordination_operations_total", empty)
+        self.assertIn("# TYPE polaris_coordination_operations_total counter", empty)
 
         record_coordination_operation_for_testing("unknown", "reserve_quota", "rejected")
         record_coordination_operation_for_testing(["untrusted"], ["tenant/key"], ["top-secret"])
         output = render_prometheus_metrics([])
         self.assertIn(
-            'omni_coordination_operations_total{backend="unknown",operation="reserve_quota",result="rejected"} 1',
+            'polaris_coordination_operations_total{backend="unknown",operation="reserve_quota",result="rejected"} 1',
             output,
         )
         self.assertNotIn("untrusted", output)
@@ -192,7 +192,7 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
         self.assertTrue(decision.allowed)
         output = render_prometheus_metrics([])
         self.assertIn(
-            'omni_coordination_operations_total{backend="in_memory",operation="reserve_security_attempt",result="success"} 1',
+            'polaris_coordination_operations_total{backend="in_memory",operation="reserve_security_attempt",result="success"} 1',
             output,
         )
         self.assertNotIn(client_index, output)
@@ -202,11 +202,11 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
         record_routing_coordination_metric_for_testing("tenant/cache-key", "top-secret")
         output = render_prometheus_metrics([])
         self.assertIn(
-            'omni_routing_coordination_events_total{operation="lease_acquire",result="success"} 1',
+            'polaris_routing_coordination_events_total{operation="lease_acquire",result="success"} 1',
             output,
         )
         self.assertIn(
-            'omni_routing_coordination_events_total{operation="generation_read",result="conflict"} 1',
+            'polaris_routing_coordination_events_total{operation="generation_read",result="conflict"} 1',
             output,
         )
         self.assertNotIn("tenant/cache-key", output)
@@ -219,7 +219,7 @@ class RenderPrometheusMetricsTests(unittest.TestCase):
         self.assertFalse(result.committed)
         output = render_prometheus_metrics([])
         self.assertIn(
-            'omni_coordination_operations_total{backend="unknown",operation="commit_quota",result="rejected"} 1',
+            'polaris_coordination_operations_total{backend="unknown",operation="commit_quota",result="rejected"} 1',
             output,
         )
         self.assertNotIn('operation="commit_quota",result="success"', output)
@@ -244,7 +244,7 @@ class MetricsEndpointTests(unittest.TestCase):
             response = _run(metrics(authorization=f"Bearer {'x' * 32}"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/plain", response.media_type)
-        self.assertIn(b"omni_requests_total", response.body)
+        self.assertIn(b"polaris_requests_total", response.body)
 
     def test_token_protection_rejects_missing_bearer(self):
         env = {"PROMETHEUS_EXPORT_ENABLED": "true", "METRICS_TOKEN": "s" * 32}

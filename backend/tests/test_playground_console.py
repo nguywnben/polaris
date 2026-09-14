@@ -89,7 +89,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self._run_contract(
             """
 const draft = {
-    model: 'omway', stream: true, timeoutSeconds: 30, system: 'Be concise.',
+    model: 'polaris', stream: true, timeoutSeconds: 30, system: 'Be concise.',
     messages: [{role: 'user', content: 'Hello'}, {role: 'assistant', content: 'Hi'}],
     temperature: 0.4, topP: 0.8, maxTokens: 512
 };
@@ -116,7 +116,7 @@ assert(emptyMessageError === 'playground.error_empty_message', 'empty messages m
     def test_copy_examples_are_protocol_accurate_and_never_contain_a_real_key(self) -> None:
         self._run_contract(
             """
-const draft = {protocol: 'openai_chat', model: 'omway', stream: false,
+const draft = {protocol: 'openai_chat', model: 'polaris', stream: false,
     timeoutSeconds: 30, system: '', messages: [{role: 'user', content: "What's new?"}],
     temperature: null, topP: null, maxTokens: 256};
         for (const format of ['curl', 'powershell', 'python', 'node']) {
@@ -148,7 +148,7 @@ assert(nodeGemini.includes('systemInstruction'), 'Node Gemini system instruction
     ) -> None:
         self._run_contract(
             """
-const base = {model: 'omway', stream: true, timeoutSeconds: 30, system: '',
+const base = {model: 'polaris', stream: true, timeoutSeconds: 30, system: '',
     messages: [{role: 'user', content: 'Hello'}], temperature: null, topP: null,
     maxTokens: 256};
 for (const protocol of ['openai_chat', 'openai_responses', 'anthropic_messages']) {
@@ -173,9 +173,9 @@ const metadata = {schema_version: 'playground-metadata.v1', status_code: 200};
 const encoded = Buffer.from(JSON.stringify(metadata), 'utf8').toString('base64url');
 assert(decode(encoded).status_code === 200, 'metadata header decode');
 const hostile = '<img src=x onerror=globalThis.pwned=true>';
-const stream = `data: ${JSON.stringify({choices: [{delta: {content: hostile}}]})}\n\nevent: omni.playground.metadata\ndata: ${JSON.stringify(metadata)}\n\n`;
+const stream = `data: ${JSON.stringify({choices: [{delta: {content: hostile}}]})}\n\nevent: polaris.playground.metadata\ndata: ${JSON.stringify(metadata)}\n\n`;
 const result = split(stream);
-assert(result.output.includes(hostile) && !result.output.includes('omni.playground.metadata'), 'native stream split');
+assert(result.output.includes(hostile) && !result.output.includes('polaris.playground.metadata'), 'native stream split');
 assert(result.metadata.status_code === 200, 'stream metadata');
 const element = {textContent: '', innerHTML: 'unchanged'};
 replaceText(element, hostile);
@@ -192,7 +192,7 @@ assert(element.innerHTML === 'unchanged' && globalThis.pwned !== true, 'output m
         self.assertIn("PLAYGROUND_MAX_TOTAL_CHARS = 524288", source)
         self.assertIn("PLAYGROUND_MAX_OUTPUT_BYTES = 2 * 1024 * 1024", source)
         self.assertIn("PLAYGROUND_RENDER_INTERVAL_MS = 50", source)
-        self.assertIn("omni:locale-change", source)
+        self.assertIn("polaris:locale-change", source)
         self.assertIn("hasRun: false", source)
         self.assertNotIn("localStorage", source)
         self.assertNotIn("sessionStorage.setItem", source)

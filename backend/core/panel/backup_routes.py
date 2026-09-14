@@ -24,7 +24,7 @@ from log import log
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 router = APIRouter(prefix="/api/backups", tags=["backups"])
-_BACKUP_MEDIA_TYPE = "application/vnd.omni-gateway.backup+json"
+_BACKUP_MEDIA_TYPE = "application/vnd.polaris.backup+json"
 
 
 class BackupCreateRequest(BaseModel):
@@ -250,7 +250,7 @@ async def create_sanitized_export(token: str = Depends(verify_panel_token)):
             content,
             filename=f"polaris-sanitized-{stamp}.json",
             media_type="application/json",
-            headers={"X-Omni-Restorable": "false"},
+            headers={"X-Polaris-Restorable": "false"},
         )
     except Exception as exc:
         return _workflow_error("sanitized export", exc)

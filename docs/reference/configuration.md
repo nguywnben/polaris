@@ -9,8 +9,8 @@ Values marked `secret` never expose a default through the Settings API.
 | `HOST` | basic | string | `0.0.0.0` | restart | system |
 | `PORT` | basic | integer | `4283` | restart | system |
 | `HOST_PORT` | basic | integer | `4283` | read_only | environment |
-| `OMNI_RUNTIME_MODE` | basic | string | `standalone` | read_only | environment |
-| `OMNI_REPLICA_COUNT` | basic | integer | `1` | read_only | environment |
+| `POLARIS_RUNTIME_MODE` | basic | string | `standalone` | read_only | environment |
+| `POLARIS_REPLICA_COUNT` | basic | integer | `1` | read_only | environment |
 | `WORKERS` | basic | integer | `1` | read_only | environment |
 | `CORS_ORIGINS` | basic | csv | `(empty)` | read_only | environment |
 | `CORS_ORIGIN_REGEX` | basic | string | `(empty)` | read_only | environment |
@@ -49,7 +49,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `OIDC_START_MAX_TRACKED_CLIENTS` | advanced | integer | `10000` | read_only | environment |
 | `CREDENTIALS_DIR` | basic | string | `./backend/data/creds` | restart | system |
 | `MONGODB_URI` | advanced | string / secret | `(empty)` | read_only | environment |
-| `MONGODB_DATABASE` | advanced | string | `omni_gateway` | read_only | environment |
+| `MONGODB_DATABASE` | advanced | string | `polaris` | read_only | environment |
 | `POSTGRESQL_URI` | advanced | string / secret | `(empty)` | read_only | environment |
 | `CODE_ASSIST_CREDENTIALS_JSON` | advanced | json / secret | `(empty)` | read_only | environment |
 | `CREDENTIALS_JSON` | advanced | json / secret | `(empty)` | read_only | environment |

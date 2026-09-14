@@ -263,7 +263,7 @@ class AuditRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.media_type, "application/x-ndjson")
         self.assertRegex(
             response.headers["content-disposition"],
-            r'^attachment; filename="omni-audit-\d{8}T\d{6}Z\.jsonl"$',
+            r'^attachment; filename="polaris-audit-\d{8}T\d{6}Z\.jsonl"$',
         )
         self.assertEqual(response.headers["x-audit-event-count"], "1")
         self.assertEqual(json.loads(payload), service.page.events[0].to_record())

@@ -4,7 +4,7 @@ const PLAYGROUND_MAX_TOTAL_CHARS = 524288;
 const PLAYGROUND_MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
 const PLAYGROUND_RENDER_INTERVAL_MS = 50;
 const PLAYGROUND_KEY_PLACEHOLDER = '<YOUR_POLARIS_KEY>';
-const PLAYGROUND_HANDOFF_KEY = 'omni_gateway_playground_handoff_v1';
+const PLAYGROUND_HANDOFF_KEY = 'polaris_playground_handoff_v1';
 const PLAYGROUND_PROTOCOLS = new Set([
     'openai_chat', 'openai_responses', 'anthropic_messages', 'gemini'
 ]);
@@ -215,7 +215,7 @@ function splitPlaygroundStream(source) {
     for (const frame of frames) {
         if (!frame) continue;
         const lines = frame.split('\n');
-        if (lines.some(line => line.trim() === 'event: omni.playground.metadata')) {
+        if (lines.some(line => line.trim() === 'event: polaris.playground.metadata')) {
             const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
             try { metadata = JSON.parse(data); } catch (_error) { metadata = null; }
             continue;
@@ -619,7 +619,7 @@ async function runPlayground() {
         const streamed = boundary.stream ? splitPlaygroundStream(source) : {output: source, metadata: null};
         let metadata = streamed.metadata;
         if (!metadata) {
-            try { metadata = decodePlaygroundMetadataHeader(response.headers.get('x-omni-playground-metadata')); }
+            try { metadata = decodePlaygroundMetadataHeader(response.headers.get('x-polaris-playground-metadata')); }
             catch (_error) { metadata = null; }
         }
         let output = streamed.output;
@@ -673,7 +673,7 @@ async function copyPlaygroundExample() {
 }
 
 if (typeof document !== 'undefined') {
-    document.addEventListener('omni:locale-change', () => {
+    document.addEventListener('polaris:locale-change', () => {
         const state = playgroundRuntimeState();
         if (!state.initialized) return;
         syncPlaygroundMessagesFromDom();

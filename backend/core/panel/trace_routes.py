@@ -283,7 +283,7 @@ async def export_request_traces(
         iter(export.chunks),
         media_type=export.media_type,
         headers={
-            "Content-Disposition": f'attachment; filename="omni-traces-{generated_at}.{export.extension}"',
+            "Content-Disposition": f'attachment; filename="polaris-traces-{generated_at}.{export.extension}"',
             "X-Trace-Count": str(export.trace_count),
             "X-Trace-Byte-Count": str(export.byte_count),
             "X-Trace-Max-Count": str(MAX_REQUEST_TRACE_EXPORT_TRACES),

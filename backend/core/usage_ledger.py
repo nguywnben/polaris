@@ -690,7 +690,7 @@ def usage_liability_page(
 
     if not isinstance(records, Sequence) or len(records) > MAX_LIABILITY_PAGE:
         raise ValueError("Usage liability records are invalid.")
-    hasher = hashlib.sha256(b"omni-usage-liability-page-v1\x00")
+    hasher = hashlib.sha256(b"polaris-usage-liability-page-v1\x00")
     liability = 0
     active_reservations = 0
     identifiers: list[str] = []

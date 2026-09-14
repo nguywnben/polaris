@@ -67,7 +67,7 @@ class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
         )
         platform = build_anthropic_headers(
             {"credential_type": "api_key", "api_key": "api-secret"},
-            user_agent="omni-gateway/test",
+            user_agent="polaris/test",
         )
         self.assertEqual(oauth["Authorization"], "Bearer oauth-secret")
         self.assertNotIn("x-api-key", oauth)

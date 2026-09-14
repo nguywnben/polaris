@@ -121,7 +121,7 @@ class AuditConsoleContractTests(unittest.TestCase):
             "async function saveAuditRetention", 1
         )[0]
 
-        self.assertIn("omni-audit-", source)
+        self.assertIn("polaris-audit-", source)
         self.assertIn("URL.createObjectURL", source)
         self.assertIn("URL.revokeObjectURL", source)
         self.assertIn("AUDIT_EXPORT_FILENAME_PATTERN", source)

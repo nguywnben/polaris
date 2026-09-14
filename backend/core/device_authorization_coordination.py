@@ -24,9 +24,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 _FLOW_PATTERN = re.compile(r"^codex_[A-Za-z0-9_-]{43}$")
 _LEASE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22}$")
-_HMAC_DOMAIN = b"omni-gateway:device-authorization:v1\0"
-_PAYLOAD_KEY_DOMAIN = b"omni-gateway:device-authorization-payload-key:v1\0"
-_PAYLOAD_AAD = b"omni-gateway:device-authorization-payload:v1"
+_HMAC_DOMAIN = b"polaris:device-authorization:v1\0"
+_PAYLOAD_KEY_DOMAIN = b"polaris:device-authorization-payload-key:v1\0"
+_PAYLOAD_AAD = b"polaris:device-authorization-payload:v1"
 _MAX_PAYLOAD_BYTES = 8 * 1024
 _MAX_CAS_RETRIES = 4
 

@@ -181,7 +181,7 @@ assert(!write.checked, 'Removing management read must remove management write');
         ):
             self.assertIn(f'id="{control_id}"', self.fragment)
         self.assertIn("renderAccessClientExample", self.feature)
-        self.assertIn("<YOUR_OMNI_VIRTUAL_KEY>", self.feature)
+        self.assertIn("<YOUR_POLARIS_VIRTUAL_KEY>", self.feature)
         self.assertIn('<option value="openai_chat"', self.fragment)
         self.assertIn('<option value="openai_responses"', self.fragment)
         self.assertIn("cURL (Bash)", self.fragment)
@@ -197,7 +197,7 @@ assert(!write.checked, 'Removing management read must remove management write');
 for (const format of ['curl', 'powershell', 'python', 'node']) {
     for (const protocol of ['openai_chat', 'openai_responses', 'anthropic', 'gemini']) {
         const text = build(protocol, 'http://127.0.0.1:4283', format);
-        assert(text.includes('<YOUR_OMNI_VIRTUAL_KEY>'), `${format}/${protocol} placeholder`);
+        assert(text.includes('<YOUR_POLARIS_VIRTUAL_KEY>'), `${format}/${protocol} placeholder`);
     }
 }
 assert(build('openai_responses', 'http://localhost', 'curl').includes('/v1/responses'), 'Responses route');

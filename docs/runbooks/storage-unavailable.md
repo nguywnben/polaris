@@ -3,7 +3,7 @@
 ## Contain
 
 1. Treat `/health` as process liveness only. Keep traffic blocked while `/ready` returns 503 or
-   `omni_storage_ready` is 0.
+   `polaris_storage_ready` is 0.
 2. Confirm the configured tier and that exactly one gateway worker and one replica are running.
 3. Do not clear an external URI, create a blank database, delete SQLite WAL/SHM files, or repeatedly
    restart against suspected corruption. Preserve the current database and logs for diagnosis.
@@ -32,7 +32,7 @@
 
 1. Restore the exact selected backend or a verified SQLite `.ogb` recovery point, then restart one
    gateway worker only.
-2. Confirm `/ready` returns 200 and `omni_storage_ready` is 1.
+2. Confirm `/ready` returns 200 and `polaris_storage_ready` is 1.
 3. Perform an authenticated, non-secret management write and confirm audit/trace and usage records
    persist across one controlled restart.
 4. Retain the incident's last known-good backup ID, application version, backend tier, and bounded

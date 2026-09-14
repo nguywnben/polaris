@@ -210,7 +210,7 @@ async def authenticate_flexible(
 
     try:
         request_compression_policy = compression_policy_from_request_header(
-            request.headers.get("x-omni-compression")
+            request.headers.get("x-polaris-compression")
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -313,7 +313,7 @@ PANEL_SESSION_ALGORITHM = "HS256"
 PANEL_SESSION_COOKIE = "panel_session"
 PANEL_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 _PANEL_AUTH_REFERENCE_KEY = secrets.token_bytes(32)
-_PANEL_AUTH_REFERENCE_DOMAIN = b"omni-gateway:panel-auth-reference:v1\0"
+_PANEL_AUTH_REFERENCE_DOMAIN = b"polaris:panel-auth-reference:v1\0"
 
 
 class _VerifiedPanelToken(str):

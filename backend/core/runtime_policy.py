@@ -11,11 +11,11 @@ from core.coordination import MAX_COORDINATION_INTEGER
 
 _RETIRED_COORDINATION_FIELDS = (
     "REDIS_URL",
-    "OMNI_COORDINATION_NAMESPACE",
-    "OMNI_DEPLOYMENT_ID",
-    "OMNI_COORDINATION_KEY",
-    "OMNI_COORDINATION_EPOCH",
-    "OMNI_EXPERIMENTAL_COORDINATION",
+    "POLARIS_COORDINATION_NAMESPACE",
+    "POLARIS_DEPLOYMENT_ID",
+    "POLARIS_COORDINATION_KEY",
+    "POLARIS_COORDINATION_EPOCH",
+    "POLARIS_EXPERIMENTAL_COORDINATION",
 )
 
 
@@ -53,17 +53,17 @@ class RuntimePolicy:
         environment: Mapping[str, str] | None = None,
     ) -> RuntimePolicy:
         selected = os.environ if environment is None else environment
-        mode = _value(selected, "OMNI_RUNTIME_MODE", RuntimeMode.STANDALONE.value)
+        mode = _value(selected, "POLARIS_RUNTIME_MODE", RuntimeMode.STANDALONE.value)
         if mode != RuntimeMode.STANDALONE:
-            raise RuntimeError("OMNI_RUNTIME_MODE must be standalone.")
+            raise RuntimeError("POLARIS_RUNTIME_MODE must be standalone.")
 
         workers = _positive_integer(selected, "WORKERS", "1")
         if workers != 1:
             raise RuntimeError("WORKERS must remain 1 for the supported standalone runtime.")
-        replicas = _positive_integer(selected, "OMNI_REPLICA_COUNT", "1")
+        replicas = _positive_integer(selected, "POLARIS_REPLICA_COUNT", "1")
         if replicas != 1:
             raise RuntimeError(
-                "OMNI_REPLICA_COUNT must remain 1 for the supported standalone runtime."
+                "POLARIS_REPLICA_COUNT must remain 1 for the supported standalone runtime."
             )
 
         retired = [name for name in _RETIRED_COORDINATION_FIELDS if _value(selected, name)]

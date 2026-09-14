@@ -1,6 +1,6 @@
 """Opt-in live parity tests for shared durable identity backends.
 
-Set ``OMNI_TEST_POSTGRESQL_URI`` and/or ``OMNI_TEST_MONGODB_URI`` to run these
+Set ``POLARIS_TEST_POSTGRESQL_URI`` and/or ``POLARIS_TEST_MONGODB_URI`` to run these
 tests. Each case creates a unique namespace and removes only that namespace.
 """
 
@@ -24,18 +24,18 @@ from core.storage.identity_mongodb import MongoDBIdentityRepository
 from core.storage.identity_postgresql import PostgreSQLIdentityRepository
 from tests.identity_repository_contract import IdentityRepositoryParityMixin
 
-POSTGRESQL_URI = os.getenv("OMNI_TEST_POSTGRESQL_URI", "").strip()
-MONGODB_URI = os.getenv("OMNI_TEST_MONGODB_URI", "").strip()
+POSTGRESQL_URI = os.getenv("POLARIS_TEST_POSTGRESQL_URI", "").strip()
+MONGODB_URI = os.getenv("POLARIS_TEST_MONGODB_URI", "").strip()
 NOW = datetime(2026, 8, 27, 4, 0, tzinfo=timezone.utc)
 
 
-@unittest.skipUnless(POSTGRESQL_URI, "OMNI_TEST_POSTGRESQL_URI is not configured")
+@unittest.skipUnless(POSTGRESQL_URI, "POLARIS_TEST_POSTGRESQL_URI is not configured")
 class LivePostgreSQLIdentityRepositoryTests(
     IdentityRepositoryParityMixin,
     unittest.IsolatedAsyncioTestCase,
 ):
     async def asyncSetUp(self):
-        self.schema_name = f"omni_identity_test_{uuid.uuid4().hex}"
+        self.schema_name = f"polaris_identity_test_{uuid.uuid4().hex}"
         admin = await asyncpg.connect(POSTGRESQL_URI)
         try:
             await admin.execute(f'CREATE SCHEMA "{self.schema_name}"')
@@ -64,13 +64,13 @@ class LivePostgreSQLIdentityRepositoryTests(
         return restarted
 
 
-@unittest.skipUnless(MONGODB_URI, "OMNI_TEST_MONGODB_URI is not configured")
+@unittest.skipUnless(MONGODB_URI, "POLARIS_TEST_MONGODB_URI is not configured")
 class LiveMongoDBIdentityRepositoryTests(
     IdentityRepositoryParityMixin,
     unittest.IsolatedAsyncioTestCase,
 ):
     async def asyncSetUp(self):
-        self.database_name = f"omni_identity_test_{uuid.uuid4().hex}"
+        self.database_name = f"polaris_identity_test_{uuid.uuid4().hex}"
         self.client = AsyncMongoClient(MONGODB_URI)
         self.database = self.client[self.database_name]
         self.collection = self.database["management_identity_state"]

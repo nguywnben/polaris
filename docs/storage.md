@@ -76,7 +76,7 @@ PostgreSQL qualification is optional and requires a disposable database named on
 test environment variable:
 
 ```powershell
-$env:OMNI_TEST_POSTGRESQL_URI = "postgresql://user:password@127.0.0.1:5432/omni_test"
+$env:POLARIS_TEST_POSTGRESQL_URI = "postgresql://user:password@127.0.0.1:5432/polaris_test"
 python -m unittest backend.tests.test_durable_family_migration backend.tests.test_identity_repository_live backend.tests.test_usage_ledger_live
 ```
 

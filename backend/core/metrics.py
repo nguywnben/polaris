@@ -79,11 +79,11 @@ def render_prometheus_metrics(
         lines.append(f"# HELP {name} {help_text}")
         lines.append(f"# TYPE {name} {metric_type}")
 
-    emit("omni_uptime_seconds", "gauge", "Seconds since the gateway process started.")
-    lines.append(f"omni_uptime_seconds {max(0.0, time.time() - _PROCESS_STARTED_AT):.0f}")
+    emit("polaris_uptime_seconds", "gauge", "Seconds since the gateway process started.")
+    lines.append(f"polaris_uptime_seconds {max(0.0, time.time() - _PROCESS_STARTED_AT):.0f}")
 
     emit(
-        "omni_requests_total",
+        "polaris_requests_total",
         "counter",
         "Total upstream requests recorded in the usage ledger.",
     )
@@ -95,59 +95,61 @@ def render_prometheus_metrics(
     for row in provider_rows:
         provider = _escape_label_value(_bounded_provider_label(row.get("provider")))
         label = f'{{provider="{provider}"}}'
-        lines.append(f"omni_requests_total{label} {int(row.get('calls') or 0)}")
+        lines.append(f"polaris_requests_total{label} {int(row.get('calls') or 0)}")
         emit_success.append(
-            f"omni_requests_success_total{label} {int(row.get('successful_calls') or 0)}"
+            f"polaris_requests_success_total{label} {int(row.get('successful_calls') or 0)}"
         )
-        emit_failed.append(f"omni_requests_failed_total{label} {int(row.get('failed_calls') or 0)}")
-        emit_tokens.append(f"omni_tokens_total{label} {int(row.get('total_tokens') or 0)}")
-        emit_cost.append(f"omni_cost_usd_total{label} {float(row.get('cost_usd') or 0.0):.6f}")
+        emit_failed.append(
+            f"polaris_requests_failed_total{label} {int(row.get('failed_calls') or 0)}"
+        )
+        emit_tokens.append(f"polaris_tokens_total{label} {int(row.get('total_tokens') or 0)}")
+        emit_cost.append(f"polaris_cost_usd_total{label} {float(row.get('cost_usd') or 0.0):.6f}")
         emit_latency.append(
-            f"omni_latency_milliseconds_total{label} {int(row.get('total_latency_ms') or 0)}"
+            f"polaris_latency_milliseconds_total{label} {int(row.get('total_latency_ms') or 0)}"
         )
 
     emit(
-        "omni_requests_success_total",
+        "polaris_requests_success_total",
         "counter",
         "Successful upstream requests per provider.",
     )
     lines.extend(emit_success)
-    emit("omni_requests_failed_total", "counter", "Failed upstream requests per provider.")
+    emit("polaris_requests_failed_total", "counter", "Failed upstream requests per provider.")
     lines.extend(emit_failed)
-    emit("omni_tokens_total", "counter", "Total tokens processed per provider.")
+    emit("polaris_tokens_total", "counter", "Total tokens processed per provider.")
     lines.extend(emit_tokens)
     emit(
-        "omni_cost_usd_total",
+        "polaris_cost_usd_total",
         "counter",
         "Estimated USD spend per provider from the pricing table.",
     )
     lines.extend(emit_cost)
     emit(
-        "omni_latency_milliseconds_total",
+        "polaris_latency_milliseconds_total",
         "counter",
         "Cumulative successful-request latency per provider; divide by "
-        "omni_requests_success_total for the average.",
+        "polaris_requests_success_total for the average.",
     )
     lines.extend(emit_latency)
 
     emit(
-        "omni_response_cache_hits_total",
+        "polaris_response_cache_hits_total",
         "counter",
         "Exact-match response cache hits since process start.",
     )
-    lines.append(f"omni_response_cache_hits_total {int(response_cache.hits)}")
+    lines.append(f"polaris_response_cache_hits_total {int(response_cache.hits)}")
     emit(
-        "omni_response_cache_misses_total",
+        "polaris_response_cache_misses_total",
         "counter",
         "Exact-match response cache misses since process start.",
     )
-    lines.append(f"omni_response_cache_misses_total {int(response_cache.misses)}")
+    lines.append(f"polaris_response_cache_misses_total {int(response_cache.misses)}")
     emit(
-        "omni_response_cache_entries",
+        "polaris_response_cache_entries",
         "gauge",
         "Unexpired entries currently held by the response cache.",
     )
-    lines.append(f"omni_response_cache_entries {int(response_cache.size())}")
+    lines.append(f"polaris_response_cache_entries {int(response_cache.size())}")
 
     lines.extend(render_credential_operation_metrics().rstrip().splitlines())
     lines.extend(render_coordination_operation_metrics().rstrip().splitlines())
@@ -157,23 +159,23 @@ def render_prometheus_metrics(
     lines.extend(render_virtual_key_quota_metrics().rstrip().splitlines())
     lines.extend(render_usage_ledger_metrics().rstrip().splitlines())
     lines.extend(render_playground_metrics().rstrip().splitlines())
-    emit("omni_storage_ready", "gauge", "Whether the configured durable storage is reachable.")
-    lines.append(f"omni_storage_ready {int(storage_ready)}")
+    emit("polaris_storage_ready", "gauge", "Whether the configured durable storage is reachable.")
+    lines.append(f"polaris_storage_ready {int(storage_ready)}")
 
     if operational_snapshot:
         red = operational_snapshot.get("red", {})
-        emit("omni_red_requests", "gauge", "Requests observed in the bounded RED window.")
-        lines.append(f"omni_red_requests {int(red.get('requests') or 0)}")
-        emit("omni_red_error_ratio", "gauge", "Error ratio in the bounded RED window.")
-        lines.append(f"omni_red_error_ratio {float(red.get('error_rate') or 0):.6f}")
+        emit("polaris_red_requests", "gauge", "Requests observed in the bounded RED window.")
+        lines.append(f"polaris_red_requests {int(red.get('requests') or 0)}")
+        emit("polaris_red_error_ratio", "gauge", "Error ratio in the bounded RED window.")
+        lines.append(f"polaris_red_error_ratio {float(red.get('error_rate') or 0):.6f}")
         emit(
-            "omni_red_rejections",
+            "polaris_red_rejections",
             "gauge",
             "Caller and policy rejections excluded from the service error ratio.",
         )
-        lines.append(f"omni_red_rejections {int(red.get('rejections') or 0)}")
+        lines.append(f"polaris_red_rejections {int(red.get('rejections') or 0)}")
         emit(
-            "omni_red_duration_milliseconds",
+            "polaris_red_duration_milliseconds",
             "gauge",
             "Request duration quantiles in the bounded RED window.",
         )
@@ -183,27 +185,27 @@ def render_prometheus_metrics(
             ("0.99", "p99_duration_ms"),
         ):
             lines.append(
-                f'omni_red_duration_milliseconds{{quantile="{quantile}"}} {int(red.get(key) or 0)}'
+                f'polaris_red_duration_milliseconds{{quantile="{quantile}"}} {int(red.get(key) or 0)}'
             )
         emit(
-            "omni_exhaustion_events",
+            "polaris_exhaustion_events",
             "gauge",
             "Requests affected by a bounded exhaustion category in the RED window.",
         )
         for category, count in sorted((operational_snapshot.get("exhaustion") or {}).items()):
             lines.append(
-                f'omni_exhaustion_events{{category="{_escape_label_value(category)}"}} '
+                f'polaris_exhaustion_events{{category="{_escape_label_value(category)}"}} '
                 f"{int(count or 0)}"
             )
         emit(
-            "omni_operational_health_status",
+            "polaris_operational_health_status",
             "gauge",
             "Current operational status; exactly one status label is 1.",
         )
         current = str(operational_snapshot.get("status") or "no_data")
         for label in ("healthy", "warning", "critical", "no_data"):
             lines.append(
-                f'omni_operational_health_status{{status="{label}"}} {int(label == current)}'
+                f'polaris_operational_health_status{{status="{label}"}} {int(label == current)}'
             )
 
     return "\n".join(lines) + "\n"

@@ -54,7 +54,7 @@ class VirtualKeyReservationTests(unittest.IsolatedAsyncioTestCase):
             "id": "vk_reservation",
             "name": "reservation",
             "key_hash": "hash",
-            "key_preview": "sk-ogw-vk-...tion",
+            "key_preview": "sk-polaris-vk-...tion",
             "enabled": True,
             "created_at": time.time(),
         }
@@ -129,7 +129,7 @@ class VirtualKeyReservationTests(unittest.IsolatedAsyncioTestCase):
             "messages": [{"role": "user", "content": "synthetic-evidence-operation-00080000"}]
         }
         request = {
-            "model": "omni-evidence-model",
+            "model": "polaris-evidence-model",
             **prompt,
             "max_tokens": 4,
             "temperature": 0.0,

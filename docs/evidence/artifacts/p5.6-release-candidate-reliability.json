@@ -61,7 +61,7 @@
     "duration_seconds": 600,
     "expected_requests": 6000,
     "offered_rps": 10,
-    "schema_version": "omni.reliability-profile.v1",
+    "schema_version": "polaris.reliability-profile.v1",
     "sha256": "7fdb4c04890eecd96bf465e434c7cb6450bcb72734c587f4e9689fed2570120a"
   },
   "restart": {
@@ -73,7 +73,7 @@
     "ready_seconds": 2.462,
     "shutdown_exit_code": 0
   },
-  "schema_version": "omni.reliability-result.v1",
+  "schema_version": "polaris.reliability-result.v1",
   "source_checkout": "git-archive",
   "started_at": "2026-09-12T07:31:10.270905+00:00",
   "workload": {

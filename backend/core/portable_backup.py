@@ -37,7 +37,7 @@ from core.encrypted_backup import (
     encrypt_bytes,
 )
 
-BACKUP_ARCHIVE_FORMAT = "omni-gateway-portable-state"
+BACKUP_ARCHIVE_FORMAT = "polaris-portable-state"
 BACKUP_ARCHIVE_VERSION = 1
 BACKUP_STATE_SCHEMA_VERSION = 1
 SANITIZED_EXPORT_FORMAT = sanitized_backup_export.SANITIZED_EXPORT_FORMAT

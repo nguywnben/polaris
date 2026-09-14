@@ -38,7 +38,7 @@ RECOVERY_MAX_TRACKED_CLIENTS = _env_int("PANEL_RECOVERY_MAX_TRACKED_CLIENTS", 10
 OIDC_START_WINDOW_SECONDS = _env_int("OIDC_START_WINDOW_SECONDS", 300, 30, 3600)
 OIDC_START_MAX_ATTEMPTS = _env_int("OIDC_START_MAX_ATTEMPTS", 20, 3, 100)
 OIDC_START_MAX_TRACKED_CLIENTS = _env_int("OIDC_START_MAX_TRACKED_CLIENTS", 10_000, 100, 100_000)
-_ATTEMPT_HMAC_DOMAIN = b"omni-gateway:authentication-attempt-client:v1\0"
+_ATTEMPT_HMAC_DOMAIN = b"polaris:authentication-attempt-client:v1\0"
 
 
 class AuthenticationAttemptService:

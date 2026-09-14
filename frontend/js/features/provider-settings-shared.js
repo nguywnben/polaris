@@ -366,4 +366,4 @@ function formatProviderRequestError(error) {
 }
 
 document.addEventListener('DOMContentLoaded', applyProviderFormContract, {once: true});
-document.addEventListener('omni:locale-change', applyProviderFormCopy);
+document.addEventListener('polaris:locale-change', applyProviderFormCopy);

@@ -4956,7 +4956,7 @@ const TRANSLATIONS = {
 
 // =====================================================================
 
-const LANGUAGE_STORAGE_KEY = 'omni_gateway_console_locale';
+const LANGUAGE_STORAGE_KEY = 'polaris_console_locale';
 
 // Legacy actions still use generated keys. Keep their fallback concise and
 // intentional until each flow is migrated to a named semantic key.
@@ -5403,7 +5403,7 @@ function applyLanguage() {
 
     applyProviderWorkspaceTranslations(lang);
 
-    document.dispatchEvent(new CustomEvent('omni:locale-change', { detail: { locale: lang } }));
+    document.dispatchEvent(new CustomEvent('polaris:locale-change', { detail: { locale: lang } }));
 
 }
 

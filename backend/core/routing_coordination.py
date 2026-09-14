@@ -93,12 +93,12 @@ def render_routing_coordination_metrics() -> str:
     with _METRIC_LOCK:
         snapshot = dict(_METRICS)
     lines = [
-        "# HELP omni_routing_coordination_events_total Routing and cache coordination decisions.",
-        "# TYPE omni_routing_coordination_events_total counter",
+        "# HELP polaris_routing_coordination_events_total Routing and cache coordination decisions.",
+        "# TYPE polaris_routing_coordination_events_total counter",
     ]
     for (operation, result), count in sorted(snapshot.items()):
         lines.append(
-            "omni_routing_coordination_events_total"
+            "polaris_routing_coordination_events_total"
             f'{{operation="{operation}",result="{result}"}} {count}'
         )
     return "\n".join(lines) + "\n"
@@ -197,7 +197,7 @@ class RoutingCoordinationAdapter:
         self._identifier_key = bytes(identifier_key)
         self._cache_content_key = hmac.digest(
             self._identifier_key,
-            b"omni-gateway:cache-content-encryption:v1\0",
+            b"polaris:cache-content-encryption:v1\0",
             hashlib.sha256,
         )
         self._fencing_epoch = validate_epoch(fencing_epoch)

@@ -126,9 +126,9 @@ updates use the encrypted, health-checked [Compose update and rollback guide](do
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.
 
-Existing installations moving from the former repository or container coordinates should follow
-the [Polaris migration guide](docs/migrations/polaris.md) so their current data volume remains
-attached during the rename.
+The [Polaris identifier contract](docs/migrations/polaris.md) lists the canonical names used by
+clients, operators, storage, telemetry, and automation. Pre-release builds are intentionally not
+supported through compatibility aliases.
 
 For diagnosis and safe recovery, use the [Production troubleshooting guide](docs/troubleshooting.md).
 It starts with health and readiness checks, preserves the data volume, and records the exact
@@ -177,7 +177,7 @@ Polaris reads configuration from environment variables first, then stored config
 The complete [generated configuration reference](docs/reference/configuration.md) identifies every
 field's type, Basic/Advanced/Experimental group, Settings owner, and whether it applies live,
 requires restart, or is environment-only. Startup rejects malformed values with the exact variable
-name; likely misspelled `OMNI_*` variables produce a warning.
+name; likely misspelled `POLARIS_*` variables produce a warning.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -185,11 +185,11 @@ name; likely misspelled `OMNI_*` variables produce a warning.
 | `PORT` | `4283` | HTTP port. |
 | `HOST_PORT` | `4283` | Host-side port used only by Docker Compose. |
 | `WORKERS` | `1` | Supported worker count. This release accepts one only. |
-| `OMNI_RUNTIME_MODE` | `standalone` | Runtime mode. This release supports `standalone` only. |
-| `OMNI_REPLICA_COUNT` | `1` | Declared application replica count. The current release accepts one only. |
+| `POLARIS_RUNTIME_MODE` | `standalone` | Runtime mode. This release supports `standalone` only. |
+| `POLARIS_REPLICA_COUNT` | `1` | Declared application replica count. The current release accepts one only. |
 | `CORS_ORIGINS` | empty | Comma-separated browser origins allowed to call the API cross-origin. Leave empty for same-origin console usage. |
 | `CORS_ORIGIN_REGEX` | empty | Optional regex for managed dynamic browser origins. |
-| `API_KEY` | generated automatically | Preferred key for public client API requests. Must start with `sk-ogw-`. |
+| `API_KEY` | generated automatically | Preferred key for public client API requests. Must start with `sk-polaris-`. |
 | `PANEL_PASSWORD` | empty until setup | Password for the web control panel. |
 | `SETUP_TOKEN` | empty | Required before remote first-run setup; use a unique value of at least 24 characters. It is never generated or printed by the application. Direct localhost setup does not require it. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web console session lifetime in seconds. |
@@ -275,7 +275,7 @@ compression through `PATCH /api/virtual-keys/{key_id}/quality-policy` with its c
 ```
 
 Use `"inherit"` to remove that restriction. A single authenticated inference request can also set
-`x-omni-compression: off`; omit the header or use `inherit` for the effective global/key behavior.
+`x-polaris-compression: off`; omit the header or use `inherit` for the effective global/key behavior.
 Neither a key nor a request can re-enable globally disabled compression or make compression more
 aggressive. Compression only removes a safe history prefix and fails open to the uncompressed
 payload when token estimation or structural invariants cannot be proven. Token counts are estimates;
@@ -285,7 +285,7 @@ the provider tokenizer remains authoritative.
 
 Polaris is designed around the standard URL behavior of the official Python SDKs. Configure each client exactly as shown below; the gateway does not require non-standard duplicated path prefixes.
 
-The examples use the virtual model `omway`. Configure its ordered provider-model fallback on the Models page first, or replace it with a concrete model ID.
+The examples use the virtual model `polaris`. Configure its ordered provider-model fallback on the Models page first, or replace it with a concrete model ID.
 
 ### OpenAI Python SDK
 
@@ -294,10 +294,10 @@ Use `/v1` as the OpenAI base URL. The SDK appends `/chat/completions`.
 ```python
 from openai import OpenAI
 
-client = OpenAI(base_url="http://127.0.0.1:4283/v1", api_key="sk-ogw-...")
+client = OpenAI(base_url="http://127.0.0.1:4283/v1", api_key="sk-polaris-...")
 
 response = client.chat.completions.create(
-    model="omway",
+    model="polaris",
     messages=[{"role": "user", "content": "Explain this repository in one paragraph."}],
 )
 ```
@@ -306,7 +306,7 @@ The same client can use the OpenAI Responses API:
 
 ```python
 response = client.responses.create(
-    model="omway",
+    model="polaris",
     instructions="Be concise.",
     input="Explain this repository in one paragraph.",
 )
@@ -323,10 +323,10 @@ Use the gateway origin as the Anthropic base URL. The SDK appends `/v1/messages`
 ```python
 from anthropic import Anthropic
 
-client = Anthropic(base_url="http://127.0.0.1:4283", api_key="sk-ogw-...")
+client = Anthropic(base_url="http://127.0.0.1:4283", api_key="sk-polaris-...")
 
 response = client.messages.create(
-    model="omway",
+    model="polaris",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Draft a commit message."}],
 )
@@ -344,11 +344,11 @@ client = genai.Client(
     http_options={
         "base_url": "http://127.0.0.1:4283",
     },
-    api_key="sk-ogw-...",
+    api_key="sk-polaris-...",
 )
 
 response = client.models.generate_content(
-    model="omway",
+    model="polaris",
     contents="Write a small Python function.",
     config=types.GenerateContentConfig(
         system_instruction="You are a helpful assistant.",
@@ -375,7 +375,7 @@ Authentication, request-validation, routing, upstream, and pre-stream failures u
 
 ## Model Features
 
-The Models page builds the virtual model `omway` from models discovered across enabled provider credentials. Arrange its members in priority order once, then use `omway` from any supported SDK. Polaris balances healthy credentials that support the first model and continues through the configured model order when that model is unavailable. Concrete provider model IDs remain available for clients that need deterministic model selection. Saving an empty selection disables `omway` without affecting provider credentials.
+The Models page builds the virtual model `polaris` from models discovered across enabled provider credentials. Arrange its members in priority order once, then use `polaris` from any supported SDK. Polaris balances healthy credentials that support the first model and continues through the configured model order when that model is unavailable. Concrete provider model IDs remain available for clients that need deterministic model selection. Saving an empty selection disables `polaris` without affecting provider credentials.
 
 Model discovery is provider-aware: a shared model can be backed by multiple providers, while provider-specific models only use compatible credentials. Each verified credential stores its own provider catalog, and the router gives declared credential support priority over generic provider inference. Refreshing the catalog rechecks current provider availability; unavailable selections remain visible in the configuration until they are restored or removed.
 
@@ -456,11 +456,11 @@ require or use Redis:
 
 ```bash
 MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=omni_gateway
+MONGODB_DATABASE=polaris
 ```
 
 ```bash
-POSTGRESQL_URI=postgresql://user:password@localhost:5432/omni_gateway
+POSTGRESQL_URI=postgresql://user:password@localhost:5432/polaris
 ```
 
 External storage does not make the runtime horizontally scalable. Production deployments

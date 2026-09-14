@@ -118,7 +118,7 @@ process memory without bound.
 RPM and TPM still use the in-process state-store boundary and completed rate usage remains in its
 rolling 60-second window. W4.14 therefore does not relax the documented `WORKERS=1` and
 single-replica restriction. Prometheus exposes only bounded event labels in
-`omni_virtual_key_quota_events_total` and `omni_usage_ledger_operations_total`; key IDs, request
+`polaris_virtual_key_quota_events_total` and `polaris_usage_ledger_operations_total`; key IDs, request
 contents, amounts, and attribution never become labels.
 
 ## Management routes

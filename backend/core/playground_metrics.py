@@ -51,16 +51,16 @@ def render_playground_metrics() -> str:
         buckets = dict(_duration_counts)
         sums = dict(_duration_sums)
     lines = [
-        "# HELP omni_playground_runs_total Ephemeral Playground runs by protocol and outcome.",
-        "# TYPE omni_playground_runs_total counter",
+        "# HELP polaris_playground_runs_total Ephemeral Playground runs by protocol and outcome.",
+        "# TYPE polaris_playground_runs_total counter",
     ]
     for (protocol, outcome), count in sorted(counts.items()):
         labels = f'protocol="{protocol}",outcome="{outcome}"'
-        lines.append(f"omni_playground_runs_total{{{labels}}} {count}")
+        lines.append(f"polaris_playground_runs_total{{{labels}}} {count}")
     lines.extend(
         [
-            "# HELP omni_playground_run_duration_seconds Playground run duration histogram.",
-            "# TYPE omni_playground_run_duration_seconds histogram",
+            "# HELP polaris_playground_run_duration_seconds Playground run duration histogram.",
+            "# TYPE polaris_playground_run_duration_seconds histogram",
         ]
     )
     for protocol, outcome in sorted(sums):
@@ -68,17 +68,17 @@ def render_playground_metrics() -> str:
         for bucket in _DURATION_BUCKETS:
             count = buckets.get((protocol, outcome, bucket), 0)
             lines.append(
-                f'omni_playground_run_duration_seconds_bucket{{{labels},le="{bucket:g}"}} {count}'
+                f'polaris_playground_run_duration_seconds_bucket{{{labels},le="{bucket:g}"}} {count}'
             )
         lines.append(
-            f'omni_playground_run_duration_seconds_bucket{{{labels},le="+Inf"}} '
+            f'polaris_playground_run_duration_seconds_bucket{{{labels},le="+Inf"}} '
             f"{counts[(protocol, outcome)]}"
         )
         lines.append(
-            f"omni_playground_run_duration_seconds_sum{{{labels}}} {sums[(protocol, outcome)]:.6f}"
+            f"polaris_playground_run_duration_seconds_sum{{{labels}}} {sums[(protocol, outcome)]:.6f}"
         )
         lines.append(
-            f"omni_playground_run_duration_seconds_count{{{labels}}} {counts[(protocol, outcome)]}"
+            f"polaris_playground_run_duration_seconds_count{{{labels}}} {counts[(protocol, outcome)]}"
         )
     return "\n".join(lines) + "\n"
 

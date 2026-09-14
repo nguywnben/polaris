@@ -163,7 +163,7 @@ def _skipped_and_live_tests(root: Path) -> dict[str, Any]:
     for path in sorted((root / "backend" / "tests").glob("test_*.py")):
         source = _text(path)
         relative = _relative(root, path)
-        if path.stem.endswith("_live") or "OMNI_TEST_" in source:
+        if path.stem.endswith("_live") or "POLARIS_TEST_" in source:
             live_modules.add(relative)
         tree = ast.parse(source, filename=str(path))
         for node in ast.walk(tree):

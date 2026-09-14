@@ -1,7 +1,9 @@
-"""Polaris public-brand and compatibility migration contracts."""
+"""Polaris product identity and breaking cutover contracts."""
 
 from __future__ import annotations
 
+import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -51,10 +53,46 @@ def _public_text_files() -> list[Path]:
 
 
 class ProductRebrandContractTests(unittest.TestCase):
+    def test_tracked_text_has_no_legacy_product_identifiers(self):
+        tracked = (
+            subprocess.run(
+                ["git", "ls-files", "-z"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+            )
+            .stdout.decode("utf-8")
+            .split("\0")
+        )
+        legacy_pattern = re.compile(
+            "|".join(
+                (
+                    r"\bom" + r"ni(?:[\s._-]|$)",
+                    r"\bom" + r"way\b",
+                    r"\bsk-" + r"og" + r"w-",
+                    r"\bog" + r"w(?:[\s._-]|$)",
+                )
+            ),
+            re.IGNORECASE,
+        )
+        stale: dict[str, list[str]] = {}
+
+        for relative_path in filter(None, tracked):
+            path = ROOT / relative_path
+            try:
+                content = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            matches = sorted({match.group(0) for match in legacy_pattern.finditer(content)})
+            if matches:
+                stale[relative_path] = matches
+
+        self.assertEqual(stale, {})
+
     def test_public_product_name_is_polaris(self):
         stale: list[str] = []
         for path in _public_text_files():
-            if "Omni Gateway" in path.read_text(encoding="utf-8"):
+            if "Om" + "ni Gateway" in path.read_text(encoding="utf-8"):
                 stale.append(path.relative_to(ROOT).as_posix())
 
         self.assertEqual(stale, [])
@@ -112,39 +150,22 @@ class ProductRebrandContractTests(unittest.TestCase):
         self.assertIn("/run/secrets/polaris-oidc", environment_example)
         self.assertIn('actor_identifier="polaris"', audit_service)
 
-    def test_container_publish_keeps_temporary_legacy_aliases(self):
+    def test_container_publish_uses_only_canonical_names(self):
         workflow = (ROOT / ".github" / "workflows" / "docker-publish.yml").read_text(
             encoding="utf-8"
         )
 
         self.assertIn("DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || 'nguywnben/polaris' }}", workflow)
         self.assertIn("GHCR_IMAGE: ghcr.io/nguywnben/polaris", workflow)
-        self.assertIn("LEGACY_DOCKERHUB_IMAGE: nguywnben/omni-gateway", workflow)
-        self.assertIn("LEGACY_GHCR_IMAGE: ghcr.io/nguywnben/omni-gateway", workflow)
-        self.assertIn("${{ env.LEGACY_DOCKERHUB_IMAGE }}", workflow)
-        self.assertIn("${{ env.LEGACY_GHCR_IMAGE }}", workflow)
+        self.assertNotIn("LEGACY_DOCKERHUB_IMAGE", workflow)
+        self.assertNotIn("LEGACY_GHCR_IMAGE", workflow)
 
-    def test_migration_guide_documents_stable_legacy_contracts(self):
-        guide = ROOT / "docs" / "migrations" / "polaris.md"
-
-        self.assertTrue(guide.is_file())
-        content = guide.read_text(encoding="utf-8")
-        for marker in (
-            "sk-ogw-",
-            "omway",
-            "OMNI_RUNTIME_MODE",
-            "omni-gateway-data",
-            "nguywnben/polaris",
-            "ghcr.io/nguywnben/polaris",
-        ):
-            self.assertIn(marker, content)
-
-    def test_stable_client_contracts_remain_compatible_during_rebrand(self):
+    def test_client_contracts_use_canonical_polaris_identifiers(self):
         configuration = (ROOT / "backend" / "config.py").read_text(encoding="utf-8")
         model_pool = (ROOT / "backend" / "core" / "model_pool.py").read_text(encoding="utf-8")
 
-        self.assertIn('API_KEY_PREFIX = "sk-ogw-"', configuration)
-        self.assertIn('DEFAULT_VIRTUAL_MODEL_ALIAS = "omway"', model_pool)
+        self.assertIn('API_KEY_PREFIX = "sk-polaris-"', configuration)
+        self.assertIn('DEFAULT_VIRTUAL_MODEL_ALIAS = "polaris"', model_pool)
 
 
 if __name__ == "__main__":

@@ -24,8 +24,8 @@ from core.management_audit import ManagementMutation
 AUDIT_MASTER_KEY_CONFIG = "_internal_audit_master_key_v1"
 AUDIT_RETENTION_CONFIG = "_internal_audit_retention_v1"
 _MASTER_KEY_BYTES = 32
-_FINGERPRINT_DOMAIN = b"omni-gateway:audit:fingerprint:v1"
-_CURSOR_DOMAIN = b"omni-gateway:audit:cursor:v1"
+_FINGERPRINT_DOMAIN = b"polaris:audit:fingerprint:v1"
+_CURSOR_DOMAIN = b"polaris:audit:cursor:v1"
 _INFERENCE_RETENTION_PRUNE_INTERVAL = 256
 
 

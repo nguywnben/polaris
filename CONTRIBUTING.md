@@ -94,7 +94,7 @@ and container smoke succeed.
 - Put provider metadata and capability decisions behind `provider_registry.py` and provider-specific adapters.
 - Access persistence through `storage_adapter.py`; do not couple routes directly to a database driver.
 - Keep presentation text in the frontend and return structured, sanitized errors from the backend.
-- Preserve the `sk-ogw-` prefix for generated API keys.
+- Preserve the `sk-polaris-` prefix for generated API keys.
 - Add regression tests for every bug fix and contract tests for public route changes.
 
 More detail is available in [docs/architecture.md](docs/architecture.md).
@@ -105,7 +105,7 @@ More detail is available in [docs/architecture.md](docs/architecture.md).
 - Repository directories and non-Python asset names use lowercase `kebab-case` where practical.
 - Use complete, natural English in UI text, logs, errors, comments, and documentation.
 - Comments should explain constraints or intent rather than restating the code.
-- Avoid branded namespaces in technical routes and configuration. Product branding belongs in presentation and documentation; `sk-ogw-` API keys are the intentional exception.
+- Use the Polaris namespace consistently for product-owned routes, configuration, telemetry, browser storage, events, backup formats, and generated API keys.
 
 ## Pull Requests
 

@@ -27,7 +27,7 @@ def serve() -> None:
             PORT="4296",
             HOST="127.0.0.1",
             PANEL_PASSWORD="p3.6-local-browser-fixture",
-            OMNI_RUNTIME_MODE="standalone",
+            POLARIS_RUNTIME_MODE="standalone",
         )
         for key in (
             "ROUTING_STRATEGY",

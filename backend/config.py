@@ -50,7 +50,7 @@ REMOVED_STORED_KEYS = frozenset({"api_password", *LEGACY_STORED_KEY_RENAMES})
 
 
 AUTO_DISABLE_ERROR_CODES = [403]
-API_KEY_PREFIX = "sk-ogw-"
+API_KEY_PREFIX = "sk-polaris-"
 DEFAULT_CODE_ASSIST_CLIENT_ID = (
     "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
 )

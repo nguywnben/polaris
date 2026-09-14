@@ -225,7 +225,7 @@ class RecoveryStore:
         record_path = self.root / f"update-{operation_id}.json"
         self._write_atomic(backup_path, archive)
         record = UpdateRecord(
-            format="omni-gateway-compose-update",
+            format="polaris-compose-update",
             version=1,
             operation_id=operation_id,
             created_at=_utc_timestamp(),
@@ -265,7 +265,7 @@ class RecoveryStore:
             raise UpdateError("Update record is unreadable or invalid.") from exc
         if not isinstance(payload, dict) or set(payload) != _RECORD_FIELDS:
             raise UpdateError("Update record fields are invalid.")
-        if payload["format"] != "omni-gateway-compose-update" or payload["version"] != 1:
+        if payload["format"] != "polaris-compose-update" or payload["version"] != 1:
             raise UpdateError("Update record format is unsupported.")
         if payload["status"] not in _RECORD_STATUSES or not isinstance(payload["failure"], str):
             raise UpdateError("Update record workflow state is invalid.")
@@ -521,8 +521,8 @@ class DockerComposeRuntime:
             raise UpdateError("Compose update recovery supports the SQLite state backend only.")
         if (
             environment.get("WORKERS") != "1"
-            or environment.get("OMNI_RUNTIME_MODE") != "standalone"
-            or environment.get("OMNI_REPLICA_COUNT") != "1"
+            or environment.get("POLARIS_RUNTIME_MODE") != "standalone"
+            or environment.get("POLARIS_REPLICA_COUNT") != "1"
         ):
             raise UpdateError("Compose update recovery requires the supported standalone topology.")
         volume = self._inspect(

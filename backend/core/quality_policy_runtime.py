@@ -27,7 +27,7 @@ def compression_policy_from_request_header(value: Any) -> str:
     if normalized == "off":
         return COMPRESSION_RESTRICTION_DISABLED
     raise QualityPolicyError(
-        "x-omni-compression must be off or inherit.",
+        "x-polaris-compression must be off or inherit.",
         code="quality_policy_override_invalid",
     )
 

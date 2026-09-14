@@ -29,10 +29,10 @@ def build_otlp_metrics_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
         }
 
     metrics = [
-        gauge("omni.red.requests", "Requests in the bounded RED window", red.get("requests", 0)),
-        gauge("omni.red.error_ratio", "Error ratio in the RED window", red.get("error_rate", 0)),
+        gauge("polaris.red.requests", "Requests in the bounded RED window", red.get("requests", 0)),
+        gauge("polaris.red.error_ratio", "Error ratio in the RED window", red.get("error_rate", 0)),
         gauge(
-            "omni.red.duration.p95_ms",
+            "polaris.red.duration.p95_ms",
             "P95 duration in milliseconds",
             red.get("p95_duration_ms", 0),
         ),
@@ -40,7 +40,7 @@ def build_otlp_metrics_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
     for category in ("quota", "budget", "rate_limit", "cooldown", "capacity"):
         metrics.append(
             gauge(
-                f"omni.exhaustion.{category}",
+                f"polaris.exhaustion.{category}",
                 f"Requests affected by {category} exhaustion",
                 exhaustion.get(category, 0),
             )

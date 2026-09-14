@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=omni-gateway:p1.5-target
+ARG BASE_IMAGE=polaris:p1.5-target
 FROM ${BASE_IMAGE}
 
 COPY --chown=gateway:gateway deploy/evidence/p1.5-unhealthy-entry.py /app/p1.5-unhealthy-entry.py

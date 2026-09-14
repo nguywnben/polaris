@@ -95,7 +95,7 @@ atomic role updates, policy revisions, local-owner lockout prevention, claim-to-
 rollback, and corrupted-row failure during reads and restart.
 
 PostgreSQL and MongoDB add driver-boundary/index/CAS tests. Fourteen opt-in live parity cases run
-when `OMNI_TEST_POSTGRESQL_URI` and/or `OMNI_TEST_MONGODB_URI` are configured; otherwise they are
+when `POLARIS_TEST_POSTGRESQL_URI` and/or `POLARIS_TEST_MONGODB_URI` are configured; otherwise they are
 reported as skipped rather than silently using a fake service. W4.5 closed with 46 focused tests
 executed, 14 live cases skipped on the local machine, and all 801 backend tests passing.
 
@@ -107,7 +107,7 @@ and local-owner recovery before later OIDC slices consume durable identities.
 - SQLite transaction semantics: <https://sqlite.org/lang_transaction.html>
 - SQLite foreign-key activation and indexing: <https://www.sqlite.org/foreignkeys.html>
 - SQLite table constraints: <https://www.sqlite.org/lang_createtable.html>
-- aiosqlite connection and transaction API: <https://aiosqlite.omnilib.dev/en/stable/api.html>
+- aiosqlite connection and transaction API: <https://aiosqlite.polarislib.dev/en/stable/api.html>
 - asyncpg connection pool and transaction API:
   <https://magicstack.github.io/asyncpg/current/usage.html>
 - PostgreSQL transaction isolation and conditional updates:

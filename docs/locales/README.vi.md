@@ -114,8 +114,8 @@ production phải theo [quy trình cập nhật và rollback Compose](../updatin
 Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanced.yml` sau khi bản cài
 đặt cơ bản đã hoạt động tốt.
 
-Bản cài đặt hiện có chuyển từ repo hoặc image cũ nên làm theo
-[hướng dẫn chuyển sang Polaris](../migrations/polaris.md) để giữ nguyên volume dữ liệu đang dùng.
+[Hợp đồng định danh Polaris](../migrations/polaris.md) liệt kê tên chuẩn dùng cho client, vận hành,
+lưu trữ, telemetry và automation. Các bản pre-release không được hỗ trợ qua alias tương thích.
 
 Các script Python native trong `deploy/scripts`, `docker run` trực tiếp, Render và Zeabur chỉ thuộc
 tầng tương thích, không có đầy đủ bằng chứng cài đặt/cập nhật/rollback của đường chuẩn. Image
@@ -166,7 +166,7 @@ Polaris đọc cấu hình ưu tiên từ các biến môi trường trước, s
 | `WORKERS` | `1` | Số lượng worker được hỗ trợ cho chuỗi phiên bản 1.x. Các giá trị khác sẽ bị từ chối cho đến khi cơ chế đặt chỗ, cooldown, phiên làm việc và tổng hợp sử dụng được phối hợp đa tiến trình. |
 | `CORS_ORIGINS` | trống | Danh sách origin trình duyệt phân tách bằng dấu phẩy được phép gọi API cross-origin. Để trống cho việc sử dụng console cùng origin. |
 | `CORS_ORIGIN_REGEX` | trống | Biểu thức chính quy tùy chọn cho các origin trình duyệt động được quản lý. |
-| `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-ogw-`. |
+| `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-polaris-`. |
 | `PANEL_PASSWORD` | trống cho đến khi thiết lập | Mật khẩu cho bảng điều khiển web. |
 | `SETUP_TOKEN` | để trống | Bắt buộc trước khi thiết lập từ xa lần đầu; dùng giá trị riêng dài ít nhất 24 ký tự. Ứng dụng không tự sinh hoặc ghi giá trị này vào log. Thiết lập trực tiếp trên localhost không cần mã. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Thời gian sống của phiên bảng điều khiển web tính bằng giây. |
@@ -250,7 +250,7 @@ hoặc tắt nén qua `PATCH /api/virtual-keys/{key_id}/quality-policy` với re
 ```
 
 Dùng `"inherit"` để bỏ giới hạn riêng của khóa. Một request suy luận đã xác thực cũng có thể gửi
-`x-omni-compression: off`; bỏ header hoặc dùng `inherit` để áp dụng kết quả global/key. Khóa và
+`x-polaris-compression: off`; bỏ header hoặc dùng `inherit` để áp dụng kết quả global/key. Khóa và
 request không thể bật lại tính năng đã bị tắt toàn cục hoặc làm cơ chế nén mạnh tay hơn. Cơ chế này
 chỉ loại bỏ tiền tố lịch sử tại ranh giới an toàn và giữ nguyên payload chưa nén nếu không thể xác
 nhận kết quả ước tính token hoặc các bất biến cấu trúc. Số token chỉ là ước tính; tokenizer của
@@ -260,7 +260,7 @@ provider mới là căn cứ cuối cùng.
 
 Polaris được thiết kế dựa trên hành vi chuẩn về URL của các SDK Python chính thức. Hãy cấu hình từng client chính xác như hướng dẫn dưới đây; gateway không yêu cầu các tiền tố đường dẫn lặp lại phi tiêu chuẩn.
 
-Các ví dụ dưới đây sử dụng mô hình ảo `omway`. Hãy cấu hình thứ tự ưu tiên dự phòng mô hình-nhà cung cấp cho nó trên trang Models trước, hoặc thay thế bằng một ID mô hình cụ thể.
+Các ví dụ dưới đây sử dụng mô hình ảo `polaris`. Hãy cấu hình thứ tự ưu tiên dự phòng mô hình-nhà cung cấp cho nó trên trang Models trước, hoặc thay thế bằng một ID mô hình cụ thể.
 
 ### OpenAI Python SDK
 
@@ -269,10 +269,10 @@ Sử dụng `/v1` làm base URL cho OpenAI. SDK sẽ tự động nối thêm `/
 ```python
 from openai import OpenAI
 
-client = OpenAI(base_url="http://127.0.0.1:4283/v1", api_key="sk-ogw-...")
+client = OpenAI(base_url="http://127.0.0.1:4283/v1", api_key="sk-polaris-...")
 
 response = client.chat.completions.create(
-    model="omway",
+    model="polaris",
     messages=[{"role": "user", "content": "Hãy giải thích kho mã nguồn này trong một đoạn văn."}],
 )
 ```
@@ -281,7 +281,7 @@ Client tương tự cũng có thể sử dụng OpenAI Responses API:
 
 ```python
 response = client.responses.create(
-    model="omway",
+    model="polaris",
     instructions="Hãy trả lời ngắn gọn, súc tích.",
     input="Hãy giải thích kho mã nguồn này trong một đoạn văn.",
 )
@@ -298,10 +298,10 @@ Sử dụng origin của gateway làm base URL cho Anthropic. SDK sẽ tự đ�
 ```python
 from anthropic import Anthropic
 
-client = Anthropic(base_url="http://127.0.0.1:4283", api_key="sk-ogw-...")
+client = Anthropic(base_url="http://127.0.0.1:4283", api_key="sk-polaris-...")
 
 response = client.messages.create(
-    model="omway",
+    model="polaris",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hãy soạn thảo một commit message ngắn gọn."}],
 )
@@ -319,11 +319,11 @@ client = genai.Client(
     http_options={
         "base_url": "http://127.0.0.1:4283",
     },
-    api_key="sk-ogw-...",
+    api_key="sk-polaris-...",
 )
 
 response = client.models.generate_content(
-    model="omway",
+    model="polaris",
     contents="Hãy viết một hàm Python nhỏ.",
     config=types.GenerateContentConfig(
         system_instruction="Bạn là một trợ lý hữu ích.",
@@ -350,7 +350,7 @@ Các lỗi xác thực, kiểm tra request, định tuyến, lỗi từ phía up
 
 ## Tính năng mô hình
 
-Trang Models xây dựng mô hình ảo `omway` từ các mô hình được khám phá trên các thông tin xác thực nhà cung cấp đang bật. Hãy sắp xếp các thành viên của nó theo thứ tự ưu tiên một lần, sau đó sử dụng `omway` từ bất kỳ SDK nào được hỗ trợ. Polaris sẽ cân bằng tải giữa các credential khỏe mạnh hỗ trợ mô hình đầu tiên và tiếp tục thử qua thứ tự mô hình đã cấu hình khi mô hình đó không khả dụng. Các ID mô hình cụ thể của nhà cung cấp vẫn khả dụng cho các client cần chọn mô hình tất định. Lưu danh sách trống sẽ tắt `omway` mà không ảnh hưởng đến thông tin xác thực của nhà cung cấp.
+Trang Models xây dựng mô hình ảo `polaris` từ các mô hình được khám phá trên các thông tin xác thực nhà cung cấp đang bật. Hãy sắp xếp các thành viên của nó theo thứ tự ưu tiên một lần, sau đó sử dụng `polaris` từ bất kỳ SDK nào được hỗ trợ. Polaris sẽ cân bằng tải giữa các credential khỏe mạnh hỗ trợ mô hình đầu tiên và tiếp tục thử qua thứ tự mô hình đã cấu hình khi mô hình đó không khả dụng. Các ID mô hình cụ thể của nhà cung cấp vẫn khả dụng cho các client cần chọn mô hình tất định. Lưu danh sách trống sẽ tắt `polaris` mà không ảnh hưởng đến thông tin xác thực của nhà cung cấp.
 
 Khám phá mô hình có nhận thức về nhà cung cấp: một mô hình dùng chung có thể được hỗ trợ bởi nhiều nhà cung cấp, trong khi các mô hình đặc thù của một nhà cung cấp chỉ sử dụng các credential tương thích. Mỗi thông tin xác thực đã xác minh sẽ lưu trữ danh mục nhà cung cấp riêng của mình và router sẽ ưu tiên sự hỗ trợ được khai báo rõ ràng của credential hơn là suy đoán chung về nhà cung cấp. Làm mới danh mục sẽ kiểm tra lại tính khả dụng hiện tại của nhà cung cấp; các lựa chọn không khả dụng vẫn hiển thị trong cấu hình cho đến khi chúng được khôi phục hoặc xóa đi.
 
@@ -431,11 +431,11 @@ Compatibility cho các bản triển khai hiện có; R1 không tiếp tục m�
 
 ```bash
 MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=omni_gateway
+MONGODB_DATABASE=polaris
 ```
 
 ```bash
-POSTGRESQL_URI=postgresql://user:password@localhost:5432/omni_gateway
+POSTGRESQL_URI=postgresql://user:password@localhost:5432/polaris
 ```
 
 Bộ lưu trữ bên ngoài không làm cho runtime có thể mở rộng theo chiều ngang. Môi trường

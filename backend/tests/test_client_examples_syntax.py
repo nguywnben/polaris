@@ -87,7 +87,7 @@ console.log(JSON.stringify(examples));
             """
 const examples = [];
 const base = {
-    model: 'omway', timeoutSeconds: 30, system: "Answer the user's question.",
+    model: 'polaris', timeoutSeconds: 30, system: "Answer the user's question.",
     messages: [{role: 'user', content: "What's new?"}],
     temperature: 0.4, topP: 0.8, maxTokens: 256
 };

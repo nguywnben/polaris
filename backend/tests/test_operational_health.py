@@ -221,7 +221,7 @@ class TelemetryPolicyTests(unittest.TestCase):
         snapshot = build_operational_health_snapshot([_trace(1)], window_seconds=900)
         payload = build_otlp_metrics_payload(snapshot)
         serialized = repr(payload)
-        self.assertIn("omni.red.error_ratio", serialized)
+        self.assertIn("polaris.red.error_ratio", serialized)
         self.assertNotIn("customer-model-name", serialized)
         self.assertNotIn("request-1", serialized)
 

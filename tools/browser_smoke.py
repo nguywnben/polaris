@@ -113,7 +113,7 @@ def disposable_runtime():
             HOST="127.0.0.1",
             PANEL_PASSWORD="",
             SETUP_TOKEN="",
-            OMNI_RUNTIME_MODE="standalone",
+            POLARIS_RUNTIME_MODE="standalone",
             ENABLE_LOG="0",
         )
         log_path = runtime / "server-output.log"
@@ -173,7 +173,7 @@ def _model_catalog(configured: bool) -> dict:
             }
         ],
         "pool": {
-            "alias": "omway",
+            "alias": "polaris",
             "strategy": "priority_fallback",
             "selected_models": selected,
             "enabled": True,
@@ -196,7 +196,7 @@ def _playground_metadata(stream: bool) -> dict:
         "schema_version": "playground-metadata.v1",
         "request_id": REQUEST_ID,
         "protocol": "openai_chat",
-        "requested_model": "omway",
+        "requested_model": "polaris",
         "outcome": "succeeded",
         "status_code": 200,
         "duration_ms": 12,
@@ -252,7 +252,7 @@ def _trace_page() -> dict:
                 "outcome": "succeeded",
                 "status_code": 200,
                 "duration_ms": 12,
-                "requested_model": "omway",
+                "requested_model": "polaris",
                 "selected_provider": "ollama",
                 "input_tokens": 4,
                 "output_tokens": 3,
@@ -299,12 +299,12 @@ def install_fixtures(page: Page) -> None:
         if path.endswith("/api/model-catalog"):
             _json(route, _model_catalog(state["route_configured"]))
             return
-        if path.endswith("/api/model-routes/omway/validate"):
+        if path.endswith("/api/model-routes/polaris/validate"):
             _json(
                 route,
                 {
                     "schema_version": "model-routing.v1",
-                    "alias": "omway",
+                    "alias": "polaris",
                     "validation": {
                         "valid": True,
                         "status": "ready",
@@ -314,7 +314,7 @@ def install_fixtures(page: Page) -> None:
                 },
             )
             return
-        if path.endswith("/api/model-routes/omway") and request.method in {"POST", "PATCH"}:
+        if path.endswith("/api/model-routes/polaris") and request.method in {"POST", "PATCH"}:
             state["route_configured"] = True
             _json(
                 route,
@@ -329,7 +329,7 @@ def install_fixtures(page: Page) -> None:
             if stream:
                 source = (
                     'data: {"choices":[{"delta":{"content":"stream fixture"}}]}\n\n'
-                    f"event: omni.playground.metadata\ndata: {json.dumps(metadata)}\n\n"
+                    f"event: polaris.playground.metadata\ndata: {json.dumps(metadata)}\n\n"
                 )
                 route.fulfill(status=200, content_type="text/event-stream", body=source)
             else:
@@ -339,7 +339,7 @@ def install_fixtures(page: Page) -> None:
                 route.fulfill(
                     status=200,
                     content_type="application/json",
-                    headers={"x-omni-playground-metadata": encoded},
+                    headers={"x-polaris-playground-metadata": encoded},
                     body=json.dumps({"choices": [{"message": {"content": "fixture answer"}}]}),
                 )
             return
@@ -351,8 +351,8 @@ def install_fixtures(page: Page) -> None:
     for pattern in (
         "**/api/providers/ollama/credentials",
         "**/api/model-catalog*",
-        "**/api/model-routes/omway",
-        "**/api/model-routes/omway/validate",
+        "**/api/model-routes/polaris",
+        "**/api/model-routes/polaris/validate",
         "**/api/playground/runs",
         "**/api/traces?*",
     ):

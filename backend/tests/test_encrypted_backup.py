@@ -32,7 +32,7 @@ class EncryptedBackupTests(unittest.TestCase):
         password = "strong-master-password-123!"
 
         bundle = encrypt_payload(sample_data, password)
-        self.assertEqual(bundle["format"], "omni-gateway-encrypted-backup")
+        self.assertEqual(bundle["format"], "polaris-encrypted-backup")
         self.assertEqual(bundle["version"], 1)
         self.assertEqual(bundle["kdf"], "scrypt")
         self.assertEqual(bundle["cipher"], "aes-256-gcm")

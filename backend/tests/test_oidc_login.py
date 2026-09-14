@@ -38,7 +38,7 @@ class OidcLoginServiceTests(unittest.IsolatedAsyncioTestCase):
             environ={
                 "OIDC_ENABLED": "true",
                 "OIDC_ISSUER": "https://identity.example.com/tenant",
-                "OIDC_CLIENT_ID": "omni-gateway",
+                "OIDC_CLIENT_ID": "polaris",
                 "OIDC_CLIENT_SECRET": "enterprise-client-secret",
                 "OIDC_REDIRECT_URI": ("https://gateway.example.com/api/identity/oidc/callback"),
                 "OIDC_ROLE_MAPPINGS": '{"operators":"operator"}',

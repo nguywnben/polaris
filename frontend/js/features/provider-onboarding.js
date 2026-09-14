@@ -204,4 +204,4 @@ function refreshProviderOnboardingCopy() {
 }
 
 document.addEventListener('DOMContentLoaded', enhanceProviderWorkspaces, {once: true});
-document.addEventListener('omni:locale-change', refreshProviderOnboardingCopy);
+document.addEventListener('polaris:locale-change', refreshProviderOnboardingCopy);

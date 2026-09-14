@@ -110,7 +110,7 @@ Goal: make the canonical single-machine deployment safe to install, understand, 
 
 - Scope: consolidate environment parsing and setting metadata into one schema with Basic,
   Advanced, and Experimental groups; identify restart-required/read-only fields.
-- Acceptance: invalid values fail with actionable messages; unknown `OMNI_*` keys warn; generated
+- Acceptance: invalid values fail with actionable messages; unknown `POLARIS_*` keys warn; generated
   environment reference and Settings metadata cannot drift from runtime defaults.
 - Verification: boundary config tests and `.env`/Compose parity test.
 - Depends on: P0.6.

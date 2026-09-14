@@ -95,6 +95,6 @@ Only `actions`, `target_types`, and `page_size` may be remembered locally. Outco
 request IDs, actor/target fingerprints, time bounds, cursors, event records, and export payloads
 are never persisted by the console. A newer event query aborts and supersedes an older one to
 prevent stale responses from replacing current evidence. Export always uses the last applied
-filter snapshot and accepts only the server-generated `omni-audit-<UTC>.<format>` filename pattern.
+filter snapshot and accepts only the server-generated `polaris-audit-<UTC>.<format>` filename pattern.
 Retention updates require an explicit confirmation that records outside either bound may be
 removed immediately.

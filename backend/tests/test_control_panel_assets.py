@@ -70,7 +70,7 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn('id="themePreference"', settings)
         for mode in ("system", "light", "dark"):
             self.assertIn(f'<option value="{mode}"', body)
-        self.assertIn("omni_gateway_theme", theme_script)
+        self.assertIn("polaris_theme", theme_script)
         self.assertIn("window.matchMedia('(prefers-color-scheme: dark)')", theme_script)
         self.assertIn("document.documentElement.dataset.theme", theme_script)
         self.assertIn("localStorage.setItem", theme_script)

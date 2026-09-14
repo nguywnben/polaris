@@ -42,7 +42,7 @@ def _policy():
         environ={
             "OIDC_ENABLED": "true",
             "OIDC_ISSUER": _ISSUER,
-            "OIDC_CLIENT_ID": "omni-gateway",
+            "OIDC_CLIENT_ID": "polaris",
             "OIDC_CLIENT_SECRET": "enterprise-client-secret",
             "OIDC_REDIRECT_URI": "https://gateway.example.com/api/identity/oidc/callback",
             "OIDC_SCOPES": "openid profile email",
@@ -228,7 +228,7 @@ class OidcAuthorizationTransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(parsed.path, "/authorize")
         self.assertEqual(parameters["tenant"], ["enterprise"])
         self.assertEqual(parameters["response_type"], ["code"])
-        self.assertEqual(parameters["client_id"], ["omni-gateway"])
+        self.assertEqual(parameters["client_id"], ["polaris"])
         self.assertEqual(
             parameters["redirect_uri"],
             ["https://gateway.example.com/api/identity/oidc/callback"],

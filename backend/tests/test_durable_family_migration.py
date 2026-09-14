@@ -55,7 +55,7 @@ BARRIER_ID = "bar_33333333333333333333333333333333"
 SOURCE_ID = "ins_11111111111111111111111111111111"
 TARGET_ID = "ins_22222222222222222222222222222222"
 NOW = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
-POSTGRESQL_URI = os.getenv("OMNI_TEST_POSTGRESQL_URI", "").strip()
+POSTGRESQL_URI = os.getenv("POLARIS_TEST_POSTGRESQL_URI", "").strip()
 
 
 async def _initialize_database(directory: str) -> Path:
@@ -141,7 +141,7 @@ class SQLiteDurableFamilyAdapterTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(aiosqlite.IntegrityError):
                 await db.execute("UPDATE config SET value = '3' WHERE key = 'alpha'")
             await db.rollback()
-            await db.execute("DROP TRIGGER omni_migration_fence_v2_config_update")
+            await db.execute("DROP TRIGGER polaris_migration_fence_v2_config_update")
             await db.commit()
         with self.assertRaises(SourceMutationBarrierLost):
             await barrier.assert_active(
@@ -151,7 +151,7 @@ class SQLiteDurableFamilyAdapterTests(unittest.IsolatedAsyncioTestCase):
             )
 
 
-@unittest.skipUnless(POSTGRESQL_URI, "OMNI_TEST_POSTGRESQL_URI is not configured")
+@unittest.skipUnless(POSTGRESQL_URI, "POLARIS_TEST_POSTGRESQL_URI is not configured")
 class LivePostgreSQLDurableFamilyMigrationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.temporary = WORKSPACE_DIR / "temp" / "tests" / f"w4c-{uuid.uuid4().hex}"
@@ -160,7 +160,7 @@ class LivePostgreSQLDurableFamilyMigrationTests(unittest.IsolatedAsyncioTestCase
         self.source_path = await _initialize_database(str(self.temporary / "source"))
         await self._seed_source()
 
-        self.schema_name = f"omni_durable_migration_{uuid.uuid4().hex}"
+        self.schema_name = f"polaris_durable_migration_{uuid.uuid4().hex}"
         admin = await asyncpg.connect(POSTGRESQL_URI)
         try:
             await admin.execute(f'CREATE SCHEMA "{self.schema_name}"')

@@ -26,7 +26,7 @@ as independently releasable vertical slices rather than a single rewrite.
 | Portkey Gateway | Pipeline hooks, guardrail checks, cache/retry composition | Start with typed built-in stages; do not expose arbitrary executable plugins |
 | Langfuse | Request traces, sessions, scores, evaluations, project/member governance | Embed operational traces first; keep full prompt/eval lifecycle as an integration boundary |
 | LiteLLM | Virtual keys, budgets, teams, guardrails, router settings, caching, audit logs | Preserve Polaris's smaller and safer management surface |
-| OmniRoute | Compression profiles, per-request policy, task-fit routing, scoped keys, health autopilot | Do not adopt semantic compression claims without an evaluation gate |
+| PolarisRoute | Compression profiles, per-request policy, task-fit routing, scoped keys, health autopilot | Do not adopt semantic compression claims without an evaluation gate |
 
 ### Product principles
 
@@ -175,7 +175,7 @@ Get-ChildItem frontend\js -Recurse -Filter *.js | Sort-Object FullName |
 .\.venv\Scripts\yamllint.exe --strict .github deploy .yamllint.yml
 
 # Runtime
-$env:CREDENTIALS_DIR = "$env:TEMP\omni-gateway-enterprise-smoke\credentials"
+$env:CREDENTIALS_DIR = "$env:TEMP\polaris-enterprise-smoke\credentials"
 .\.venv\Scripts\python.exe backend\main.py
 ```
 

@@ -26,7 +26,7 @@ from core.identity.repository import OidcPolicyRevisionRecord  # noqa: E402
 _MISSING = object()
 _NOW = 2_000_000_000
 _ISSUER = "https://identity.example.com/tenant"
-_CLIENT_ID = "omni-gateway"
+_CLIENT_ID = "polaris"
 _NONCE = "transaction-bound-nonce"
 _RSA_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 _RSA_PSS_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)

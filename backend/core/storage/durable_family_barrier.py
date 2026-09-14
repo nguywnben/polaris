@@ -61,7 +61,7 @@ class SQLiteSourceMutationBarrier:
                 trigger_rows = await (
                     await db.execute(
                         "SELECT name FROM sqlite_master WHERE type = 'trigger' "
-                        "AND name LIKE 'omni_migration_fence_v2_%'"
+                        "AND name LIKE 'polaris_migration_fence_v2_%'"
                     )
                 ).fetchall()
         except Exception as exc:
@@ -126,7 +126,7 @@ class SQLiteSourceMutationBarrier:
 
     @staticmethod
     def _trigger_name(table: str, operation: str) -> str:
-        return f"omni_migration_fence_v2_{table}_{operation.lower()}"
+        return f"polaris_migration_fence_v2_{table}_{operation.lower()}"
 
     @staticmethod
     def _record(plan_id: str, barrier_id: str, source_instance_id: str) -> dict[str, object]:

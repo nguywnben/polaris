@@ -24,7 +24,7 @@ from core.identity.oidc_transaction import (  # noqa: E402
 from core.identity.repository import OidcPolicyRevisionRecord  # noqa: E402
 
 _ISSUER = "https://identity.example.com/tenant"
-_CLIENT_ID = "omni-gateway"
+_CLIENT_ID = "polaris"
 _CLIENT_SECRET = "enterprise-client-secret"
 _HMAC_KEY = b"code-flow-test-key-material-32byt"
 _STATE = "A" * 43

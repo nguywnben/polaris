@@ -1,48 +1,48 @@
 groups:
   - name: polaris-symptoms
     rules:
-      - alert: OmniGatewayHighErrorRate
-        expr: omni_red_requests >= 20 and omni_red_error_ratio > 0.05
+      - alert: PolarisGatewayHighErrorRate
+        expr: polaris_red_requests >= 20 and polaris_red_error_ratio > 0.05
         for: 10m
         labels:
           severity: critical
         annotations:
           summary: Gateway requests are failing at a high rate
           runbook_url: https://github.com/nguywnben/polaris/blob/main/docs/runbooks/high-error-rate.md
-      - alert: OmniGatewayHighP95Latency
-        expr: omni_red_duration_milliseconds{quantile="0.95"} > 15000 and on() omni_red_requests >= 20
+      - alert: PolarisGatewayHighP95Latency
+        expr: polaris_red_duration_milliseconds{quantile="0.95"} > 15000 and on() polaris_red_requests >= 20
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: Gateway request P95 latency is above 15 seconds
           runbook_url: https://github.com/nguywnben/polaris/blob/main/docs/runbooks/high-latency.md
-      - alert: OmniGatewayQuotaOrBudgetExhaustion
-        expr: sum(omni_exhaustion_events{category=~"quota|budget|rate_limit"}) > 0
+      - alert: PolarisGatewayQuotaOrBudgetExhaustion
+        expr: sum(polaris_exhaustion_events{category=~"quota|budget|rate_limit"}) > 0
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: Requests are being denied by quota, budget, or rate limits
           runbook_url: https://github.com/nguywnben/polaris/blob/main/docs/runbooks/capacity-exhaustion.md
-      - alert: OmniGatewayStorageUnavailable
-        expr: omni_storage_ready == 0
+      - alert: PolarisGatewayStorageUnavailable
+        expr: polaris_storage_ready == 0
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: Gateway durable storage is unavailable
           runbook_url: https://github.com/nguywnben/polaris/blob/main/docs/runbooks/storage-unavailable.md
-      - alert: OmniGatewayUnknownPricing
-        expr: increase(omni_virtual_key_quota_events_total{event=~"pricing_denied|pricing_warned"}[15m]) > 0
+      - alert: PolarisGatewayUnknownPricing
+        expr: increase(polaris_virtual_key_quota_events_total{event=~"pricing_denied|pricing_warned"}[15m]) > 0
         for: 1m
         labels:
           severity: warning
         annotations:
           summary: Budget enforcement encountered models without pricing
           runbook_url: https://github.com/nguywnben/polaris/blob/main/docs/runbooks/unknown-pricing.md
-      - alert: OmniGatewayRuntimeUnavailable
-        expr: omni_runtime_ready == 0
+      - alert: PolarisGatewayRuntimeUnavailable
+        expr: polaris_runtime_ready == 0
         for: 2m
         labels:
           severity: critical

@@ -44,7 +44,7 @@ def _configuration(*, mappings: str = "{}", revision: int = 1, epoch: int = 1):
         environ={
             "OIDC_ENABLED": "true",
             "OIDC_ISSUER": ISSUER,
-            "OIDC_CLIENT_ID": "omni-gateway",
+            "OIDC_CLIENT_ID": "polaris",
             "OIDC_CLIENT_SECRET": "enterprise-client-secret",
             "OIDC_REDIRECT_URI": "https://gateway.example.com/api/identity/oidc/callback",
             "OIDC_ROLE_MAPPINGS": mappings,
@@ -56,7 +56,7 @@ def _token(*, subject: str = "subject-1", groups: tuple[str, ...] = (), revision
     return VerifiedOidcIdToken(
         issuer=ISSUER,
         subject=subject,
-        audiences=("omni-gateway",),
+        audiences=("polaris",),
         authorized_party=None,
         expires_at=2_000_000_000,
         issued_at=1_999_999_900,

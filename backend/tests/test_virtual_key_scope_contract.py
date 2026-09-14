@@ -61,13 +61,13 @@ class VirtualKeyScopeContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(record["last_used_at"])
 
     async def test_legacy_record_migrates_with_existing_inference_access(self):
-        plaintext = "sk-ogw-vk-legacy-secret"
+        plaintext = "sk-polaris-vk-legacy-secret"
         self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY] = [
             {
                 "id": "vk_legacy",
                 "name": "legacy",
                 "key_hash": hash_key(plaintext),
-                "key_preview": "sk-ogw-vk-...cret",
+                "key_preview": "sk-polaris-vk-...cret",
                 "enabled": True,
                 "created_at": 1.0,
                 "allowed_models": ["gpt-*"],
@@ -84,14 +84,14 @@ class VirtualKeyScopeContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.storage.write_count, 1)
 
     async def test_unknown_scope_in_versioned_storage_fails_closed(self):
-        plaintext = "sk-ogw-vk-invalid-scope"
+        plaintext = "sk-polaris-vk-invalid-scope"
         self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY] = [
             {
                 "schema_version": VIRTUAL_KEY_SCHEMA_VERSION,
                 "id": "vk_invalid",
                 "name": "invalid",
                 "key_hash": hash_key(plaintext),
-                "key_preview": "sk-ogw-vk-...cope",
+                "key_preview": "sk-polaris-vk-...cope",
                 "enabled": True,
                 "created_at": 1.0,
                 "scopes": ["inference:openai", "management:owner"],
@@ -103,14 +103,14 @@ class VirtualKeyScopeContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(await self.manager.verify(plaintext))
 
     async def test_unknown_schema_version_fails_closed(self):
-        plaintext = "sk-ogw-vk-future-version"
+        plaintext = "sk-polaris-vk-future-version"
         self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY] = [
             {
                 "schema_version": VIRTUAL_KEY_SCHEMA_VERSION + 1,
                 "id": "vk_future",
                 "name": "future",
                 "key_hash": hash_key(plaintext),
-                "key_preview": "sk-ogw-vk-...sion",
+                "key_preview": "sk-polaris-vk-...sion",
                 "enabled": True,
                 "created_at": 1.0,
                 "scopes": list(DEFAULT_INFERENCE_SCOPES),
@@ -156,7 +156,7 @@ class VirtualKeyScopeContractTests(unittest.IsolatedAsyncioTestCase):
             id="vk_scoped",
             name="scoped",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...oped",
+            key_preview="sk-polaris-vk-...oped",
             enabled=True,
             created_at=time.time(),
             scopes=("inference:openai",),

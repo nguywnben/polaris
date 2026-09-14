@@ -26,7 +26,7 @@ from log import log
 # Responses larger than this are not cached (memory protection).
 MAX_CACHEABLE_RESPONSE_BYTES = 512 * 1024
 
-CACHE_HIT_HEADER = "x-omni-cache"
+CACHE_HIT_HEADER = "x-polaris-cache"
 
 
 def runtime_admission_response() -> Optional[Response]:

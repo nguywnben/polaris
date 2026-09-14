@@ -7,9 +7,9 @@ described below were removed; this file is retained only as a historical design 
 
 ## Closed runtime policy
 
-`OMNI_RUNTIME_MODE` accepts only `standalone` (default) or `coordinated`.
+`POLARIS_RUNTIME_MODE` accepts only `standalone` (default) or `coordinated`.
 
-Standalone requires `WORKERS=1` and `OMNI_REPLICA_COUNT=1`. Redis coordination settings are
+Standalone requires `WORKERS=1` and `POLARIS_REPLICA_COUNT=1`. Redis coordination settings are
 rejected rather than ignored when the mode is standalone, except the legacy `REDIS_URL` cache
 setting while coordinated activation remains unavailable. The lifecycle creates one in-process
 state store and injects that same fenced store into authentication admission, sessions, OIDC,
@@ -22,13 +22,13 @@ coordination error.
 Coordinated configuration requires all of the following:
 
 - `WORKERS=1`; one worker per process is a permanent v1 semantic constraint.
-- `OMNI_REPLICA_COUNT=1`. W4.19 recorded no tested multi-replica ceiling.
+- `POLARIS_REPLICA_COUNT=1`. W4.19 recorded no tested multi-replica ceiling.
 - exactly one external durable backend: `POSTGRESQL_URI` or `MONGODB_URI`, never SQLite or both;
 - `REDIS_URL` using `redis`, `rediss`, or `unix` transport;
-- a validated lowercase/hyphen `OMNI_COORDINATION_NAMESPACE` and stable
-  `OMNI_DEPLOYMENT_ID`;
-- a base64url `OMNI_COORDINATION_KEY` decoding to 32-64 bytes;
-- positive `OMNI_COORDINATION_EPOCH` matching the durable binding and Redis ready epoch;
+- a validated lowercase/hyphen `POLARIS_COORDINATION_NAMESPACE` and stable
+  `POLARIS_DEPLOYMENT_ID`;
+- a base64url `POLARIS_COORDINATION_KEY` decoding to 32-64 bytes;
+- positive `POLARIS_COORDINATION_EPOCH` matching the durable binding and Redis ready epoch;
 - an exact durable migration manifest/checkpoint and an activation record compiled into a future
   release only after every required external failure/load gate passes. W4.19 produced no record.
 
@@ -219,6 +219,6 @@ probes remain `/health` and `/ready`.
 
 W4.18 tests configuration matrices, lifecycle transitions, namespace-loss/partial-binding defense,
 readiness, secret-free metrics, rendered manifests, and unchanged standalone startup. W4.19 owns
-forced-failure/load evidence and the only activation record. Without its complete evidence, Omni
+forced-failure/load evidence and the only activation record. Without its complete evidence, Polaris
 Gateway remains supported only in standalone mode even though the coordinated implementation is
 present.

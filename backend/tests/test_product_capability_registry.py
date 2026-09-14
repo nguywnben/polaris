@@ -68,7 +68,7 @@ class ProductCapabilityRegistryTests(unittest.TestCase):
 
     def test_optional_capabilities_reflect_safe_configuration_without_secrets(self) -> None:
         environment = {
-            "POSTGRESQL_URI": "postgresql://operator:database-secret@db/omni",
+            "POSTGRESQL_URI": "postgresql://operator:database-secret@db/polaris",
             "OIDC_ENABLED": "true",
             "OIDC_CLIENT_SECRET": "oidc-secret",
             "PROMETHEUS_EXPORT_ENABLED": "true",
@@ -103,8 +103,8 @@ class ProductCapabilityRegistryTests(unittest.TestCase):
     def test_conflicting_storage_selection_fails_closed(self) -> None:
         snapshot = get_capability_snapshot(
             {
-                "POSTGRESQL_URI": "postgresql://db/omni",
-                "MONGODB_URI": "mongodb://db/omni",
+                "POSTGRESQL_URI": "postgresql://db/polaris",
+                "MONGODB_URI": "mongodb://db/polaris",
             }
         )
         by_id = {capability.id: capability for capability in snapshot.capabilities}

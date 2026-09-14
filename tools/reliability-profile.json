@@ -1,5 +1,5 @@
 {
-  "schema_version": "omni.reliability-profile.v1",
+  "schema_version": "polaris.reliability-profile.v1",
   "duration_seconds": 120,
   "offered_rps": 5,
   "concurrency": 8,

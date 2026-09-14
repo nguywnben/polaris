@@ -19,9 +19,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 _ALLOWED_PROVIDERS = frozenset({"claude", "xai"})
 _TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
-_HMAC_DOMAIN = b"omni-gateway:provider-authorization:v1\0"
-_PAYLOAD_KEY_DOMAIN = b"omni-gateway:provider-authorization-payload-key:v1\0"
-_PAYLOAD_AAD = b"omni-gateway:provider-authorization-payload:v1"
+_HMAC_DOMAIN = b"polaris:provider-authorization:v1\0"
+_PAYLOAD_KEY_DOMAIN = b"polaris:provider-authorization-payload-key:v1\0"
+_PAYLOAD_AAD = b"polaris:provider-authorization-payload:v1"
 _MAX_STORED_PAYLOAD_BYTES = 8 * 1024
 _ENCRYPTION_OVERHEAD_BYTES = 1 + 12 + 16
 MAX_PROVIDER_AUTHORIZATION_PAYLOAD_BYTES = _MAX_STORED_PAYLOAD_BYTES - _ENCRYPTION_OVERHEAD_BYTES

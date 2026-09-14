@@ -128,12 +128,12 @@ def render_coordination_operation_metrics() -> str:
     with _METRICS_LOCK:
         snapshot = dict(_OPERATION_METRICS)
     lines = [
-        "# HELP omni_coordination_operations_total Coordination store operations.",
-        "# TYPE omni_coordination_operations_total counter",
+        "# HELP polaris_coordination_operations_total Coordination store operations.",
+        "# TYPE polaris_coordination_operations_total counter",
     ]
     for (backend, operation, result), count in sorted(snapshot.items()):
         lines.append(
-            "omni_coordination_operations_total"
+            "polaris_coordination_operations_total"
             f'{{backend="{backend}",operation="{operation}",result="{result}"}} {count}'
         )
     return "\n".join(lines) + "\n"

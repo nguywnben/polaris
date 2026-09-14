@@ -25,9 +25,9 @@ from core.security_coordination import (
 from core.state_store import InMemoryStateStore
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-_HMAC_DOMAIN = b"omni-gateway:oidc-transaction:v1\0"
-_PAYLOAD_KEY_DOMAIN = b"omni-gateway:oidc-transaction-payload-key:v1\0"
-_PAYLOAD_AAD = b"omni-gateway:oidc-transaction-payload:v1"
+_HMAC_DOMAIN = b"polaris:oidc-transaction:v1\0"
+_PAYLOAD_KEY_DOMAIN = b"polaris:oidc-transaction-payload-key:v1\0"
+_PAYLOAD_AAD = b"polaris:oidc-transaction-payload:v1"
 _MAX_AUTHORIZATION_URL_LENGTH = 8_192
 _TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
 _TOKEN_AUTH_METHODS = frozenset({"client_secret_basic", "client_secret_post"})

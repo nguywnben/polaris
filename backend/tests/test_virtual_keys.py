@@ -109,7 +109,7 @@ class VirtualKeyCrudTests(unittest.TestCase):
             return record, plaintext
 
         record, plaintext = _run(scenario())
-        self.assertTrue(plaintext.startswith("sk-ogw-vk-"))
+        self.assertTrue(plaintext.startswith("sk-polaris-vk-"))
         self.assertNotIn("key_hash", record)
         stored = self.storage.config[virtual_keys.VIRTUAL_KEYS_CONFIG_KEY]
         self.assertEqual(len(stored), 1)
@@ -147,7 +147,7 @@ class VirtualKeyCrudTests(unittest.TestCase):
         async def scenario():
             _, plaintext = await self.manager.create_key("verify-me")
             good = await self.manager.verify(plaintext)
-            bad = await self.manager.verify("sk-ogw-vk-wrong")
+            bad = await self.manager.verify("sk-polaris-vk-wrong")
             return good, bad
 
         good, bad = _run(scenario())
@@ -221,7 +221,7 @@ class VirtualKeyEnforcementTests(unittest.TestCase):
             id="vk_test",
             name="test",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...abcd",
+            key_preview="sk-polaris-vk-...abcd",
             enabled=True,
             created_at=time.time(),
         )

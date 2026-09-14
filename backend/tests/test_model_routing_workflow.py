@@ -36,7 +36,7 @@ class ModelRouteContractTests(unittest.TestCase):
     def test_revision_is_stable_and_changes_with_route_content(self) -> None:
         first = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-a"],
                 "enabled": True,
@@ -45,7 +45,7 @@ class ModelRouteContractTests(unittest.TestCase):
         same = decorate_virtual_model_pool(dict(first))
         changed = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-b"],
                 "enabled": True,
@@ -176,7 +176,7 @@ class ModelRouteApiLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_create_rejects_an_existing_route_without_overwriting_it(self) -> None:
         existing = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-a"],
                 "enabled": True,
@@ -198,7 +198,7 @@ class ModelRouteApiLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_update_rejects_a_stale_revision(self) -> None:
         existing = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-a"],
                 "enabled": True,
@@ -224,7 +224,7 @@ class ModelRouteApiLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_update_requires_a_revision_precondition(self) -> None:
         existing = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-a"],
                 "enabled": True,
@@ -242,7 +242,7 @@ class ModelRouteApiLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_delete_uses_the_same_revision_guard_and_disables_the_route(self) -> None:
         existing = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["model-a"],
                 "enabled": True,
@@ -250,7 +250,7 @@ class ModelRouteApiLifecycleTests(unittest.IsolatedAsyncioTestCase):
         )
         deleted = decorate_virtual_model_pool(
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": [],
                 "enabled": False,

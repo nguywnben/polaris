@@ -152,8 +152,8 @@ _DECLARATIONS = """
 HOST=0.0.0.0
 PORT=4283
 HOST_PORT=4283
-OMNI_RUNTIME_MODE=standalone
-OMNI_REPLICA_COUNT=1
+POLARIS_RUNTIME_MODE=standalone
+POLARIS_REPLICA_COUNT=1
 WORKERS=1
 CORS_ORIGINS=
 CORS_ORIGIN_REGEX=
@@ -192,7 +192,7 @@ OIDC_START_MAX_ATTEMPTS=20
 OIDC_START_MAX_TRACKED_CLIENTS=10000
 CREDENTIALS_DIR=./backend/data/creds
 MONGODB_URI=
-MONGODB_DATABASE=omni_gateway
+MONGODB_DATABASE=polaris
 POSTGRESQL_URI=
 CODE_ASSIST_CREDENTIALS_JSON={}
 CREDENTIALS_JSON={}
@@ -306,7 +306,7 @@ _BOOLEAN_NAMES = frozenset(
     OTEL_EXPORT_ENABLED""".split()
 )
 _INTEGER_NAMES = frozenset(
-    """PORT HOST_PORT OMNI_REPLICA_COUNT WORKERS
+    """PORT HOST_PORT POLARIS_REPLICA_COUNT WORKERS
     PANEL_SESSION_TTL_SECONDS PANEL_LOGIN_WINDOW_SECONDS PANEL_LOGIN_MAX_ATTEMPTS
     PANEL_LOGIN_MAX_TRACKED_CLIENTS MAX_REQUEST_BODY_MB OIDC_CONNECT_TIMEOUT_SECONDS
     OIDC_READ_TIMEOUT_SECONDS OIDC_MAX_RESPONSE_BYTES OIDC_JWKS_TTL_SECONDS
@@ -330,7 +330,7 @@ _SECRET_NAMES = frozenset(
 )
 _EXPERIMENTAL_NAMES = frozenset()
 _BASIC_NAMES = frozenset(
-    """HOST PORT HOST_PORT OMNI_RUNTIME_MODE OMNI_REPLICA_COUNT WORKERS CORS_ORIGINS
+    """HOST PORT HOST_PORT POLARIS_RUNTIME_MODE POLARIS_REPLICA_COUNT WORKERS CORS_ORIGINS
     CORS_ORIGIN_REGEX API_KEY PANEL_PASSWORD SETUP_TOKEN
     PANEL_SESSION_TTL_SECONDS PANEL_COOKIE_SECURE PANEL_LOGIN_WINDOW_SECONDS
     PANEL_LOGIN_MAX_ATTEMPTS PANEL_LOGIN_MAX_TRACKED_CLIENTS MAX_REQUEST_BODY_MB
@@ -369,7 +369,7 @@ _QUALITY_NAMES = frozenset(
 _LIMITS: dict[str, tuple[int | float | None, int | float | None]] = {
     "PORT": (1, 65_535),
     "HOST_PORT": (1, 65_535),
-    "OMNI_REPLICA_COUNT": (1, 1_000_000_000),
+    "POLARIS_REPLICA_COUNT": (1, 1_000_000_000),
     "WORKERS": (1, 1_000_000_000),
     "PANEL_SESSION_TTL_SECONDS": (300, 2_592_000),
     "PANEL_LOGIN_WINDOW_SECONDS": (10, 3_600),
@@ -399,7 +399,7 @@ _LIMITS: dict[str, tuple[int | float | None, int | float | None]] = {
     "KEEPALIVE_INTERVAL": (5, 86_400),
 }
 _CHOICES = {
-    "OMNI_RUNTIME_MODE": ("standalone",),
+    "POLARIS_RUNTIME_MODE": ("standalone",),
     "ROUTING_STRATEGY": (
         "balanced",
         "priority",
@@ -515,13 +515,13 @@ def field_by_config_key(key: str) -> ConfigField | None:
 
 
 def parse_environment(environ: Mapping[str, str]) -> ParsedEnvironment:
-    """Validate known non-empty values and report likely misspelled Omni controls."""
+    """Validate known non-empty values and report likely misspelled Polaris controls."""
     values: dict[str, Any] = {}
     warnings = []
     for name, raw_value in environ.items():
         field = _BY_ENV.get(name)
         if field is None:
-            if name.startswith("OMNI_"):
+            if name.startswith("POLARIS_"):
                 warnings.append(f"Unknown Polaris environment variable {name}; check its spelling.")
             continue
         if not isinstance(raw_value, str):

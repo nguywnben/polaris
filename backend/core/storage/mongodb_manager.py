@@ -60,7 +60,7 @@ class MongoDBManager:
             if not mongodb_uri:
                 raise ValueError("MONGODB_URI environment variable not set")
 
-            database_name = os.getenv("MONGODB_DATABASE", "omni_gateway")
+            database_name = os.getenv("MONGODB_DATABASE", "polaris")
 
             self._client = AsyncMongoClient(mongodb_uri)
             self._db = self._client[database_name]

@@ -178,10 +178,12 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("DELETE", "/api/model-blacklist/{provider_id}/models/{model_id}"): _mutation(
         "model_blacklist.clear", "model_blacklist", "deleted"
     ),
-    ("PUT", "/api/model-pools/omway"): _mutation("model_pool.update", "model_pool", "updated"),
-    ("POST", "/api/model-routes/omway"): _mutation("model_pool.update", "model_pool", "created"),
-    ("PATCH", "/api/model-routes/omway"): _mutation("model_pool.update", "model_pool", "updated"),
-    ("DELETE", "/api/model-routes/omway"): _mutation("model_pool.update", "model_pool", "deleted"),
+    ("PUT", "/api/model-pools/polaris"): _mutation("model_pool.update", "model_pool", "updated"),
+    ("POST", "/api/model-routes/polaris"): _mutation("model_pool.update", "model_pool", "created"),
+    ("PATCH", "/api/model-routes/polaris"): _mutation("model_pool.update", "model_pool", "updated"),
+    ("DELETE", "/api/model-routes/polaris"): _mutation(
+        "model_pool.update", "model_pool", "deleted"
+    ),
     ("PUT", "/api/quality-policy"): _mutation(
         "quality_policy.update", "quality_policy", "policy_changed"
     ),
@@ -209,7 +211,7 @@ MANAGEMENT_AUDIT_EXCLUSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/providers/openai/codex/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/providers/anthropic/claude-code/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/quality-policy/preview"): "Side-effect-free policy preview.",
-    ("POST", "/api/model-routes/omway/validate"): ("Side-effect-free model route validation."),
+    ("POST", "/api/model-routes/polaris/validate"): ("Side-effect-free model route validation."),
     ("POST", "/api/playground/runs"): (
         "Ephemeral inference run; the route records its final streamed outcome explicitly."
     ),
@@ -274,7 +276,7 @@ def _semantic_target_identifier(
         "root_key": "root",
         "log_store": "runtime",
         "quality_policy": "global",
-        "model_pool": "omway",
+        "model_pool": "polaris",
         "model_blacklist": "global",
         "trace_policy": "request-traces",
         "oidc_policy": "global",

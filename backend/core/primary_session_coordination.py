@@ -14,7 +14,7 @@ from core.coordination_service import CoordinationService
 
 SESSION_TTL_SECONDS = 6 * 60 * 60
 _MAX_CAS_ATTEMPTS = 16
-_KEY_DOMAIN = b"omni-gateway:primary-session:v1\0"
+_KEY_DOMAIN = b"polaris:primary-session:v1\0"
 
 
 @dataclass(frozen=True, slots=True)

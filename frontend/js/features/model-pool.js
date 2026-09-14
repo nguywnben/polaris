@@ -572,7 +572,7 @@ async function validateModelRoute(options = {}) {
     const selectedModels = [...AppState.selectedModels];
     if (button) button.disabled = true;
     try {
-        const response = await fetch('./api/model-routes/omway/validate', {
+        const response = await fetch('./api/model-routes/polaris/validate', {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({selected_models: selectedModels, enabled: true})
@@ -616,7 +616,7 @@ async function saveModelPool() {
         const creating = !AppState.modelPoolConfigured;
         const headers = getAuthHeaders();
         if (!creating && AppState.modelPoolRevision) headers['If-Match'] = AppState.modelPoolRevision;
-        const response = await fetch('./api/model-routes/omway', {
+        const response = await fetch('./api/model-routes/polaris', {
             method: creating ? 'POST' : 'PATCH',
             headers,
             body: JSON.stringify({selected_models: AppState.selectedModels, enabled: true})
@@ -664,7 +664,7 @@ async function deleteModelRoute() {
     try {
         const headers = getAuthHeaders();
         if (AppState.modelPoolRevision) headers['If-Match'] = AppState.modelPoolRevision;
-        const response = await fetch('./api/model-routes/omway', {method: 'DELETE', headers});
+        const response = await fetch('./api/model-routes/polaris', {method: 'DELETE', headers});
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const failure = modelRouteError(data, t('unknown_error'));
@@ -690,7 +690,7 @@ async function deleteModelRoute() {
     }
 }
 
-function buildModelPlaygroundHandoff(alias = 'omway') {
+function buildModelPlaygroundHandoff(alias = 'polaris') {
     return {
         schema_version: 'playground-handoff.v1',
         source: 'models',
@@ -708,13 +708,13 @@ async function testModelRouteInPlayground() {
         showStatus(t('models.validation_failed'), 'error');
         return;
     }
-    const handoff = buildModelPlaygroundHandoff('omway');
+    const handoff = buildModelPlaygroundHandoff('polaris');
     try {
-        sessionStorage.setItem('omni_gateway_playground_handoff_v1', JSON.stringify(handoff));
+        sessionStorage.setItem('polaris_playground_handoff_v1', JSON.stringify(handoff));
     } catch (_error) {
         // Storage can be disabled; the event still carries the bounded handoff in this session.
     }
-    document.dispatchEvent(new CustomEvent('omni:playground-handoff', {detail: handoff}));
+    document.dispatchEvent(new CustomEvent('polaris:playground-handoff', {detail: handoff}));
     if (typeof TAB_MAP === 'object' && TAB_MAP.playground) {
         window.location.assign(`${TAB_MAP.playground}?model=${encodeURIComponent(handoff.model)}&source=models`);
         return;

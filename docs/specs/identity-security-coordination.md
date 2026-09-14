@@ -167,7 +167,7 @@ shutdown errors remain secret-free.
   delay, capacity, expiry, and client-HMAC secrecy.
 - OIDC tests cover browser binding, exact one-time consume, wrong-issuer burn, expiry, capacity,
   policy drift, cancellation, and payload secrecy.
-- Live Redis remains opt-in through `OMNI_TEST_REDIS_URI`; absence is an explicit skip, never live
+- Live Redis remains opt-in through `POLARIS_TEST_REDIS_URI`; absence is an explicit skip, never live
   evidence.
 
 ## Commands

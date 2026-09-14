@@ -233,7 +233,7 @@ const AppState = {
 };
 
 const STORAGE_KEYS = {
-    logAutoScroll: 'omni_gateway_log_auto_scroll',
+    logAutoScroll: 'polaris_log_auto_scroll',
 };
 
 // =====================================================================

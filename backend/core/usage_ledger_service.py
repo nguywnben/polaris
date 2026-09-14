@@ -51,12 +51,12 @@ def render_usage_ledger_metrics() -> str:
     with _METRICS_LOCK:
         snapshot = dict(_OPERATION_METRICS)
     lines = [
-        "# HELP omni_usage_ledger_operations_total Durable usage ledger operations.",
-        "# TYPE omni_usage_ledger_operations_total counter",
+        "# HELP polaris_usage_ledger_operations_total Durable usage ledger operations.",
+        "# TYPE polaris_usage_ledger_operations_total counter",
     ]
     for (backend, operation, result), count in sorted(snapshot.items()):
         lines.append(
-            "omni_usage_ledger_operations_total"
+            "polaris_usage_ledger_operations_total"
             f'{{backend="{backend}",operation="{operation}",result="{result}"}} {count}'
         )
     return "\n".join(lines) + "\n"

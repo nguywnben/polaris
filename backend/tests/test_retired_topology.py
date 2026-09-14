@@ -30,7 +30,7 @@ class RetiredTopologyContractTests(unittest.TestCase):
             "deploy/evidence/compose.ha.yml",
             "deploy/evidence/redis-primary.conf",
             "deploy/evidence/redis-standby.conf",
-            "deploy/helm/omni-gateway",
+            "deploy/helm/polaris",
             "docs/runbooks/high-availability.md",
         )
 
@@ -53,11 +53,11 @@ class RetiredTopologyContractTests(unittest.TestCase):
 
         for name in (
             "REDIS_URL",
-            "OMNI_COORDINATION_NAMESPACE",
-            "OMNI_DEPLOYMENT_ID",
-            "OMNI_COORDINATION_KEY",
-            "OMNI_COORDINATION_EPOCH",
-            "OMNI_EXPERIMENTAL_COORDINATION",
+            "POLARIS_COORDINATION_NAMESPACE",
+            "POLARIS_DEPLOYMENT_ID",
+            "POLARIS_COORDINATION_KEY",
+            "POLARIS_COORDINATION_EPOCH",
+            "POLARIS_EXPERIMENTAL_COORDINATION",
         ):
             self.assertNotIn(name, CONFIGURATION_FIELDS)
 
@@ -68,7 +68,7 @@ class RetiredTopologyContractTests(unittest.TestCase):
 
         self.assertNotRegex(requirements, r"(?m)^redis(?:\[|=|<|>|$)")
         self.assertNotIn("REDIS_URL", advanced_compose)
-        self.assertNotIn("OMNI_RUNTIME_MODE=coordinated", environment_example)
+        self.assertNotIn("POLARIS_RUNTIME_MODE=coordinated", environment_example)
 
 
 if __name__ == "__main__":

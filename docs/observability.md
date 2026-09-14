@@ -42,18 +42,18 @@ sample so idle or new installations do not page.
 
 ## Process-local coordination evidence
 
-`omni_coordination_operations_total{backend,operation,result}` records process-local coordination,
+`polaris_coordination_operations_total{backend,operation,result}` records process-local coordination,
 quota, and identity-security operations. `backend` is limited to `in_memory` or `unknown`, while
 operation and result use closed vocabularies. Logical keys, session identifiers, provider values,
 payloads, and exception text never become labels.
 
-`omni_routing_coordination_events_total{operation,result}` records credential-routing, route
+`polaris_routing_coordination_events_total{operation,result}` records credential-routing, route
 outcomes, governance invalidation, and exact-cache decisions. Use these counters to diagnose quota
 rejections, reconciliation pressure, and repeated lifecycle failures inside the supported
 standalone process.
 
-`omni_runtime_ready`, `omni_runtime_coordination_available`, and
-`omni_runtime_info{mode,state}` describe the one-process lifecycle. `/ready` fails closed when that
+`polaris_runtime_ready`, `polaris_runtime_coordination_available`, and
+`polaris_runtime_info{mode,state}` describe the one-process lifecycle. `/ready` fails closed when that
 lifecycle is starting, unavailable, or closed; `/health` remains a process liveness probe. The
 reference alert file contains one sustained runtime-unavailable alert and no distributed-topology
 claims.

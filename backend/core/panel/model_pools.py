@@ -306,7 +306,7 @@ async def create_default_model_pool(
                 status_code=409,
                 detail={
                     "code": "model_route_already_exists",
-                    "message": "The omway route already exists. Reload it before editing.",
+                    "message": "The polaris route already exists. Reload it before editing.",
                     "current_revision": current["revision"],
                 },
             )
@@ -361,11 +361,11 @@ async def patch_default_model_route(
                 status_code=404,
                 detail={
                     "code": "model_route_not_found",
-                    "message": "The omway route is not configured.",
+                    "message": "The polaris route is not configured.",
                 },
             )
         pool = await _save_validated_route(request)
-    return JSONResponse(content={"message": 'Virtual model "omway" updated.', "pool": pool})
+    return JSONResponse(content={"message": 'Virtual model "polaris" updated.', "pool": pool})
 
 
 @router.delete(f"/api/model-routes/{DEFAULT_VIRTUAL_MODEL_ALIAS}")
@@ -383,7 +383,7 @@ async def delete_default_model_pool(
                 status_code=404,
                 detail={
                     "code": "model_route_not_found",
-                    "message": "The omway route is not configured.",
+                    "message": "The polaris route is not configured.",
                 },
             )
         pool = await save_virtual_model_pool([], enabled=False)

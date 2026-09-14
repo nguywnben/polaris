@@ -410,13 +410,13 @@ async def create_playground_run(
     except ValidationError as exc:
         response = protocol_error_response(protocol, 400, _validation_message(exc))
         metadata = _metadata(run, collector, quality, status_code=400)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, 400, started)
         return response
     except TimeoutError:
         response = protocol_error_response(protocol, 504, "The Playground request timed out.")
         metadata = _metadata(run, collector, quality, status_code=504)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, 504, started)
         return response
     except asyncio.CancelledError:
@@ -433,13 +433,13 @@ async def create_playground_run(
             headers=exc.headers,
         )
         metadata = _metadata(run, collector, quality, status_code=exc.status_code)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, exc.status_code, started)
         return response
     except ProtocolTranslationError as exc:
         response = protocol_error_response(protocol, 502, str(exc))
         metadata = _metadata(run, collector, quality, status_code=502)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, 502, started)
         return response
     except Exception as exc:
@@ -451,14 +451,14 @@ async def create_playground_run(
             protocol, 500, "The Playground request could not be completed."
         )
         metadata = _metadata(run, collector, quality, status_code=500)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, 500, started)
         return response
 
     body_iterator = getattr(response, "body_iterator", None)
     if body_iterator is None:
         metadata = _metadata(run, collector, quality, status_code=response.status_code)
-        response.headers["X-Omni-Playground-Metadata"] = _encode_metadata(metadata)
+        response.headers["X-Polaris-Playground-Metadata"] = _encode_metadata(metadata)
         await _finalize(request, run, response.status_code, started)
         return response
 
@@ -520,7 +520,7 @@ async def create_playground_run(
             )
             if not cancelled:
                 yield (
-                    "event: omni.playground.metadata\n"
+                    "event: polaris.playground.metadata\n"
                     f"data: {json.dumps(metadata, ensure_ascii=False, separators=(',', ':'))}\n\n"
                 ).encode("utf-8")
             await _finalize(request, run, status_code, started)
@@ -528,7 +528,7 @@ async def create_playground_run(
     response.body_iterator = bounded_stream()
     if "content-length" in response.headers:
         del response.headers["content-length"]
-    response.headers["X-Omni-Playground-Request-ID"] = request_id
+    response.headers["X-Polaris-Playground-Request-ID"] = request_id
     return response
 
 

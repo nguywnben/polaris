@@ -81,9 +81,9 @@ def run_smoke(base_url: str, expect_fresh_setup: bool, setup_token: str = "") ->
 
         invalid_inference = client.post(
             "/v1/chat/completions",
-            headers={"Authorization": "Bearer sk-ogw-invalid"},
+            headers={"Authorization": "Bearer sk-polaris-invalid"},
             json={
-                "model": "omway",
+                "model": "polaris",
                 "messages": [{"role": "user", "content": "smoke test"}],
             },
         )

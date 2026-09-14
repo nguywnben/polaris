@@ -130,15 +130,15 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
     async def test_root_key_request_can_only_disable_compression(self):
         with (
             request_scope("request-root-quality"),
-            patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-root-example")),
+            patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-root-example")),
         ):
             token = await authenticate_flexible(
                 _request(
                     "/v1/models",
-                    headers=((b"x-omni-compression", b"off"),),
+                    headers=((b"x-polaris-compression", b"off"),),
                 ),
                 authorization=None,
-                x_api_key="sk-ogw-root-example",
+                x_api_key="sk-polaris-root-example",
                 access_token=None,
                 x_goog_api_key=None,
                 x_anthropic_auth_token=None,
@@ -146,23 +146,23 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
                 key=None,
             )
 
-            self.assertEqual(token, "sk-ogw-root-example")
+            self.assertEqual(token, "sk-polaris-root-example")
             self.assertEqual(get_key_compression_policy(), "inherit")
             self.assertEqual(get_request_compression_policy(), "disabled")
 
     async def test_request_rejects_a_compression_enable_override(self):
         with (
             request_scope("request-invalid-quality"),
-            patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-root-example")),
+            patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-root-example")),
             self.assertRaises(HTTPException) as raised,
         ):
             await authenticate_flexible(
                 _request(
                     "/v1/models",
-                    headers=((b"x-omni-compression", b"enabled"),),
+                    headers=((b"x-polaris-compression", b"enabled"),),
                 ),
                 authorization=None,
-                x_api_key="sk-ogw-root-example",
+                x_api_key="sk-polaris-root-example",
                 access_token=None,
                 x_goog_api_key=None,
                 x_anthropic_auth_token=None,
@@ -177,11 +177,11 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
             id="vk_scoped",
             name="scoped",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...oped",
+            key_preview="sk-polaris-vk-...oped",
             scopes=("inference:openai",),
         )
         with (
-            patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-root-example")),
+            patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-root-example")),
             patch(
                 "core.virtual_keys.virtual_key_manager.verify",
                 new=AsyncMock(return_value=record),
@@ -198,7 +198,7 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
             token = await authenticate_flexible(
                 _request("/v1/models"),
                 authorization=None,
-                x_api_key="sk-ogw-vk-example",
+                x_api_key="sk-polaris-vk-example",
                 access_token=None,
                 x_goog_api_key=None,
                 x_anthropic_auth_token=None,
@@ -206,7 +206,7 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
                 key=None,
             )
 
-        self.assertEqual(token, "sk-ogw-vk-example")
+        self.assertEqual(token, "sk-polaris-vk-example")
         enforce.assert_awaited_once_with(
             record,
             protocol="openai",
@@ -222,12 +222,12 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
             id="vk_quality",
             name="quality",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...ity",
+            key_preview="sk-polaris-vk-...ity",
             compression_policy="disabled",
         )
         with (
             request_scope("request-quality"),
-            patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-root-example")),
+            patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-root-example")),
             patch(
                 "core.virtual_keys.virtual_key_manager.verify", new=AsyncMock(return_value=record)
             ),
@@ -237,10 +237,10 @@ class InferenceScopeAuthenticationTests(unittest.IsolatedAsyncioTestCase):
             await authenticate_flexible(
                 _request(
                     "/v1/models",
-                    headers=((b"x-omni-compression", b"off"),),
+                    headers=((b"x-polaris-compression", b"off"),),
                 ),
                 authorization=None,
-                x_api_key="sk-ogw-vk-example",
+                x_api_key="sk-polaris-vk-example",
                 access_token=None,
                 x_goog_api_key=None,
                 x_anthropic_auth_token=None,

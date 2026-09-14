@@ -57,7 +57,7 @@ class PublicProtocolEndToEndTests(unittest.IsolatedAsyncioTestCase):
             (
                 "openai_chat_completions",
                 "/v1/chat/completions",
-                {"Authorization": "Bearer sk-ogw-test-key"},
+                {"Authorization": "Bearer sk-polaris-test-key"},
                 {
                     "model": "fixture-model",
                     "messages": [{"role": "user", "content": "Hello"}],
@@ -67,14 +67,14 @@ class PublicProtocolEndToEndTests(unittest.IsolatedAsyncioTestCase):
             (
                 "openai_responses",
                 "/v1/responses",
-                {"Authorization": "Bearer sk-ogw-test-key"},
+                {"Authorization": "Bearer sk-polaris-test-key"},
                 {"model": "fixture-model", "input": "Hello"},
                 lambda body: body["output"][0]["content"][0]["text"],
             ),
             (
                 "anthropic_messages",
                 "/v1/messages",
-                {"x-api-key": "sk-ogw-test-key"},
+                {"x-api-key": "sk-polaris-test-key"},
                 {
                     "model": "fixture-model",
                     "max_tokens": 64,
@@ -85,14 +85,14 @@ class PublicProtocolEndToEndTests(unittest.IsolatedAsyncioTestCase):
             (
                 "gemini_native",
                 "/v1beta/models/fixture-model:generateContent",
-                {"x-goog-api-key": "sk-ogw-test-key"},
+                {"x-goog-api-key": "sk-polaris-test-key"},
                 {"contents": [{"role": "user", "parts": [{"text": "Hello"}]}]},
                 lambda body: body["candidates"][0]["content"]["parts"][0]["text"],
             ),
             (
                 "vertex",
                 "/vertex/v1beta/models/fixture-model:generateContent",
-                {"x-goog-api-key": "sk-ogw-test-key"},
+                {"x-goog-api-key": "sk-polaris-test-key"},
                 {"contents": [{"role": "user", "parts": [{"text": "Hello"}]}]},
                 lambda body: body["candidates"][0]["content"]["parts"][0]["text"],
             ),
@@ -104,7 +104,7 @@ class PublicProtocolEndToEndTests(unittest.IsolatedAsyncioTestCase):
             stack.enter_context(patch("main.get_audit_service", return_value=audit_service))
             stack.enter_context(patch("main.get_request_trace_service", return_value=trace_service))
             stack.enter_context(
-                patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-test-key"))
+                patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-test-key"))
             )
             for module in (
                 "core.router.primary.openai",

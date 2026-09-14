@@ -34,7 +34,7 @@ request unchanged when its invariants cannot be proven.
 
 For R1, the lower-layer allowlist is intentionally small: a virtual key and a request may only
 `inherit` compression or disable it. A virtual-key restriction is managed through
-`PATCH /api/virtual-keys/{key_id}/quality-policy`; a caller may set `x-omni-compression: off` for
+`PATCH /api/virtual-keys/{key_id}/quality-policy`; a caller may set `x-polaris-compression: off` for
 one request. Neither surface can enable globally disabled compression or change thresholds. Invalid
 request values return HTTP 400 instead of being ignored.
 

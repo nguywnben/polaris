@@ -215,13 +215,13 @@ class PanelSessionCookieTests(unittest.IsolatedAsyncioTestCase):
     async def test_virtual_key_bearer_authorizes_management_read_scope(self):
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer",
-            credentials="sk-ogw-vk-management-reader",
+            credentials="sk-polaris-vk-management-reader",
         )
         record = VirtualKey(
             id="vk_reader",
             name="reader",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...ader",
+            key_preview="sk-polaris-vk-...ader",
             scopes=("management:read",),
         )
         request = build_request()
@@ -245,13 +245,13 @@ class PanelSessionCookieTests(unittest.IsolatedAsyncioTestCase):
     async def test_virtual_key_bearer_uses_write_scope_for_unsafe_method(self):
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer",
-            credentials="sk-ogw-vk-management-writer",
+            credentials="sk-polaris-vk-management-writer",
         )
         record = VirtualKey(
             id="vk_writer",
             name="writer",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...iter",
+            key_preview="sk-polaris-vk-...iter",
             scopes=("management:read", "management:write"),
         )
         with (
@@ -272,13 +272,13 @@ class PanelSessionCookieTests(unittest.IsolatedAsyncioTestCase):
     async def test_virtual_key_denial_happens_before_last_used_is_recorded(self):
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer",
-            credentials="sk-ogw-vk-management-reader",
+            credentials="sk-polaris-vk-management-reader",
         )
         record = VirtualKey(
             id="vk_reader",
             name="reader",
             key_hash="hash",
-            key_preview="sk-ogw-vk-...ader",
+            key_preview="sk-polaris-vk-...ader",
             scopes=("management:read",),
         )
         request = build_request(method="POST", route_path="/api/config/save")

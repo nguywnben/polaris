@@ -139,7 +139,7 @@ async function loadAboutPage(options = {}) {
     }
 }
 
-globalThis.document?.addEventListener?.('omni:locale-change', () => {
+globalThis.document?.addEventListener?.('polaris:locale-change', () => {
     if (AppState.aboutVersion) renderAboutVersion(AppState.aboutVersion);
     if (Array.isArray(AppState.aboutCapabilities)) {
         renderAboutCapabilities(AppState.aboutCapabilities);

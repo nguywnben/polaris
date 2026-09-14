@@ -114,8 +114,8 @@ keys, emails, tokens, prompts, or raw exception text.
 
 The single-worker foundation keeps a 1,000-event process-local diagnostic mirror and emits the
 same allowlisted event to the existing append-only structured log stream. Prometheus exposes
-`omni_credential_operations_total` and
-`omni_credential_operation_duration_seconds` with only bounded operation, outcome, mode, and
+`polaris_credential_operations_total` and
+`polaris_credential_operation_duration_seconds` with only bounded operation, outcome, mode, and
 variant labels. Request IDs and fingerprints remain event fields, never metric labels. The mirror
 is not the durable, queryable audit repository required by Phase 4; that phase remains open and
 must persist this schema behind the durable-state boundary in ADR-006 before claiming full audit

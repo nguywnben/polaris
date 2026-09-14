@@ -20,7 +20,7 @@ OpenAI SDK     Anthropic SDK     Google GenAI SDK     IDE and CLI clients
                   provider APIs and account pools
 ```
 
-The public transport surface is namespace-neutral. Product branding appears in the management experience and documentation. Generated API keys retain the `sk-ogw-` prefix as an intentional token-identification rule.
+The public transport surface is namespace-neutral. Product branding appears in the management experience and documentation. Generated API keys retain the `sk-polaris-` prefix as an intentional token-identification rule.
 
 ## Repository Boundaries
 

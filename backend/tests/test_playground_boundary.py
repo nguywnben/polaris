@@ -62,7 +62,7 @@ def _run_request(**overrides) -> PlaygroundRunRequest:
     payload = {
         "schema_version": "playground-request.v1",
         "protocol": "openai_chat",
-        "model": "omway",
+        "model": "polaris",
         "stream": False,
         "timeout_seconds": 30,
         "request": {"messages": [{"role": "user", "content": "Hello"}]},
@@ -84,7 +84,7 @@ class PlaygroundContractTests(unittest.TestCase):
                 PlaygroundRunRequest(
                     schema_version="playground-request.v1",
                     protocol="openai_chat",
-                    model="omway",
+                    model="polaris",
                     request={"messages": [{"role": "user", "content": "Hello"}]},
                     **{forbidden: "must-not-be-accepted"},
                 )
@@ -208,7 +208,7 @@ class PlaygroundEndpointTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"id": "chatcmpl-http"})
-        metadata = decode_playground_metadata(response.headers["x-omni-playground-metadata"])
+        metadata = decode_playground_metadata(response.headers["x-polaris-playground-metadata"])
         self.assertEqual(metadata["request_id"], response.headers["x-request-id"])
 
     async def test_playground_body_limit_is_enforced_before_route_parsing(self) -> None:
@@ -247,11 +247,11 @@ class PlaygroundEndpointTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.body), json.loads(public.body))
-        metadata = decode_playground_metadata(response.headers["x-omni-playground-metadata"])
+        metadata = decode_playground_metadata(response.headers["x-polaris-playground-metadata"])
         self.assertEqual(metadata["schema_version"], "playground-metadata.v1")
         self.assertEqual(metadata["request_id"], "playground-request")
         self.assertEqual(metadata["protocol"], "openai_chat")
-        self.assertEqual(metadata["requested_model"], "omway")
+        self.assertEqual(metadata["requested_model"], "polaris")
         self.assertNotIn("credential", json.dumps(metadata).lower())
         self.assertNotIn("session-token", json.dumps(metadata))
         audit.assert_awaited_once()
@@ -400,7 +400,7 @@ class PlaygroundEndpointTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn(b'data: {"choices"', content)
         self.assertIn(b"data: [DONE]", content)
-        self.assertIn(b"event: omni.playground.metadata", content)
+        self.assertIn(b"event: polaris.playground.metadata", content)
         self.assertNotIn(b"session-token", content)
 
     async def test_closing_stream_propagates_cancellation_to_public_iterator(self) -> None:
@@ -487,7 +487,7 @@ class PlaygroundEndpointTests(unittest.IsolatedAsyncioTestCase):
                 token="session-token",
             )
 
-        metadata = decode_playground_metadata(response.headers["x-omni-playground-metadata"])
+        metadata = decode_playground_metadata(response.headers["x-polaris-playground-metadata"])
         side_channels = (
             json.dumps(metadata) + repr(info.call_args_list) + repr(audit.call_args_list)
         )
@@ -525,7 +525,7 @@ class PlaygroundEndpointTests(unittest.IsolatedAsyncioTestCase):
         output = render_playground_metrics()
 
         self.assertIn(
-            'omni_playground_runs_total{protocol="openai_chat",outcome="succeeded"} 1',
+            'polaris_playground_runs_total{protocol="openai_chat",outcome="succeeded"} 1',
             output,
         )
         self.assertIn('protocol="unknown",outcome="failed"', output)

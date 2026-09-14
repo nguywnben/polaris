@@ -10,9 +10,6 @@ concurrency:
 env:
   DOCKERHUB_IMAGE: ${{ vars.IMAGE_NAME || 'nguywnben/polaris' }}
   GHCR_IMAGE: ghcr.io/nguywnben/polaris
-  # Keep the former image coordinates available during the public rename window.
-  LEGACY_DOCKERHUB_IMAGE: nguywnben/omni-gateway
-  LEGACY_GHCR_IMAGE: ghcr.io/nguywnben/omni-gateway
 
 jobs:
   build-and-push:
@@ -61,8 +58,6 @@ jobs:
           images: |
             ${{ env.DOCKERHUB_IMAGE }}
             ${{ env.GHCR_IMAGE }}
-            ${{ env.LEGACY_DOCKERHUB_IMAGE }}
-            ${{ env.LEGACY_GHCR_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag

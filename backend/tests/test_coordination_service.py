@@ -249,8 +249,8 @@ class CoordinationServiceTests(unittest.IsolatedAsyncioTestCase):
     def test_empty_renderer_still_has_help_and_type(self) -> None:
         self.assertEqual(
             render_coordination_operation_metrics(),
-            "# HELP omni_coordination_operations_total Coordination store operations.\n"
-            "# TYPE omni_coordination_operations_total counter\n",
+            "# HELP polaris_coordination_operations_total Coordination store operations.\n"
+            "# TYPE polaris_coordination_operations_total counter\n",
         )
 
 

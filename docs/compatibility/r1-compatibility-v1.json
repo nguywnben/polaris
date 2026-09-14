@@ -397,7 +397,7 @@
     },
     {
       "method": "PUT",
-      "path": "/api/model-pools/omway",
+      "path": "/api/model-pools/polaris",
       "semantic_sha256": "273b8d0acbc62ed03ac31ffe6051829b157bf1db7a3e1e58ffbd46f3a7280513"
     },
     {

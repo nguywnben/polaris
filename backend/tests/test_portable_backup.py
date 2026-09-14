@@ -52,13 +52,13 @@ async def _initialize_state(root: Path, marker: str) -> None:
             },
             mode="primary",
         )
-        await manager.set_config("api_key", f"sk-ogw-{marker}-root-secret")
+        await manager.set_config("api_key", f"sk-polaris-{marker}-root-secret")
         await manager.set_config("panel_password", f"scrypt${marker}-password-hash")
         await manager.set_config("routing_strategy", marker)
         await manager.set_config(
             "virtual_model_pool",
             {
-                "alias": "omway",
+                "alias": "polaris",
                 "strategy": "priority_fallback",
                 "selected_models": ["gpt-test"],
                 "enabled": True,
@@ -76,7 +76,7 @@ async def _initialize_state(root: Path, marker: str) -> None:
                     "id": f"vk_{marker}",
                     "name": "Automation",
                     "key_hash": f"scrypt$virtual-{marker}-hash",
-                    "key_preview": "sk-ogw-vk-...abcd",
+                    "key_preview": "sk-polaris-vk-...abcd",
                     "enabled": True,
                 }
             ],
@@ -156,7 +156,7 @@ class PortableBackupTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             _read_config(self.destination / "credentials.db", "api_key"),
-            "sk-ogw-source-root-secret",
+            "sk-polaris-source-root-secret",
         )
         with closing(sqlite3.connect(self.destination / "credentials.db")) as connection:
             credential = connection.execute(
@@ -380,12 +380,12 @@ class PortableBackupTests(unittest.IsolatedAsyncioTestCase):
         exported = json.loads(await self.source_service.create_sanitized_export())
         serialized = json.dumps(exported, sort_keys=True)
 
-        self.assertEqual(exported["format"], "omni-gateway-sanitized-state")
+        self.assertEqual(exported["format"], "polaris-sanitized-state")
         self.assertEqual(exported["version"], 1)
         self.assertEqual(exported["credentials"]["primary"], 1)
         self.assertEqual(exported["virtual_keys"]["configured"], 1)
         self.assertNotIn("sk-live-source-must-not-leak", serialized)
-        self.assertNotIn("sk-ogw-source-root-secret", serialized)
+        self.assertNotIn("sk-polaris-source-root-secret", serialized)
         self.assertNotIn("source-password-hash", serialized)
         self.assertNotIn("virtual-source-hash", serialized)
         self.assertNotIn("key_preview", serialized)

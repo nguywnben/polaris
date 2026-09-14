@@ -28,7 +28,7 @@ class ReliabilityProfileContractTests(unittest.TestCase):
     def test_routine_profile_is_bounded_for_small_team_releases(self) -> None:
         profile = load_profile(PROFILE_PATH)
 
-        self.assertEqual(profile.schema_version, "omni.reliability-profile.v1")
+        self.assertEqual(profile.schema_version, "polaris.reliability-profile.v1")
         self.assertEqual(profile.duration_seconds, 120)
         self.assertEqual(profile.offered_rps, 5)
         self.assertEqual(profile.concurrency, 8)

@@ -72,7 +72,7 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
         self.assertIn("method: 'DELETE'", source)
         self.assertIn("headers['If-Match'] = AppState.modelPoolRevision", source)
         self.assertIn("model_route_conflict", source)
-        self.assertIn("./api/model-routes/omway/validate", source)
+        self.assertIn("./api/model-routes/polaris/validate", source)
 
     def test_route_state_uses_compact_badge_without_redundant_validation_panel(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -103,9 +103,9 @@ assert(unknown.issues[0].code === 'model_not_discovered', 'unknown model explana
     def test_playground_handoff_is_bounded_and_contains_no_secret(self) -> None:
         self._run_contract(
             """
-const result = handoff('omway');
+const result = handoff('polaris');
 assert(JSON.stringify(result) === JSON.stringify({
-    schema_version: 'playground-handoff.v1', source: 'models', model: 'omway'
+    schema_version: 'playground-handoff.v1', source: 'models', model: 'polaris'
 }), 'handoff contract changed');
 assert(!('api_key' in result) && !('credential' in result) && !('prompt' in result), 'secret-capable field');
 """

@@ -16,7 +16,7 @@
     "pre_restore_snapshots",
     "raw_logs"
   ],
-  "format": "omni-gateway-portable-state",
+  "format": "polaris-portable-state",
   "members": [
     "manifest.json",
     "state/credentials.db"

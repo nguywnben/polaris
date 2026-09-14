@@ -26,7 +26,7 @@ from core.request_trace import (
 
 REQUEST_TRACE_MASTER_KEY_CONFIG = "request_trace_master_key_v1"
 REQUEST_TRACE_RETENTION_CONFIG = "request_trace_retention_v1"
-_CURSOR_DOMAIN = b"omni-gateway/request-trace/cursor/v1"
+_CURSOR_DOMAIN = b"polaris/request-trace/cursor/v1"
 _MASTER_KEY_BYTES = 32
 _RETENTION_PRUNE_INTERVAL_SECONDS = 60.0
 _RETENTION_PRUNE_RECORD_INTERVAL = 256

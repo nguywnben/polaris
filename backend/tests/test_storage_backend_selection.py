@@ -18,7 +18,7 @@ from core.storage_adapter import StorageAdapter
 
 class PostgreSQLBackend:
     def __init__(self) -> None:
-        self._dsn = "postgresql://owner:super-secret@database/omni"
+        self._dsn = "postgresql://owner:super-secret@database/polaris"
 
     async def get_database_info(self):
         return {
@@ -94,7 +94,7 @@ class StorageBackendSelectionTests(unittest.IsolatedAsyncioTestCase):
         adapter = StorageAdapter()
         backend = AsyncMock()
         backend.initialize.side_effect = RuntimeError(
-            "postgresql://owner:super-secret@database/omni"
+            "postgresql://owner:super-secret@database/polaris"
         )
 
         with (
@@ -119,7 +119,9 @@ class StorageBackendSelectionTests(unittest.IsolatedAsyncioTestCase):
 
         adapter = StorageAdapter()
         backend = AsyncMock()
-        backend.initialize.side_effect = RuntimeError("mongodb://owner:super-secret@database/omni")
+        backend.initialize.side_effect = RuntimeError(
+            "mongodb://owner:super-secret@database/polaris"
+        )
 
         with (
             patch.dict(os.environ, {"POSTGRESQL_URI": "", "MONGODB_URI": "mongodb://database"}),

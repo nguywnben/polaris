@@ -41,7 +41,7 @@ services:
 
       # Optional storage and outbound proxy
       MONGODB_URI: ${MONGODB_URI:-}
-      MONGODB_DATABASE: ${MONGODB_DATABASE:-omni_gateway}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-polaris}
       POSTGRESQL_URI: ${POSTGRESQL_URI:-}
       PROXY: ${PROXY:-}
 

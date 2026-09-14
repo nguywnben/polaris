@@ -158,7 +158,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
         cases = (
             (
                 "/v1/chat/completions",
-                {"Authorization": "Bearer sk-ogw-test-key"},
+                {"Authorization": "Bearer sk-polaris-test-key"},
                 {
                     "model": "fixture-model",
                     "messages": [{"role": "user", "content": "Hello"}],
@@ -168,7 +168,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 "/v1/responses",
-                {"Authorization": "Bearer sk-ogw-test-key"},
+                {"Authorization": "Bearer sk-polaris-test-key"},
                 {
                     "model": "fixture-model",
                     "input": "Hello",
@@ -178,7 +178,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 "/v1/messages",
-                {"x-api-key": "sk-ogw-test-key"},
+                {"x-api-key": "sk-polaris-test-key"},
                 {
                     "model": "fixture-model",
                     "max_tokens": 32,
@@ -189,7 +189,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 "/v1beta/models/fixture-model:generateContent",
-                {"x-goog-api-key": "sk-ogw-test-key"},
+                {"x-goog-api-key": "sk-polaris-test-key"},
                 {
                     "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
                     "silentSemanticChange": True,
@@ -198,7 +198,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 "/vertex/v1beta/models/fixture-model:generateContent",
-                {"x-goog-api-key": "sk-ogw-test-key"},
+                {"x-goog-api-key": "sk-polaris-test-key"},
                 {
                     "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
                     "silentSemanticChange": True,
@@ -207,7 +207,7 @@ class ProtocolContractBoundaryTests(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        with patch("config.get_api_key", new=AsyncMock(return_value="sk-ogw-test-key")):
+        with patch("config.get_api_key", new=AsyncMock(return_value="sk-polaris-test-key")):
             for path, headers, body, expected_error in cases:
                 with self.subTest(path=path):
                     response = await self.client.post(path, headers=headers, json=body)

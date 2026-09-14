@@ -15,7 +15,7 @@ from core.routing_coordination import GOVERNANCE_SCOPE_MODEL_CATALOG
 from core.storage_adapter import get_storage_adapter
 from log import log
 
-DEFAULT_VIRTUAL_MODEL_ALIAS = "omway"
+DEFAULT_VIRTUAL_MODEL_ALIAS = "polaris"
 MODEL_POOL_CONFIG_KEY = "virtual_model_pool"
 MODEL_CATALOG_TTL_SECONDS = 5 * 60.0
 MODEL_CATALOG_STALE_RETRY_SECONDS = 30.0

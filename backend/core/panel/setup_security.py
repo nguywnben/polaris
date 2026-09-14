@@ -18,7 +18,7 @@ _COMMON_OWNER_PASSWORDS = frozenset(
     {
         "administrator",
         "letmein123456",
-        "omni-gateway",
+        "polaris",
         "polaris",
         "password1234",
         "qwerty123456",

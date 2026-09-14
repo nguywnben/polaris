@@ -164,7 +164,7 @@ function createCredsManager(type) {
 
             try {
 
-                const raw = sessionStorage.getItem('omni.pool.filters.v1') || '';
+                const raw = sessionStorage.getItem('polaris.pool.filters.v1') || '';
 
                 if (raw.length <= 512) stored = JSON.parse(raw) || {};
 
@@ -242,7 +242,7 @@ function createCredsManager(type) {
 
                 const serialized = JSON.stringify(state);
 
-                if (serialized.length <= 512) sessionStorage.setItem('omni.pool.filters.v1', serialized);
+                if (serialized.length <= 512) sessionStorage.setItem('polaris.pool.filters.v1', serialized);
 
             } catch (_error) {
 

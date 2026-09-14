@@ -1,4 +1,4 @@
-const AUDIT_SAFE_FILTER_STORAGE_KEY = 'omni_gateway_audit_safe_filters_v1';
+const AUDIT_SAFE_FILTER_STORAGE_KEY = 'polaris_audit_safe_filters_v1';
 const AUDIT_PERSISTED_FILTERS = [
     'actions',
     'target_types',
@@ -17,7 +17,7 @@ const AUDIT_EVENT_FIELDS = [
     'outcome',
     'change_codes'
 ];
-const AUDIT_EXPORT_FILENAME_PATTERN = /^omni-audit-\d{8}T\d{6}Z\.(?:jsonl|csv)$/;
+const AUDIT_EXPORT_FILENAME_PATTERN = /^polaris-audit-\d{8}T\d{6}Z\.(?:jsonl|csv)$/;
 const AUDIT_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 const AUDIT_FINGERPRINT_PATTERN = /^[0-9a-f]{20}$/;
 const AUDIT_EVENT_ID_PATTERN = /^[0-9a-f]{32}$/;
@@ -499,7 +499,7 @@ function auditExportFilename(response, format) {
     const candidate = disposition.match(/filename="?([^";]+)"?/i)?.[1] || '';
     if (AUDIT_EXPORT_FILENAME_PATTERN.test(candidate)) return candidate;
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-    return `omni-audit-${timestamp}.${format}`;
+    return `polaris-audit-${timestamp}.${format}`;
 }
 
 async function exportAuditEvents(format) {
@@ -595,6 +595,6 @@ function initAuditBindings() {
 }
 
 document.addEventListener('DOMContentLoaded', initAuditBindings);
-document.addEventListener('omni:locale-change', () => {
+document.addEventListener('polaris:locale-change', () => {
     if (AuditConsoleState.loaded) renderAuditEvents();
 });

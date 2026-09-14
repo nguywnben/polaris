@@ -1,4 +1,4 @@
-const TRACE_SAFE_FILTER_STORAGE_KEY = 'omni_gateway_trace_safe_filters_v1';
+const TRACE_SAFE_FILTER_STORAGE_KEY = 'polaris_trace_safe_filters_v1';
 const TRACE_FIELDS = ['schema_version', 'trace_id', 'request_id', 'protocol', 'started_at', 'completed_at', 'outcome', 'status_code', 'duration_ms', 'requested_model', 'selected_provider', 'input_tokens', 'output_tokens', 'total_tokens', 'cost_usd', 'decisions', 'decisions_truncated'];
 const TRACE_DECISION_FIELDS = ['sequence', 'elapsed_ms', 'category', 'action', 'result', 'reason', 'provider', 'model', 'attempt', 'status_code', 'latency_ms', 'candidate_count', 'original_tokens', 'final_tokens', 'input_tokens', 'output_tokens', 'cached_tokens', 'reasoning_tokens', 'cost_usd'];
 const TRACE_PROTOCOLS = new Set(['openai_chat', 'openai_responses', 'anthropic_messages', 'anthropic_count_tokens', 'gemini_generate', 'gemini_stream', 'gemini_count_tokens', 'vertex_openai', 'vertex_gemini_generate', 'vertex_gemini_stream', 'vertex_gemini_count_tokens']);
@@ -10,7 +10,7 @@ const TRACE_REASONS = new Set(['none', 'request_received', 'feature_disabled', '
 const TRACE_ID_PATTERN = /^[0-9a-f]{32}$/;
 const TRACE_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 const TRACE_DIMENSION_PATTERN = /^[A-Za-z0-9._:/+@*-]{0,128}$/;
-const TRACE_EXPORT_FILENAME_PATTERN = /^omni-traces-\d{8}T\d{6}Z\.(?:jsonl|csv)$/;
+const TRACE_EXPORT_FILENAME_PATTERN = /^polaris-traces-\d{8}T\d{6}Z\.(?:jsonl|csv)$/;
 
 const TraceConsoleState = {
     traces: [], filters: {}, cursor: null, cursorStack: [], nextCursor: null,
@@ -333,7 +333,7 @@ async function copyTraceRequest() {
 function traceExportFilename(response, format) {
     const candidate = (response.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/i)?.[1] || '';
     if (TRACE_EXPORT_FILENAME_PATTERN.test(candidate)) return candidate;
-    return `omni-traces-${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')}.${format}`;
+    return `polaris-traces-${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')}.${format}`;
 }
 
 async function exportTraces(format) {
@@ -373,4 +373,4 @@ function initTraceBindings() {
     });
 }
 document.addEventListener('DOMContentLoaded', initTraceBindings);
-document.addEventListener('omni:locale-change', () => { if (TraceConsoleState.loaded) { renderTraces(); if (TraceConsoleState.selectedTrace) renderTraceDetail(TraceConsoleState.selectedTrace); } });
+document.addEventListener('polaris:locale-change', () => { if (TraceConsoleState.loaded) { renderTraces(); if (TraceConsoleState.selectedTrace) renderTraceDetail(TraceConsoleState.selectedTrace); } });

@@ -73,7 +73,7 @@ function renderSettingsMetadata(metadata) {
     }
 }
 
-globalThis.document?.addEventListener?.('omni:locale-change', () => {
+globalThis.document?.addEventListener?.('polaris:locale-change', () => {
     if (AppState.settingsMetadata instanceof Map) {
         renderSettingsMetadata(AppState.settingsMetadata);
     }

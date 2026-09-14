@@ -29,11 +29,11 @@ class RuntimePolicyTests(unittest.TestCase):
         self.assertEqual(policy.durable_backend, "sqlite")
 
         with self.assertRaisesRegex(RuntimeError, "standalone"):
-            RuntimePolicy.from_environment({"OMNI_RUNTIME_MODE": "coordinated"})
+            RuntimePolicy.from_environment({"POLARIS_RUNTIME_MODE": "coordinated"})
         with self.assertRaisesRegex(RuntimeError, "WORKERS"):
             RuntimePolicy.from_environment({"WORKERS": "2"})
-        with self.assertRaisesRegex(RuntimeError, "OMNI_REPLICA_COUNT"):
-            RuntimePolicy.from_environment({"OMNI_REPLICA_COUNT": "2"})
+        with self.assertRaisesRegex(RuntimeError, "POLARIS_REPLICA_COUNT"):
+            RuntimePolicy.from_environment({"POLARIS_REPLICA_COUNT": "2"})
         with self.assertRaisesRegex(RuntimeError, "only one external durable backend"):
             RuntimePolicy.from_environment(
                 {"POSTGRESQL_URI": "postgresql://database", "MONGODB_URI": "mongodb://database"}

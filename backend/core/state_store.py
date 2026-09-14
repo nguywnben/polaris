@@ -1705,7 +1705,7 @@ class InMemoryStateStore(BaseStateStore):
                 snapshot: object,
             ) -> QuotaReconciliationResult:
                 digest = hashlib.sha256(
-                    b"omni-quota-reconciliation-snapshot-v1\x00"
+                    b"polaris-quota-reconciliation-snapshot-v1\x00"
                     + json.dumps(
                         {
                             "epoch": requested_epoch,
@@ -2210,7 +2210,7 @@ class InMemoryStateStore(BaseStateStore):
                 ],
                 separators=(",", ":"),
             ).encode("utf-8")
-            digest = hashlib.sha256(b"omni-session-reconciliation-v1\x00" + payload).hexdigest()
+            digest = hashlib.sha256(b"polaris-session-reconciliation-v1\x00" + payload).hexdigest()
             return SessionReconciliationSnapshot(len(self._security_sessions), digest)
 
     async def reserve_security_attempt(

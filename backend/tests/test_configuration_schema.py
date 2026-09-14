@@ -86,11 +86,11 @@ class ConfigurationSchemaTests(unittest.TestCase):
                 self.assertIn(name, str(context.exception))
                 self.assertIn(guidance, str(context.exception))
 
-    def test_unknown_omni_variables_warn_without_rejecting_unrelated_process_variables(self):
-        result = parse_environment({"OMNI_TYPO_MODE": "true", "PATH": "ignored"})
+    def test_unknown_polaris_variables_warn_without_rejecting_unrelated_process_variables(self):
+        result = parse_environment({"POLARIS_TYPO_MODE": "true", "PATH": "ignored"})
         self.assertEqual(result.values, {})
         self.assertEqual(len(result.warnings), 1)
-        self.assertIn("OMNI_TYPO_MODE", result.warnings[0])
+        self.assertIn("POLARIS_TYPO_MODE", result.warnings[0])
         self.assertNotIn("PATH", result.warnings[0])
 
     def test_settings_metadata_is_schema_derived_and_does_not_expose_secret_defaults(self):

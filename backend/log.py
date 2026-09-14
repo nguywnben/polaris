@@ -13,7 +13,7 @@ LOG_LEVELS = {"debug": 0, "info": 1, "warning": 2, "error": 3, "critical": 4}
 
 _REDACTION_PATTERNS = [
     (re.compile(r"(?i)(Authorization:\s*Bearer\s+)[A-Za-z0-9._~+/=-]+"), r"\1<redacted>"),
-    (re.compile(r"sk-ogw-[A-Za-z0-9._-]+"), "sk-ogw-<redacted>"),
+    (re.compile(r"sk-polaris-[A-Za-z0-9._-]+"), "sk-polaris-<redacted>"),
     (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "sk-<redacted>"),
     (re.compile(r"\bAIza[0-9A-Za-z_-]{20,}"), "AIza<redacted>"),
     (re.compile(r"\bGOCSPX-[0-9A-Za-z_-]+"), "GOCSPX-<redacted>"),
