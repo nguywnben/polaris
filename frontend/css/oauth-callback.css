@@ -1,0 +1,76 @@
+/* Standalone OAuth results share auth typography, controls and the saved theme. */
+.oauth-callback-wrapper {
+    min-height: 100dvh;
+    padding: 32px 20px;
+}
+
+.oauth-callback-card {
+    width: min(100%, 520px);
+    padding: 32px;
+}
+
+.oauth-callback-card .login-brand {
+    margin-bottom: 28px;
+}
+
+.oauth-callback-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.oauth-callback-card .login-title {
+    min-width: 0;
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+
+.oauth-callback-icon {
+    margin-top: 4px;
+}
+
+.oauth-callback-icon.success {
+    color: var(--success);
+}
+
+.oauth-callback-icon.failure {
+    color: var(--danger);
+}
+
+.oauth-callback-card .login-copy {
+    margin-bottom: 24px;
+    line-height: 1.65;
+}
+
+.oauth-callback-return {
+    min-height: 44px;
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+}
+
+.oauth-callback-return:hover {
+    text-decoration: none;
+}
+
+.oauth-callback-card ::selection {
+    background: var(--text);
+    color: var(--surface);
+}
+
+@media (max-width: 480px) {
+    .oauth-callback-wrapper {
+        padding: 24px 16px;
+    }
+
+    .oauth-callback-card {
+        padding: 24px;
+    }
+
+    .oauth-callback-card .login-title {
+        font-size: 23px;
+    }
+}

@@ -451,6 +451,29 @@ _OAUTH_MESSAGE_ROWS = {
     },
 }
 
+_OAUTH_NAVIGATION_ROWS = {
+    "en": ("Return to Providers", "Open Providers in a new tab"),
+    "zh-CN": ("返回提供商页面", "在新标签页中打开提供商页面"),
+    "zh-TW": ("返回供應商頁面", "在新分頁開啟供應商頁面"),
+    "de": ("Zurück zu den Providern", "Provider in neuem Tab öffnen"),
+    "es": ("Volver a Proveedores", "Abrir Proveedores en una pestaña nueva"),
+    "fr": ("Retour aux fournisseurs", "Ouvrir les fournisseurs dans un nouvel onglet"),
+    "id": ("Kembali ke Penyedia", "Buka Penyedia di tab baru"),
+    "it": ("Torna ai fornitori", "Apri i fornitori in una nuova scheda"),
+    "ja": ("プロバイダーに戻る", "新しいタブでプロバイダーを開く"),
+    "ko": ("공급자로 돌아가기", "새 탭에서 공급자 열기"),
+    "pt": ("Voltar aos provedores", "Abrir provedores em uma nova guia"),
+    "ru": ("Вернуться к провайдерам", "Открыть провайдеров в новой вкладке"),
+    "th": ("กลับไปที่ผู้ให้บริการ", "เปิดหน้าผู้ให้บริการในแท็บใหม่"),
+    "tr": ("Sağlayıcılara dön", "Sağlayıcıları yeni sekmede aç"),
+    "vi": ("Quay lại Nhà cung cấp", "Mở Nhà cung cấp trong tab mới"),
+}
+for _locale, (_return_label, _new_tab_label) in _OAUTH_NAVIGATION_ROWS.items():
+    _OAUTH_MESSAGE_ROWS[_locale].update({
+        "oauth.return_providers": _return_label,
+        "oauth.open_providers_new_tab": _new_tab_label,
+    })
+
 for _locale, _messages in _OAUTH_MESSAGE_ROWS.items():
     for _key, _message in _messages.items():
         MESSAGES.setdefault(_key, {})[_locale] = _message

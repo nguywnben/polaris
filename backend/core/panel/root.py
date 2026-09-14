@@ -50,6 +50,7 @@ CONSOLE_STYLE_ASSETS = (
     "css/components.css",
     "css/dialogs.css",
     "css/responsive.css",
+    "css/oauth-callback.css",
 )
 
 CONSOLE_EARLY_SCRIPT_ASSETS = ("js/core/theme.js",)
@@ -200,103 +201,59 @@ def serve_console_scripts(request: Request):
     )
 
 
-def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLResponse:
+def _oauth_callback_page(
+    success: bool, title: str, message: str, *, manual_callback: bool = False
+) -> HTMLResponse:
     safe_title = escape(title)
     safe_message = escape(message)
+    version = _console_asset_version()
+    action_label = escape(translate(
+        "oauth.open_providers_new_tab" if manual_callback else "oauth.return_providers"
+    ))
+    navigation = ' target="_blank" rel="noopener noreferrer"' if manual_callback else ""
+    status = "success" if success else "failure"
+    status_path = '<path d="m8 12 3 3 5-6"/>' if success else '<path d="m9 9 6 6m0-6-6 6"/>'
     html = f"""<!doctype html>
 <html lang="{escape(get_locale())}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
     <title>{safe_title} - Polaris</title>
+    <script src="/frontend/theme.js?v={version}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-    <style>
-        :root {{
-            color-scheme: light;
-            --text: #111111;
-            --muted: #666666;
-            --border: #e5e5e5;
-            --bg: #ffffff;
-            --bg-subtle: #f7f7f7;
-            --surface: #ffffff;
-            --radius: 8px;
-        }}
-        * {{
-            box-sizing: border-box;
-        }}
-        body {{
-            min-height: 100vh;
-            min-height: 100dvh;
-            margin: 0;
-            display: grid;
-            place-items: center;
-            padding: 16px;
-            background: var(--bg-subtle);
-            color: var(--text);
-            font-family: "Google Sans", Arial, sans-serif;
-        }}
-        main {{
-            width: min(100%, 480px);
-            padding: 28px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--surface);
-        }}
-        .brand {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 18px;
-        }}
-        .brand-mark {{
-            width: 22px;
-            height: 22px;
-            flex: 0 0 auto;
-        }}
-        .brand-mark img {{
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: contain;
-        }}
-        .brand-title {{
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 1.2;
-            letter-spacing: 0;
-        }}
-        h1 {{
-            margin: 0 0 8px;
-            font-size: 28px;
-            line-height: 1.1;
-            font-weight: 700;
-            letter-spacing: 0;
-        }}
-        p {{
-            margin: 0;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.55;
-        }}
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/frontend/console.css?v={version}">
 </head>
 <body>
-    <main>
-        <div class="brand">
-            <span class="brand-mark" aria-hidden="true">
-                <img src="/frontend/assets/logo.png" alt="">
-            </span>
-            <span class="brand-title">Polaris</span>
-        </div>
-        <h1>{safe_title}</h1>
-        <p>{safe_message}</p>
+    <main class="login-wrapper oauth-callback-wrapper">
+        <section class="login-card signin-card oauth-callback-card" aria-labelledby="callbackTitle">
+            <div class="login-brand">
+                <span class="app-mark" aria-hidden="true">
+                    <img class="app-mark-image" src="/frontend/assets/logo.png" alt="">
+                </span>
+                <span class="login-brand-title">Polaris</span>
+            </div>
+            <div class="oauth-callback-heading">
+                <svg class="oauth-callback-icon {status}" viewBox="0 0 24 24" width="24" height="24"
+                     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9"/>{status_path}
+                </svg>
+                <h1 id="callbackTitle" class="login-title">{safe_title}</h1>
+            </div>
+            <p class="login-copy">{safe_message}</p>
+            <a class="btn oauth-callback-return" href="/providers"{navigation}>{action_label}</a>
+        </section>
     </main>
 </body>
 </html>"""
-    return HTMLResponse(content=html, status_code=200 if success else 400)
-
+    return HTMLResponse(
+        content=html,
+        status_code=200 if success else 400,
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 @router.get("/callback", response_class=HTMLResponse, include_in_schema=False)
 async def serve_oauth_callback(request: Request):
@@ -347,6 +304,7 @@ async def serve_oauth_callback(request: Request):
             True,
             translate("oauth.success_title", provider="OAuth"),
             translate("oauth.copy_callback"),
+            manual_callback=True,
         )
 
     return _oauth_callback_page(
