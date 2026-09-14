@@ -1130,14 +1130,14 @@ _PANEL_MESSAGE_PATTERNS = (
     ),
     (
         re.compile(
-            r"(?:must be|must identify|must be updated|cannot be empty|invalid(?:\s|\.)|incorrect|must be a valid|must be an integer|must be between|conflict|already exists)",
+            r"(?:must be|must identify|must be updated|cannot be empty|invalid(?:\s|\.)|incorrect|must be a valid|must be an integer|must be between|conflict|already exists|already uses)",
             re.IGNORECASE,
         ),
         "panel.invalid_value",
     ),
     (
         re.compile(
-            r"(?:not supported|only available|can only be|does not expose|does not support)",
+            r"(?:not supported|only available|can only be|cannot be edited|only .* are editable|does not expose|does not support)",
             re.IGNORECASE,
         ),
         "panel.unsupported_operation",
