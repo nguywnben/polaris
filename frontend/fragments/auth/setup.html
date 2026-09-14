@@ -9,10 +9,18 @@
             <h1 class="login-title" data-i18n="setup_title">Create Your Console Password</h1>
             <p class="login-copy" data-i18n="setup_copy">Secure this new Polaris instance before opening the management console.</p>
             <form id="setupForm" class="login-form" autocomplete="on">
-                <input class="password-manager-identity" type="text" name="username" value="admin" autocomplete="username" tabindex="-1" aria-hidden="true">
                 <div id="setupTokenGroup" class="setup-token-group hidden">
-                    <label for="setupToken" data-i18n="setup_token">Setup token</label>
-                    <input type="password" id="setupToken" name="setup-token" data-i18n-placeholder="setup_token_placeholder" placeholder="Enter the operator-configured SETUP_TOKEN" autocomplete="off" spellcheck="false">
+                    <label id="setupTokenLabel" for="setupToken" data-i18n="setup_token">Setup token</label>
+                    <div class="setup-secret-field">
+                        <input type="password" id="setupToken" name="setup-token" data-i18n-placeholder="setup_token_placeholder" placeholder="Enter the operator-configured SETUP_TOKEN" autocomplete="off" spellcheck="false">
+                        <button id="setupTokenToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="setupToken" aria-pressed="false" aria-describedby="setupTokenLabel" data-i18n-aria-label="setup_show_secret" aria-label="Show content">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path class="setup-eye-slash" d="m3 3 18 18"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="setup-preflight">
                     <div class="setup-preflight-header">
@@ -20,10 +28,10 @@
                             <h2 data-i18n="setup_preflight_title">Installation checks</h2>
                             <p data-i18n="setup_preflight_copy">Verify storage, address and transport before creating the owner.</p>
                         </div>
-                        <button id="setupPreflightButton" type="button" class="btn btn-secondary" data-i18n="run_preflight">Run checks</button>
+                        <button id="setupPreflightButton" type="button" class="btn btn-secondary btn-small" data-i18n="run_preflight">Run checks</button>
                     </div>
                     <section id="setupPreflightSummary" class="setup-preflight-summary" role="status" aria-live="polite" aria-atomic="true">
-                        <p id="setupPreflightAction" class="setup-next-action" data-i18n="setup_action_loading">Checking installation state…</p>
+                        <p id="setupPreflightAction" class="setup-next-action hidden" data-i18n="setup_action_loading">Checking installation state…</p>
                         <dl class="setup-runtime-details">
                             <div>
                                 <dt data-i18n="setup_base_url">Console address</dt>
@@ -45,10 +53,34 @@
                 </div>
                 <fieldset id="setupOwnerFields" class="setup-owner-fields" disabled>
                     <legend data-i18n="setup_owner_title">Owner password</legend>
-                    <label for="setupPassword" data-i18n="console_password">Console password</label>
-                    <input type="password" id="setupPassword" name="new-password" data-i18n-placeholder="password_min_placeholder" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" maxlength="256" required>
-                    <label for="setupPasswordConfirm" data-i18n="confirm_password">Confirm password</label>
-                    <input type="password" id="setupPasswordConfirm" name="confirm-password" data-i18n-placeholder="password_confirm_placeholder" placeholder="Re-enter password" autocomplete="new-password" minlength="12" maxlength="256" required>
+                    <label id="setupPasswordLabel" for="setupPassword" data-i18n="console_password">Console password</label>
+                    <div class="setup-secret-field">
+                        <input type="password" id="setupPassword" name="new-password" data-i18n-placeholder="password_min_placeholder" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" maxlength="256" aria-describedby="setupPasswordRules" required>
+                        <button id="setupPasswordToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="setupPassword" aria-pressed="false" aria-describedby="setupPasswordLabel" data-i18n-aria-label="setup_show_secret" aria-label="Show content">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path class="setup-eye-slash" d="m3 3 18 18"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <label id="setupPasswordConfirmLabel" for="setupPasswordConfirm" data-i18n="confirm_password">Confirm password</label>
+                    <div class="setup-secret-field">
+                        <input type="password" id="setupPasswordConfirm" name="confirm-password" data-i18n-placeholder="password_confirm_placeholder" placeholder="Re-enter password" autocomplete="new-password" minlength="12" maxlength="256" aria-describedby="setupPasswordMatch" required>
+                        <button id="setupPasswordConfirmToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="setupPasswordConfirm" aria-pressed="false" aria-describedby="setupPasswordConfirmLabel" data-i18n-aria-label="setup_show_secret" aria-label="Show content">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path class="setup-eye-slash" d="m3 3 18 18"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <ul id="setupPasswordRules" class="password-checklist password-requirements" aria-live="polite">
+                        <li class="password-check" data-password-check="length" data-met="false"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg><span data-i18n="password_check_length">Between 12 and 256 characters</span><span class="visually-hidden" data-password-check-state data-i18n="password_check_pending">Not met</span></li>
+                        <li class="password-check" data-password-check="variety" data-met="false"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg><span data-i18n="password_check_variety">At least 4 different characters</span><span class="visually-hidden" data-password-check-state data-i18n="password_check_pending">Not met</span></li>
+                        <li class="password-check" data-password-check="uncommon" data-met="false"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg><span data-i18n="password_check_uncommon">Not on the blocked common-password list</span><span class="visually-hidden" data-password-check-state data-i18n="password_check_pending">Not met</span></li>
+                        <li id="setupPasswordMatch" class="password-check" data-password-check="match" data-met="false"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8"></circle><path d="m6 10 3 3 5-6"></path></svg><span data-i18n="password_check_match">Passwords match</span><span class="visually-hidden" data-password-check-state data-i18n="password_check_pending">Not met</span></li>
+                    </ul>
                     <button id="setupSubmitButton" type="submit" class="btn" data-i18n="create_password">Create password</button>
                 </fieldset>
             </form>

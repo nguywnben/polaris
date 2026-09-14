@@ -50,31 +50,13 @@
     gap: 12px;
 }
 
-.password-manager-identity {
-    position: absolute !important;
-    width: 1px !important;
-    min-width: 1px !important;
-    height: 1px !important;
-    min-height: 1px !important;
-    padding: 0 !important;
-    border: 0 !important;
-    opacity: 0;
-    pointer-events: none;
-    clip-path: inset(50%);
-}
-
 .login-form label {
     margin-bottom: 0;
-    pointer-events: none;
 }
 
 .setup-token-group {
     display: grid;
-    gap: 12px;
-}
-
-.setup-token-group .field-hint {
-    margin-top: -4px;
+    gap: 8px;
 }
 
 .setup-wrapper {
@@ -87,13 +69,141 @@
     overflow-wrap: anywhere;
 }
 
+.setup-card .login-title,
+.signin-card .login-title {
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+.setup-card .login-brand-title,
+.signin-card .login-brand-title {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+    line-height: 1;
+    padding-top: 2px;
+}
+
+.setup-card .login-copy,
+.signin-card .login-copy {
+    margin-bottom: 24px;
+}
+
+[data-theme="dark"] .setup-card .app-mark-image,
+[data-theme="dark"] .signin-card .app-mark-image {
+    filter: invert(1);
+}
+
+.setup-card .login-form {
+    gap: 24px;
+}
+
+.setup-card label,
+.signin-card label {
+    color: var(--text);
+    pointer-events: auto;
+}
+
+.setup-secret-field {
+    position: relative;
+    min-width: 0;
+}
+
+.login-card .setup-secret-field input {
+    width: 100%;
+    min-height: 44px;
+    padding-inline-end: 48px;
+    caret-color: var(--text);
+}
+
+.setup-secret-field input::placeholder {
+    color: var(--text-muted);
+}
+
+.signin-wrapper {
+    padding-bottom: 88px;
+}
+
+.signin-card {
+    width: min(100%, 440px);
+    overflow-wrap: anywhere;
+}
+
+.signin-password-group {
+    display: grid;
+    gap: 8px;
+}
+
+.signin-card .login-form > .btn {
+    min-height: 44px;
+    margin-top: 4px;
+}
+
+@media (max-width: 520px) {
+    .signin-card {
+        padding: 20px;
+    }
+
+    .signin-card .login-title {
+        font-size: 24px;
+    }
+}
+
+.setup-secret-field input::-ms-reveal {
+    display: none;
+}
+
+.setup-secret-toggle {
+    position: absolute;
+    inset-inline-end: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.setup-secret-toggle:not(:disabled):hover,
+.setup-secret-toggle[aria-pressed="true"] {
+    color: var(--text);
+}
+
+.setup-secret-field input:placeholder-shown + .setup-secret-toggle {
+    display: none;
+}
+
+.setup-secret-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -3px;
+    box-shadow: none;
+}
+
+.setup-secret-toggle:disabled {
+    color: var(--text-soft);
+    cursor: not-allowed;
+}
+
+.setup-eye-slash {
+    display: none;
+}
+
+.setup-secret-toggle[aria-pressed="true"] .setup-eye-slash {
+    display: block;
+}
+
 .setup-preflight {
     display: grid;
-    gap: 12px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-subtle);
+    gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
 }
 
 .setup-preflight-header {
@@ -105,18 +215,18 @@
 
 .setup-preflight-header h2,
 .setup-owner-fields legend {
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
 .setup-preflight-header p,
 .setup-next-action {
     margin: 0;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.5;
 }
 
@@ -126,45 +236,41 @@
 
 .setup-preflight-summary {
     display: grid;
-    gap: 12px;
+    gap: 16px;
 }
 
 .setup-next-action {
-    padding: 10px 12px;
-    border-left: 3px solid var(--accent);
-    background: var(--surface);
+    padding: 12px;
+    border-radius: var(--radius);
+    background: var(--bg-muted);
+    color: var(--text);
 }
 
 .setup-runtime-details {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 12px;
     margin: 0;
 }
 
 .setup-runtime-details > div {
     min-width: 0;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
 }
 
 .setup-runtime-details dt {
-    color: var(--text-soft);
-    font-size: 11px;
-    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
 }
 
 .setup-runtime-details dd {
-    margin: 3px 0 0;
+    margin: 4px 0 0;
     font-family: var(--font-mono);
     font-size: 12px;
 }
 
 .setup-check-list {
     display: grid;
-    gap: 6px;
+    gap: 0;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -172,69 +278,128 @@
 
 .setup-check-list li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
+    grid-template-columns: 8px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
     align-items: center;
-    min-height: 32px;
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text-muted);
+    min-height: 36px;
+    padding: 8px 0;
+    color: var(--text);
     font-size: 12px;
+    line-height: 1.45;
 }
 
-.setup-check-list li[data-status="pass"] {
-    border-left: 3px solid var(--success);
+.setup-check-list li + li {
+    border-top: 1px solid var(--border);
 }
 
-.setup-check-list li[data-status="fail"] {
-    border-left: 3px solid var(--danger);
+.setup-check-list li::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-soft);
 }
 
-.setup-check-list li[data-status="pending"] {
-    border-left: 3px solid var(--warning);
+.setup-check-list li[data-status="pass"]::before {
+    background: var(--success);
+}
+
+.setup-check-list li[data-status="fail"]::before {
+    background: var(--danger);
+}
+
+.setup-check-list li[data-status="pending"]::before {
+    background: var(--warning);
 }
 
 .setup-check-list [data-setup-check-message] {
-    color: var(--text-soft);
+    color: var(--text-muted);
     text-align: right;
 }
 
 .setup-owner-fields {
     display: grid;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
     margin: 0;
     padding: 16px 0 0;
     border: 0;
+}
+
+.setup-owner-fields legend {
+    width: 100%;
+    padding: 20px 0 0;
     border-top: 1px solid var(--border);
 }
 
-.setup-owner-fields .field-hint {
-    margin-top: -4px;
+.setup-owner-fields .setup-secret-field + label {
+    margin-top: 8px;
+}
+
+.setup-owner-fields .btn {
+    min-height: 44px;
+    margin-top: 12px;
+}
+
+.password-checklist {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+.password-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.password-requirements {
+    gap: 8px;
+    margin: 8px 0 0;
+    padding: 12px;
+    border-radius: var(--radius);
+    background: var(--bg-muted);
+}
+
+.password-check svg {
+    flex: 0 0 16px;
+    margin-top: 2px;
+}
+
+.password-check[data-met="false"] path {
+    visibility: hidden;
+}
+
+.password-check[data-met="true"] {
+    color: var(--success);
 }
 
 @media (max-width: 520px) {
-    .setup-preflight-header,
-    .setup-runtime-details {
-        grid-template-columns: 1fr;
+    .setup-wrapper {
+        padding: 16px 12px 88px;
     }
 
-    .setup-preflight-header {
+    .setup-card {
+        padding: 20px;
+    }
+
+    .setup-card .login-title {
+        font-size: 24px;
+    }
+
+    .setup-preflight-header,
+    .setup-runtime-details {
         display: grid;
+        grid-template-columns: 1fr;
     }
 
     .setup-preflight-header .btn {
-        width: 100%;
-    }
-
-    .setup-check-list li {
-        grid-template-columns: 1fr;
-        gap: 2px;
-    }
-
-    .setup-check-list [data-setup-check-message] {
-        text-align: left;
+        justify-self: start;
     }
 }
 

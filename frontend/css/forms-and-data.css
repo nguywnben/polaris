@@ -198,7 +198,6 @@ button.endpoint-code-card:hover {
 
 .copy-field label {
     margin-bottom: 0;
-    pointer-events: none;
 }
 
 .secret-field {
@@ -915,15 +914,15 @@ select {
     padding: 8px 38px 8px 13px;
 }
 
-input:not([type]):not(:disabled):not(.disabled):not(:focus):hover,
-input[type="text"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="password"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="number"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="url"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="search"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus):hover,
-select:not(:disabled):not(.disabled):not(:focus):hover,
-textarea:not(:disabled):not(.disabled):not(:focus):hover {
+input:not([type]):not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="text"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="password"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="number"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="url"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="search"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+select:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+textarea:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover] {
     border-color: var(--field-hover-border);
     background-color: var(--control-hover);
 }
@@ -969,31 +968,7 @@ select:open {
     box-shadow: none;
 }
 
-:is(
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea
-):user-invalid:not(:focus) {
-    border-color: var(--danger);
-}
-
-:is(
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea
-):user-invalid:focus {
+:is(input, select, textarea)[aria-invalid="true"]:not(:disabled) {
     border-color: var(--danger);
     box-shadow: none;
 }
@@ -1043,7 +1018,7 @@ textarea[readonly] {
     box-shadow: none;
 }
 
-.secret-field input[readonly]:not(:disabled):not(.disabled):not(:focus):hover {
+.secret-field input[readonly]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover] {
     background: var(--control-hover);
     border-color: var(--control-hover-border);
 }

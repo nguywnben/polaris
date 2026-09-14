@@ -4,6 +4,7 @@ const SUPPORTED_LOCALES = {
     en: {
         label: 'English',
         messages: {
+            setup_show_secret: 'Show content',
             language: 'Language', dashboard: 'Dashboard', pool: 'Pool', models: 'Models', providers: 'Providers', settings: 'Settings', logs: 'Logs', about: 'About',
             sign_out: 'Sign out', sign_in_title: 'Sign In to the Console', login_copy: 'Manage routing, credentials, fallback behavior, and protocol translation from one focused workspace.',
             console_password: 'Console password', enter_password: 'Enter password', continue: 'Continue', setup_title: 'Create Your Console Password', setup_copy: 'Secure this new Polaris instance before opening the management console.',
@@ -20,6 +21,7 @@ const SUPPORTED_LOCALES = {
     'zh-CN': {
         label: '中文(简体)',
         messages: {
+            setup_show_secret: '显示内容',
             language: '语言', dashboard: '仪表板', pool: '凭据池', models: '模型', providers: '提供商', settings: '设置', logs: '日志', about: '关于',
             sign_out: '退出登录', sign_in_title: '登录控制台', login_copy: '在一个专注的工作区中管理路由、凭据、故障转移策略和协议转换。',
             console_password: '控制台密码', enter_password: '输入密码', continue: '继续', setup_title: '创建控制台密码', setup_copy: '在打开管理控制台前，请先保护这个新的 Polaris 实例。',
@@ -36,6 +38,7 @@ const SUPPORTED_LOCALES = {
     'zh-TW': {
         label: '中文(繁體)',
         messages: {
+            setup_show_secret: '顯示內容',
             language: '語言', dashboard: '儀表板', pool: '憑證集區', models: '模型', providers: '供應商', settings: '設定', logs: '日誌', about: '關於',
             sign_out: '登出', sign_in_title: '登入主控台', login_copy: '在單一專注的工作區中管理路由、憑證、容錯行為與通訊協定轉換。',
             console_password: '主控台密碼', enter_password: '輸入密碼', continue: '繼續', setup_title: '建立主控台密碼', setup_copy: '開啟管理主控台前，請先保護這個新的 Polaris 執行個體。',
@@ -52,6 +55,7 @@ const SUPPORTED_LOCALES = {
     de: {
         label: 'Deutsch',
         messages: {
+            setup_show_secret: 'Inhalt anzeigen',
             language: 'Sprache', dashboard: 'Dashboard', pool: 'Pool', models: 'Modelle', providers: 'Anbieter', settings: 'Einstellungen', logs: 'Protokolle', about: 'Info',
             sign_out: 'Abmelden', sign_in_title: 'Bei der Konsole anmelden', login_copy: 'Verwalten Sie Routing, Zugangsdaten, Failover-Verhalten und Protokollübersetzung in einem fokussierten Arbeitsbereich.',
             console_password: 'Konsolenpasswort', enter_password: 'Passwort eingeben', continue: 'Weiter', setup_title: 'Konsolenpasswort erstellen', setup_copy: 'Sichern Sie diese neue Polaris-Instanz, bevor Sie die Verwaltungskonsole öffnen.',
@@ -68,6 +72,7 @@ const SUPPORTED_LOCALES = {
     es: {
         label: 'Español',
         messages: {
+            setup_show_secret: 'Mostrar contenido',
             language: 'Idioma', dashboard: 'Panel', pool: 'Grupo', models: 'Modelos', providers: 'Proveedores', settings: 'Configuración', logs: 'Registros', about: 'Acerca de',
             sign_out: 'Cerrar sesión', sign_in_title: 'Iniciar sesión en la consola', login_copy: 'Administra el enrutamiento, las credenciales, el comportamiento de conmutación por error y la traducción de protocolos desde un espacio de trabajo enfocado.',
             console_password: 'Contraseña de la consola', enter_password: 'Introduce la contraseña', continue: 'Continuar', setup_title: 'Crea la contraseña de la consola', setup_copy: 'Protege esta nueva instancia de Polaris antes de abrir la consola de administración.',
@@ -84,6 +89,7 @@ const SUPPORTED_LOCALES = {
     fr: {
         label: 'Français',
         messages: {
+            setup_show_secret: 'Afficher le contenu',
             language: 'Langue', dashboard: 'Tableau de bord', pool: 'Pool', models: 'Modèles', providers: 'Fournisseurs', settings: 'Paramètres', logs: 'Journaux', about: 'À propos',
             sign_out: 'Se déconnecter', sign_in_title: 'Se connecter à la console', login_copy: 'Gérez le routage, les identifiants, le basculement et la traduction de protocoles depuis un espace de travail unique.',
             console_password: 'Mot de passe de la console', enter_password: 'Saisir le mot de passe', continue: 'Continuer', setup_title: 'Créer le mot de passe de la console', setup_copy: 'Sécurisez cette nouvelle instance Polaris avant d’ouvrir la console d’administration.',
@@ -100,6 +106,7 @@ const SUPPORTED_LOCALES = {
     id: {
         label: 'Indonesia',
         messages: {
+            setup_show_secret: 'Tampilkan isi',
             language: 'Bahasa', dashboard: 'Dasbor', pool: 'Pool', models: 'Model', providers: 'Penyedia', settings: 'Pengaturan', logs: 'Log', about: 'Tentang',
             sign_out: 'Keluar', sign_in_title: 'Masuk ke Konsol', login_copy: 'Kelola perutean, kredensial, perilaku failover, dan penerjemahan protokol dari satu ruang kerja yang terfokus.',
             console_password: 'Kata sandi konsol', enter_password: 'Masukkan kata sandi', continue: 'Lanjutkan', setup_title: 'Buat Kata Sandi Konsol', setup_copy: 'Amankan instans Polaris baru ini sebelum membuka konsol pengelolaan.',
@@ -116,6 +123,7 @@ const SUPPORTED_LOCALES = {
     it: {
         label: 'Italiano',
         messages: {
+            setup_show_secret: 'Mostra contenuto',
             language: 'Lingua', dashboard: 'Dashboard', pool: 'Pool', models: 'Modelli', providers: 'Provider', settings: 'Impostazioni', logs: 'Log', about: 'Informazioni',
             sign_out: 'Esci', sign_in_title: 'Accedi alla console', login_copy: 'Gestisci routing, credenziali, comportamento di failover e traduzione dei protocolli da un unico spazio di lavoro.',
             console_password: 'Password della console', enter_password: 'Inserisci la password', continue: 'Continua', setup_title: 'Crea la password della console', setup_copy: 'Proteggi questa nuova istanza Polaris prima di aprire la console di gestione.',
@@ -132,6 +140,7 @@ const SUPPORTED_LOCALES = {
     ja: {
         label: '日本語',
         messages: {
+            setup_show_secret: '内容を表示',
             language: '言語', dashboard: 'ダッシュボード', pool: 'プール', models: 'モデル', providers: 'プロバイダー', settings: '設定', logs: 'ログ', about: '概要',
             sign_out: 'サインアウト', sign_in_title: 'コンソールにサインイン', login_copy: 'ルーティング、認証情報、フェイルオーバー動作、プロトコル変換を一つのワークスペースで管理します。',
             console_password: 'コンソールのパスワード', enter_password: 'パスワードを入力', continue: '続行', setup_title: 'コンソールのパスワードを作成', setup_copy: '管理コンソールを開く前に、この新しい Polaris インスタンスを保護してください。',
@@ -148,6 +157,7 @@ const SUPPORTED_LOCALES = {
     ko: {
         label: '한국어',
         messages: {
+            setup_show_secret: '내용 표시',
             language: '언어', dashboard: '대시보드', pool: '풀', models: '모델', providers: '공급자', settings: '설정', logs: '로그', about: '정보',
             sign_out: '로그아웃', sign_in_title: '콘솔에 로그인', login_copy: '하나의 집중된 작업 공간에서 라우팅, 자격 증명, 장애 조치 동작, 프로토콜 변환을 관리하세요.',
             console_password: '콘솔 비밀번호', enter_password: '비밀번호 입력', continue: '계속', setup_title: '콘솔 비밀번호 만들기', setup_copy: '관리 콘솔을 열기 전에 새 Polaris 인스턴스를 보호하세요.',
@@ -164,6 +174,7 @@ const SUPPORTED_LOCALES = {
     pt: {
         label: 'Português',
         messages: {
+            setup_show_secret: 'Mostrar conteúdo',
             language: 'Idioma', dashboard: 'Painel', pool: 'Pool', models: 'Modelos', providers: 'Provedores', settings: 'Configurações', logs: 'Logs', about: 'Sobre',
             sign_out: 'Sair', sign_in_title: 'Entrar no Console', login_copy: 'Gerencie roteamento, credenciais, comportamento de failover e tradução de protocolos em um espaço de trabalho focado.',
             console_password: 'Senha do console', enter_password: 'Digite a senha', continue: 'Continuar', setup_title: 'Crie a Senha do Console', setup_copy: 'Proteja esta nova instância do Polaris antes de abrir o console de gerenciamento.',
@@ -180,6 +191,7 @@ const SUPPORTED_LOCALES = {
     ru: {
         label: 'Русский',
         messages: {
+            setup_show_secret: 'Показать содержимое',
             language: 'Язык', dashboard: 'Панель', pool: 'Пул', models: 'Модели', providers: 'Провайдеры', settings: 'Настройки', logs: 'Журналы', about: 'О проекте',
             sign_out: 'Выйти', sign_in_title: 'Войти в консоль', login_copy: 'Управляйте маршрутизацией, учётными данными, отказоустойчивостью и преобразованием протоколов в едином рабочем пространстве.',
             console_password: 'Пароль консоли', enter_password: 'Введите пароль', continue: 'Продолжить', setup_title: 'Создайте пароль консоли', setup_copy: 'Защитите новый экземпляр Polaris перед открытием консоли управления.',
@@ -196,6 +208,7 @@ const SUPPORTED_LOCALES = {
     th: {
         label: 'ภาษาไทย',
         messages: {
+            setup_show_secret: 'แสดงเนื้อหา',
             language: 'ภาษา', dashboard: 'แดชบอร์ด', pool: 'พูล', models: 'โมเดล', providers: 'ผู้ให้บริการ', settings: 'การตั้งค่า', logs: 'บันทึก', about: 'เกี่ยวกับ',
             sign_out: 'ออกจากระบบ', sign_in_title: 'ลงชื่อเข้าใช้คอนโซล', login_copy: 'จัดการการกำหนดเส้นทาง ข้อมูลรับรอง การทำงานเมื่อเกิดข้อผิดพลาด และการแปลงโปรโตคอลจากพื้นที่ทำงานเดียว',
             console_password: 'รหัสผ่านคอนโซล', enter_password: 'ป้อนรหัสผ่าน', continue: 'ดำเนินการต่อ', setup_title: 'สร้างรหัสผ่านคอนโซล', setup_copy: 'ปกป้องอินสแตนซ์ Polaris ใหม่นี้ก่อนเปิดคอนโซลการจัดการ',
@@ -212,6 +225,7 @@ const SUPPORTED_LOCALES = {
     tr: {
         label: 'Türkçe',
         messages: {
+            setup_show_secret: 'İçeriği göster',
             language: 'Dil', dashboard: 'Pano', pool: 'Havuz', models: 'Modeller', providers: 'Sağlayıcılar', settings: 'Ayarlar', logs: 'Günlükler', about: 'Hakkında',
             sign_out: 'Oturumu kapat', sign_in_title: 'Konsolda oturum aç', login_copy: 'Yönlendirmeyi, kimlik bilgilerini, yük devretme davranışını ve protokol çevirisini tek bir odaklı çalışma alanından yönetin.',
             console_password: 'Konsol parolası', enter_password: 'Parolayı girin', continue: 'Devam et', setup_title: 'Konsol Parolasını Oluştur', setup_copy: 'Yönetim konsolunu açmadan önce bu yeni Polaris örneğini güvence altına alın.',
@@ -228,6 +242,7 @@ const SUPPORTED_LOCALES = {
     vi: {
         label: 'Tiếng Việt',
         messages: {
+            setup_show_secret: 'Hiện nội dung',
             language: 'Ngôn ngữ', dashboard: 'Tổng quan', pool: 'Thông tin xác thực', models: 'Mô hình', providers: 'Nhà cung cấp', settings: 'Cài đặt', logs: 'Nhật ký', about: 'Giới thiệu',
             sign_out: 'Đăng xuất', sign_in_title: 'Đăng nhập vào bảng điều khiển', login_copy: 'Quản lý định tuyến, thông tin xác thực, cơ chế dự phòng và chuyển đổi giao thức trong một không gian làm việc tập trung.',
             console_password: 'Mật khẩu bảng điều khiển', enter_password: 'Nhập mật khẩu', continue: 'Tiếp tục', setup_title: 'Tạo mật khẩu bảng điều khiển', setup_copy: 'Bảo vệ phiên bản Polaris mới này trước khi mở bảng điều khiển quản trị.',
@@ -366,6 +381,158 @@ for (const locale of Object.keys(AUTH_LOCALE_TRANSLATIONS)) {
         ...AUTH_LOCALE_TRANSLATIONS.en,
         ...AUTH_LOCALE_TRANSLATIONS[locale]
     };
+}
+
+const FORM_VALIDATION_KEYS = ['validation.required', 'validation.min_length', 'validation.max_length', 'validation.min', 'validation.max', 'validation.step', 'validation.format', 'validation.invalid'];
+const FORM_VALIDATION_MESSAGES = {
+    en: ['Enter or choose a value.', 'Use at least {limit} characters.', 'Use at most {limit} characters.', 'Enter a value of at least {limit}.', 'Enter a value no greater than {limit}.', 'Use increments of {step}.', 'Use the required format.', 'Enter a valid value.'],
+    'zh-CN': ['请输入或选择一个值。', '请至少输入 {limit} 个字符。', '最多输入 {limit} 个字符。', '请输入不小于 {limit} 的值。', '请输入不大于 {limit} 的值。', '请使用 {step} 的步长。', '请使用要求的格式。', '请输入有效值。'],
+    'zh-TW': ['請輸入或選擇一個值。', '請至少輸入 {limit} 個字元。', '最多輸入 {limit} 個字元。', '請輸入不小於 {limit} 的值。', '請輸入不大於 {limit} 的值。', '請使用 {step} 的間距。', '請使用要求的格式。', '請輸入有效值。'],
+    de: ['Einen Wert eingeben oder auswählen.', 'Mindestens {limit} Zeichen verwenden.', 'Höchstens {limit} Zeichen verwenden.', 'Einen Wert von mindestens {limit} eingeben.', 'Einen Wert von höchstens {limit} eingeben.', 'Schritte von {step} verwenden.', 'Das erforderliche Format verwenden.', 'Einen gültigen Wert eingeben.'],
+    es: ['Introduce o selecciona un valor.', 'Usa al menos {limit} caracteres.', 'Usa como máximo {limit} caracteres.', 'Introduce un valor mínimo de {limit}.', 'Introduce un valor máximo de {limit}.', 'Usa incrementos de {step}.', 'Usa el formato requerido.', 'Introduce un valor válido.'],
+    fr: ['Saisissez ou choisissez une valeur.', 'Utilisez au moins {limit} caractères.', 'Utilisez au maximum {limit} caractères.', 'Saisissez une valeur supérieure ou égale à {limit}.', 'Saisissez une valeur inférieure ou égale à {limit}.', 'Utilisez des incréments de {step}.', 'Utilisez le format requis.', 'Saisissez une valeur valide.'],
+    id: ['Masukkan atau pilih nilai.', 'Gunakan minimal {limit} karakter.', 'Gunakan maksimal {limit} karakter.', 'Masukkan nilai minimal {limit}.', 'Masukkan nilai maksimal {limit}.', 'Gunakan kelipatan {step}.', 'Gunakan format yang diminta.', 'Masukkan nilai yang valid.'],
+    it: ['Inserisci o scegli un valore.', 'Usa almeno {limit} caratteri.', 'Usa al massimo {limit} caratteri.', 'Inserisci un valore di almeno {limit}.', 'Inserisci un valore non superiore a {limit}.', 'Usa incrementi di {step}.', 'Usa il formato richiesto.', 'Inserisci un valore valido.'],
+    ja: ['値を入力または選択してください。', '{limit} 文字以上で入力してください。', '{limit} 文字以内で入力してください。', '{limit} 以上の値を入力してください。', '{limit} 以下の値を入力してください。', '{step} 刻みで入力してください。', '指定された形式で入力してください。', '有効な値を入力してください。'],
+    ko: ['값을 입력하거나 선택하세요.', '{limit}자 이상 입력하세요.', '{limit}자 이하로 입력하세요.', '{limit} 이상의 값을 입력하세요.', '{limit} 이하의 값을 입력하세요.', '{step} 간격으로 입력하세요.', '요구되는 형식을 사용하세요.', '유효한 값을 입력하세요.'],
+    pt: ['Introduza ou escolha um valor.', 'Use pelo menos {limit} caracteres.', 'Use no máximo {limit} caracteres.', 'Introduza um valor de pelo menos {limit}.', 'Introduza um valor não superior a {limit}.', 'Use incrementos de {step}.', 'Use o formato exigido.', 'Introduza um valor válido.'],
+    ru: ['Введите или выберите значение.', 'Используйте не менее {limit} символов.', 'Используйте не более {limit} символов.', 'Введите значение не меньше {limit}.', 'Введите значение не больше {limit}.', 'Используйте шаг {step}.', 'Используйте требуемый формат.', 'Введите допустимое значение.'],
+    th: ['ป้อนหรือเลือกค่า', 'ใช้ตัวอักษรอย่างน้อย {limit} ตัว', 'ใช้ตัวอักษรไม่เกิน {limit} ตัว', 'ป้อนค่าอย่างน้อย {limit}', 'ป้อนค่าไม่เกิน {limit}', 'ใช้ช่วงเพิ่มทีละ {step}', 'ใช้รูปแบบที่กำหนด', 'ป้อนค่าที่ถูกต้อง'],
+    tr: ['Bir değer girin veya seçin.', 'En az {limit} karakter kullanın.', 'En fazla {limit} karakter kullanın.', 'En az {limit} değerini girin.', 'En fazla {limit} değerini girin.', '{step} adımlarını kullanın.', 'İstenen biçimi kullanın.', 'Geçerli bir değer girin.'],
+    vi: ['Vui lòng nhập hoặc chọn giá trị.', 'Nhập ít nhất {limit} ký tự.', 'Nhập tối đa {limit} ký tự.', 'Nhập giá trị từ {limit} trở lên.', 'Nhập giá trị không vượt quá {limit}.', 'Nhập giá trị theo bước {step}.', 'Giá trị chưa đúng định dạng yêu cầu.', 'Vui lòng nhập giá trị hợp lệ.']
+};
+for (const [locale, values] of Object.entries(FORM_VALIDATION_MESSAGES)) {
+    FORM_VALIDATION_KEYS.forEach((key, index) => { SUPPORTED_LOCALES[locale].messages[key] = values[index]; });
+}
+
+const DASHBOARD_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'dashboard.connect_provider_title': 'Connect your first provider',
+        'dashboard.connect_provider_copy': 'Add an account or API key, choose a model route, then send a request in Playground.',
+        'dashboard.empty_period_copy': 'No provider attempts in this time range. Try another range or send a request in Playground.',
+        'dashboard.provider_status_empty': 'No provider status to display yet. Connect a provider to get started.',
+    },
+    vi: {
+        'dashboard.connect_provider_title': 'Kết nối nhà cung cấp đầu tiên',
+        'dashboard.connect_provider_copy': 'Thêm tài khoản hoặc khóa API, cấu hình tuyến mô hình, rồi gửi yêu cầu trong Thử nghiệm.',
+        'dashboard.empty_period_copy': 'Chưa có lần gọi nhà cung cấp trong khoảng thời gian này. Hãy chọn khoảng khác hoặc gửi yêu cầu trong Thử nghiệm.',
+        'dashboard.provider_status_empty': 'Chưa có trạng thái nhà cung cấp để hiển thị. Hãy kết nối nhà cung cấp để bắt đầu.',
+    },
+};
+for (const [locale, config] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(config.messages, DASHBOARD_GUIDANCE_TRANSLATIONS[locale] || DASHBOARD_GUIDANCE_TRANSLATIONS.en);
+}
+
+const LOGIN_FORM_TRANSLATIONS = {
+    "en": {login_password_copy: "Enter your console password to access Polaris.", login_submit: "Sign in", login_pending: "Signing in…"},
+    "vi": {login_password_copy: "Nhập mật khẩu bảng điều khiển để truy cập Polaris.", login_submit: "Đăng nhập", login_pending: "Đang đăng nhập…"},
+    "zh-CN": {login_password_copy: "输入控制台密码以访问 Polaris。", login_submit: "登录", login_pending: "正在登录…"},
+    "zh-TW": {login_password_copy: "輸入主控台密碼以存取 Polaris。", login_submit: "登入", login_pending: "正在登入…"},
+    "de": {login_password_copy: "Gib dein Konsolenpasswort ein, um auf Polaris zuzugreifen.", login_submit: "Anmelden", login_pending: "Anmeldung läuft…"},
+    "es": {login_password_copy: "Introduce tu contraseña de la consola para acceder a Polaris.", login_submit: "Iniciar sesión", login_pending: "Iniciando sesión…"},
+    "fr": {login_password_copy: "Saisissez le mot de passe de la console pour accéder à Polaris.", login_submit: "Se connecter", login_pending: "Connexion en cours…"},
+    "id": {login_password_copy: "Masukkan kata sandi konsol untuk mengakses Polaris.", login_submit: "Masuk", login_pending: "Sedang masuk…"},
+    "it": {login_password_copy: "Inserisci la password della console per accedere a Polaris.", login_submit: "Accedi", login_pending: "Accesso in corso…"},
+    "ja": {login_password_copy: "コンソールのパスワードを入力して Polaris にアクセスします。", login_submit: "サインイン", login_pending: "サインイン中…"},
+    "ko": {login_password_copy: "콘솔 비밀번호를 입력하여 Polaris에 접속하세요.", login_submit: "로그인", login_pending: "로그인 중…"},
+    "pt": {login_password_copy: "Digite a senha do console para acessar o Polaris.", login_submit: "Entrar", login_pending: "Entrando…"},
+    "ru": {login_password_copy: "Введите пароль консоли для доступа к Polaris.", login_submit: "Войти", login_pending: "Вход…"},
+    "th": {login_password_copy: "ป้อนรหัสผ่านคอนโซลเพื่อเข้าใช้ Polaris", login_submit: "เข้าสู่ระบบ", login_pending: "กำลังเข้าสู่ระบบ…"},
+    "tr": {login_password_copy: "Polaris’e erişmek için konsol parolanızı girin.", login_submit: "Giriş yap", login_pending: "Giriş yapılıyor…"},
+};
+for (const [locale, messages] of Object.entries(LOGIN_FORM_TRANSLATIONS)) {
+    Object.assign(SUPPORTED_LOCALES[locale].messages, messages);
+}
+
+const PASSWORD_CHECK_TRANSLATIONS = {
+    "en": {password_check_length: "Between 12 and 256 characters", password_check_variety: "At least 4 different characters", password_check_uncommon: "Not on the blocked common-password list", password_check_match: "Passwords match", password_check_met: "Met", password_check_pending: "Not met"},
+    "vi": {password_check_length: "Dài từ 12 đến 256 ký tự", password_check_variety: "Có ít nhất 4 ký tự khác nhau", password_check_uncommon: "Không thuộc danh sách mật khẩu phổ biến bị chặn", password_check_match: "Mật khẩu xác nhận trùng khớp", password_check_met: "Đã đạt", password_check_pending: "Chưa đạt"},
+    "zh-CN": {password_check_length: "长度为 12–256 个字符", password_check_variety: "至少包含 4 种不同字符", password_check_uncommon: "不在已屏蔽的常见密码列表中", password_check_match: "确认密码一致", password_check_met: "已满足", password_check_pending: "未满足"},
+    "zh-TW": {password_check_length: "長度為 12–256 個字元", password_check_variety: "至少包含 4 種不同字元", password_check_uncommon: "不在已封鎖的常見密碼清單中", password_check_match: "確認密碼一致", password_check_met: "已符合", password_check_pending: "未符合"},
+    "de": {password_check_length: "12 bis 256 Zeichen", password_check_variety: "Mindestens 4 verschiedene Zeichen", password_check_uncommon: "Nicht auf der Liste gesperrter häufiger Passwörter", password_check_match: "Passwörter stimmen überein", password_check_met: "Erfüllt", password_check_pending: "Nicht erfüllt"},
+    "es": {password_check_length: "Entre 12 y 256 caracteres", password_check_variety: "Al menos 4 caracteres diferentes", password_check_uncommon: "No figura en la lista de contraseñas comunes bloqueadas", password_check_match: "Las contraseñas coinciden", password_check_met: "Cumplido", password_check_pending: "No cumplido"},
+    "fr": {password_check_length: "Entre 12 et 256 caractères", password_check_variety: "Au moins 4 caractères différents", password_check_uncommon: "Absent de la liste des mots de passe courants bloqués", password_check_match: "Les mots de passe correspondent", password_check_met: "Respecté", password_check_pending: "Non respecté"},
+    "id": {password_check_length: "Antara 12 dan 256 karakter", password_check_variety: "Minimal 4 karakter berbeda", password_check_uncommon: "Tidak termasuk daftar kata sandi umum yang diblokir", password_check_match: "Konfirmasi kata sandi cocok", password_check_met: "Terpenuhi", password_check_pending: "Belum terpenuhi"},
+    "it": {password_check_length: "Da 12 a 256 caratteri", password_check_variety: "Almeno 4 caratteri diversi", password_check_uncommon: "Non presente nella lista delle password comuni bloccate", password_check_match: "Le password coincidono", password_check_met: "Soddisfatto", password_check_pending: "Non soddisfatto"},
+    "ja": {password_check_length: "12〜256文字", password_check_variety: "4種類以上の異なる文字", password_check_uncommon: "ブロック対象の一般的なパスワードではない", password_check_match: "確認用パスワードが一致", password_check_met: "条件を満たしています", password_check_pending: "条件を満たしていません"},
+    "ko": {password_check_length: "12~256자", password_check_variety: "서로 다른 문자 4개 이상", password_check_uncommon: "차단된 일반 비밀번호 목록에 없음", password_check_match: "비밀번호 확인 일치", password_check_met: "충족", password_check_pending: "미충족"},
+    "pt": {password_check_length: "Entre 12 e 256 caracteres", password_check_variety: "Pelo menos 4 caracteres diferentes", password_check_uncommon: "Não consta na lista de senhas comuns bloqueadas", password_check_match: "As senhas coincidem", password_check_met: "Atendido", password_check_pending: "Não atendido"},
+    "ru": {password_check_length: "От 12 до 256 символов", password_check_variety: "Не менее 4 разных символов", password_check_uncommon: "Нет в списке заблокированных распространённых паролей", password_check_match: "Пароли совпадают", password_check_met: "Выполнено", password_check_pending: "Не выполнено"},
+    "th": {password_check_length: "ความยาว 12–256 ตัวอักษร", password_check_variety: "มีตัวอักษรที่แตกต่างกันอย่างน้อย 4 ตัว", password_check_uncommon: "ไม่อยู่ในรายการรหัสผ่านทั่วไปที่ถูกบล็อก", password_check_match: "รหัสผ่านยืนยันตรงกัน", password_check_met: "ผ่าน", password_check_pending: "ยังไม่ผ่าน"},
+    "tr": {password_check_length: "12–256 karakter uzunluğunda", password_check_variety: "En az 4 farklı karakter", password_check_uncommon: "Engellenen yaygın parolalar listesinde değil", password_check_match: "Parolalar eşleşiyor", password_check_met: "Karşılandı", password_check_pending: "Karşılanmadı"},
+};
+for (const [locale, messages] of Object.entries(PASSWORD_CHECK_TRANSLATIONS)) {
+    Object.assign(SUPPORTED_LOCALES[locale].messages, messages);
+}
+
+const PROVIDER_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'providers.oauth_intro': 'Generate an authorization link and save the account directly into the active pool.',
+        'providers.antigravity_settings_hint': 'Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.',
+        'providers.oauth_client_hint': 'Manage the OAuth application used for Google Antigravity authorization.',
+        'providers.google_hosts_hint': 'Configure provider and Google API hosts used by Google Antigravity requests.',
+        'providers.protocol_hint': 'Tune headers, streaming conversion, and retry credential switching.'
+    },
+    vi: {
+        'providers.oauth_intro': 'Lấy liên kết cấp quyền, kết nối tài khoản rồi lưu vào kho thông tin xác thực.',
+        'providers.antigravity_settings_hint': 'Điều chỉnh ứng dụng OAuth, địa chỉ API và cách xử lý yêu cầu của Google Antigravity.',
+        'providers.oauth_client_hint': 'Ứng dụng OAuth dùng để cấp quyền cho tài khoản Google Antigravity.',
+        'providers.google_hosts_hint': 'Địa chỉ các dịch vụ Google được dùng khi gửi yêu cầu.',
+        'providers.protocol_hint': 'Thiết lập header, chuyển đổi phản hồi streaming và đổi thông tin xác thực khi thử lại.'
+    }
+};
+for (const [locale, definition] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(definition.messages, PROVIDER_GUIDANCE_TRANSLATIONS[locale] || PROVIDER_GUIDANCE_TRANSLATIONS.en);
+}
+
+const POOL_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'settings.save_configuration': 'Save configuration',
+        'settings.save_scope': 'Language and theme apply immediately on this device. Save configuration applies to server settings.',
+        'settings.save_scope_short': 'Password and retention policies use their own save buttons.',
+        'activity.apply_short': 'Apply',
+        'activity.reset_filters': 'Reset filters',
+        'activity.filter_hint_traces': 'Filters are shared across tabs. Actor type does not apply to request traces.',
+        'activity.filter_hint_audit': 'Filters are shared across tabs. Provider does not apply to audit events.',
+        'activity.filter_hint_runtime': 'Filters match the retained log text. Outcomes are inferred from log wording.',
+        'access.empty_title': 'No virtual keys yet',
+        'access.empty_hint': 'Create a separate key for each client and set only the permissions it needs.',
+        'access.filtered_hint': 'Try another name or change the status filter.',
+        'quality.preset_controls_hint': 'These values are defined by the selected profile. Choose Custom to edit individual controls, then save to apply.',
+        'quality.custom_controls_hint': 'Edit the controls below, preview their impact, then save to apply the policy.',
+        'quality.locked_controls_hint': 'Controls managed by the runtime environment remain locked.',
+        'models.empty_title': 'No models yet',
+        'models.empty_copy': 'Connect a provider account or API key first. If you already have credentials, check that they are enabled and have discovered models.',
+        'models.manage_credentials': 'Manage credentials',
+        'pool.empty_title': 'No credentials yet',
+        'pool.empty_copy': 'Connect an account or add an API key to get started. You can also import a ZIP backup.',
+        'pool.add_credential': 'Add credentials'
+    },
+    vi: {
+        'settings.save_configuration': 'Lưu cấu hình',
+        'settings.save_scope': 'Ngôn ngữ và giao diện áp dụng ngay trên thiết bị này. Các thiết lập máy chủ cần nhấn Lưu cấu hình.',
+        'settings.save_scope_short': 'Mật khẩu và chính sách lưu giữ có nút lưu riêng.',
+        'activity.apply_short': 'Áp dụng',
+        'activity.reset_filters': 'Đặt lại bộ lọc',
+        'activity.filter_hint_traces': 'Bộ lọc được giữ khi chuyển tab. Loại tác nhân không áp dụng cho dấu vết yêu cầu.',
+        'activity.filter_hint_audit': 'Bộ lọc được giữ khi chuyển tab. Nhà cung cấp không áp dụng cho sự kiện kiểm toán.',
+        'activity.filter_hint_runtime': 'Bộ lọc tìm trong phần nhật ký đang lưu. Kết quả được suy ra từ nội dung dòng nhật ký.',
+        'access.empty_title': 'Chưa có khóa API ảo',
+        'access.empty_hint': 'Tạo khóa riêng cho từng ứng dụng và chỉ cấp những quyền cần thiết.',
+        'access.filtered_hint': 'Thử tên khác hoặc thay đổi bộ lọc trạng thái.',
+        'quality.preset_controls_hint': 'Các giá trị bên dưới được đặt theo hồ sơ đang chọn. Chọn Tùy chỉnh để sửa từng mục, rồi lưu để áp dụng.',
+        'quality.custom_controls_hint': 'Điều chỉnh các mục bên dưới, mô phỏng ảnh hưởng rồi lưu để áp dụng chính sách.',
+        'quality.locked_controls_hint': 'Các mục do môi trường quản lý vẫn bị khóa.',
+        'models.empty_title': 'Chưa có mô hình',
+        'models.empty_copy': 'Kết nối tài khoản hoặc khóa API của nhà cung cấp để bắt đầu. Nếu đã có thông tin xác thực, hãy kiểm tra chúng đã bật và có mô hình được phát hiện.',
+        'models.manage_credentials': 'Quản lý thông tin xác thực',
+        'pool.empty_title': 'Chưa có thông tin xác thực',
+        'pool.empty_copy': 'Kết nối tài khoản hoặc thêm khóa API để bắt đầu. Bạn cũng có thể nhập bản sao lưu ZIP.',
+        'pool.add_credential': 'Thêm thông tin xác thực'
+    }
+};
+for (const [locale, definition] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(definition.messages, POOL_GUIDANCE_TRANSLATIONS[locale] || POOL_GUIDANCE_TRANSLATIONS.en);
 }
 
 const DIALOG_LOCALE_TRANSLATIONS = {

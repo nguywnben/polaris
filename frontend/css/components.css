@@ -182,7 +182,77 @@
 
 #poolTab .filter-container {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+#poolTab .filter-container.credential-filter-advanced-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#poolTab .credential-provider-groups:not(.is-empty) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+#poolTab .credential-provider-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
+@media (max-width: 1080px) {
+    #poolTab .credential-provider-groups:not(.is-empty) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    #poolTab .filter-container.credential-filter-advanced-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    #poolTab .credential-filter-panel .filter-container {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #poolTab .filter-select,
+    #poolTab .page-size-select {
+        min-height: 44px;
+    }
+}
+
+#poolTab .batch-controls {
+    align-items: center;
+    padding: 0 0 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+}
+
+#poolTab .batch-label {
+    flex-wrap: wrap;
+}
+
+#poolTab #poolFirstRun,
+#modelsTab #modelFirstRun {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    min-height: 0;
+    padding: 28px;
+}
+
+#poolFirstRun h2,
+#modelFirstRun h2 {
+    font-size: 20px;
+}
+
+#poolFirstRun p,
+#modelFirstRun p {
+    max-width: 60ch;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .credential-filter-panel {
@@ -794,7 +864,7 @@
     position: fixed;
     right: 22px;
     bottom: 22px;
-    z-index: 80;
+    z-index: 120;
     width: min(420px, calc(100vw - 44px));
 }
 

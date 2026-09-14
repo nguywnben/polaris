@@ -50,7 +50,80 @@ function initTabSlider() {
 
 document.addEventListener('DOMContentLoaded', initTabSlider);
 
+function initControlPointerHover() {
+    let hoveredControl = null;
+    const controlAt = (target) => target instanceof Element ? target.closest('input, select, textarea') : null;
+    const setHoveredControl = (control) => {
+        if (control === hoveredControl) return;
+        hoveredControl?.removeAttribute('data-pointer-hover');
+        hoveredControl = control;
+        hoveredControl?.setAttribute('data-pointer-hover', '');
+    };
+    // Native :hover also matches a control when its associated label is hovered.
+    // Pointer targets distinguish the actual control, including dynamically added forms.
+    document.addEventListener('pointerover', (event) => {
+        setHoveredControl(event.pointerType === 'touch' ? null : controlAt(event.target));
+    });
+    document.addEventListener('pointerout', (event) => {
+        setHoveredControl(event.pointerType === 'touch' ? null : controlAt(event.relatedTarget));
+    });
+    document.addEventListener('pointercancel', () => setHoveredControl(null));
+    window.addEventListener('blur', () => setHoveredControl(null));
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) setHoveredControl(null);
+    });
+}
+
+function controlValidationMessage(field) {
+    const validity = field.validity;
+    const reason = validity.customError ? field.validationMessage
+        : validity.valueMissing ? t('validation.required')
+        : validity.tooShort ? t('validation.min_length', {limit: field.minLength})
+        : validity.tooLong ? t('validation.max_length', {limit: field.maxLength})
+        : validity.rangeUnderflow ? t('validation.min', {limit: field.min})
+        : validity.rangeOverflow ? t('validation.max', {limit: field.max})
+        : validity.stepMismatch ? t('validation.step', {step: field.step || '1'})
+        : validity.typeMismatch || validity.patternMismatch ? t('validation.format')
+        : t('validation.invalid');
+    const label = field.labels?.[0]?.cloneNode(true);
+    label?.querySelectorAll('input, select, textarea, button, small').forEach(node => node.remove());
+    const name = (label?.textContent || field.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    return name ? `${name}: ${reason}` : reason;
+}
+
+function initControlValidationFeedback() {
+    let firstInvalid = null;
+    // Cancel only the browser's presentation, not HTML constraint validation.
+    // Capture also covers reportValidity() and forms inserted by dialogs later.
+    document.addEventListener('invalid', (event) => {
+        event.preventDefault();
+        const field = event.target;
+        field.setAttribute('aria-invalid', 'true');
+        field.setAttribute('data-validation-error', '');
+        if (firstInvalid) return;
+        firstInvalid = field;
+        setTimeout(() => {
+            const target = firstInvalid;
+            firstInvalid = null;
+            if (!target.isConnected || target.validity.valid) return;
+            showStatus(controlValidationMessage(target), 'error');
+            target.focus();
+        }, 0);
+    }, true);
+    const clearEditedError = (event) => {
+        const field = event.target;
+        if (field.hasAttribute('data-validation-error')) {
+            field.removeAttribute('aria-invalid');
+            field.removeAttribute('data-validation-error');
+        }
+    };
+    document.addEventListener('input', clearEditedError);
+    document.addEventListener('change', clearEditedError);
+}
+
 function initStaticUiBindings() {
+    initControlPointerHover();
+    initControlValidationFeedback();
     const clickHandlers = {
         'toggle-mobile-menu': () => toggleMobileMenu(),
         'switch-tab': (element) => switchTab(element.dataset.tab),
@@ -58,8 +131,15 @@ function initStaticUiBindings() {
         'clear-activity-filters': () => clearActivityFilters(),
         'investigate-activity-request': (element) => investigateActivityRequest(element.dataset.requestId, 'traces', {navigateToActivity: true}),
         logout: () => logout(),
-        'copy-api-key': () => copyInputValue('apiKey'),
+        'copy-api-key': (element, event) => {
+            // A label forwards a click to its input; only a direct pointer hit copies.
+            if (event.detail > 0 && document.elementFromPoint(event.clientX, event.clientY) === element) {
+                copyInputValue(element.id);
+            }
+        },
         'toggle-api-key': () => toggleApiKeyVisibility(),
+        'toggle-setup-secret': (element) => toggleSetupSecret(element),
+        'toggle-login-secret': (element) => toggleSetupSecret(element),
         'regenerate-api-key': () => regenerateApiKey(),
         'virtual-key-create': () => openVirtualKeyForm(),
         'virtual-key-refresh': () => loadVirtualKeys({ announce: true }),
@@ -221,6 +301,14 @@ function initStaticUiBindings() {
     };
 
     document.addEventListener('click', (event) => {
+        const label = event.target.closest('label');
+        const labeledField = label?.control;
+        if (labeledField?.matches('input:not([type="checkbox"]):not([type="radio"]), select, textarea')
+            && !event.target.closest('input, select, textarea, button, a, [contenteditable="true"], [role="button"]')) {
+            // Keep the accessible label association, but only direct field interaction
+            // should focus/open it. Checkbox and radio labels retain native activation.
+            event.preventDefault();
+        }
         const element = event.target.closest('[data-ui-action]');
         if (!element) return;
         const handler = clickHandlers[element.dataset.uiAction];
@@ -237,6 +325,8 @@ function initStaticUiBindings() {
     document.addEventListener('input', (event) => {
         if (event.target.matches('[data-quality-control]')) {
             syncQualityPolicyControls();
+        }
+        if (event.target.matches('[data-quality-control], .quality-preview-inputs input')) {
             document.getElementById('qualityPreviewResult')?.classList.add('hidden');
         }
         if (event.target.matches('[data-playground-input], #playgroundForm input')) {
@@ -265,6 +355,27 @@ function initStaticUiBindings() {
     document.getElementById('setupPreflightButton')?.addEventListener('click', () => {
         runSetupPreflight();
     });
+    for (const eventName of ['input', 'change']) {
+        document.getElementById('configForm')?.addEventListener(eventName, (event) => {
+            if (event.target.matches('.setup-secret-field input') && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+        document.getElementById('loginForm')?.addEventListener(eventName, (event) => {
+            if (event.target.id === 'loginPassword' && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+        document.getElementById('setupForm')?.addEventListener(eventName, (event) => {
+            if (event.target.id === 'setupToken') invalidateSetupVerification();
+            if (event.target.matches('#setupPassword, #setupPasswordConfirm')) {
+                renderSetupPasswordChecks();
+            }
+            if (event.target.matches('.setup-secret-field input') && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+    }
     document.getElementById('googleAiStudioCredentialForm')?.addEventListener('submit', addGoogleAIStudioCredential);
     document.getElementById('xaiCredentialForm')?.addEventListener('submit', addXaiApiKeyCredential);
     document.getElementById('openaiPlatformCredentialForm')?.addEventListener('submit', addOpenAIPlatformCredential);
@@ -280,6 +391,12 @@ function initStaticUiBindings() {
     });
 
     document.getElementById('apiKey')?.addEventListener('mousedown', (event) => event.preventDefault());
+    document.getElementById('apiKey')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            copyInputValue('apiKey', {preserveFocus: true});
+        }
+    });
 
     for (const [areaId, dropHandler] of [
         ['googleAiStudioUploadArea', handleGoogleAiStudioFileDrop],
@@ -406,11 +523,14 @@ function updateProviderCatalogPagination() {
     const startIndex = (providerCatalogCurrentPage - 1) * PROVIDER_CATALOG_PAGE_SIZE;
     const endIndex = startIndex + PROVIDER_CATALOG_PAGE_SIZE;
     const visibleCards = new Set(filteredCards.slice(startIndex, endIndex));
+    const tabStop = [...visibleCards].find(card => card.getAttribute('aria-selected') === 'true')
+        || visibleCards.values().next().value;
 
     allCards.forEach((card) => {
         const isVisible = visibleCards.has(card);
         card.classList.toggle('hidden', !isVisible);
         card.setAttribute('aria-hidden', String(!isVisible));
+        card.tabIndex = card === tabStop ? 0 : -1;
     });
 
     const emptyElement = document.getElementById('providerCatalogEmpty');
@@ -483,11 +603,6 @@ function selectProviderWorkspace(providerId, focusSelector = false) {
         if (selector) selector.tabIndex = isActive ? 0 : -1;
         panel?.classList.toggle('hidden', !isActive);
     });
-
-    const paginationContainer = document.getElementById('providerCatalogPagination');
-    const activeHeader = document.getElementById(selected.panelId)
-        ?.querySelector(':scope > .provider-workspace-header');
-    if (paginationContainer) activeHeader?.append(paginationContainer);
 
     if (focusSelector) {
         const selector = document.getElementById(selected.selectorId);

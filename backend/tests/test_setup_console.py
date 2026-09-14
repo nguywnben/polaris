@@ -73,6 +73,18 @@ class SetupConsoleTests(unittest.TestCase):
         self.assertIn("setupTokenInput.value = ''", self.client)
         self.assertNotIn("application logs", self.locales)
 
+    def test_secret_visibility_buttons_are_explicit_non_submit_controls(self):
+        for control_id in ("setupToken", "setupPassword", "setupPasswordConfirm"):
+            with self.subTest(control=control_id):
+                self.assertEqual(self.elements[control_id][1].get("type"), "password")
+                tag, button = self.elements[f"{control_id}Toggle"]
+                self.assertEqual(tag, "button")
+                self.assertEqual(button.get("type"), "button")
+                self.assertEqual(button.get("aria-controls"), control_id)
+                self.assertEqual(button.get("aria-pressed"), "false")
+                self.assertEqual(button.get("data-ui-action"), "toggle-setup-secret")
+                self.assertTrue(button.get("data-i18n-aria-label"))
+
     def test_setup_layout_has_a_bounded_responsive_card(self):
         self.assertIn(".setup-card", self.styles)
         self.assertIn("width: min(100%, 560px)", self.styles)

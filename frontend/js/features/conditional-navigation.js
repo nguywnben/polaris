@@ -1,8 +1,8 @@
 function updateTeamAccessNavigation() {
-    const teamAccessTab = document.querySelector('[data-conditional-navigation="team-access"]');
+    const teamAccessTab = document.querySelector('[data-tab="identity"]');
     if (!teamAccessTab) return;
-    const configuringTeamAccess = window.location.pathname === '/identity';
-    teamAccessTab.hidden = AppState.teamAccessEnabled !== true && !configuringTeamAccess;
+    // Navigation is always available; OIDC activation and API authorization remain separate.
+    teamAccessTab.hidden = false;
 }
 
 function resetConditionalNavigation() {

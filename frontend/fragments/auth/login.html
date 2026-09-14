@@ -1,5 +1,5 @@
-    <section id="loginSection" class="login-wrapper" data-i18n-aria-label="sign_in_title" aria-label="Sign In to the Console">
-        <div class="login-card">
+    <section id="loginSection" class="login-wrapper signin-wrapper" data-i18n-aria-label="sign_in_title" aria-label="Sign In to the Console">
+        <div class="login-card signin-card">
             <div class="login-brand">
                 <span class="app-mark" aria-hidden="true">
                     <img class="app-mark-image" src="/frontend/assets/logo.png" alt="">
@@ -7,12 +7,22 @@
                 <div class="login-brand-title">Polaris</div>
             </div>
             <h1 class="login-title" data-i18n="sign_in_title">Sign In to the Console</h1>
-            <p class="login-copy" data-i18n="login_copy">Manage routing, credentials, fallback behavior, and protocol translation from one focused workspace.</p>
+            <p class="login-copy" data-i18n="login_password_copy">Enter your console password to access Polaris.</p>
             <form id="loginForm" class="login-form" autocomplete="on">
-                <input class="password-manager-identity" type="text" name="username" value="admin" autocomplete="username" tabindex="-1" aria-hidden="true">
-                <label for="loginPassword" data-i18n="console_password">Console password</label>
-                <input type="password" id="loginPassword" name="password" data-i18n-placeholder="enter_password" placeholder="Enter password" autocomplete="current-password">
-                <button type="submit" class="btn" data-i18n="continue">Continue</button>
+                <div class="signin-password-group">
+                    <label id="loginPasswordLabel" for="loginPassword" data-i18n="console_password">Console password</label>
+                    <div class="setup-secret-field">
+                        <input type="password" id="loginPassword" name="password" data-i18n-placeholder="enter_password" placeholder="Enter password" autocomplete="current-password" required>
+                        <button id="loginPasswordToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-login-secret" aria-controls="loginPassword" aria-pressed="false" aria-describedby="loginPasswordLabel" data-i18n-aria-label="setup_show_secret" aria-label="Show content">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path class="setup-eye-slash" d="m3 3 18 18"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button id="loginSubmitButton" type="submit" class="btn" data-i18n="login_submit">Sign in</button>
             </form>
         </div>
         <footer class="login-footer" data-i18n-aria-label="site_footer" aria-label="Site footer">
