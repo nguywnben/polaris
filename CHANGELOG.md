@@ -7,6 +7,71 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ## [Unreleased]
 
+### Added
+
+- Live setup-password checklist for length, character variety, blocked common passwords,
+  and confirmation, grouped below both password fields and matching the server policy
+  without imposing composition rules.
+
+### Fixed
+
+- Session inventory uses Unix-anchored timestamps instead of displaying dates in 1970,
+  while session expiration remains based on monotonic elapsed time.
+- Activity tabs wrap on narrow screens instead of creating a horizontal scroller.
+- OAuth result pages share the console's theme and auth styling, distinguish success/failure,
+  and offer localized provider navigation. Manual callback flows keep their URL in the original
+  tab; callback responses are not cached and do not send referrers.
+- Identity uses a full-width permission list, content-sized readiness panels, flat identity/session
+  records, and read-only roles for identities the current principal cannot edit. Empty status rows
+  no longer reserve space; responsive controls retain confirmation and permission safeguards.
+- Identity translations now reach the live language catalogs and English-source lookup,
+  instead of leaving headings in English and exposing raw translation keys.
+- Sidebar order follows provider setup, routing and quality, testing, access management,
+  and operations; desktop and mobile use the same reading and keyboard order.
+- Identity and sessions remains discoverable in the sidebar even when OIDC team access is
+  disabled or unavailable, without enabling OIDC or changing management permissions.
+- About uses labelled support-state counts and simpler responsive sections, with clear
+  documentation/sponsor links and explicit empty support information. Failed loads no
+  longer leave the build/support regions marked as busy.
+- Provider catalog shows full descriptions with quieter capability labels and keeps
+  pagination beside the catalog. Search and paging retain a keyboard entry point.
+  Connection/import panels are more compact, provider introductions stay specific,
+  and Antigravity settings use distinct English/Vietnamese guidance.
+- Playground uses balanced responsive columns, simpler message editors, a contextual
+  message counter, and visible output limits. Running requests show a pending submit
+  label while keeping cancellation available; stale validation clears when the draft is valid again.
+- Overview now uses compact, content-sized sections and contextual first-run guidance.
+  Unsampled health metrics no longer imply zero latency or zero errors; unavailable health
+  remains distinct from no traffic. Dashboard charts fit small screens and expose keyboard-accessible tooltips.
+- Login now shares setup's secret visibility controls and visual rhythm, with concise
+  localized guidance, a clear sign-in action, pending feedback, and duplicate-submit protection.
+  Failed attempts retain the masked password for correction; successful sign-in clears it.
+- Setup password fields stay locked until the current required setup token passes
+  server verification. Reloading, editing the token, or a failed check locks them;
+  stale responses cannot unlock fields after a token edit.
+- Validation borders clear when a field is edited instead of retaining browser-owned
+  invalid styling; invalid submissions still receive Polaris feedback.
+
+- Replaced native browser validation popups with localized Polaris error toasts for
+  static and dynamically created forms, preserving HTML constraints and invalid-field feedback.
+- Form fields now highlight only under the pointer, not when their labels are hovered.
+  Text-field labels no longer focus/open controls; accessible names, keyboard navigation,
+  and checkbox/radio label activation are preserved. The root-key label no longer
+  copies a secret, while direct clicks and Enter on the key still copy it.
+- Failed setup checks retain the entered setup token so it can be corrected and retried.
+- Setup checks now prompt for an empty setup token before sending a request and announce
+  successful checks with a toast without moving focus to the password field. The inline
+  guidance stays visible and updates to the current action after verification or token edits.
+- Removed synthetic hidden `admin` usernames from console setup, sign-in, and password-change
+  forms so password managers receive the actual password-only flow.
+
+### Changed
+
+- Simplified the first-run setup layout with compact installation checks and clearer password
+  grouping. Added accessible, independently controlled visibility buttons inside all setup secret
+  inputs, visible only while populated, with keyboard support and labels in all supported console
+  languages.
+
 ## [0.1.0-beta.1] - 2026-09-14
 
 ### Added
