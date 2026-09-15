@@ -752,7 +752,7 @@ async function testModelRouteInPlayground() {
     }
     document.dispatchEvent(new CustomEvent('polaris:playground-handoff', {detail: handoff}));
     if (typeof TAB_MAP === 'object' && TAB_MAP.playground) {
-        window.location.assign(`${TAB_MAP.playground}?model=${encodeURIComponent(handoff.model)}&source=models`);
+        navigate(`${TAB_MAP.playground}?model=${encodeURIComponent(handoff.model)}&source=models`);
         return;
     }
     showStatus(t('models.playground_handoff_ready'), 'success');

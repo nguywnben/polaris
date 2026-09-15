@@ -56,9 +56,24 @@ const TAB_MAP = {
 
 const TAB_DATA_CACHE_MS = 30000;
 
+function handleConsoleLinkClick(event) {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey
+        || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a[href]');
+    if (!link || link.hasAttribute('download') || link.hasAttribute('data-ui-action')
+        || (link.target && link.target !== '_self') || link.getAttribute('href').startsWith('#')) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || !Object.hasOwn(ROUTE_MAP, url.pathname)) return;
+    event.preventDefault();
+    navigate(url.pathname + url.search + url.hash);
+}
+
 function navigate(path, pushState = true) {
 
-    let targetPath = path || '/dashboard';
+    const destination = new URL(path || '/dashboard', window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    let targetPath = destination.pathname;
+    let suffix = destination.search + destination.hash;
     if (targetPath !== '/config' || !AppState.authenticated || AppState.setupRequired) {
         if (typeof leaveBackupConsole === 'function') leaveBackupConsole();
     }
@@ -124,12 +139,14 @@ function navigate(path, pushState = true) {
         if (targetPath === '/login') {
 
             targetPath = '/dashboard';
+            suffix = '';
 
         }
 
         if (targetPath === '/setup') {
 
             targetPath = '/dashboard';
+            suffix = '';
 
         }
 
@@ -148,16 +165,17 @@ function navigate(path, pushState = true) {
     const canonicalPath = compatibilityActivityPath ? targetPath : TAB_MAP[tabName] || '/dashboard';
 
     targetPath = canonicalPath;
+    const targetUrl = targetPath + suffix;
 
-    if (window.location.pathname !== targetPath) {
+    if (window.location.pathname + window.location.search + window.location.hash !== targetUrl) {
 
         if (pushState) {
 
-            history.pushState(null, '', targetPath);
+            history.pushState(null, '', targetUrl);
 
         } else {
 
-            history.replaceState(null, '', targetPath);
+            history.replaceState(null, '', targetUrl);
 
         }
 
@@ -288,7 +306,7 @@ async function triggerTabDataLoad(tabName, options = {}) {
 
     const isFresh = Date.now() - loadedAt < TAB_DATA_CACHE_MS;
 
-    if (!force && isFresh && tabName !== 'config') return;
+    if (!force && isFresh && !['config', 'playground'].includes(tabName)) return;
 
     if (AppState.tabLoadPromises[tabName]) {
 

@@ -73,11 +73,14 @@ class ModelRoutingConsoleTests(unittest.TestCase):
         self._run_contract("""
 const tab = {classList: {toggle(name, value) {this[name] = value;}}};
 const firstRun = {hidden: true};
-global.document = {getElementById: id => id === 'modelsTab' ? tab : firstRun};
+const policy = {hidden: true};
+const elements = {modelsTab: tab, modelFirstRun: firstRun, modelRoutingPolicyPanel: policy};
+global.document = {getElementById: id => elements[id] || null};
 global.AppState = {modelCatalogLoaded: true, modelCatalog: [], selectedModels: [],
     modelPoolConfigured: false, modelBlacklist: []};
 updateModelFirstRunState();
 assert(!firstRun.hidden, 'A fresh empty catalog needs onboarding');
+assert(policy.hidden, 'Routing controls should not compete with first-run onboarding');
 for (const [key, value] of [['modelPoolConfigured', true], ['selectedModels', ['saved-model']],
     ['modelBlacklist', [{model_id: 'failed-model'}]]]) {
     const previous = AppState[key];
@@ -85,11 +88,13 @@ for (const [key, value] of [['modelPoolConfigured', true], ['selectedModels', ['
     updateModelFirstRunState();
     assert(firstRun.hidden, 'Existing route or failure data must stay accessible: ' + key);
     assert(!tab.classList['is-pristine-empty'], 'Workspace must not be hidden');
+    assert(!policy.hidden, 'Existing route or failure data keeps routing controls accessible');
     AppState[key] = previous;
 }
 AppState.modelCatalogLoaded = false;
 updateModelFirstRunState();
 assert(firstRun.hidden, 'Loading is not an empty catalog');
+assert(policy.hidden, 'Do not expose routing controls before the catalog loads');
 """)
 
     def _run_contract(self, assertions: str) -> None:

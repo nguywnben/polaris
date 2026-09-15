@@ -429,9 +429,9 @@ function readPlaygroundHandoff() {
 
 function initializePlayground() {
     const state = playgroundRuntimeState();
+    const handoffModel = readPlaygroundHandoff();
+    if (handoffModel) document.getElementById('playgroundModel').value = handoffModel;
     if (!state.initialized) {
-        const handoffModel = readPlaygroundHandoff();
-        if (handoffModel) document.getElementById('playgroundModel').value = handoffModel;
         state.initialized = true;
     }
     renderPlaygroundMessages();

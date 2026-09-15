@@ -248,7 +248,9 @@ assert(sidebar.inert === true, 'closed drawer remained interactive');
         settings = (FRONTEND / "fragments/pages/settings.html").read_text(encoding="utf-8")
 
         self.assertEqual(settings.count('data-settings-tier="advanced"'), 1)
-        self.assertEqual(settings.count('data-settings-tier="compatibility"'), 2)
+        self.assertEqual(settings.count('data-settings-tier="compatibility"'), 1)
+        self.assertNotIn('id="codeAssistEndpoint"', settings)
+        self.assertIn('id="keepaliveUrl"', settings)
         self.assertNotIn("<details", settings)
         self.assertNotIn("<summary", settings)
         self.assertNotIn("config-advanced-summary", settings)

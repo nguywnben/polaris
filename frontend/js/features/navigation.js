@@ -121,6 +121,7 @@ function initControlValidationFeedback() {
 }
 
 function initStaticUiBindings() {
+    document.addEventListener('click', handleConsoleLinkClick);
     initControlPointerHover();
     initControlValidationFeedback();
     initBackupBindings();
