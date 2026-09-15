@@ -19,6 +19,12 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Global credential routing policy remains editable before any provider models exist and
+  saves independently from virtual routes, with failed drafts retained for retry.
+- Activity distinguishes an empty request history from filters with no matches. Connecting
+  the runtime log stream no longer incorrectly reports that logs were cleared.
+- Identity keeps all effective permissions in a keyboard-accessible disclosure and hides
+  pagination when neither a previous nor a next page exists, shortening the mobile view.
 - Shared light/dark styling keeps the Polaris logo visible and secondary/status text readable.
   Phone and tablet controls use consistent touch sizing; mobile navigation contains keyboard
   focus and disables background interaction until closed. Native dialog backdrops use the
