@@ -205,7 +205,7 @@ def verify_kiro(page):
 
 def verify_kiro_browser(page):
     calls = []
-    state = {"accepted": False, "invalid": True}
+    state = {"accepted": False, "invalid": True, "unsafe_link": False}
 
     def respond(route):
         action = route.request.url.rsplit("/", 1)[-1]
@@ -218,6 +218,8 @@ def verify_kiro_browser(page):
                 "expires_in": 600,
                 "authorization_url": "https://app.kiro.dev/signin?state=synthetic",
             }
+            if state["unsafe_link"]:
+                payload["authorization_url"] = "https://example.invalid/signin"
         elif action == "complete":
             payload = (
                 {"status": "complete", "credential_saved": True}
@@ -233,8 +235,10 @@ def verify_kiro_browser(page):
         route.fulfill(status=status, content_type="application/json", body=json.dumps(payload))
 
     page.route("**/api/providers/kiro/browser/*", respond)
-    # Simulate a blocked popup: the visible sign-in link must still work.
-    page.evaluate("window.open = () => null")
+    # Starting a flow must not open or navigate a tab, even when popups are allowed.
+    page.evaluate(
+        "() => { window.kiroPopupCalls = 0; window.open = () => { window.kiroPopupCalls++; return null; }; }"
+    )
     page.locator("#providerCatalogSearch").fill("kiro")
     page.locator("#providerSelector-kiro").click()
     workspace = page.locator("#providerWorkspace-kiro")
@@ -244,13 +248,40 @@ def verify_kiro_browser(page):
     form.locator("button").click()
     expect(pending).to_be_visible()
     expect(pending).to_be_focused()
+    assert page.evaluate("window.kiroPopupCalls") == 0
+    expect(page).to_have_url(page.url.split("/providers")[0] + "/providers")
     expect(pending.locator("a")).to_have_attribute(
         "href", "https://app.kiro.dev/signin?state=synthetic"
     )
+    expect(pending.locator("a")).to_have_text("https://app.kiro.dev/signin?state=synthetic")
+    expect(pending.locator("a")).to_have_attribute("target", "_blank")
+    expect(pending.locator("a")).to_have_attribute("rel", "noopener noreferrer")
+    # Opening the displayed link remains an explicit, keyboard-accessible action.
+    with page.expect_popup() as opened:
+        pending.locator("a").focus()
+        pending.locator("a").press("Enter")
+    opened.value.close()  # HTTPS is blocked by the isolated test context.
+    page.bring_to_front()
+    pending.locator("#kiroBrowserCopyLink").click()
+    assert (
+        page.evaluate("navigator.clipboard.readText()")
+        == "https://app.kiro.dev/signin?state=synthetic"
+    )
     expect(pending.locator(".provider-device-code")).to_have_count(0)
     expect(pending.locator('[data-i18n="runtime.check_authorization"]')).to_have_count(0)
-    pending.locator("summary").click()
     callback = pending.locator('input[name="callback_url"]')
+    expect(callback).to_be_visible()
+    expect(callback).not_to_be_focused()
+    for locale in page.evaluate("Object.keys(PROVIDER_PORTAL_COPY)"):
+        page.evaluate("locale => { setLanguage(locale, true); applyLanguage(); }", locale)
+        expect(pending.locator("#kiroBrowserCopyLink")).to_have_text(
+            page.evaluate("t('provider.portal.copy')")
+        )
+        expect(pending.locator('[data-i18n="provider.portal.link_label"]')).to_have_text(
+            page.evaluate("t('provider.portal.link_label')")
+        )
+        expect(callback).to_have_css("font-weight", "400")
+    page.evaluate("setLanguage('vi', true); applyLanguage()")
     callback.fill("http://localhost:4283/oauth/callback?code=test&state=synthetic")
     pending.locator('button[type="submit"]').click()
     expect(callback).to_have_value("http://localhost:4283/oauth/callback?code=test&state=synthetic")
@@ -282,7 +313,18 @@ def verify_kiro_browser(page):
     expect(workspace.locator("#kiroBrowserSaveResult")).to_be_hidden()
     pending.locator('[data-i18n="btn_cancel"]').click()
     expect(pending).to_be_hidden()
+    expect(pending.locator("a")).not_to_have_attribute(
+        "href", "https://app.kiro.dev/signin?state=synthetic"
+    )
+    expect(pending.locator("a")).to_have_text("")
     assert calls[-1] == "cancel"
+    state["unsafe_link"] = True
+    with page.expect_response("**/api/providers/kiro/browser/start"):
+        form.locator("button").click()
+    expect(form.locator("button")).to_be_enabled()
+    expect(pending).to_be_hidden()
+    expect(pending.locator("a")).to_have_text("")
+    assert page.evaluate("window.kiroPopupCalls") == 0
     page.unroute("**/api/providers/kiro/browser/*", respond)
 
 

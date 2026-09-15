@@ -5,7 +5,7 @@ function buildKiroOAuthPanel(advanced) {
     panel.append(title, extendedElement('p', 'card-copy provider-tool-copy', 'provider.portal.help'));
     const form = extendedElement('form', 'extended-provider-form');
     form.id = 'kiroBrowserForm'; form.noValidate = true;
-    const start = extendedElement('button', 'btn', 'provider.portal.start'); start.type = 'submit';
+    const start = extendedElement('button', 'btn', 'provider.ui.get_link'); start.type = 'submit';
     form.append(start); panel.append(form);
     const settings = extendedElement('fieldset', 'provider-auth-settings');
     const legend = extendedElement('legend'); legend.textContent = 'Kiro OAuth';
@@ -20,19 +20,25 @@ function buildKiroOAuthPanel(advanced) {
     const status = extendedElement('p', 'card-copy', 'provider.portal.pending'); status.setAttribute('role', 'status');
     status.id = 'kiroBrowserStatus'; pending.setAttribute('aria-labelledby', status.id);
     const expiry = extendedElement('p', 'card-copy');
-    const link = extendedElement('a', 'btn', 'provider.ui.open_login');
+    const linkHeader = extendedElement('div', 'auth-link-header');
+    const linkLabel = extendedElement('span', '', 'provider.portal.link_label');
+    const copy = extendedElement('button', 'btn btn-secondary', 'provider.portal.copy');
+    copy.id = 'kiroBrowserCopyLink'; copy.type = 'button';
+    linkHeader.append(linkLabel, copy);
+    const linkCard = extendedElement('div', 'endpoint-code-card auth-link-card');
+    const link = extendedElement('a');
     link.target = '_blank'; link.rel = 'noopener noreferrer';
+    linkCard.append(link);
+    copy.addEventListener('click', () => { if (flow && link.hasAttribute('href')) copyTextWithStatus(link.href); });
     const cancel = extendedElement('button', 'btn btn-secondary', 'btn_cancel'); cancel.type = 'button';
-    const actions = extendedElement('div', 'page-actions'); actions.append(link, cancel);
-    const manual = extendedElement('details', 'provider-manual-callback');
-    const summary = extendedElement('summary', 'provider-disclosure-summary', 'provider.portal.manual');
-    const manualForm = extendedElement('form', 'extended-provider-form'); manualForm.noValidate = true;
+    const actions = extendedElement('div', 'page-actions');
+    const manualForm = extendedElement('form', 'extended-provider-form oauth-completion-panel'); manualForm.noValidate = true;
     const input = extendedField(manualForm, 'kiro-browser', 'callback_url', 'provider.portal.manual', '', {type: 'url', required: true});
     input.placeholder = 'http://localhost:4283/oauth/callback?code=…&state=…';
     input.maxLength = 6144; input.autocomplete = 'off'; input.spellcheck = false;
     const submit = extendedElement('button', 'btn btn-secondary', 'provider.portal.submit'); submit.type = 'submit';
-    manualForm.append(submit); manual.append(summary, manualForm);
-    pending.append(status, expiry, actions, manual); panel.append(pending);
+    actions.append(submit, cancel); manualForm.append(actions);
+    pending.append(status, linkHeader, linkCard, expiry, manualForm); panel.append(pending);
     const saveResult = createProviderCredentialSaveResult(panel, 'kiroBrowser');
     const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
     const callbackOrigin = remote ? 'http://localhost:4283' : location.origin;
@@ -40,7 +46,7 @@ function buildKiroOAuthPanel(advanced) {
     let flow = null, timer = null, busy = false, expiresAt = 0;
     const stopTimer = () => { clearTimeout(timer); timer = null; };
     const reset = () => {
-        stopTimer(); flow = null; input.value = ''; link.removeAttribute('href');
+        stopTimer(); flow = null; input.value = ''; link.removeAttribute('href'); link.textContent = '';
         pending.classList.add('hidden'); form.classList.remove('hidden'); region.disabled = false;
     };
     async function request(action, payload) {
@@ -73,20 +79,17 @@ function buildKiroOAuthPanel(advanced) {
     form.addEventListener('submit', async event => {
         event.preventDefault(); if (busy || flow) return;
         saveResult.classList.add('hidden');
-        // Open on the user gesture; browsers may block a popup opened after fetch.
-        const popup = window.open('about:blank', '_blank');
-        if (popup) popup.opener = null;
         busy = true; start.disabled = true; region.disabled = true;
         try {
             const result = await request('start', {callback_origin: callbackOrigin, region: region.value});
             const url = new URL(result.authorization_url);
             if (url.origin !== 'https://app.kiro.dev' || url.pathname !== '/signin' || url.username || url.password) throw new Error('invalid-url');
             flow = result.flow_id; expiresAt = Date.now() + result.expires_in * 1000;
-            link.href = url.href; if (popup) popup.location.replace(url.href);
+            link.href = url.href; link.textContent = url.href;
             expiry.textContent = t('provider.ui.expires_at', {time: new Date(expiresAt).toLocaleTimeString(document.documentElement.lang || 'en', {hour: '2-digit', minute: '2-digit'})});
             form.classList.add('hidden'); pending.classList.remove('hidden'); pending.focus({preventScroll: true});
             schedule();
-        } catch { if (popup) popup.close(); reset(); showStatus(t('provider.auth.error'), 'error'); }
+        } catch { reset(); showStatus(t('provider.auth.error'), 'error'); }
         finally { busy = false; start.disabled = false; region.disabled = Boolean(flow); }
     });
     manualForm.addEventListener('submit', async event => {
