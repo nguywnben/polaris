@@ -132,7 +132,7 @@ function createCredsManager(type) {
 
             return {
 
-                provider: { state: 'currentProviderFilter', suffix: 'ProviderFilter', values: ['all', 'google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama'] },
+                provider: { state: 'currentProviderFilter', suffix: 'ProviderFilter', values: ['all', 'google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'kimi', 'kiro', 'cloudflare', 'nvidia', 'opencode', 'poolside', 'kimchi', 'kilo'] },
 
                 status: { state: 'currentStatusFilter', suffix: 'StatusFilter', values: ['all', 'enabled', 'disabled'] },
 

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 GOOGLE_ANTIGRAVITY = "google_antigravity"
 GOOGLE_AI_STUDIO = "google_ai_studio"
@@ -18,6 +20,44 @@ ANTHROPIC = "anthropic"
 CLAUDE_CODE = "claude_code"
 CLAUDE_PLATFORM = "claude_platform"
 OLLAMA = "ollama"
+EXTENDED_PROVIDERS = {
+    "kimi": "Kimi API Platform",
+    "cloudflare": "Cloudflare Workers AI",
+    "nvidia": "NVIDIA NIM",
+    "poolside": "Poolside Platform",
+    "kimchi": "Kimchi Coding",
+    "kilo": "Kilo",
+    "opencode": "OpenCode",
+    "kiro": "Kiro",
+}
+EXTENDED_CONNECTION_FIELDS = (
+    "base_url",
+    "account_id",
+    "organization_id",
+    "plan",
+    "region",
+    "profile_arn",
+)
+EXTENDED_PROVIDER_CONNECTION_FIELDS = {
+    "kimi": ("base_url",),
+    "cloudflare": ("base_url", "account_id"),
+    "nvidia": ("base_url",),
+    "poolside": ("base_url",),
+    "kimchi": ("base_url",),
+    "kilo": ("base_url", "organization_id"),
+    "opencode": ("base_url", "plan"),
+    "kiro": ("region", "profile_arn"),
+}
+# Data-only defaults avoid importing transports back into their shared registry.
+EXTENDED_PROVIDER_DEFAULT_BASE_URLS = {
+    "kimi": "https://api.moonshot.ai/v1",
+    "cloudflare": "https://api.cloudflare.com/client/v4",
+    "nvidia": "https://integrate.api.nvidia.com/v1",
+    "poolside": "https://inference.poolside.ai/v1",
+    "kimchi": "https://llm.kimchi.dev/openai/v1",
+    "kilo": "https://api.kilo.ai/api/gateway",
+    "opencode": "https://opencode.ai/zen/v1",
+}
 MAX_DECLARED_MODELS = 500
 MAX_MODEL_ID_LENGTH = 256
 MODEL_SUPPORT_UNSUPPORTED = 0
@@ -309,6 +349,23 @@ _CREDENTIAL_VARIANT_CAPABILITIES = {
 }
 
 
+for _provider_id, _provider_name in EXTENDED_PROVIDERS.items():
+    _PROVIDER_NAMES[_provider_id] = _provider_name
+    _PROVIDER_CAPABILITIES[_provider_id] = ProviderCapabilities(
+        provider_id=_provider_id,
+        display_name=_provider_name,
+        credential_types=("api_key",),
+        model_prefixes=(),
+    )
+    _CREDENTIAL_VARIANT_CAPABILITIES[_provider_id] = CredentialVariantCapabilities(
+        variant_id=_provider_id,
+        provider_id=_provider_id,
+        display_name=_provider_name,
+        credential_type="api_key",
+        operations=_COMMON_CREDENTIAL_OPERATIONS,
+    )
+
+
 def _short_fingerprint(value: Any) -> str:
     normalized = str(value or "").strip()
     if not normalized:
@@ -498,6 +555,10 @@ def list_legacy_credential_variant_capabilities() -> list[Dict[str, Any]]:
     """Project the pre-R1 catalog shape for clients pinned to ``/api/providers``."""
     variants = []
     for item in list_credential_variant_capabilities():
+        # New integrations are advertised by the versioned capability matrix;
+        # preserve the frozen legacy variant inventory for pinned clients.
+        if item["variant_id"] not in _LEGACY_VARIANT_OPERATION_SNAPSHOT:
+            continue
         operations = _LEGACY_VARIANT_OPERATION_SNAPSHOT.get(
             item["variant_id"], frozenset(item["operations"])
         )
@@ -538,10 +599,54 @@ def get_static_credential_identity(credential_data: Dict[str, Any]) -> str:
         return f"{provider_id}:{fingerprint}" if fingerprint else ""
     if not is_api_key_credential(credential_data):
         return ""
+    if provider_id in EXTENDED_PROVIDERS:
+        connection = [
+            _extended_identity_field(credential_data, provider_id, field)
+            for field in EXTENDED_PROVIDER_CONNECTION_FIELDS[provider_id]
+        ]
+        connection.append(str(credential_data.get("api_key") or "").strip())
+        return f"{provider_id}:{_short_fingerprint(json.dumps(connection))}"
     fingerprint = str(credential_data.get("key_fingerprint") or "").strip()
     if not fingerprint:
         fingerprint = api_key_fingerprint(str(credential_data.get("api_key") or ""))
     return f"{provider_id}:{fingerprint}" if fingerprint else ""
+
+
+def _extended_identity_field(data: Dict[str, Any], provider: str, field: str) -> str:
+    """Canonical identity only, never endpoint authorization or secret validation."""
+    value = str(data.get(field) or "").strip()
+    if field == "plan":
+        return value or "zen"
+    if field == "region":
+        return value or "us-east-1"
+    if field == "account_id" and provider == "cloudflare":
+        return value.lower()
+    if field != "base_url":
+        return value
+    if not value:
+        value = (
+            "https://opencode.ai/zen/go/v1"
+            if provider == "opencode" and data.get("plan") == "go"
+            else EXTENDED_PROVIDER_DEFAULT_BASE_URLS[provider]
+        )
+    try:
+        parsed = urlsplit(value)
+        if parsed.hostname and not parsed.username and not parsed.password:
+            authority = parsed.hostname.lower()
+            if parsed.port is not None and not (parsed.scheme == "https" and parsed.port == 443):
+                authority += f":{parsed.port}"
+            return urlunsplit(
+                (
+                    parsed.scheme.lower(),
+                    authority,
+                    parsed.path.rstrip("/"),
+                    parsed.query,
+                    parsed.fragment,
+                )
+            )
+    except ValueError:
+        pass
+    return value.rstrip("/")
 
 
 def is_api_key_credential(credential_data: Optional[Dict[str, Any]]) -> bool:
@@ -606,6 +711,8 @@ def credential_model_support_level(
     if not capabilities or not capabilities.supports_model(model_name):
         return MODEL_SUPPORT_UNSUPPORTED
     declared_models = get_declared_credential_models(credential_data)
+    if provider_id in EXTENDED_PROVIDERS and model_name and not declared_models:
+        return MODEL_SUPPORT_UNSUPPORTED
     if model_name and declared_models:
         normalized_model = str(model_name).strip().removeprefix("models/")
         return (

@@ -487,7 +487,10 @@ const PROVIDER_WORKSPACES = {
         selectorId: 'providerSelectorOllama',
         panelId: 'providerWorkspaceOllama',
         settingsFamily: null
-    }
+    },
+    ...Object.fromEntries(Object.keys(typeof EXTENDED_PROVIDER_UI === 'undefined' ? {} : EXTENDED_PROVIDER_UI).map(id => [id, {
+        selectorId: `providerSelector-${id}`, panelId: `providerWorkspace-${id}`, settingsFamily: null
+    }]))
 };
 
 const PROVIDER_CATALOG_PAGE_SIZE = 8;
@@ -648,6 +651,9 @@ function initProviderWorkspaceSelector() {
 document.addEventListener('DOMContentLoaded', initProviderWorkspaceSelector);
 
 const MODEL_PROVIDER_META = {
+    ...Object.fromEntries(Object.entries(typeof EXTENDED_PROVIDER_UI === 'undefined' ? {} : EXTENDED_PROVIDER_UI).map(([id, definition]) => [id, {
+        name: definition.name, logo: `/frontend/assets/providers/${definition.logo}`
+    }])),
     google_antigravity: {
         name: 'Google Antigravity',
         logo: '/frontend/assets/providers/google-antigravity-logo.png'

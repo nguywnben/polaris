@@ -51,6 +51,7 @@ from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
     CODEX,
+    EXTENDED_PROVIDERS,
     GOOGLE_AI_STUDIO,
     GOOGLE_ANTIGRAVITY,
     OLLAMA,
@@ -949,6 +950,34 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         return rejection
 
     provider_id = get_credential_provider(credential_data)
+    if mode == "primary" and provider_id in EXTENDED_PROVIDERS:
+        from core.extended_provider_runtime import discover_extended_models
+
+        try:
+            models = await discover_extended_models(credential_data)
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=getattr(exc, "status_code", 400),
+                content={
+                    "success": False,
+                    "filename": filename,
+                    "provider": provider_id,
+                    "message": str(exc),
+                },
+            )
+        credential_data["model_ids"] = models
+        await storage_adapter.store_credential(filename, credential_data, mode=mode)
+        # Do not clear prior inference errors based on a possibly public catalog.
+        return JSONResponse(
+            content={
+                "success": True,
+                "filename": filename,
+                "provider": provider_id,
+                "model_count": len(models),
+                "connection_test_required": True,
+                "message": "Model catalog refreshed. Test a model to check inference access.",
+            }
+        )
     if mode == "primary" and provider_id == GOOGLE_AI_STUDIO:
         try:
             validation = await validate_api_key(str(credential_data.get("api_key") or ""))

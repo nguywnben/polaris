@@ -8,6 +8,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Iterator
 
+from core.provider_expansion_i18n import MESSAGES as PROVIDER_EXPANSION_MESSAGES
 from fastapi.responses import JSONResponse
 
 DEFAULT_LOCALE = "en"
@@ -1194,6 +1195,8 @@ _PANEL_MESSAGE_PATTERNS = (
         "panel.operation_complete",
     ),
 )
+
+MESSAGES.update(PROVIDER_EXPANSION_MESSAGES)
 
 ENGLISH_TEXT_KEYS = {
     translations[DEFAULT_LOCALE]: key

@@ -127,6 +127,7 @@ async function showCredentialEditModal(pathId) {
             </div>`;
 
         const form = modal.querySelector('[data-credential-edit-form]');
+        if (typeof appendExtendedCredentialFields === 'function') appendExtendedCredentialFields(form, configuration);
         const error = modal.querySelector('[data-credential-edit-error]');
         const submit = form.querySelector('button[type="submit"]');
         let saving = false;
@@ -151,6 +152,12 @@ async function showCredentialEditModal(pathId) {
             if (credentialEditField(configuration, 'base_url')
                 && baseUrl !== String(configuration.base_url || '')) payload.base_url = baseUrl;
             if (credentialEditField(configuration, 'api_key') && apiKey) payload.api_key = apiKey;
+            for (const field of ['account_id', 'organization_id', 'plan', 'region', 'profile_arn']) {
+                const value = String(values.get(field) || '').trim();
+                if (credentialEditField(configuration, field) && value !== String(configuration[field] || '')) {
+                    payload[field] = value;
+                }
+            }
             if (!Object.keys(payload).length) {
                 void unmountModal(modal);
                 return;

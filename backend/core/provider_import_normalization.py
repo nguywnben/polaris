@@ -12,12 +12,26 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from core.provider_registry import normalize_provider_id
+from core.provider_registry import EXTENDED_PROVIDERS, normalize_provider_id
 
 _OAUTH_FAMILIES = {"openai", "anthropic", "xai"}
 _OAUTH_VARIANTS = {"codex", "claude_code", "grok"}
 _API_VARIANTS = {"openai_platform", "claude_platform", "xai_console"}
-_SUPPORTED_FAMILIES = _OAUTH_FAMILIES | {"google_antigravity", "google_ai_studio", "ollama"}
+_SUPPORTED_FAMILIES = (
+    _OAUTH_FAMILIES
+    | {"google_antigravity", "google_ai_studio", "ollama"}
+    | EXTENDED_PROVIDERS.keys()
+)
+_EXTENDED_IMPORT_FIELDS = {
+    "kimi": ("base_url",),
+    "cloudflare": ("base_url", "account_id"),
+    "nvidia": ("base_url",),
+    "poolside": ("base_url",),
+    "kimchi": ("base_url",),
+    "kilo": ("base_url", "organization_id"),
+    "opencode": ("base_url", "plan"),
+    "kiro": ("region", "profile_arn"),
+}
 _GROK_ACCOUNT = re.compile(
     r"^https://(?:auth\.x\.ai|api\.x\.ai|cli-chat-proxy\.grok\.com)"
     r"(?:::[^\s]{1,512})?/?$"
@@ -162,6 +176,29 @@ def normalize_provider_import(data: Any, variant: str | None = None) -> dict:
         raise ValueError("Credential provider product conflicts with its authentication type.")
     if native_family and credential_type not in ("", "oauth"):
         raise ValueError("Native OAuth data conflicts with the declared credential type.")
+    if family in EXTENDED_PROVIDERS:
+        from core.extended_provider_runtime import normalize_extended_credential
+
+        if (
+            native_family
+            or credential_type not in ("", "api_key")
+            or any(data.get(field) for names in _TOKEN_FIELDS.values() for field in names)
+        ):
+            raise ValueError("Import an API key credential for this provider.")
+        # Import connection details only: archive-provided authorization state and
+        # cached catalogs are not trustworthy and must not bypass discovery.
+        clean = {"provider": family, "api_key": data.get("api_key")}
+        for field in _EXTENDED_IMPORT_FIELDS[family]:
+            if field in data:
+                clean[field] = data[field]
+        result = normalize_extended_credential(clean)
+        result.pop("model_ids", None)
+        if data.get("credential_label") not in (None, ""):
+            label = _text(data["credential_label"])
+            if len(label) > 128:
+                raise ValueError("Credential label is too long.")
+            result["credential_label"] = label
+        return result
     if variant in _API_VARIANTS:
         if native_family or credential_type not in ("", "api_key"):
             raise ValueError("Import an API key credential for this provider.")

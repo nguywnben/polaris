@@ -17,6 +17,7 @@ from core.anthropic import (
 )
 from core.codex import CODEX_DEFAULT_MODEL_IDS, CodexError
 from core.credential_manager import credential_manager
+from core.extended_provider_runtime import discover_extended_models
 from core.google_ai_studio import GoogleAIStudioError, validate_api_key
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
 from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
@@ -26,6 +27,7 @@ from core.provider_registry import (
     CLAUDE_CODE,
     CLAUDE_PLATFORM,
     CODEX,
+    EXTENDED_PROVIDERS,
     GOOGLE_AI_STUDIO,
     GOOGLE_ANTIGRAVITY,
     GROK,
@@ -38,10 +40,12 @@ from core.provider_registry import (
     canonicalize_antigravity_credential_filename,
     get_credential_provider_display_name,
     get_credential_provider_variant,
+    get_static_credential_identity,
     normalize_provider_id,
 )
 from core.provider_store import (
     store_claude_platform_credential,
+    store_extended_credential,
     store_google_ai_studio_credential,
     store_ollama_credential,
     store_openai_platform_credential,
@@ -62,6 +66,7 @@ SUPPORTED_POOL_PROVIDERS = {
     OPENAI,
     ANTHROPIC,
     OLLAMA,
+    *EXTENDED_PROVIDERS,
 }
 
 
@@ -142,6 +147,11 @@ def classify_pool_credential(payload: Any) -> str:
             )
         if provider_id == OLLAMA and not _is_ollama_payload(payload):
             raise PoolImportError("Ollama payload is missing a valid connection endpoint.")
+        if provider_id in EXTENDED_PROVIDERS:
+            try:
+                normalize_provider_import(payload)
+            except ValueError as exc:
+                raise PoolImportError(str(exc)) from None
         return provider_id
 
     if _is_antigravity_payload(payload):
@@ -497,6 +507,34 @@ async def restore_ollama_credential(candidate: Dict[str, Any]) -> Dict[str, Any]
     }
 
 
+async def restore_extended_credential(candidate: Dict[str, Any]) -> Dict[str, Any]:
+    """Refresh the model catalog and store a bounded, explicitly typed API key.
+
+    Even authenticated catalogs do not establish permission to run inference.
+    Never trust validation state or cached model IDs from an imported archive.
+    """
+    payload = normalize_provider_import(candidate["payload"])
+    try:
+        model_ids = await discover_extended_models(payload)
+    except Exception:
+        raise PoolImportError(
+            "Provider model discovery failed. Check the credential and connection settings."
+        ) from None
+    try:
+        stored = await store_extended_credential(payload, model_ids)
+    except Exception:
+        raise PoolImportError("Provider credential could not be stored.") from None
+    return {
+        "status": "skipped" if stored.get("action") == "skipped" else "success",
+        "action": stored.get("action", "created"),
+        "filename": stored["filename"],
+        "label": stored.get("label") or EXTENDED_PROVIDERS[payload["provider"]],
+        "model_count": len(model_ids),
+        "validation_status": "unverified",
+        "message": "Credential imported and model catalog loaded. Inference access is not verified.",
+    }
+
+
 async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
     """Import supported credentials and return a secret-free per-file report."""
     candidates, results = await extract_pool_archive(upload)
@@ -510,6 +548,7 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
         CLAUDE_CODE: _empty_provider_result(CLAUDE_CODE, routing_provider=ANTHROPIC),
         CLAUDE_PLATFORM: _empty_provider_result(CLAUDE_PLATFORM, routing_provider=ANTHROPIC),
         OLLAMA: _empty_provider_result(OLLAMA),
+        **{provider: _empty_provider_result(provider) for provider in EXTENDED_PROVIDERS},
     }
     seen_api_key_fingerprints: Dict[str, set[str]] = {
         GOOGLE_AI_STUDIO: set(),
@@ -517,6 +556,7 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
         OPENAI: set(),
         ANTHROPIC: set(),
         OLLAMA: set(),
+        **{provider: set() for provider in EXTENDED_PROVIDERS},
     }
 
     for candidate in candidates:
@@ -538,6 +578,7 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
                 and str(candidate["payload"].get("credential_type") or "").lower() == "api_key"
             )
             or provider_id == OLLAMA
+            or provider_id in EXTENDED_PROVIDERS
         )
         if is_api_key:
             fingerprint_source = str(candidate["payload"].get("api_key") or "").strip()
@@ -547,6 +588,8 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
                     f"\0{fingerprint_source}"
                 )
             fingerprint = api_key_fingerprint(fingerprint_source)
+            if provider_id in EXTENDED_PROVIDERS:
+                fingerprint = get_static_credential_identity(candidate["payload"])
             provider_fingerprints = seen_api_key_fingerprints[provider_id]
             if fingerprint in provider_fingerprints:
                 provider_result["skipped"] += 1
@@ -574,6 +617,8 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
                 restored = await restore_anthropic_credential(candidate)
             elif provider_id == OLLAMA:
                 restored = await restore_ollama_credential(candidate)
+            elif provider_id in EXTENDED_PROVIDERS:
+                restored = await restore_extended_credential(candidate)
             else:
                 restored = await _restore_antigravity(candidate)
             action = restored["action"]
@@ -594,6 +639,7 @@ async def restore_pool_archive(upload: UploadFile) -> Dict[str, Any]:
             GoogleAIStudioError,
             OllamaError,
             OpenAIPlatformError,
+            PoolImportError,
             XaiError,
         ) as exc:
             provider_result["failed"] += 1

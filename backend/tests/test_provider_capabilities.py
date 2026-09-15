@@ -56,6 +56,10 @@ class ProviderCapabilityTests(unittest.TestCase):
         }
         oauth = common | {"refresh", "reauthenticate"}
         expected_operations = {
+            **dict.fromkeys(
+                ("kimi", "cloudflare", "nvidia", "poolside", "kimchi", "kilo", "opencode", "kiro"),
+                common,
+            ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
@@ -93,6 +97,14 @@ class ProviderCapabilityTests(unittest.TestCase):
                 CLAUDE_CODE,
                 CLAUDE_PLATFORM,
                 OLLAMA,
+                "kimi",
+                "cloudflare",
+                "nvidia",
+                "poolside",
+                "kimchi",
+                "kilo",
+                "opencode",
+                "kiro",
             },
         )
         self.assertTrue(all(variant["operations"] for variant in variants))
@@ -114,6 +126,10 @@ class ProviderCapabilityTests(unittest.TestCase):
         }
         oauth = common | {"refresh", "reauthenticate"}
         expected = {
+            **dict.fromkeys(
+                ("kimi", "cloudflare", "nvidia", "poolside", "kimchi", "kilo", "opencode", "kiro"),
+                common,
+            ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
@@ -183,7 +199,22 @@ class ProviderCapabilityTests(unittest.TestCase):
 
         self.assertEqual(
             {provider["provider_id"] for provider in providers},
-            {ANTHROPIC, GOOGLE_ANTIGRAVITY, GOOGLE_AI_STUDIO, OLLAMA, OPENAI, XAI},
+            {
+                ANTHROPIC,
+                GOOGLE_ANTIGRAVITY,
+                GOOGLE_AI_STUDIO,
+                OLLAMA,
+                OPENAI,
+                XAI,
+                "kimi",
+                "cloudflare",
+                "nvidia",
+                "poolside",
+                "kimchi",
+                "kilo",
+                "opencode",
+                "kiro",
+            },
         )
 
     def test_anthropic_credentials_use_precise_user_facing_provider_names(self):

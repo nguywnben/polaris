@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import time
+from contextlib import aclosing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -56,6 +57,11 @@ from core.codex import (
 )
 from core.coordination import CoordinationUnavailableError
 from core.credential_manager import credential_manager
+from core.extended_provider_runtime import (
+    discover_extended_models,
+    prepare_extended_request,
+    stream_extended_request,
+)
 from core.gateway_pipeline import (
     apply_pre_call_guardrails,
     lookup_response_cache,
@@ -94,6 +100,7 @@ from core.provider_registry import (
     CLAUDE_CODE,
     CLAUDE_PLATFORM,
     CODEX,
+    EXTENDED_PROVIDERS,
     GOOGLE_AI_STUDIO,
     GOOGLE_ANTIGRAVITY,
     GROK,
@@ -285,7 +292,11 @@ async def prepare_provider_request(
     )
     compressed_request = dict(compression_result.request)
 
-    if provider_id == GOOGLE_AI_STUDIO:
+    if provider_id in EXTENDED_PROVIDERS:
+        target_url, auth_headers, payload = prepare_extended_request(
+            credential_data, compressed_request, model_name, streaming
+        )
+    elif provider_id == GOOGLE_AI_STUDIO:
         api_key = str(credential_data.get("api_key") or "").strip()
         payload = dict(compressed_request)
         for internal_key in ("model", "sessionId", "labels", "enabledCreditTypes"):
@@ -376,7 +387,9 @@ async def prepare_provider_request(
             compression_result=compression_result,
         )
 
-    if extra_headers:
+    # Extended providers own their complete auth context; do not allow ingress
+    # Authorization/API-key headers to replace their selected credential.
+    if extra_headers and provider_id not in EXTENDED_PROVIDERS:
         auth_headers.update(extra_headers)
         if provider_id == GOOGLE_AI_STUDIO:
             auth_headers.pop("Authorization", None)
@@ -733,15 +746,28 @@ async def _stream_request_upstream(
         stream_token_usage: Dict[str, Any] = {}
         need_retry = False
         model_route_retry = False
+        upstream = None
 
         try:
-            async for chunk in stream_post_async(
-                url=target_url,
-                body=final_payload,
-                native=native,
-                headers=auth_headers,
-                timeout=await get_upstream_timeout_seconds(),
-            ):
+            upstream = (
+                stream_extended_request(
+                    credential_data,
+                    model_name,
+                    url=target_url,
+                    body=final_payload,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
+                if provider_id in EXTENDED_PROVIDERS
+                else stream_post_async(
+                    url=target_url,
+                    body=final_payload,
+                    native=native,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
+            )
+            async for chunk in upstream:
                 if isinstance(chunk, Response):
                     status_code = chunk.status_code
                     last_error_response = chunk
@@ -1149,6 +1175,10 @@ async def _stream_request_upstream(
                     )
                 return
 
+        finally:
+            if upstream is not None:
+                await upstream.aclose()
+
     log.error("[provider stream] all retries failed.")
     if last_error_response:
         yield last_error_response
@@ -1216,7 +1246,8 @@ async def _non_stream_request_upstream(
             model_routing=model_routing,
         )
 
-        return await collect_streaming_response(stream)
+        async with aclosing(stream):
+            return await collect_streaming_response(stream)
 
     log.debug("[provider] Direct non-streaming mode enabled")
 
@@ -1259,15 +1290,15 @@ async def _non_stream_request_upstream(
         # ChatGPT's Codex endpoint is stream-only. Re-enter through the streaming
         # path so downstream non-stream clients still receive one collected response.
         await credential_manager.release_credential(current_file, mode="primary")
-        return await collect_streaming_response(
-            _stream_request_upstream(
-                body=body,
-                native=False,
-                headers=headers,
-                model_candidates=model_candidates,
-                model_routing=model_routing,
-            )
+        stream = _stream_request_upstream(
+            body=body,
+            native=False,
+            headers=headers,
+            model_candidates=model_candidates,
+            model_routing=model_routing,
         )
+        async with aclosing(stream):
+            return await collect_streaming_response(stream)
 
     request_body = {**body, "model": model_name}
     try:
@@ -1346,12 +1377,30 @@ async def _non_stream_request_upstream(
         need_retry = False
 
         try:
-            response = await post_async(
-                url=target_url,
-                json=final_payload,
-                headers=auth_headers,
-                timeout=await get_upstream_timeout_seconds(),
-            )
+            if provider_id in EXTENDED_PROVIDERS:
+                # Evaluate on every retry: a legacy provider may fall back to a
+                # binary/stream-only provider. Keep the selected lease and route.
+                stream_context = await prepare_provider_request(
+                    credential_data, request_body, streaming=True, extra_headers=headers
+                )
+                upstream = stream_extended_request(
+                    credential_data,
+                    model_name,
+                    url=stream_context.target_url,
+                    body=stream_context.payload,
+                    headers=stream_context.headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
+                async with aclosing(upstream):
+                    collected = await collect_streaming_response(upstream)
+                response = httpx.Response(collected.status_code, content=collected.body)
+            else:
+                response = await post_async(
+                    url=target_url,
+                    json=final_payload,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
 
             status_code = response.status_code
 
@@ -1616,6 +1665,9 @@ async def _non_stream_request_upstream(
                         )
                 continue
 
+        except (asyncio.CancelledError, GeneratorExit):
+            await credential_manager.release_credential(current_file, mode="primary")
+            raise
         except CoordinationUnavailableError as exc:
             return await _coordination_unavailable_response(
                 log_prefix="[provider]",
@@ -1864,7 +1916,9 @@ async def _discover_credential_model_ids(
     stored = _stored_model_ids(credential_data)
     data = credential_data
     try:
-        if provider_variant == GOOGLE_ANTIGRAVITY:
+        if provider_variant in EXTENDED_PROVIDERS:
+            discovered = await discover_extended_models(data)
+        elif provider_variant == GOOGLE_ANTIGRAVITY:
             data = await credential_manager.prepare_credential(
                 filename, credential_data, mode="primary"
             )

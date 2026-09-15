@@ -175,6 +175,7 @@ _MANAGEMENT_ROUTE_MANIFEST = (
         ("POST", "/api/providers/anthropic/claude-code/oauth/complete"),
         ("POST", "/api/providers/anthropic/credentials/import"),
         ("POST", "/api/providers/ollama/credentials"),
+        ("POST", "/api/providers/extended/{provider_id}/credentials"),
         ("POST", "/api/providers/ollama/credentials/import"),
     ),
     *_http(

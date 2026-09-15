@@ -1,0 +1,38 @@
+"""Reviewed provider onboarding copy; mirrors the console's fifteen locales."""
+
+MESSAGES = {
+    "provider.ext.saved": {
+        "en": "Credential saved. Open the credential pool and test a model to check inference access.",
+        "vi": "Đã lưu thông tin xác thực. Mở kho thông tin xác thực và kiểm tra một mô hình để xác nhận quyền gọi.",
+        "zh-CN": "凭据已保存。请打开凭据池并测试一个模型，以确认推理访问权限。",
+        "zh-TW": "憑證已儲存。請開啟憑證集區並測試一個模型，以確認推論存取權。",
+        "de": "Zugangsdaten gespeichert. Öffnen Sie den Zugangsdatenpool und testen Sie ein Modell, um den Inferenzzugriff zu prüfen.",
+        "es": "Credenciales guardadas. Abre el grupo de credenciales y prueba un modelo para comprobar el acceso a la inferencia.",
+        "fr": "Identifiants enregistrés. Ouvrez le pool d’identifiants et testez un modèle pour vérifier l’accès à l’inférence.",
+        "id": "Kredensial disimpan. Buka kumpulan kredensial dan uji sebuah model untuk memeriksa akses inferensi.",
+        "it": "Credenziali salvate. Apri il pool di credenziali e prova un modello per verificare l’accesso all’inferenza.",
+        "ja": "認証情報を保存しました。認証情報プールを開き、モデルをテストして推論へのアクセス権を確認してください。",
+        "ko": "인증 정보를 저장했습니다. 인증 정보 풀을 열고 모델을 테스트하여 추론 접근 권한을 확인하세요.",
+        "pt": "Credenciais salvas. Abra o pool de credenciais e teste um modelo para verificar o acesso à inferência.",
+        "ru": "Учётные данные сохранены. Откройте пул учётных данных и протестируйте модель, чтобы проверить доступ к инференсу.",
+        "th": "บันทึกข้อมูลรับรองแล้ว เปิดคลังข้อมูลรับรองและทดสอบโมเดลเพื่อตรวจสอบสิทธิ์เรียกใช้งานการอนุมาน",
+        "tr": "Kimlik bilgileri kaydedildi. Çıkarım erişimini doğrulamak için kimlik bilgileri havuzunu açıp bir modeli test edin.",
+    },
+    "provider.ext.catalog_refreshed": {
+        "en": "Model catalog refreshed. Test a model to check inference access.",
+        "vi": "Đã làm mới danh mục mô hình. Hãy kiểm tra một mô hình để xác nhận quyền gọi.",
+        "zh-CN": "模型目录已刷新。请测试一个模型以确认推理访问权限。",
+        "zh-TW": "模型目錄已重新整理。請測試一個模型以確認推論存取權。",
+        "de": "Modellkatalog aktualisiert. Testen Sie ein Modell, um den Inferenzzugriff zu prüfen.",
+        "es": "Catálogo de modelos actualizado. Prueba un modelo para comprobar el acceso a la inferencia.",
+        "fr": "Catalogue de modèles actualisé. Testez un modèle pour vérifier l’accès à l’inférence.",
+        "id": "Katalog model diperbarui. Uji sebuah model untuk memeriksa akses inferensi.",
+        "it": "Catalogo dei modelli aggiornato. Prova un modello per verificare l’accesso all’inferenza.",
+        "ja": "モデルカタログを更新しました。モデルをテストして推論へのアクセス権を確認してください。",
+        "ko": "모델 카탈로그를 새로 고쳤습니다. 모델을 테스트하여 추론 접근 권한을 확인하세요.",
+        "pt": "Catálogo de modelos atualizado. Teste um modelo para verificar o acesso à inferência.",
+        "ru": "Каталог моделей обновлён. Протестируйте модель, чтобы проверить доступ к инференсу.",
+        "th": "รีเฟรชรายการโมเดลแล้ว ทดสอบโมเดลเพื่อตรวจสอบสิทธิ์เรียกใช้งานการอนุมาน",
+        "tr": "Model kataloğu yenilendi. Çıkarım erişimini doğrulamak için bir modeli test edin.",
+    },
+}
