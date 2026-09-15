@@ -515,6 +515,10 @@
     border-top: 1px solid var(--border);
 }
 
+.model-policy-panel {
+    margin-bottom: 20px;
+}
+
 .model-routing-policy legend {
     padding: 0 8px 0 0;
     color: var(--text);

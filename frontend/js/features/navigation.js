@@ -175,6 +175,7 @@ function initStaticUiBindings() {
         'change-historical-usage-page': (element) => changeHistoricalUsagePage(Number(element.dataset.pageDelta)),
         'refresh-model-catalog': () => loadModelCatalog(true),
         'save-model-pool': () => saveModelPool(),
+        'save-model-routing-policy': () => saveModelRoutingSettings(),
         'validate-model-route': () => validateModelRoute({ announce: true }),
         'test-model-route': () => testModelRouteInPlayground(),
         'playground-add-message': () => addPlaygroundMessage(),

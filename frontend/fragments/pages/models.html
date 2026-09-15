@@ -33,6 +33,32 @@
                         <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line content"></div></div>
                     </div>
 
+                    <section id="modelRoutingPolicyPanel" class="card model-policy-panel" hidden>
+                        <h2 class="card-title" data-i18n="settings.routing_policy">Routing policy</h2>
+                        <p class="card-copy card-title-copy" data-i18n="settings.routing_policy_description">Balance healthy credentials automatically or prefer one provider while retaining fallback.</p>
+                        <fieldset class="model-routing-policy">
+                            <legend data-i18n="models.credential_strategy">Credential strategy</legend>
+                            <div class="model-routing-policy-grid">
+                                <div class="form-group">
+                                    <label for="modelRoutingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
+                                    <select id="modelRoutingStrategy" data-ui-change="model-routing-strategy">
+                                        <option value="balanced" data-i18n="settings.balanced">Balanced</option>
+                                        <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
+                                        <option value="weighted" data-i18n="settings.weighted">Weighted random</option>
+                                        <option value="least_latency" data-i18n="settings.least_latency">Least latency</option>
+                                        <option value="lowest_cost" data-i18n="settings.lowest_cost">Lowest cost</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="modelPreferredProviderGroup">
+                                    <label for="modelPreferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
+                                    <select id="modelPreferredProvider" data-ui-change="model-routing-strategy"><option value="" data-i18n="settings.automatic">Automatic</option></select>
+                                </div>
+                            </div>
+                            <p class="field-hint hidden" id="modelRoutingLockNotice" data-i18n="quality.environment_managed">Managed by the runtime environment.</p>
+                        </fieldset>
+                        <button type="button" class="btn btn-small" id="saveModelRoutingPolicyBtn" data-ui-action="save-model-routing-policy" data-i18n="save" disabled>Save</button>
+                    </section>
+
                     <div id="modelPoolWorkspace" class="model-pool-grid model-data-only hidden">
                         <section class="card model-pool-card">
                             <div class="model-pool-heading">
@@ -46,26 +72,6 @@
                                 <strong data-i18n="models.priority_fallback">Priority fallback</strong>
                                 <span data-i18n="models.priority_fallback_description">Credentials are balanced within each model before routing continues to the next model.</span>
                             </p>
-                            <fieldset class="model-routing-policy">
-                                <legend data-i18n="models.credential_strategy">Credential strategy</legend>
-                                <div class="model-routing-policy-grid">
-                                    <div class="form-group">
-                                        <label for="modelRoutingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
-                                        <select id="modelRoutingStrategy" data-ui-change="model-routing-strategy">
-                                            <option value="balanced" data-i18n="settings.balanced">Balanced</option>
-                                            <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
-                                            <option value="weighted" data-i18n="settings.weighted">Weighted random</option>
-                                            <option value="least_latency" data-i18n="settings.least_latency">Least latency</option>
-                                            <option value="lowest_cost" data-i18n="settings.lowest_cost">Lowest cost</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group" id="modelPreferredProviderGroup">
-                                        <label for="modelPreferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
-                                        <select id="modelPreferredProvider" data-ui-change="model-routing-strategy"><option value="" data-i18n="settings.automatic">Automatic</option></select>
-                                    </div>
-                                </div>
-                                <p class="field-hint hidden" id="modelRoutingLockNotice" data-i18n="quality.environment_managed">Managed by the runtime environment.</p>
-                            </fieldset>
                             <div class="model-section-heading">
                                 <div>
                                     <h3 data-i18n="models.fallback_order">Fallback Order</h3>

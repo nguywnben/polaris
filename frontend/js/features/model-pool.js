@@ -140,8 +140,7 @@ function updateModelFirstRunState() {
 }
 
 function modelRouteHasUnsavedChanges() {
-    return JSON.stringify(AppState.selectedModels) !== JSON.stringify(AppState.savedModelSelection)
-        || Object.keys(modelRoutingPolicyChanges()).length > 0;
+    return JSON.stringify(AppState.selectedModels) !== JSON.stringify(AppState.savedModelSelection);
 }
 
 function formatModelBlacklistTime(timestamp) {
@@ -491,6 +490,8 @@ function syncModelRoutingPolicyControls() {
         'hidden',
         !policy.strategy_locked && !policy.preferred_provider_locked
     );
+    const saveButton = document.getElementById('saveModelRoutingPolicyBtn');
+    if (saveButton) saveButton.disabled = Object.keys(modelRoutingPolicyChanges()).length === 0;
     updateModelPoolSummary();
 }
 
@@ -527,6 +528,21 @@ async function saveModelRoutingPolicy() {
     };
 }
 
+async function saveModelRoutingSettings() {
+    const panel = document.getElementById('modelRoutingPolicyPanel');
+    if (panel?.inert || Object.keys(modelRoutingPolicyChanges()).length === 0) return;
+    if (panel) panel.inert = true;
+    try {
+        await saveModelRoutingPolicy();
+        showStatus(t('configuration_saved_successfully'), 'success');
+    } catch (error) {
+        showStatus(t('failed_to_save_config_datadetail_da', {data_detail____data_error: error.message}), 'error');
+    } finally {
+        if (panel) panel.inert = false;
+        syncModelRoutingPolicyControls();
+    }
+}
+
 function modelRouteError(data, fallback) {
     const detail = data?.detail;
     if (detail && typeof detail === 'object') return {...detail, message: detail.message || fallback};
@@ -534,6 +550,9 @@ function modelRouteError(data, fallback) {
 }
 
 async function loadModelCatalog(forceRefresh = false, options = {}) {
+    const policyPanel = document.getElementById('modelRoutingPolicyPanel');
+    if (policyPanel?.inert) return;
+    if (policyPanel) policyPanel.inert = true;
     const loading = document.getElementById('modelCatalogLoading');
     const workspace = document.getElementById('modelPoolWorkspace');
     const refreshButton = document.getElementById('refreshModelCatalogBtn');
@@ -563,6 +582,7 @@ async function loadModelCatalog(forceRefresh = false, options = {}) {
         AppState.modelRoutingPolicy = data.routing_policy || {strategy: 'balanced', preferred_provider: ''};
         clearPageState('modelCatalogState');
         populateModelRoutingPolicy();
+        if (policyPanel) policyPanel.hidden = false;
         renderSelectedModels();
         renderModelCatalog();
         renderModelBlacklist();
@@ -579,6 +599,7 @@ async function loadModelCatalog(forceRefresh = false, options = {}) {
         });
         showStatus(message, 'error');
     } finally {
+        if (policyPanel) policyPanel.inert = false;
         if (loading && !preserveContent) loading.classList.add('hidden');
         if (refreshButton) refreshButton.disabled = false;
     }
@@ -622,7 +643,6 @@ async function saveModelPool() {
     const workspace = document.getElementById('modelPoolWorkspace');
     if (workspace?.inert) return;
     if (workspace) workspace.inert = true;
-    let routeSaved = false;
     if (button) button.disabled = true;
     try {
         const validation = await validateModelRoute();
@@ -655,14 +675,12 @@ async function saveModelPool() {
         AppState.modelPoolEnabled = data.pool?.enabled !== false;
         AppState.modelPoolConfigured = Boolean(data.pool?.configured);
         AppState.modelPoolRevision = data.pool?.revision || '';
-        routeSaved = true;
         renderSelectedModels();
         renderModelCatalog();
-        await saveModelRoutingPolicy();
         updateModelPoolSummary();
         showStatus(t(creating ? 'models.route_created' : 'models.route_saved'), 'success');
     } catch (error) {
-        showStatus(t(routeSaved ? 'models.policy_save_failed' : 'models.virtual_save_failed', {error: error.message}), 'error');
+        showStatus(t('models.virtual_save_failed', {error: error.message}), 'error');
     } finally {
         if (button) button.disabled = false;
         if (workspace) workspace.inert = false;

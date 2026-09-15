@@ -15,6 +15,60 @@ STYLES = ROOT / "frontend/css/providers-and-models.css"
 
 
 class ModelRoutingConsoleTests(unittest.TestCase):
+    def test_global_policy_is_outside_the_catalog_only_workspace(self) -> None:
+        fragment = FRAGMENT.read_text(encoding="utf-8")
+        self.assertLess(
+            fragment.index('id="modelRoutingPolicyPanel"'),
+            fragment.index('id="modelPoolWorkspace"'),
+        )
+        self.assertIn('data-ui-action="save-model-routing-policy"', fragment)
+
+    def test_global_policy_save_is_independent_and_preserves_failed_drafts(self) -> None:
+        self._run_contract("""
+(async () => {
+    const strategy = {value: 'weighted', disabled: false};
+    const preferred = {value: '', disabled: false};
+    const panel = {inert: false};
+    const button = {disabled: false};
+    const elements = {modelRoutingStrategy: strategy, modelPreferredProvider: preferred,
+        modelRoutingPolicyPanel: panel, saveModelRoutingPolicyBtn: button};
+    global.document = {getElementById: id => elements[id] || null};
+    global.AppState = {modelRoutingPolicy: {strategy: 'balanced', preferred_provider: ''}};
+    global.getAuthHeaders = () => ({});
+    global.t = key => key;
+    const notices = [];
+    global.showStatus = (message, type) => notices.push(type);
+    updateModelPoolSummary = () => {};
+    let finish;
+    const writes = [];
+    global.fetch = (url, options) => {
+        writes.push({url, body: JSON.parse(options.body)});
+        return new Promise(resolve => {finish = resolve;});
+    };
+    let saving = saveModelRoutingSettings();
+    await saveModelRoutingSettings();
+    assert(writes.length === 1, 'duplicate saves must not submit twice');
+    assert(writes[0].url === './api/config/save', 'policy save must not write/validate a model route');
+    assert(writes[0].body.config.routing_strategy === 'weighted', 'policy change missing');
+    finish({ok: false, json: async () => ({detail: 'fixture failure'})});
+    await saving;
+    assert(strategy.value === 'weighted' && AppState.modelRoutingPolicy.strategy === 'balanced',
+        'failure must retain the draft and old saved policy');
+    assert(!panel.inert && !button.disabled && notices.at(-1) === 'error', 'failed save must unlock retry');
+    saving = saveModelRoutingSettings();
+    finish({ok: true, json: async () => ({})});
+    await saving;
+    assert(AppState.modelRoutingPolicy.strategy === 'weighted', 'successful save must update saved state');
+    assert(button.disabled && notices.at(-1) === 'success', 'saved policy must no longer be dirty');
+    await saveModelRoutingSettings();
+    assert(writes.length === 2, 'unchanged policy must not be written');
+    AppState.modelRoutingPolicy.strategy_locked = true;
+    strategy.value = 'priority';
+    await saveModelRoutingSettings();
+    assert(writes.length === 2, 'environment locked policy must not be written');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+""")
+
     def test_empty_catalog_keeps_existing_route_and_failure_workspaces(self) -> None:
         self._run_contract("""
 const tab = {classList: {toggle(name, value) {this[name] = value;}}};
@@ -163,14 +217,15 @@ assert(!('api_key' in result) && !('credential' in result) && !('prompt' in resu
 """
         )
 
-    def test_unsaved_global_strategy_blocks_handoff_until_it_is_saved(self) -> None:
+    def test_policy_draft_does_not_mark_the_independently_saved_route_dirty(self) -> None:
         self._run_contract(
             """
 const strategy = {value: 'weighted'};
 global.document = {getElementById: id => id === 'modelRoutingStrategy' ? strategy : null};
 global.AppState = {selectedModels: ['healthy'], savedModelSelection: ['healthy'],
     modelRoutingPolicy: {strategy: 'balanced', preferred_provider: ''}};
-assert(modelRouteHasUnsavedChanges(), 'strategy-only edits must block a saved-route handoff');
+assert(!modelRouteHasUnsavedChanges(), 'a global policy draft must not make the saved route dirty');
+assert(Object.keys(modelRoutingPolicyChanges()).length === 1, 'policy draft still needs its own save');
 AppState.modelRoutingPolicy.strategy = 'weighted';
 assert(!modelRouteHasUnsavedChanges(), 'saved route and strategy must be testable');
 AppState.modelRoutingPolicy.strategy_locked = true;
