@@ -965,6 +965,43 @@
     flex: 1 1 280px;
 }
 
+/* Advanced settings share one field rhythm; groups never nest narrow columns. */
+#providersTab [data-disclosure-kind="settings"] .provider-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+}
+
+#providersTab [data-disclosure-kind="settings"] :is(.provider-config-grid, .provider-settings-group) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px 24px;
+    min-width: 0;
+    max-width: none;
+}
+
+#providersTab [data-disclosure-kind="settings"] .provider-settings-group > :is(h3, p) {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+#providersTab [data-disclosure-kind="settings"] .form-group {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+#providersTab [data-disclosure-kind="settings"] :is(.provider-config-grid, .provider-settings-group)
+    > .form-group:last-child:nth-of-type(odd) {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1080px) {
+    #providersTab [data-disclosure-kind="settings"] :is(.provider-config-grid, .provider-settings-group) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+}
+
 @media (min-width: 601px) and (max-width: 1200px) {
     #providersTab .provider-catalog {
         grid-template-columns: repeat(2, minmax(0, 1fr));

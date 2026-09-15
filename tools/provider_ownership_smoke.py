@@ -20,7 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 WIDTHS = (320, 768, 1024, 1440)
 THEMES = ("light", "dark")
 PROVIDERS = (
-    ("google_antigravity", "providerSelectorGoogleAntigravity", "providerWorkspaceGoogleAntigravity"),
+    (
+        "google_antigravity",
+        "providerSelectorGoogleAntigravity",
+        "providerWorkspaceGoogleAntigravity",
+    ),
     ("google_ai_studio", "providerSelectorGoogleAiStudio", "providerWorkspaceGoogleAiStudio"),
     ("grok", "providerSelectorGrok", "providerWorkspaceGrok"),
     ("xai_console", "providerSelectorXaiConsole", "providerWorkspaceXaiConsole"),
@@ -108,7 +112,7 @@ def _open_providers(page: Page) -> None:
     expect(page.locator("#providersTab")).to_be_visible()
 
 
-def _select_all_providers(page: Page) -> None:
+def _select_all_providers(page: Page, output_dir: Path) -> None:
     for scope in ("shared", "compatibility"):
         owner = page.locator(f'[data-google-settings="{scope}"]').evaluate(
             "section => section.closest('.provider-workspace')?.id || null"
@@ -143,15 +147,34 @@ def _select_all_providers(page: Page) -> None:
             if not advanced.evaluate("details => details.open"):
                 advanced.locator("summary").click()
             expect(advanced).to_have_attribute("open", "")
-            description = advanced.locator('.provider-settings-header p[data-provider-form-copy]')
+            description = advanced.locator(".provider-settings-header p[data-provider-form-copy]")
             expect(description).to_be_visible()
             expect(description).not_to_have_text("")
             assert "{provider}" not in description.inner_text()
             assert not description.inner_text().startswith("provider.form.")
-            assert int(description.evaluate("element => getComputedStyle(element).fontWeight")) < 600
+            assert (
+                int(description.evaluate("element => getComputedStyle(element).fontWeight")) < 600
+            )
+            fields = advanced.locator('input:not([type="checkbox"]):not([type="radio"]):visible')
+            panel_width = advanced.bounding_box()["width"]
+            columns = 2 if page.viewport_size["width"] > 1080 else 1
+            minimum_width = (panel_width - 64) / columns - 24
+            for field in fields.all():
+                assert field.bounding_box()["width"] >= minimum_width, (
+                    workspace_id,
+                    field.get_attribute("id"),
+                    field.bounding_box(),
+                    minimum_width,
+                )
+            if page.viewport_size["width"] in (320, 1440):
+                theme = page.locator("html").get_attribute("data-theme")
+                advanced.screenshot(
+                    path=output_dir
+                    / f"advanced-{_provider_id}-{theme}-{page.viewport_size['width']}.png"
+                )
         for shared in page.locator(
-            '[data-provider-owned-link], #xaiSharedSettingsForm, '
-            '#claudePlatformSettingsForm, [data-google-settings]'
+            "[data-provider-owned-link], #xaiSharedSettingsForm, "
+            "#claudePlatformSettingsForm, [data-google-settings]"
         ).all():
             expect(shared).to_be_hidden()
 
@@ -161,7 +184,9 @@ def _select_all_providers(page: Page) -> None:
 
 
 def _verify_private_settings_draft(page: Page) -> None:
-    advanced = page.locator('#providerWorkspaceGoogleAntigravity details[data-disclosure-kind="settings"]')
+    advanced = page.locator(
+        '#providerWorkspaceGoogleAntigravity details[data-disclosure-kind="settings"]'
+    )
     if not advanced.evaluate("details => details.open"):
         advanced.locator("summary").click()
     endpoint = page.locator("#antigravityApiUrl")
@@ -220,7 +245,7 @@ def _capture_matrix(page: Page, output_dir: Path) -> None:
         for width in WIDTHS:
             page.set_viewport_size({"width": width, "height": 1000})
             _open_providers(page)
-            _select_all_providers(page)
+            _select_all_providers(page, output_dir)
             _verify_private_settings_draft(page)
             _assert_surface_hygiene(page, "Providers", width, theme)
             page.screenshot(
@@ -272,9 +297,9 @@ def main() -> int:
             )
             page.on(
                 "console",
-                lambda message: console_errors.append(message.text)
-                if message.type == "error"
-                else None,
+                lambda message: (
+                    console_errors.append(message.text) if message.type == "error" else None
+                ),
             )
             page.on("pageerror", lambda error: console_errors.append(str(error)))
             _install_network_guard(page, unexpected_external)
