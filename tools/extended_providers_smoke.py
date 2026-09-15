@@ -10,7 +10,18 @@ from browser_smoke import PASSWORD, disposable_runtime, install_fixtures
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-PROVIDERS = ("kimi", "kiro", "cloudflare", "nvidia", "opencode", "poolside", "kimchi", "kilo")
+PROVIDERS = (
+    "kimi",
+    "kiro",
+    "cloudflare",
+    "nvidia",
+    "opencode",
+    "poolside",
+    "kimchi",
+    "kilo",
+    "meta",
+)
+CATALOG_COUNT = 9 + len(PROVIDERS)
 
 
 def verify_catalog_layout(page, widths=(1440, 1201, 768, 320)):
@@ -38,7 +49,7 @@ def verify_catalog_layout(page, widths=(1440, 1201, 768, 320)):
             if not page.locator("#providerCatalogNextBtn").is_enabled():
                 break
             page.locator("#providerCatalogNextBtn").click()
-        assert len(dimensions) == 17, dimensions
+        assert len(dimensions) == CATALOG_COUNT, dimensions
         assert all(d[4] for d in dimensions), (width, dimensions)
         if width > 600:
             for coordinate in (0, 1, 2, 3):
@@ -179,7 +190,7 @@ def main():
         page.locator("#setupSubmitButton").click()
         expect(page).to_have_url(base + "/dashboard")
         page.goto(base + "/providers", wait_until="networkidle")
-        expect(page.locator('#providerCatalog [role="tab"]')).to_have_count(17)
+        expect(page.locator('#providerCatalog [role="tab"]')).to_have_count(CATALOG_COUNT)
         verify_catalog_layout(page)
         for locale in (
             "en",
@@ -200,6 +211,13 @@ def main():
             with page.expect_navigation(wait_until="networkidle"):
                 page.evaluate("locale => changeLanguage(locale)", locale)
             verify_catalog_layout(page, widths=(1440, 1201, 320))
+            # The privacy warning is part of every locale, not an English fallback.
+            meta_notice = page.locator(
+                '#providerWorkspace-meta [data-i18n="provider.ext.meta_contributor_notice"]'
+            )
+            expect(meta_notice).to_have_count(1)
+            assert "-contributor" in meta_notice.text_content().lower()
+            assert meta_notice.text_content().strip() != "provider.ext.meta_contributor_notice"
         with page.expect_navigation(wait_until="networkidle"):
             page.evaluate("changeLanguage('vi')")
         page.evaluate("PolarisTheme.setPreference('dark')")
@@ -242,6 +260,18 @@ def main():
             if provider == "cloudflare":
                 workspace.locator('[name="account_id"]').fill("a" * 32)
             workspace.locator("summary").click()
+            if provider == "meta":
+                expect(workspace.locator('[name="base_url"]')).to_have_attribute(
+                    "placeholder", "https://api.meta.ai/v1"
+                )
+                expect(
+                    workspace.locator(
+                        '[name="account_id"], [name="organization_id"], [name="plan"], [name="region"]'
+                    )
+                ).to_have_count(0)
+                expect(
+                    workspace.locator('[data-i18n="provider.ext.meta_contributor_notice"]')
+                ).to_be_visible()
             if provider == "opencode":
                 workspace.locator('[name="plan"]').select_option("go")
                 expect(workspace.locator('[name="base_url"]')).to_have_attribute(
@@ -287,6 +317,7 @@ def main():
                     "cloudflare",
                     "opencode",
                     "kimchi",
+                    "meta",
                 ):
                     page.screenshot(
                         path=str(shots / f"{provider}-{width}-{theme}.png"), full_page=True
@@ -303,7 +334,7 @@ def main():
             expect(workspace.locator("[data-extended-saved]")).to_have_count(0)
             page.set_viewport_size({"width": 1440, "height": 1000})
             verify_import(page, workspace, base, provider)
-        assert len(saved) == 8, saved
+        assert len(saved) == len(PROVIDERS), saved
         # Open the actual pool editor for a credential saved by the import route.
         page.locator('#primaryNavigation [data-tab="pool"]').click()
         for provider in PROVIDERS:
@@ -332,12 +363,31 @@ def main():
         expect(editor.locator('[name="base_url"]')).to_have_value("https://opencode.ai/zen/go/v1")
         editor.locator("[data-credential-edit-cancel]").click()
         expect(editor).to_have_count(0)
+        meta_card = page.locator(".cred-card").filter(
+            has=page.locator(".cred-provider-name", has_text="Meta Model API")
+        )
+        expect(meta_card.locator('img[src$="/meta-model-api-logo.png"]')).to_have_count(1)
+        meta_card.locator(".cred-actions-secondary > summary").click()
+        meta_card.locator('[data-credential-command="edit"]').click()
+        meta_editor = page.locator("[data-credential-edit-form]")
+        expect(meta_editor).to_be_visible()
+        expect(meta_editor.locator('[name="base_url"]')).to_have_value("https://api.meta.ai/v1")
+        expect(meta_editor.locator('[name="api_key"]')).to_have_value("")
+        expect(meta_editor.locator('[name="api_key"]')).not_to_be_focused()
+        expect(
+            meta_editor.locator(
+                '[name="account_id"], [name="organization_id"], [name="plan"], [name="region"]'
+            )
+        ).to_have_count(0)
+        meta_editor.locator("[data-credential-edit-cancel]").click()
+        expect(meta_editor).to_have_count(0)
         assert not errors, errors
         context.close()
         browser.close()
     print(
-        "Provider catalog: 17 cards, 15 locales, pagination/search and responsive layout passed. "
-        "Extended providers: 8 forms, 48 responsive/theme cases, 24 real JSON/ZIP/rejection imports, no page errors."
+        f"Provider catalog: {CATALOG_COUNT} cards, 15 locales, pagination/search and responsive layout passed. "
+        f"Extended providers: {len(PROVIDERS)} forms, {len(PROVIDERS) * 6} responsive/theme cases, "
+        f"{len(PROVIDERS) * 3} real JSON/ZIP/rejection imports, Meta pool editor, no page errors."
     )
 
 

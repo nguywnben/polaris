@@ -57,7 +57,17 @@ class ProviderCapabilityTests(unittest.TestCase):
         oauth = common | {"refresh", "reauthenticate"}
         expected_operations = {
             **dict.fromkeys(
-                ("kimi", "cloudflare", "nvidia", "poolside", "kimchi", "kilo", "opencode", "kiro"),
+                (
+                    "kimi",
+                    "cloudflare",
+                    "nvidia",
+                    "poolside",
+                    "kimchi",
+                    "kilo",
+                    "opencode",
+                    "kiro",
+                    "meta",
+                ),
                 common,
             ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
@@ -105,6 +115,7 @@ class ProviderCapabilityTests(unittest.TestCase):
                 "kilo",
                 "opencode",
                 "kiro",
+                "meta",
             },
         )
         self.assertTrue(all(variant["operations"] for variant in variants))
@@ -127,7 +138,17 @@ class ProviderCapabilityTests(unittest.TestCase):
         oauth = common | {"refresh", "reauthenticate"}
         expected = {
             **dict.fromkeys(
-                ("kimi", "cloudflare", "nvidia", "poolside", "kimchi", "kilo", "opencode", "kiro"),
+                (
+                    "kimi",
+                    "cloudflare",
+                    "nvidia",
+                    "poolside",
+                    "kimchi",
+                    "kilo",
+                    "opencode",
+                    "kiro",
+                    "meta",
+                ),
                 common,
             ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
@@ -214,6 +235,7 @@ class ProviderCapabilityTests(unittest.TestCase):
                 "kilo",
                 "opencode",
                 "kiro",
+                "meta",
             },
         )
 

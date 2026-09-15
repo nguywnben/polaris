@@ -7,7 +7,8 @@ const EXTENDED_PROVIDER_UI = Object.freeze({
     opencode: {name: 'OpenCode', logo: 'opencode-logo.png', site: 'https://opencode.ai/', base: 'https://opencode.ai/zen/v1'},
     poolside: {name: 'Poolside Platform', logo: 'poolside-platform-logo.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
     kimchi: {name: 'Kimchi Coding', logo: 'kimchi-logo.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
-    kilo: {name: 'Kilo', logo: 'kilo-logo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'}
+    kilo: {name: 'Kilo', logo: 'kilo-logo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
+    meta: {name: 'Meta Model API', logo: 'meta-model-api-logo.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'}
 });
 
 function extendedElement(tag, className = '', key = '') {
@@ -122,6 +123,11 @@ function buildExtendedProviderWorkspaces() {
         website.textContent = definition.site;
         intro.append(title, extendedElement('p', '', `provider.ext.${provider}`), website);
         heading.append(extendedLogo(provider, definition, true), intro); header.append(heading); workspace.append(header);
+        if (provider === 'meta') {
+            const notice = extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.meta_contributor_notice');
+            notice.id = 'extended-meta-contributor-notice';
+            workspace.append(notice);
+        }
 
         const tools = extendedElement('div', 'provider-tools-grid');
         const panel = extendedElement('section', 'tool-panel');
@@ -134,6 +140,7 @@ function buildExtendedProviderWorkspaces() {
         panel.append(formTitle, extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.add_description'));
         const fields = extendedElement('div', 'extended-provider-fields');
         const key = extendedField(fields, provider, 'api_key', 'api_key', '', {type: 'password', required: true});
+        if (provider === 'meta') key.setAttribute('aria-describedby', 'extended-meta-contributor-notice');
         key.placeholder = t('provider.ext.key_placeholder'); key.dataset.i18nPlaceholder = 'provider.ext.key_placeholder';
         if (provider === 'cloudflare') extendedField(fields, provider, 'account_id', 'provider.ext.account', '0123456789abcdef0123456789abcdef', {required: true});
         if (provider === 'opencode') extendedField(fields, provider, 'plan', 'provider.ext.plan', '', {value: 'zen', options: ['zen', 'go']});

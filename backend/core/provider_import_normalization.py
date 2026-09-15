@@ -23,6 +23,7 @@ _SUPPORTED_FAMILIES = (
     | EXTENDED_PROVIDERS.keys()
 )
 _EXTENDED_IMPORT_FIELDS = {
+    "meta": ("base_url",),
     "kimi": ("base_url",),
     "cloudflare": ("base_url", "account_id"),
     "nvidia": ("base_url",),

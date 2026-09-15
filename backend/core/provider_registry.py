@@ -21,6 +21,7 @@ CLAUDE_CODE = "claude_code"
 CLAUDE_PLATFORM = "claude_platform"
 OLLAMA = "ollama"
 EXTENDED_PROVIDERS = {
+    "meta": "Meta Model API",
     "kimi": "Kimi API Platform",
     "cloudflare": "Cloudflare Workers AI",
     "nvidia": "NVIDIA NIM",
@@ -39,6 +40,7 @@ EXTENDED_CONNECTION_FIELDS = (
     "profile_arn",
 )
 EXTENDED_PROVIDER_CONNECTION_FIELDS = {
+    "meta": ("base_url",),
     "kimi": ("base_url",),
     "cloudflare": ("base_url", "account_id"),
     "nvidia": ("base_url",),
@@ -50,6 +52,7 @@ EXTENDED_PROVIDER_CONNECTION_FIELDS = {
 }
 # Data-only defaults avoid importing transports back into their shared registry.
 EXTENDED_PROVIDER_DEFAULT_BASE_URLS = {
+    "meta": "https://api.meta.ai/v1",
     "kimi": "https://api.moonshot.ai/v1",
     "cloudflare": "https://api.cloudflare.com/client/v4",
     "nvidia": "https://integrate.api.nvidia.com/v1",

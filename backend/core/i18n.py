@@ -8,6 +8,8 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Iterator
 
+from core.meta_provider_i18n import MESSAGES as META_PROVIDER_MESSAGES
+from core.meta_provider_i18n import SOURCE_KEYS as META_SOURCE_KEYS
 from core.provider_expansion_i18n import MESSAGES as PROVIDER_EXPANSION_MESSAGES
 from fastapi.responses import JSONResponse
 
@@ -1205,6 +1207,7 @@ _PANEL_MESSAGE_PATTERNS = (
 )
 
 MESSAGES.update(PROVIDER_EXPANSION_MESSAGES)
+MESSAGES.update(META_PROVIDER_MESSAGES)
 
 ENGLISH_TEXT_KEYS = {
     translations[DEFAULT_LOCALE]: key
@@ -1280,6 +1283,8 @@ def panel_message_key(value: str) -> str | None:
     exact_key = ENGLISH_TEXT_KEYS.get(value)
     if exact_key:
         return exact_key
+    if value in META_SOURCE_KEYS:
+        return META_SOURCE_KEYS[value]
     for pattern, key in _PANEL_MESSAGE_PATTERNS:
         if pattern.search(value):
             return key

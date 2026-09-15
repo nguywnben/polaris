@@ -38,7 +38,7 @@ def archive(payloads):
 
 
 class ExtendedImportNormalizationTests(unittest.TestCase):
-    def test_all_eight_providers_normalize_and_classify_without_network(self):
+    def test_all_nine_providers_normalize_and_classify_without_network(self):
         for provider in EXTENDED_PROVIDERS:
             with self.subTest(provider=provider):
                 result = normalize_provider_import(credential(provider))
@@ -93,7 +93,7 @@ class ExtendedImportNormalizationTests(unittest.TestCase):
 
 
 class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
-    async def test_mixed_archive_imports_all_eight_catalogs(self):
+    async def test_mixed_archive_imports_all_nine_catalogs(self):
         stored = {"filename": "safe.json", "action": "created", "label": "Account"}
         with (
             patch("core.pool_import.discover_extended_models", new_callable=AsyncMock) as discover,
@@ -103,14 +103,30 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
                 return_value=stored,
             ) as store,
         ):
-            discover.return_value = ["gpt-5"]
+            discover.side_effect = lambda data: [
+                "muse-spark-1.3" if data["provider"] == "meta" else "gpt-5"
+            ]
             report = await restore_pool_archive(
                 archive([credential(p) for p in EXTENDED_PROVIDERS])
             )
-        self.assertEqual(report["uploaded_count"], 8)
+        self.assertEqual(report["uploaded_count"], 9)
         self.assertEqual(report["error_count"], 0)
-        self.assertEqual(discover.await_count, 8)
-        self.assertEqual(store.await_count, 8)
+        self.assertEqual(discover.await_count, 9)
+        self.assertEqual(store.await_count, 9)
+        self.assertEqual(
+            {call.args[0]["provider"] for call in store.await_args_list},
+            {
+                "kimi",
+                "kiro",
+                "cloudflare",
+                "nvidia",
+                "opencode",
+                "poolside",
+                "kimchi",
+                "kilo",
+                "meta",
+            },
+        )
         for result in report["results"]:
             self.assertEqual(result["validation_status"], "unverified")
         self.assertNotIn("test-key-never-live", json.dumps(report))
@@ -173,10 +189,11 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             for provider in EXTENDED_PROVIDERS:
                 with self.subTest(provider=provider):
                     data = normalize_provider_import(credential(provider, credential_label="Work"))
-                    await store_extended_credential(data, ["gpt-5"], file_import=True)
+                    models = ["muse-spark-1.3"] if provider == "meta" else ["gpt-5"]
+                    await store_extended_credential(data, models, file_import=True)
                     stored = persist.await_args.args[1]
                     self.assertEqual(stored["validation_status"], "unverified")
-                    self.assertEqual(stored["model_ids"], ["gpt-5"])
+                    self.assertEqual(stored["model_ids"], models)
                     self.assertEqual(stored["credential_label"], "Work")
 
     async def test_bad_entry_does_not_prevent_valid_entry(self):

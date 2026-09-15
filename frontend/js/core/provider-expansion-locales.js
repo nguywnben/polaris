@@ -1,6 +1,8 @@
 // Additional provider copy is kept together for semantic review across all locales.
 const PROVIDER_EXPANSION_COPY = {
     en: {
+        meta: 'Connect Muse Spark models through Meta Model API with an API key.',
+        meta_contributor_notice: 'Models ending in -contributor allow Meta to use prompts and responses for training. Polaris does not select these variants by default; choose one only if you agree to this data use.',
         add_description: 'Validate the API key against the model catalog, then add it to the credential pool.',
         import_description: 'Import API-key credentials for this provider from JSON files or ZIP archives. Imported credentials must be verified in the pool before use.',
         connection_description: 'These settings are saved with the API key above. They apply only to that credential; edit existing credentials in the pool.',
@@ -24,6 +26,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Model catalog refreshed. Test a model to check inference access.'
     },
     vi: {
+        meta: 'Kết nối các mô hình Muse Spark qua Meta Model API bằng khóa API.',
+        meta_contributor_notice: 'Mô hình có hậu tố -contributor cho phép Meta dùng nội dung yêu cầu và phản hồi để huấn luyện. Polaris không chọn mặc định các phiên bản này; chỉ chọn nếu bạn đồng ý với việc sử dụng dữ liệu đó.',
         add_description: 'Kiểm tra khóa API qua danh mục mô hình, rồi thêm vào kho thông tin xác thực.',
         import_description: 'Nhập thông tin xác thực bằng khóa API cho nhà cung cấp này từ tệp JSON hoặc tệp ZIP. Thông tin xác thực đã nhập cần được xác minh trong kho trước khi sử dụng.',
         connection_description: 'Các thiết lập này được lưu cùng khóa API ở trên và chỉ áp dụng cho thông tin xác thực đó. Để chỉnh sửa thông tin xác thực đã có, hãy mở kho thông tin xác thực.',
@@ -47,6 +51,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Đã làm mới danh mục mô hình. Hãy kiểm tra một mô hình để xác nhận quyền gọi.'
     },
     'zh-CN': {
+        meta: '使用 API 密钥通过 Meta Model API 连接 Muse Spark 模型。',
+        meta_contributor_notice: '名称以 -contributor 结尾的模型允许 Meta 使用提示和响应进行训练。Polaris 不会默认选择这些版本；仅在您同意此数据用途时选择。',
         add_description: '通过模型目录验证 API 密钥，然后将其添加到凭据池。',
         import_description: '从 JSON 文件或 ZIP 压缩包导入此提供商的 API 密钥凭据。导入的凭据必须先在凭据池中验证，才能使用。',
         connection_description: '这些设置与上方的 API 密钥一同保存，仅适用于该凭据。请在凭据池中编辑现有凭据。',
@@ -70,6 +76,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '模型目录已刷新。请测试一个模型以确认推理访问权限。'
     },
     'zh-TW': {
+        meta: '使用 API 金鑰透過 Meta Model API 連線至 Muse Spark 模型。',
+        meta_contributor_notice: '名稱以 -contributor 結尾的模型允許 Meta 使用提示與回應進行訓練。Polaris 不會預設選取這些版本；請僅在同意此資料用途時選取。',
         add_description: '透過模型目錄驗證 API 金鑰，再將其新增至憑證集區。',
         import_description: '從 JSON 檔案或 ZIP 壓縮檔匯入此供應商的 API 金鑰憑證。匯入的憑證必須先在憑證集區中驗證，才能使用。',
         connection_description: '這些設定會與上方的 API 金鑰一併儲存，且僅適用於該憑證。請在憑證集區中編輯現有憑證。',
@@ -93,6 +101,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '模型目錄已重新整理。請測試一個模型以確認推論存取權。'
     },
     de: {
+        meta: 'Verbinden Sie Muse-Spark-Modelle über die Meta Model API mit einem API-Schlüssel.',
+        meta_contributor_notice: 'Modelle mit der Endung -contributor erlauben Meta, Prompts und Antworten für das Training zu verwenden. Polaris wählt diese Varianten nicht standardmäßig aus. Wählen Sie sie nur, wenn Sie dieser Datennutzung zustimmen.',
         add_description: 'Prüfen Sie den API-Schlüssel anhand des Modellkatalogs und fügen Sie ihn anschließend zum Zugangsdatenpool hinzu.',
         import_description: 'Importieren Sie API-Schlüssel-Zugangsdaten für diesen Anbieter aus JSON-Dateien oder ZIP-Archiven. Importierte Zugangsdaten müssen vor der Verwendung im Pool überprüft werden.',
         connection_description: 'Diese Einstellungen werden mit dem obigen API-Schlüssel gespeichert und gelten nur für diese Zugangsdaten. Bestehende Zugangsdaten bearbeiten Sie im Pool.',
@@ -116,6 +126,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Modellkatalog aktualisiert. Testen Sie ein Modell, um den Inferenzzugriff zu prüfen.'
     },
     es: {
+        meta: 'Conecta modelos Muse Spark a través de Meta Model API con una clave API.',
+        meta_contributor_notice: 'Los modelos cuyo nombre termina en -contributor permiten que Meta use las instrucciones y respuestas para entrenar modelos. Polaris no selecciona estas variantes de forma predeterminada; elígelas solo si aceptas este uso de tus datos.',
         add_description: 'Valida la clave API con el catálogo de modelos y añádela al grupo de credenciales.',
         import_description: 'Importa credenciales con clave API para este proveedor desde archivos JSON o ZIP. Las credenciales importadas deben verificarse en el grupo antes de usarlas.',
         connection_description: 'Estos ajustes se guardan con la clave API de arriba y solo se aplican a esas credenciales. Edita las credenciales existentes en el grupo.',
@@ -139,6 +151,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catálogo de modelos actualizado. Prueba un modelo para comprobar el acceso a la inferencia.'
     },
     fr: {
+        meta: 'Connectez les modèles Muse Spark via Meta Model API avec une clé API.',
+        meta_contributor_notice: 'Les modèles dont le nom se termine par -contributor autorisent Meta à utiliser les instructions et les réponses pour entraîner ses modèles. Polaris ne sélectionne pas ces variantes par défaut ; choisissez-les uniquement si vous acceptez cette utilisation des données.',
         add_description: 'Vérifiez la clé API à l’aide du catalogue de modèles, puis ajoutez-la au pool d’identifiants.',
         import_description: 'Importez les identifiants par clé API de ce fournisseur à partir de fichiers JSON ou d’archives ZIP. Les identifiants importés doivent être vérifiés dans le pool avant utilisation.',
         connection_description: 'Ces paramètres sont enregistrés avec la clé API ci-dessus et s’appliquent uniquement à ces identifiants. Modifiez les identifiants existants dans le pool.',
@@ -162,6 +176,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catalogue de modèles actualisé. Testez un modèle pour vérifier l’accès à l’inférence.'
     },
     id: {
+        meta: 'Hubungkan model Muse Spark melalui Meta Model API dengan kunci API.',
+        meta_contributor_notice: 'Model dengan akhiran -contributor mengizinkan Meta menggunakan prompt dan respons untuk pelatihan. Polaris tidak memilih varian ini secara default; pilih hanya jika Anda menyetujui penggunaan data tersebut.',
         add_description: 'Validasi kunci API melalui katalog model, lalu tambahkan ke kumpulan kredensial.',
         import_description: 'Impor kredensial kunci API untuk penyedia ini dari file JSON atau arsip ZIP. Kredensial yang diimpor harus diverifikasi di kumpulan kredensial sebelum digunakan.',
         connection_description: 'Pengaturan ini disimpan bersama kunci API di atas dan hanya berlaku untuk kredensial tersebut. Edit kredensial yang sudah ada di kumpulan kredensial.',
@@ -185,6 +201,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Katalog model diperbarui. Uji sebuah model untuk memeriksa akses inferensi.'
     },
     it: {
+        meta: 'Collega i modelli Muse Spark tramite Meta Model API con una chiave API.',
+        meta_contributor_notice: 'I modelli con suffisso -contributor consentono a Meta di usare prompt e risposte per addestrare i modelli. Polaris non seleziona queste varianti per impostazione predefinita; sceglile solo se accetti questo utilizzo dei dati.',
         add_description: 'Verifica la chiave API tramite il catalogo dei modelli, quindi aggiungila al pool di credenziali.',
         import_description: 'Importa le credenziali con chiave API per questo fornitore da file JSON o archivi ZIP. Le credenziali importate devono essere verificate nel pool prima dell’uso.',
         connection_description: 'Queste impostazioni vengono salvate con la chiave API qui sopra e si applicano solo a quelle credenziali. Modifica le credenziali esistenti nel pool.',
@@ -208,6 +226,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catalogo dei modelli aggiornato. Prova un modello per verificare l’accesso all’inferenza.'
     },
     ja: {
+        meta: 'API キーを使用し、Meta Model API 経由で Muse Spark モデルに接続します。',
+        meta_contributor_notice: '名前が -contributor で終わるモデルでは、Meta がプロンプトと応答を学習に使用できます。Polaris はこれらのモデルを既定では選択しません。このデータの利用に同意する場合のみ選択してください。',
         add_description: 'モデルカタログで API キーを検証してから、認証情報プールに追加します。',
         import_description: 'JSON ファイルまたは ZIP アーカイブから、このプロバイダーの API キー認証情報をインポートします。インポートした認証情報は、使用前にプールで検証する必要があります。',
         connection_description: 'これらの設定は上記の API キーとともに保存され、その認証情報にのみ適用されます。既存の認証情報はプールで編集してください。',
@@ -231,6 +251,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'モデルカタログを更新しました。モデルをテストして推論へのアクセス権を確認してください。'
     },
     ko: {
+        meta: 'API 키로 Meta Model API를 통해 Muse Spark 모델에 연결합니다.',
+        meta_contributor_notice: '이름이 -contributor로 끝나는 모델은 Meta가 프롬프트와 응답을 학습에 사용하도록 허용합니다. Polaris는 이 모델들을 기본으로 선택하지 않습니다. 해당 데이터 사용에 동의하는 경우에만 선택하세요.',
         add_description: '모델 카탈로그를 통해 API 키를 검증한 후 인증 정보 풀에 추가합니다.',
         import_description: 'JSON 파일 또는 ZIP 압축 파일에서 이 제공업체의 API 키 인증 정보를 가져옵니다. 가져온 인증 정보는 사용 전에 풀에서 검증해야 합니다.',
         connection_description: '이 설정은 위의 API 키와 함께 저장되며 해당 인증 정보에만 적용됩니다. 기존 인증 정보는 풀에서 수정하세요.',
@@ -254,6 +276,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '모델 카탈로그를 새로 고쳤습니다. 모델을 테스트하여 추론 접근 권한을 확인하세요.'
     },
     pt: {
+        meta: 'Conecte modelos Muse Spark pela Meta Model API com uma chave de API.',
+        meta_contributor_notice: 'Modelos com o sufixo -contributor permitem que a Meta use prompts e respostas para treinamento. O Polaris não seleciona essas variantes por padrão; escolha-as apenas se concordar com esse uso dos dados.',
         add_description: 'Valide a chave de API usando o catálogo de modelos e adicione-a ao pool de credenciais.',
         import_description: 'Importe credenciais com chave de API para este provedor a partir de arquivos JSON ou ZIP. As credenciais importadas devem ser verificadas no pool antes do uso.',
         connection_description: 'Estas configurações são salvas com a chave de API acima e se aplicam apenas a essas credenciais. Edite as credenciais existentes no pool.',
@@ -277,6 +301,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catálogo de modelos atualizado. Teste um modelo para verificar o acesso à inferência.'
     },
     ru: {
+        meta: 'Подключайте модели Muse Spark через Meta Model API с помощью API-ключа.',
+        meta_contributor_notice: 'Модели с суффиксом -contributor разрешают Meta использовать запросы и ответы для обучения. Polaris не выбирает эти варианты по умолчанию. Выбирайте их, только если вы согласны с таким использованием данных.',
         add_description: 'Проверьте API-ключ через каталог моделей, затем добавьте его в пул учётных данных.',
         import_description: 'Импортируйте учётные данные с API-ключом для этого провайдера из файлов JSON или ZIP-архивов. Перед использованием импортированные учётные данные необходимо проверить в пуле.',
         connection_description: 'Эти настройки сохраняются вместе с API-ключом выше и применяются только к этим учётным данным. Существующие учётные данные можно изменить в пуле.',
@@ -300,6 +326,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Каталог моделей обновлён. Протестируйте модель, чтобы проверить доступ к инференсу.'
     },
     th: {
+        meta: 'เชื่อมต่อโมเดล Muse Spark ผ่าน Meta Model API ด้วยคีย์ API',
+        meta_contributor_notice: 'โมเดลที่ลงท้ายด้วย -contributor อนุญาตให้ Meta ใช้พรอมป์ต์และคำตอบในการฝึกโมเดล Polaris จะไม่เลือกโมเดลเหล่านี้โดยค่าเริ่มต้น โปรดเลือกเฉพาะเมื่อคุณยินยอมให้ใช้ข้อมูลในลักษณะนี้',
         add_description: 'ตรวจสอบคีย์ API ผ่านรายการโมเดล แล้วเพิ่มลงในคลังข้อมูลรับรอง',
         import_description: 'นำเข้าข้อมูลรับรองแบบคีย์ API สำหรับผู้ให้บริการนี้จากไฟล์ JSON หรือไฟล์ ZIP ข้อมูลรับรองที่นำเข้าต้องได้รับการตรวจสอบในคลังก่อนใช้งาน',
         connection_description: 'การตั้งค่าเหล่านี้จะบันทึกพร้อมกับคีย์ API ด้านบนและใช้กับข้อมูลรับรองนั้นเท่านั้น หากต้องการแก้ไขข้อมูลรับรองที่มีอยู่ ให้แก้ไขในคลังข้อมูลรับรอง',
@@ -323,6 +351,8 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'รีเฟรชรายการโมเดลแล้ว ทดสอบโมเดลเพื่อตรวจสอบสิทธิ์เรียกใช้งานการอนุมาน'
     },
     tr: {
+        meta: 'Muse Spark modellerini bir API anahtarıyla Meta Model API üzerinden bağlayın.',
+        meta_contributor_notice: '-contributor ile biten modeller, Meta’nın istemleri ve yanıtları eğitim için kullanmasına izin verir. Polaris bu varyantları varsayılan olarak seçmez; yalnızca bu veri kullanımını kabul ediyorsanız seçin.',
         add_description: 'API anahtarını model kataloğu üzerinden doğrulayın, ardından kimlik bilgileri havuzuna ekleyin.',
         import_description: 'Bu sağlayıcının API anahtarı kimlik bilgilerini JSON dosyalarından veya ZIP arşivlerinden içe aktarın. İçe aktarılan kimlik bilgileri kullanılmadan önce havuzda doğrulanmalıdır.',
         connection_description: 'Bu ayarlar yukarıdaki API anahtarıyla birlikte kaydedilir ve yalnızca bu kimlik bilgileri için geçerlidir. Mevcut kimlik bilgilerini havuzda düzenleyin.',

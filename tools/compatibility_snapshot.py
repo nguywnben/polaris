@@ -21,6 +21,15 @@ NON_SEMANTIC_OPENAPI_KEYS = frozenset(
 # Adding the optional bounded timezone offset preserves every existing request shape. Keep the
 # exact before/after fingerprints explicit so unrelated changes to these operations still fail.
 COMPATIBLE_OPERATION_EVOLUTIONS = {
+    # ADR-014 adds a separate native Meta branch while retaining the exact legacy
+    # Responses schema. HTTP/legacy regression tests cover dispatch and rejection;
+    # the fixed pair still detects every subsequent contract change.
+    ("POST", "/v1/responses"): {
+        (
+            "250ef7feb1b25caf10b5dc22fbb7fd3c078c7a3f61cec725ee8909b9d29c2f1a",
+            "c97da5d6f21619854cde9d63bfff79aa7c6a96cc7fa70208baffe2d7adcf0247",
+        )
+    },
     # Optional scope defaults to the original reset. Exact evolution, not a route exemption:
     # test_config_reset proves default behavior and secret/environment preservation;
     # docs/audits/page-completion-2026-09-15.md records the approved Settings ownership change.

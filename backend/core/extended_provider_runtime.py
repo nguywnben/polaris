@@ -20,7 +20,13 @@ def transport(credential: dict):
     provider = get_credential_provider(credential)
     if provider not in EXTENDED_PROVIDERS:
         raise ValueError("Unsupported provider.")
-    module = provider if provider in {"kiro", "opencode"} else "hosted_providers"
+    module = (
+        "meta_model_api"
+        if provider == "meta"
+        else provider
+        if provider in {"kiro", "opencode"}
+        else "hosted_providers"
+    )
     return importlib.import_module(f"core.{module}")
 
 
@@ -377,13 +383,22 @@ async def _json_events(response):
 
 
 async def stream_extended_request(
-    credential: dict, model: str, *, url: str, body: dict, headers: dict, timeout: float
+    credential: dict,
+    model: str,
+    *,
+    url: str,
+    body: dict,
+    headers: dict,
+    timeout: float,
+    native_responses: bool = False,
 ):
     """Yield canonical SSE or a safe HTTP failure, closing HTTP on cancellation."""
     provider = get_credential_provider(credential)
+    if native_responses and provider != "meta":
+        raise ProviderStreamError("Native Meta history cannot use another provider.")
     protocol = (
         transport(credential).protocol_for_model(credential, model)
-        if provider == "opencode"
+        if provider in {"opencode", "meta"}
         else "openai"
     )
     async with http_client.get_streaming_client(
@@ -408,16 +423,119 @@ async def stream_extended_request(
                         yield chunk
                 return
             decoder = _StreamDecoder(protocol)
+            completed_event = None
             async for event in _json_events(response):
                 try:
-                    chunk = decoder.decode(event)
+                    native_event = _meta_event(event) if native_responses else None
+                    decode_event = event
+                    output_limited = (
+                        provider == "meta" and event.get("type") == "response.incomplete"
+                    )
+                    if output_limited:
+                        response_body = event.get("response") or {}
+                        if (response_body.get("incomplete_details") or {}).get(
+                            "reason"
+                        ) != "max_output_tokens":
+                            raise ProviderStreamError("Provider response did not complete.")
+                        decode_event = {
+                            **event,
+                            "type": "response.completed",
+                            "response": {**response_body, "status": "completed"},
+                        }
+                    chunk = decoder.decode(decode_event)
+                    if output_limited:
+                        decoder.finish = "MAX_TOKENS"
                 except (TypeError, AttributeError, KeyError, RecursionError) as exc:
                     raise ProviderStreamError(
                         "Provider returned a malformed stream event."
                     ) from exc
-                if chunk:
+                if native_event and event["type"] in {"response.completed", "response.incomplete"}:
+                    completed_event = native_event
+                elif native_event:
+                    yield _attach_meta_event(chunk or decoder.encode([]), native_event)
+                elif chunk:
                     yield chunk
-            yield decoder.complete()
+            terminal = decoder.complete()
+            if native_responses and completed_event is None:
+                raise ProviderStreamError("Provider stream ended before completion.")
+            yield _attach_meta_event(terminal, completed_event) if completed_event else terminal
+
+
+def _attach_meta_event(chunk, event):
+    payload = json.loads(chunk[6:])
+    payload["_polaris_meta_event"] = event
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _meta_event(event):
+    """Only documented Responses events enter the native, authenticated adapter."""
+    allowed = {
+        "response.created",
+        "response.in_progress",
+        "response.completed",
+        "response.incomplete",
+        "response.output_item.added",
+        "response.output_item.done",
+        "response.content_part.added",
+        "response.content_part.done",
+        "response.output_text.delta",
+        "response.output_text.done",
+        "response.function_call_arguments.delta",
+        "response.function_call_arguments.done",
+        "response.reasoning_summary_part.added",
+        "response.reasoning_summary_part.done",
+        "response.reasoning_summary_text.delta",
+        "response.reasoning_summary_text.done",
+        "response.refusal.delta",
+        "response.refusal.done",
+    }
+    if not isinstance(event, dict) or event.get("type") not in allowed:
+        raise ProviderStreamError("Provider returned an unsupported native stream event.")
+    result = {
+        k: v
+        for k, v in event.items()
+        if k
+        in {
+            "type",
+            "sequence_number",
+            "output_index",
+            "content_index",
+            "summary_index",
+            "item_id",
+            "delta",
+            "text",
+            "arguments",
+            "refusal",
+            "part",
+            "item",
+            "response",
+        }
+    }
+    if "response" in result:
+        response = result["response"]
+        if not isinstance(response, dict) or response.get("error"):
+            raise ProviderStreamError("Provider returned an invalid native response.")
+        result["response"] = {
+            k: v
+            for k, v in response.items()
+            if k
+            in {
+                "id",
+                "object",
+                "created_at",
+                "status",
+                "model",
+                "output",
+                "usage",
+                "parallel_tool_calls",
+                "reasoning",
+                "text",
+                "tool_choice",
+                "tools",
+                "incomplete_details",
+            }
+        }
+    return result
 
 
 async def test_extended_credential(credential: dict, model: str) -> Response:

@@ -286,6 +286,9 @@ async def prepare_provider_request(
     provider_id = get_credential_provider(credential_data)
     model_name = str(body.get("model") or "").strip()
     inner_request = body.get("request", body)
+    from core.meta_native_boundary import validate_native_request
+
+    validate_native_request(inner_request, provider_id)
     compression_result = compress_gemini_request(
         dict(inner_request),
         CompressionSettings(**await get_token_compression_config()),
@@ -757,6 +760,11 @@ async def _stream_request_upstream(
                     body=final_payload,
                     headers=auth_headers,
                     timeout=await get_upstream_timeout_seconds(),
+                    **(
+                        {"native_responses": True}
+                        if "_polaris_meta_responses" in body.get("request", body)
+                        else {}
+                    ),
                 )
                 if provider_id in EXTENDED_PROVIDERS
                 else stream_post_async(
@@ -938,10 +946,12 @@ async def _stream_request_upstream(
                     chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
                     stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
 
-                    if isinstance(chunk, bytes):
-                        log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
-                    else:
-                        log.debug(f"[provider stream raw] chunk(str): {chunk}")
+                    # Native reasoning and prompt-bearing Meta items stay out of logs.
+                    if provider_id != "meta":
+                        if isinstance(chunk, bytes):
+                            log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
+                        else:
+                            log.debug(f"[provider stream raw] chunk(str): {chunk}")
 
                     yield chunk
 

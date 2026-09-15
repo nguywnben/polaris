@@ -14,6 +14,7 @@ single-column screens each card grows naturally with its own content.
 
 | Provider | Required authentication | Credential-specific advanced settings |
 | --- | --- | --- |
+| [Meta Model API](meta-model-api.md) | Model API key | Official Meta API endpoint |
 | Kimi API Platform | Moonshot API key | Official Moonshot API endpoint |
 | Kiro | Kiro API key | Runtime region; optional profile ARN |
 | Cloudflare Workers AI | API token and Account ID | Cloudflare management API root |
