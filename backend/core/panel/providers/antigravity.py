@@ -206,9 +206,7 @@ async def get_google_config(token: str = Depends(verify_panel_token)):
 
 
 @router.post("/api/providers/google/config")
-async def save_google_config(
-    request: ConfigSaveRequest, token: str = Depends(verify_panel_token)
-):
+async def save_google_config(request: ConfigSaveRequest, token: str = Depends(verify_panel_token)):
     """Save shared Google OAuth and legacy Code Assist compatibility settings."""
     try:
         saved_config, env_locked = await _save_config_values(

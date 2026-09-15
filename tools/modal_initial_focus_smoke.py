@@ -23,10 +23,25 @@ def main():
         cases = [
             ("identity", "/identity", "openIdentityCreateDialog()", "#identityCreateDialog"),
             ("prompt", "/access", "void showPromptModal('Test')", ".message-modal"),
-            ("model", "/access", "void showModelTestModal('Test', {options: [{value:'test', label:'Test'}]})", ".message-modal"),
+            (
+                "model",
+                "/access",
+                "void showModelTestModal('Test', {options: [{value:'test', label:'Test'}]})",
+                ".message-modal",
+            ),
             ("key-create", "/access", "openVirtualKeyForm()", ".message-modal"),
-            ("key-edit", "/access", "openVirtualKeyForm({id:'test', name:'Test', enabled:true})", ".message-modal"),
-            ("key-secret", "/access", "showVirtualKeySecret('synthetic-test-value', 'access.create_key_title')", ".message-modal"),
+            (
+                "key-edit",
+                "/access",
+                "openVirtualKeyForm({id:'test', name:'Test', enabled:true})",
+                ".message-modal",
+            ),
+            (
+                "key-secret",
+                "/access",
+                "showVirtualKeySecret('synthetic-test-value', 'access.create_key_title')",
+                ".message-modal",
+            ),
             ("credential", "/pool", "void showCredentialEditModal('focus-test')", ".message-modal"),
         ]
         for width, theme in ((1440, "light"), (360, "dark")):
@@ -35,11 +50,20 @@ def main():
             for name, route, action, selector in cases:
                 page.goto(base + route, wait_until="networkidle")
                 if name == "credential":
-                    page.route("**/api/credentials/configuration/focus-test.json?mode=provider", lambda route: route.fulfill(json={
-                        "editable": True, "editable_fields": ["credential_label", "base_url", "api_key"],
-                        "credential_label": "Test", "base_url": "https://api.example.com",
-                    }))
-                    page.evaluate("AppState.credentialCardIndex['focus-test'] = {filename:'focus-test.json', managerType:'primary', providerName:'Test'}")
+                    page.route(
+                        "**/api/credentials/configuration/focus-test.json?mode=provider",
+                        lambda route: route.fulfill(
+                            json={
+                                "editable": True,
+                                "editable_fields": ["credential_label", "base_url", "api_key"],
+                                "credential_label": "Test",
+                                "base_url": "https://api.example.com",
+                            }
+                        ),
+                    )
+                    page.evaluate(
+                        "AppState.credentialCardIndex['focus-test'] = {filename:'focus-test.json', managerType:'primary', providerName:'Test'}"
+                    )
                 page.evaluate("""() => {
                     window.__openingFieldFocus = [];
                     document.addEventListener('focusin', event => {
@@ -78,7 +102,9 @@ def main():
         browser.close()
     assert not errors, errors
     assert not failures, failures
-    print("PASS: 7 modal entry paths at desktop/mobile; no transient field focus; keyboard/return focus preserved")
+    print(
+        "PASS: 7 modal entry paths at desktop/mobile; no transient field focus; keyboard/return focus preserved"
+    )
 
 
 if __name__ == "__main__":

@@ -55,13 +55,15 @@ class RuntimeLifecycleTests(unittest.IsolatedAsyncioTestCase):
         with patch("core.runtime_lifecycle.time", clock, create=True):
             backend = RuntimeLifecycle(policy=RuntimePolicy.from_environment({}))._store_factory()
             sessions = CoordinatedSessionStore(
-                backend, hmac_key=b"c" * 32,
+                backend,
+                hmac_key=b"c" * 32,
                 policy=SessionPolicy(idle_ttl_seconds=300, absolute_ttl_seconds=900),
             )
             issued = await sessions.issue(
                 principal=ManagementPrincipal.local_owner(),
                 authentication_method=SessionAuthenticationMethod.LOCAL_PASSWORD,
-                authorization_epoch=1, now=wall,
+                authorization_epoch=1,
+                now=wall,
             )
             self.assertAlmostEqual(issued.session.issued_at, 1_800_000_000.0)
             self.assertAlmostEqual(issued.session.idle_expires_at, 1_800_000_300.0)

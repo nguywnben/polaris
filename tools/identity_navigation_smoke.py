@@ -22,8 +22,25 @@ def main():
             page.locator("#setupPasswordConfirm").fill(PASSWORD)
             page.locator("#setupSubmitButton").click()
             expect(page).to_have_url(base + "/dashboard")
-            expected_order = ["dashboard", "providers", "pool", "models", "quality", "playground", "access", "identity", "activity", "config", "about"]
-            assert page.locator('.sidebar-menu [data-tab]').evaluate_all("els => els.map(el => el.dataset.tab)") == expected_order
+            expected_order = [
+                "dashboard",
+                "providers",
+                "pool",
+                "models",
+                "quality",
+                "playground",
+                "access",
+                "identity",
+                "activity",
+                "config",
+                "about",
+            ]
+            assert (
+                page.locator(".sidebar-menu [data-tab]").evaluate_all(
+                    "els => els.map(el => el.dataset.tab)"
+                )
+                == expected_order
+            )
             tab = page.locator('[data-tab="identity"]')
             expect(tab).to_be_visible()
             expect(tab).to_have_text("Danh tính và phiên")
@@ -43,7 +60,12 @@ def main():
             page.locator(".mobile-menu-btn").click()
             expect(tab).to_be_visible()
             tab.scroll_into_view_if_needed()
-            assert page.locator('.sidebar-menu [data-tab]').evaluate_all("els => els.map(el => el.dataset.tab)") == expected_order
+            assert (
+                page.locator(".sidebar-menu [data-tab]").evaluate_all(
+                    "els => els.map(el => el.dataset.tab)"
+                )
+                == expected_order
+            )
             page.screenshot(path=str(output / "mobile.png"))
             tab.click()
             expect(page.locator(".dashboard-sidebar")).to_have_attribute("inert", "")
@@ -60,14 +82,19 @@ def main():
             page.locator("#identityCreateButton").click()
             expect(page.locator("#identityCreateTitle")).to_have_text("Create identity")
             page.locator('#identityCreateDialog [data-i18n="identity.cancel"]').click()
-            context.route("**/api/identity/oidc-policy", lambda route: route.fulfill(status=503, json={"detail": "Synthetic unavailable"}))
+            context.route(
+                "**/api/identity/oidc-policy",
+                lambda route: route.fulfill(status=503, json={"detail": "Synthetic unavailable"}),
+            )
             page.goto(base + "/dashboard", wait_until="networkidle")
             expect(tab).to_be_visible()
             tab.click()
             expect(page).to_have_url(base + "/identity")
             expect(tab).to_be_visible()
             assert not errors, errors
-            print("PASS: fixed sidebar, OIDC disabled/policy unavailable, keyboard/mobile, Vietnamese/English headings, runtime labels, pagination and create/cancel dialog; no OIDC configuration changed")
+            print(
+                "PASS: fixed sidebar, OIDC disabled/policy unavailable, keyboard/mobile, Vietnamese/English headings, runtime labels, pagination and create/cancel dialog; no OIDC configuration changed"
+            )
         finally:
             context.close()
             browser.close()

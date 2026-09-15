@@ -38,7 +38,10 @@ def main():
             expect(page.locator("#qualityTransformationSummary")).to_contain_text("không")
             page.locator("#qualityPreviewButton").click()
             expect(page.locator("#qualityPreviewResult")).to_be_visible()
-            assert page.locator("#qualityPreviewBefore").inner_text() == page.locator("#qualityPreviewAfter").inner_text()
+            assert (
+                page.locator("#qualityPreviewBefore").inner_text()
+                == page.locator("#qualityPreviewAfter").inner_text()
+            )
             page.locator("#qualityPreviewTokens").fill("50000")
             expect(page.locator("#qualityPreviewResult")).to_be_hidden()
             page.locator("#tokenCompressionEnabled").check()
@@ -59,9 +62,13 @@ def main():
 
             def policy_response(route):
                 if route.request.method == "PUT" and failure["save"]:
-                    route.fulfill(status=503, json={"error": {"code": "quality_policy_unavailable"}})
+                    route.fulfill(
+                        status=503, json={"error": {"code": "quality_policy_unavailable"}}
+                    )
                 elif route.request.method == "GET" and failure["load"]:
-                    route.fulfill(status=503, json={"error": {"code": "quality_policy_unavailable"}})
+                    route.fulfill(
+                        status=503, json={"error": {"code": "quality_policy_unavailable"}}
+                    )
                 elif route.request.method == "GET" and failure["locked"]:
                     response = route.fetch()
                     data = response.json()
@@ -75,7 +82,12 @@ def main():
             expect(page.locator("#qualitySaveButton")).to_be_enabled()
             expect(page.locator('input[name="qualityProfile"][value="custom"]')).to_be_checked()
             failure["save"] = False
-            with page.expect_response(lambda response: response.url.endswith("/api/quality-policy") and response.request.method == "PUT") as saved:
+            with page.expect_response(
+                lambda response: (
+                    response.url.endswith("/api/quality-policy")
+                    and response.request.method == "PUT"
+                )
+            ) as saved:
                 page.locator("#qualitySaveButton").click()
             assert saved.value.ok
             expect(page.locator("#qualityRevision")).not_to_have_text("0")
@@ -83,14 +95,30 @@ def main():
                 page.locator(f'input[name="qualityProfile"][value="{profile}"]').check()
                 page.locator("#qualityPreviewButton").click()
                 expect(page.locator("#qualityPreviewResult")).to_be_visible()
-                for width, theme in ((320, "light"), (360, "light"), (768, "light"), (1024, "light"), (1440, "light"), (1440, "dark")):
+                for width, theme in (
+                    (320, "light"),
+                    (360, "light"),
+                    (768, "light"),
+                    (1024, "light"),
+                    (1440, "light"),
+                    (1440, "dark"),
+                ):
                     page.set_viewport_size({"width": width, "height": 1000})
                     page.emulate_media(color_scheme=theme)
                     page.evaluate("window.scrollTo(0, 0)")
                     page.mouse.move(2, 2)
-                    assert not page.locator("body").evaluate("el => el.scrollWidth > innerWidth"), (profile, width)
-                    assert not page.locator("#qualityTab").evaluate("el => el.scrollWidth > el.clientWidth"), (profile, width)
-                    page.screenshot(path=str(screenshots / f"{profile}-{width}-{theme}.png"), full_page=True, animations="disabled")
+                    assert not page.locator("body").evaluate("el => el.scrollWidth > innerWidth"), (
+                        profile,
+                        width,
+                    )
+                    assert not page.locator("#qualityTab").evaluate(
+                        "el => el.scrollWidth > el.clientWidth"
+                    ), (profile, width)
+                    page.screenshot(
+                        path=str(screenshots / f"{profile}-{width}-{theme}.png"),
+                        full_page=True,
+                        animations="disabled",
+                    )
             failure["locked"] = True
             page.reload(wait_until="networkidle")
             page.locator('input[name="qualityProfile"][value="custom"]').check()
@@ -106,7 +134,9 @@ def main():
             page.locator("#qualityState button").click()
             expect(page.locator("#qualityForm")).to_be_visible()
             assert not errors, errors
-            print("PASS: Four profiles, dependent/locked controls, preview invalidation, validation, failed/successful save, load/retry, en/vi, 320–1440px light/dark")
+            print(
+                "PASS: Four profiles, dependent/locked controls, preview invalidation, validation, failed/successful save, load/retry, en/vi, 320–1440px light/dark"
+            )
         finally:
             context.close()
             browser.close()

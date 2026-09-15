@@ -17,10 +17,14 @@ class PlaceholderParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag != "textarea" and (tag != "input" or attributes.get("type", "text") not in PLACEHOLDER_TYPES):
+        if tag != "textarea" and (
+            tag != "input" or attributes.get("type", "text") not in PLACEHOLDER_TYPES
+        ):
             return
         if not (attributes.get("placeholder") or "").strip():
-            self.missing.append(attributes.get("id") or attributes.get("name") or str(self.getpos()))
+            self.missing.append(
+                attributes.get("id") or attributes.get("name") or str(self.getpos())
+            )
 
 
 class PlaceholderContractTests(unittest.TestCase):
@@ -36,7 +40,9 @@ class PlaceholderContractTests(unittest.TestCase):
         missing = []
         for folder in ("features", "ui"):
             for path in (FRONTEND / "js" / folder).glob("*.js"):
-                for match in re.finditer(r"<(input|textarea)\b[^>]*>", path.read_text(encoding="utf-8")):
+                for match in re.finditer(
+                    r"<(input|textarea)\b[^>]*>", path.read_text(encoding="utf-8")
+                ):
                     parser = PlaceholderParser()
                     parser.feed(match[0])
                     missing.extend(f"{path.name}: {field}" for field in parser.missing)
@@ -44,4 +50,6 @@ class PlaceholderContractTests(unittest.TestCase):
 
     def test_placeholders_use_normal_font_weight(self):
         source = (FRONTEND / "css" / "forms-and-data.css").read_text(encoding="utf-8")
-        self.assertRegex(source, r"input::placeholder,\s*textarea::placeholder\s*\{[^}]*font-weight:\s*400;")
+        self.assertRegex(
+            source, r"input::placeholder,\s*textarea::placeholder\s*\{[^}]*font-weight:\s*400;"
+        )

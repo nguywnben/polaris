@@ -21,7 +21,9 @@ class ProviderCreditSettingsFrontendTests(unittest.TestCase):
         cards = CARDS.read_text(encoding="utf-8")
 
         credit_position = html.index('id="antigravityCreditSettings"')
-        advanced_position = html.index('class="tool-panel provider-advanced-panel"', credit_position)
+        advanced_position = html.index(
+            'class="tool-panel provider-advanced-panel"', credit_position
+        )
         self.assertLess(credit_position, advanced_position)
         self.assertNotIn('data-credential-command="enable_credit"', cards)
         self.assertNotIn('data-credential-command="disable_credit"', cards)

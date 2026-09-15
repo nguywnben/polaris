@@ -7,8 +7,36 @@ from browser_smoke import PASSWORD, disposable_runtime
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-LOCALES = ("en", "zh-CN", "zh-TW", "de", "es", "fr", "id", "it", "ja", "ko", "pt", "ru", "th", "tr", "vi")
-ROUTES = ("dashboard", "providers", "pool", "models", "ai-quality", "playground", "access", "identity", "activity", "config", "about")
+LOCALES = (
+    "en",
+    "zh-CN",
+    "zh-TW",
+    "de",
+    "es",
+    "fr",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "pt",
+    "ru",
+    "th",
+    "tr",
+    "vi",
+)
+ROUTES = (
+    "dashboard",
+    "providers",
+    "pool",
+    "models",
+    "ai-quality",
+    "playground",
+    "access",
+    "identity",
+    "activity",
+    "config",
+    "about",
+)
 FIELD_AUDIT = """() => {
     const types = new Set(['text', 'password', 'search', 'email', 'url', 'tel', 'number']);
     return [...document.querySelectorAll('input,textarea')]
@@ -34,10 +62,14 @@ def check_layout(page, label):
 def main(locales=LOCALES):
     with disposable_runtime() as base, sync_playwright() as playwright:
         browser = playwright.chromium.launch()
-        context = browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
+        context = browser.new_context(
+            viewport={"width": 1440, "height": 1000}, reduced_motion="reduce"
+        )
         context.route("https://**", lambda route: route.abort())
         errors = []
-        context.on("page", lambda page: page.on("pageerror", lambda error: errors.append(str(error))))
+        context.on(
+            "page", lambda page: page.on("pageerror", lambda error: errors.append(str(error)))
+        )
         page = context.new_page()
         output = ROOT / "temp/localization-ui"
         output.mkdir(parents=True, exist_ok=True)
@@ -56,7 +88,9 @@ def main(locales=LOCALES):
                     page.goto(f"{base}/{route}", wait_until="networkidle")
                     expect(page.locator("html")).to_have_attribute("lang", locale)
                     check_layout(page, (locale, route))
-                    unresolved = page.locator("[data-i18n]").evaluate_all("els => els.filter(el => el.textContent.trim() === el.dataset.i18n).map(el => el.dataset.i18n)")
+                    unresolved = page.locator("[data-i18n]").evaluate_all(
+                        "els => els.filter(el => el.textContent.trim() === el.dataset.i18n).map(el => el.dataset.i18n)"
+                    )
                     assert not unresolved, (locale, route, unresolved)
                     if route == "access":
                         page.locator('[data-ui-action="virtual-key-create"]').first.click()
@@ -64,15 +98,25 @@ def main(locales=LOCALES):
                         check_layout(page, (locale, "virtual-key-dialog"))
                         page.keyboard.press("Escape")
                     if (locale, route) in (("de", "config"), ("ja", "providers"), ("vi", "config")):
-                        page.screenshot(path=str(output / f"{locale}-{route}-mobile.png"), full_page=True, animations="disabled")
+                        page.screenshot(
+                            path=str(output / f"{locale}-{route}-mobile.png"),
+                            full_page=True,
+                            animations="disabled",
+                        )
                         page.set_viewport_size({"width": 1440, "height": 1000})
                         page.emulate_media(color_scheme="light")
-                        page.screenshot(path=str(output / f"{locale}-{route}-desktop.png"), full_page=True, animations="disabled")
+                        page.screenshot(
+                            path=str(output / f"{locale}-{route}-desktop.png"),
+                            full_page=True,
+                            animations="disabled",
+                        )
                     if route == "providers":
                         # Switching away and back must not cache a previous language's placeholder.
                         select_locale(page, "en")
                         select_locale(page, locale)
-                        mismatched = page.locator('[data-i18n-placeholder]').evaluate_all("els => els.filter(el => el.placeholder !== t(el.dataset.i18nPlaceholder)).map(el => el.id)")
+                        mismatched = page.locator("[data-i18n-placeholder]").evaluate_all(
+                            "els => els.filter(el => el.placeholder !== t(el.dataset.i18nPlaceholder)).map(el => el.id)"
+                        )
                         assert not mismatched, (locale, "placeholder switching", mismatched)
                         wrong_copy = page.evaluate("""() => {
                             const keys = new Map(Object.entries(PROVIDER_EXACT_COPY).map(([key, pair]) => [pair[0], 'provider.copy.' + key]));
@@ -106,7 +150,9 @@ def main(locales=LOCALES):
                 assert response.headers.get("cache-control") == "no-store"
             guest.close()
             assert not errors, errors
-            print(f"PASS: {len(locales)} locales, 14 surfaces, 360/1440px, light/dark, nonblank normal-weight placeholders; no page errors")
+            print(
+                f"PASS: {len(locales)} locales, 14 surfaces, 360/1440px, light/dark, nonblank normal-weight placeholders; no page errors"
+            )
         finally:
             context.close()
             browser.close()

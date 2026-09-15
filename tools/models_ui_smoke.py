@@ -21,30 +21,62 @@ def main():
             data["catalog"] = []
         else:
             data["catalog"] = [
-                {"model_id": name, "providers": [provider], "routable_providers": [provider], "available": True}
+                {
+                    "model_id": name,
+                    "providers": [provider],
+                    "routable_providers": [provider],
+                    "available": True,
+                }
                 for name, provider in (("gpt-fixture", "openai"), ("claude-fixture", "anthropic"))
             ]
-            data["catalog"].append({
-                "model_id": "unavailable-model-with-a-long-identifier-for-responsive-layout-testing",
-                "providers": ["openai"], "routable_providers": [], "available": False,
-            })
+            data["catalog"].append(
+                {
+                    "model_id": "unavailable-model-with-a-long-identifier-for-responsive-layout-testing",
+                    "providers": ["openai"],
+                    "routable_providers": [],
+                    "available": False,
+                }
+            )
         data["pool"]["selected_models"] = state["selected"]
         valid = bool(state["selected"]) and state["mode"] == "populated"
         data["validation"] = {"valid": valid, "status": "ready" if valid else "unavailable"}
         if state["mode"] == "missing":
-            data["blacklist"] = [{"model_id": "gpt-fixture", "provider_id": "openai", "credential_name": "synthetic.json", "last_seen_at": 1789380000}]
+            data["blacklist"] = [
+                {
+                    "model_id": "gpt-fixture",
+                    "provider_id": "openai",
+                    "credential_name": "synthetic.json",
+                    "last_seen_at": 1789380000,
+                }
+            ]
         route.fulfill(json=data)
 
     def route_api(route):
         selected = json.loads(route.request.post_data or "{}").get("selected_models", [])
         if route.request.url.endswith("/validate"):
-            route.fulfill(json={"validation": {"valid": bool(selected), "status": "ready" if selected else "draft"}})
+            route.fulfill(
+                json={
+                    "validation": {
+                        "valid": bool(selected),
+                        "status": "ready" if selected else "draft",
+                    }
+                }
+            )
         elif state["save_error"]:
             route.fulfill(status=503, json={"detail": "Synthetic save failure"})
         else:
             state["selected"] = selected
             state["configured"] = True
-            route.fulfill(json={"pool": {"selected_models": selected, "configured": True, "enabled": True, "revision": "fixture-r2"}})
+            route.fulfill(
+                json={
+                    "pool": {
+                        "selected_models": selected,
+                        "configured": True,
+                        "enabled": True,
+                        "revision": "fixture-r2",
+                    }
+                }
+            )
 
     with disposable_runtime() as base, sync_playwright() as p:
         browser = p.chromium.launch()
@@ -74,7 +106,9 @@ def main():
                 state["mode"] = mode
                 if mode == "missing":
                     state["configured"] = True
-                    state["selected"] = ["saved-model-with-a-long-identifier-that-is-no-longer-discovered-by-the-provider"]
+                    state["selected"] = [
+                        "saved-model-with-a-long-identifier-that-is-no-longer-discovered-by-the-provider"
+                    ]
                 page.locator("#refreshModelCatalogBtn").click()
                 expect(page.locator("#refreshModelCatalogBtn")).to_be_enabled()
                 if mode == "populated":
@@ -83,8 +117,12 @@ def main():
                     expect(page.locator("#modelCatalogList input").last).to_be_disabled()
                     page.locator('[data-model-id="gpt-fixture"]').check()
                     page.locator('[data-model-id="claude-fixture"]').check()
-                    page.locator("#selectedModelList .selected-model-item").nth(1).locator("button").first.click()
-                    expect(page.locator("#selectedModelList strong").first).to_have_text("claude-fixture")
+                    page.locator("#selectedModelList .selected-model-item").nth(1).locator(
+                        "button"
+                    ).first.click()
+                    expect(page.locator("#selectedModelList strong").first).to_have_text(
+                        "claude-fixture"
+                    )
                     page.locator("#modelCatalogSearch").fill("no-such-model")
                     expect(page.locator("#modelCatalogList .model-empty-state")).to_be_visible()
                     expect(page.locator("#modelFirstRun")).to_be_hidden()
@@ -102,15 +140,33 @@ def main():
                     expect(page.locator("#modelRoutingPolicyPanel")).to_be_visible()
                     expect(page.locator("#modelFirstRun")).to_be_hidden()
                     expect(page.locator("#deleteModelRouteBtn")).to_be_visible()
-                    expect(page.locator("#modelBlacklistList .model-blacklist-item")).to_be_visible()
+                    expect(
+                        page.locator("#modelBlacklistList .model-blacklist-item")
+                    ).to_be_visible()
                     expect(page.locator("#testModelRouteBtn")).to_be_disabled()
-                for width, theme in ((320, "light"), (360, "light"), (768, "light"), (1024, "light"), (1440, "light"), (1440, "dark")):
+                for width, theme in (
+                    (320, "light"),
+                    (360, "light"),
+                    (768, "light"),
+                    (1024, "light"),
+                    (1440, "light"),
+                    (1440, "dark"),
+                ):
                     page.set_viewport_size({"width": width, "height": 1000})
                     page.emulate_media(color_scheme=theme)
                     page.mouse.move(0, 0)
-                    assert not page.locator("body").evaluate("el => el.scrollWidth > innerWidth"), (mode, width)
-                    assert not page.locator("#modelsTab").evaluate("el => el.scrollWidth > el.clientWidth"), (mode, width)
-                    page.screenshot(path=str(screenshots / f"{mode}-{width}-{theme}.png"), full_page=True, animations="disabled")
+                    assert not page.locator("body").evaluate("el => el.scrollWidth > innerWidth"), (
+                        mode,
+                        width,
+                    )
+                    assert not page.locator("#modelsTab").evaluate(
+                        "el => el.scrollWidth > el.clientWidth"
+                    ), (mode, width)
+                    page.screenshot(
+                        path=str(screenshots / f"{mode}-{width}-{theme}.png"),
+                        full_page=True,
+                        animations="disabled",
+                    )
             state["mode"] = "error"
             page.locator("#refreshModelCatalogBtn").click()
             expect(page.locator("#modelCatalogState")).to_be_visible()
@@ -123,7 +179,9 @@ def main():
             expect(page).to_have_url(base + "/playground?model=polaris&source=models")
             expect(page.locator("#playgroundModel")).to_have_value("polaris")
             assert not errors, errors
-            print("PASS: Empty/existing/missing models, selection/order/search, failed/successful save, error/retry, Playground handoff, en/vi, 320–1440px light/dark")
+            print(
+                "PASS: Empty/existing/missing models, selection/order/search, failed/successful save, error/retry, Playground handoff, en/vi, 320–1440px light/dark"
+            )
         finally:
             context.close()
             browser.close()

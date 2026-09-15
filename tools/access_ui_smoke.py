@@ -21,11 +21,20 @@ def main():
         browser = p.chromium.launch()
         context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1000})
         context.route("https://**", lambda route: route.abort())
-        context.route("**/api/auth/keys", lambda route: route.fulfill(json={
-            "success": True, "api_key": "sk-polaris-synthetic-not-a-real-key", "managed_by_env": True,
-        }))
+        context.route(
+            "**/api/auth/keys",
+            lambda route: route.fulfill(
+                json={
+                    "success": True,
+                    "api_key": "sk-polaris-synthetic-not-a-real-key",
+                    "managed_by_env": True,
+                }
+            ),
+        )
         context.route("**/api/virtual-keys", keys)
-        context.add_init_script("Object.defineProperty(navigator, 'clipboard', {value: {writeText: async text => { window.copiedText = text; }}})")
+        context.add_init_script(
+            "Object.defineProperty(navigator, 'clipboard', {value: {writeText: async text => { window.copiedText = text; }}})"
+        )
         page = context.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
@@ -62,7 +71,18 @@ def main():
                     assert "<YOUR_POLARIS_VIRTUAL_KEY>" in copied and "synthetic" not in copied
             page.locator("#accessClientFormat").select_option("curl")
             page.locator("#accessProtocol").select_option("openai_chat")
-            state["records"] = [{"id": "fixture", "name": "Synthetic client", "key_preview": "sk-polaris-…fixture", "status": "active", "enabled": True, "revision": 1, "scopes": ["inference:openai"], "allowed_models": ["polaris"]}]
+            state["records"] = [
+                {
+                    "id": "fixture",
+                    "name": "Synthetic client",
+                    "key_preview": "sk-polaris-…fixture",
+                    "status": "active",
+                    "enabled": True,
+                    "revision": 1,
+                    "scopes": ["inference:openai"],
+                    "allowed_models": ["polaris"],
+                }
+            ]
             page.locator('[data-ui-action="virtual-key-refresh"]').click()
             expect(page.locator(".virtual-key-card")).to_have_count(1)
             page.locator("#virtualKeySearch").fill("not-found")
@@ -79,7 +99,9 @@ def main():
             expect(page.locator("#virtualKeyState")).to_be_hidden()
             for locale in ("en", "vi"):
                 page.evaluate("lang => { AppState.lang = lang; applyLanguage(); }", locale)
-                assert "access.empty_title" not in page.locator("#virtualKeyEmptyState").inner_text()
+                assert (
+                    "access.empty_title" not in page.locator("#virtualKeyEmptyState").inner_text()
+                )
             for width in (1440, 1024, 768, 360, 320):
                 page.set_viewport_size({"width": width, "height": 1000})
                 assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
@@ -106,7 +128,9 @@ def main():
             page.emulate_media(color_scheme="dark")
             page.screenshot(path=str(output / "access-dark-mobile.png"), full_page=True)
             assert not errors, errors
-            print("PASS: access empty/filter/error, secret visibility, URL/example copy, 16 examples, modal scopes, 5 widths, en/vi, dark; no real keys changed")
+            print(
+                "PASS: access empty/filter/error, secret visibility, URL/example copy, 16 examples, modal scopes, 5 widths, en/vi, dark; no real keys changed"
+            )
         finally:
             context.close()
             browser.close()

@@ -12,12 +12,18 @@ def main():
     state = {"fail": False, "empty": False, "known": False, "update": False}
 
     def version(route):
-        route.fulfill(json={
-            "success": True, "version": "0.1.0-beta" if state["known"] else "unknown",
-            "source": "container", "full_hash": "a" * 128 if state["known"] else "",
-            "date": "2026-09-14" if state["known"] else "", "check_update": True,
-            "has_update": state["update"], "latest_version": "0.2.0-beta",
-        })
+        route.fulfill(
+            json={
+                "success": True,
+                "version": "0.1.0-beta" if state["known"] else "unknown",
+                "source": "container",
+                "full_hash": "a" * 128 if state["known"] else "",
+                "date": "2026-09-14" if state["known"] else "",
+                "check_update": True,
+                "has_update": state["update"],
+                "latest_version": "0.2.0-beta",
+            }
+        )
 
     def capabilities(route):
         if state["fail"]:
@@ -29,7 +35,9 @@ def main():
 
     with disposable_runtime() as base, sync_playwright() as p:
         browser = p.chromium.launch()
-        context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
+        context = browser.new_context(
+            locale="vi-VN", viewport={"width": 1440, "height": 1000}, reduced_motion="reduce"
+        )
         context.route("https://**", lambda route: route.abort())
         context.route("**/api/version/info*", version)
         context.route("**/api/capabilities", capabilities)
@@ -58,15 +66,26 @@ def main():
                 page.goto(base + "/about", wait_until="networkidle")
                 for width in (1440, 1024, 768, 360, 320):
                     page.set_viewport_size({"width": width, "height": 1000})
-                    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (theme, width)
+                    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (
+                        theme,
+                        width,
+                    )
                     if width in (1440, 360):
-                        page.screenshot(path=str(output / f"about-{width}-{theme}.png"), full_page=True, animations="disabled")
+                        page.screenshot(
+                            path=str(output / f"about-{width}-{theme}.png"),
+                            full_page=True,
+                            animations="disabled",
+                        )
             page.set_viewport_size({"width": 1440, "height": 1000})
             page.locator("#checkUpdateBtn").click()
-            expect(page.locator("#checkUpdateBtn")).to_have_class("btn btn-secondary update-current")
+            expect(page.locator("#checkUpdateBtn")).to_have_class(
+                "btn btn-secondary update-current"
+            )
             state["update"] = True
             page.locator("#checkUpdateBtn").click()
-            expect(page.locator("#checkUpdateBtn")).to_have_class("btn btn-secondary update-available")
+            expect(page.locator("#checkUpdateBtn")).to_have_class(
+                "btn btn-secondary update-available"
+            )
             state["known"] = True
             page.reload(wait_until="networkidle")
             expect(page.locator("#aboutBuildFacts")).to_contain_text("v0.1.0-beta")
@@ -90,7 +109,9 @@ def main():
             page.goto(base + "/about", wait_until="networkidle")
             expect(page.locator(".support-tier-status").first).to_contain_text("Available")
             assert not errors, errors
-            print("PASS: support counts, missing/long build metadata, links/focus, update states, empty/error/retry, en/vi, 5 widths light/dark")
+            print(
+                "PASS: support counts, missing/long build metadata, links/focus, update states, empty/error/retry, en/vi, 5 widths light/dark"
+            )
         finally:
             context.close()
             browser.close()

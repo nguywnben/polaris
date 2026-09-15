@@ -298,9 +298,7 @@ class GoogleProviderConfigRouteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_google_reset_rejects_unknown_scope_before_storage_access(self):
         get_storage = AsyncMock()
-        with patch(
-            "core.panel.providers.antigravity.get_storage_adapter", new=get_storage
-        ):
+        with patch("core.panel.providers.antigravity.get_storage_adapter", new=get_storage):
             with self.assertRaises(HTTPException) as raised:
                 await reset_google_config(scope="all", token="session")
 

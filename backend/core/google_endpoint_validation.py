@@ -32,7 +32,9 @@ def _parse_base_url(value: str, *, setting_name: str) -> SplitResult:
     if parsed.query or parsed.fragment:
         raise ValueError(f"Google setting '{setting_name}' must not include a query or fragment.")
 
-    return parsed._replace(scheme=parsed.scheme.lower(), netloc=parsed.netloc, query="", fragment="")
+    return parsed._replace(
+        scheme=parsed.scheme.lower(), netloc=parsed.netloc, query="", fragment=""
+    )
 
 
 def normalize_google_oauth_base_url(value: str, *, setting_name: str) -> str:

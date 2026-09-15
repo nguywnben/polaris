@@ -64,9 +64,7 @@ def _new_runtime_store() -> InMemoryStateStore:
     """
     monotonic_anchor = time.monotonic()
     epoch_anchor = time.time()
-    return InMemoryStateStore(
-        clock=lambda: epoch_anchor + (time.monotonic() - monotonic_anchor)
-    )
+    return InMemoryStateStore(clock=lambda: epoch_anchor + (time.monotonic() - monotonic_anchor))
 
 
 class RuntimeLifecycle:

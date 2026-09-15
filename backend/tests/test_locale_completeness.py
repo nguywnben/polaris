@@ -15,8 +15,12 @@ class LocaleCompletenessTests(unittest.TestCase):
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the locale contract")
         result = subprocess.run(
-            [node, "tools/i18n-audit.mjs", "--strict"], cwd=ROOT,
-            capture_output=True, text=True, encoding="utf-8", timeout=30,
+            [node, "tools/i18n-audit.mjs", "--strict"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -27,6 +31,7 @@ class LocaleCompletenessTests(unittest.TestCase):
 
         def fields(text):
             return {name for _, name, _, _ in Formatter().parse(text) if name}
+
         for key, translations in MESSAGES.items():
             with self.subTest(key=key):
                 self.assertEqual(set(translations), set(SUPPORTED_LOCALES))
@@ -41,7 +46,11 @@ class LocaleCompletenessTests(unittest.TestCase):
         paths = {f"js/locales/{path.name}" for path in (ROOT / "frontend/js/locales").glob("*.js")}
         self.assertEqual(len(paths), 13)
         self.assertTrue(paths.issubset(set(CONSOLE_SCRIPT_ASSETS)))
-        self.assertLess(CONSOLE_SCRIPT_ASSETS.index("js/core/identity-locales.js"),
-                        min(CONSOLE_SCRIPT_ASSETS.index(path) for path in paths))
-        self.assertGreater(CONSOLE_SCRIPT_ASSETS.index("js/core/locale-completion.js"),
-                           max(CONSOLE_SCRIPT_ASSETS.index(path) for path in paths))
+        self.assertLess(
+            CONSOLE_SCRIPT_ASSETS.index("js/core/identity-locales.js"),
+            min(CONSOLE_SCRIPT_ASSETS.index(path) for path in paths),
+        )
+        self.assertGreater(
+            CONSOLE_SCRIPT_ASSETS.index("js/core/locale-completion.js"),
+            max(CONSOLE_SCRIPT_ASSETS.index(path) for path in paths),
+        )

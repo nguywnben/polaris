@@ -37,11 +37,16 @@ def _frontend_sources() -> list[Path]:
 
 class FrontendLocaleContractTests(unittest.TestCase):
     def test_identity_messages_reach_the_runtime_translator_for_every_locale(self):
-        source = "\n".join((
-            LOCALE_SOURCE, PAGE_LOCALE_SOURCE, AUDIT_LOCALE_SOURCE, TRACE_LOCALE_SOURCE,
-            OPERATIONAL_LOCALE_SOURCE, I18N_SOURCE.split("installLocalizedFetch();", 1)[0],
-            IDENTITY_LOCALE_SOURCE,
-            """
+        source = "\n".join(
+            (
+                LOCALE_SOURCE,
+                PAGE_LOCALE_SOURCE,
+                AUDIT_LOCALE_SOURCE,
+                TRACE_LOCALE_SOURCE,
+                OPERATIONAL_LOCALE_SOURCE,
+                I18N_SOURCE.split("installLocalizedFetch();", 1)[0],
+                IDENTITY_LOCALE_SOURCE,
+                """
 let activeLocale = 'en';
 getActiveLocale = () => activeLocale;
 for (const [locale, messages] of Object.entries(IDENTITY_LOCALE_TRANSLATIONS)) {
@@ -56,11 +61,19 @@ if (t('identity.page', {page: 2}) !== 'Trang 2') throw new Error('Page interpola
 if (translateEnglishSource('Identity and sessions', 'vi') !== 'Danh tính và phiên') throw new Error('English source lookup missing');
 console.log('All 15 Identity runtime catalogs resolve');
 """,
-        ))
+            )
+        )
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the runtime locale contract")
-        result = subprocess.run([node], input=source, capture_output=True, text=True,
-                                encoding="utf-8", timeout=15, cwd=ROOT)
+        result = subprocess.run(
+            [node],
+            input=source,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=15,
+            cwd=ROOT,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_javascript_audit_accepts_namespaced_translation_keys(self):

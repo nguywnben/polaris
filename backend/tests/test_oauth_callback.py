@@ -36,23 +36,23 @@ def _callback_request(**query: str) -> Request:
 
 class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
     def test_navigation_labels_cover_every_locale(self):
-        for key in ('oauth.return_providers', 'oauth.open_providers_new_tab'):
+        for key in ("oauth.return_providers", "oauth.open_providers_new_tab"):
             self.assertEqual(set(MESSAGES[key]), set(SUPPORTED_LOCALES))
             self.assertTrue(all(MESSAGES[key].values()))
 
     def test_result_page_is_themed_escaped_and_has_safe_navigation(self):
         for success in (False, True):
-            response = root._oauth_callback_page(success, '<script>alert(1)</script>', 'A & B')
-            body = response.body.decode('utf-8')
-            self.assertIn('/frontend/theme.js', body)
-            self.assertIn('/frontend/console.css', body)
-            self.assertNotIn('/frontend/console.js', body)
+            response = root._oauth_callback_page(success, "<script>alert(1)</script>", "A & B")
+            body = response.body.decode("utf-8")
+            self.assertIn("/frontend/theme.js", body)
+            self.assertIn("/frontend/console.css", body)
+            self.assertNotIn("/frontend/console.js", body)
             self.assertIn('href="/providers"', body)
-            self.assertIn('&lt;script&gt;', body)
-            self.assertNotIn('<script>alert(1)</script>', body)
-            self.assertIn('A &amp; B', body)
-            self.assertEqual(response.headers['referrer-policy'], 'no-referrer')
-            self.assertEqual(response.headers['cache-control'], 'no-store')
+            self.assertIn("&lt;script&gt;", body)
+            self.assertNotIn("<script>alert(1)</script>", body)
+            self.assertIn("A &amp; B", body)
+            self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+            self.assertEqual(response.headers["cache-control"], "no-store")
             self.assertEqual(response.status_code, 200 if success else 400)
 
     async def test_claude_callback_is_completed_by_the_anthropic_handler(self):
@@ -93,7 +93,7 @@ class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         accept_google.assert_called_once_with("google-code", "google-state")
-        self.assertIn('target="_blank" rel="noopener noreferrer"', response.body.decode('utf-8'))
+        self.assertIn('target="_blank" rel="noopener noreferrer"', response.body.decode("utf-8"))
 
 
 if __name__ == "__main__":

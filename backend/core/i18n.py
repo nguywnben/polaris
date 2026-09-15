@@ -469,10 +469,12 @@ _OAUTH_NAVIGATION_ROWS = {
     "vi": ("Quay lại Nhà cung cấp", "Mở Nhà cung cấp trong tab mới"),
 }
 for _locale, (_return_label, _new_tab_label) in _OAUTH_NAVIGATION_ROWS.items():
-    _OAUTH_MESSAGE_ROWS[_locale].update({
-        "oauth.return_providers": _return_label,
-        "oauth.open_providers_new_tab": _new_tab_label,
-    })
+    _OAUTH_MESSAGE_ROWS[_locale].update(
+        {
+            "oauth.return_providers": _return_label,
+            "oauth.open_providers_new_tab": _new_tab_label,
+        }
+    )
 
 for _locale, _messages in _OAUTH_MESSAGE_ROWS.items():
     for _key, _message in _messages.items():
