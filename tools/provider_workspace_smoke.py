@@ -252,6 +252,13 @@ def verify_kiro_browser(page):
     expect(form.locator("button")).to_be_visible()
     expect(form.locator("button")).to_be_enabled()
     expect(pending).to_be_focused()
+    expect(pending.locator('[data-i18n="provider.portal.pending"]')).to_have_count(0)
+    expect(pending.locator(":scope > p")).to_have_count(0)
+    expect(pending.locator(".page-actions button")).to_have_count(1)
+    expect(pending.locator('button[type="submit"]')).to_have_text(
+        page.evaluate("t('runtime.save_credential')")
+    )
+    expect(pending.locator('button[type="submit"]')).to_have_attribute("class", "btn")
     assert page.evaluate("window.kiroPopupCalls") == 0
     expect(page).to_have_url(page.url.split("/providers")[0] + "/providers")
     expect(pending.locator("a")).to_have_attribute(
@@ -320,6 +327,9 @@ def verify_kiro_browser(page):
         page.evaluate("theme => PolarisTheme.setPreference(theme)", theme)
         expect(page.locator("html")).not_to_have_class("theme-switching")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        header_box = pending.locator(".auth-link-header").bounding_box()
+        link_box = pending.locator(".auth-link-card").bounding_box()
+        assert abs(link_box["y"] - header_box["y"] - header_box["height"] - 8) < 1
         workspace.screenshot(path=str(shots / f"kiro-browser-{width}-{theme}.png"))
     state["invalid"] = False
     pending.locator('button[type="submit"]').click()
@@ -332,14 +342,6 @@ def verify_kiro_browser(page):
     form.locator("button").click()
     expect(pending).to_be_visible()
     expect(workspace.locator("#kiroBrowserSaveResult")).to_be_hidden()
-    pending.locator('[data-i18n="btn_cancel"]').click()
-    expect(pending).to_be_hidden()
-    expect(pending.locator("a")).not_to_have_attribute(
-        "href", "https://app.kiro.dev/signin?state=synthetic"
-    )
-    expect(pending.locator("a")).to_have_text("")
-    assert calls[-1] == "cancel"
-    expect(form.locator("button")).to_be_focused()
     state["unsafe_link"] = True
     with page.expect_response("**/api/providers/kiro/browser/start"):
         form.locator("button").click()

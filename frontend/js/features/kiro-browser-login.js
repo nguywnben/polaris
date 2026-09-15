@@ -15,13 +15,11 @@ function buildKiroOAuthPanel(advanced) {
     });
     region.setAttribute('form', form.id);
     settings.append(legend, fields); advanced.append(settings);
-    const pending = extendedElement('section', 'provider-device-flow provider-browser-pending hidden');
+    const pending = extendedElement('section', 'provider-browser-pending hidden');
     pending.tabIndex = -1;
-    const status = extendedElement('p', 'card-copy', 'provider.portal.pending'); status.setAttribute('role', 'status');
-    status.id = 'kiroBrowserStatus'; pending.setAttribute('aria-labelledby', status.id);
-    const expiry = extendedElement('p', 'card-copy');
     const linkHeader = extendedElement('div', 'auth-link-header');
     const linkLabel = extendedElement('span', '', 'provider.portal.link_label');
+    linkLabel.id = 'kiroBrowserLinkLabel'; pending.setAttribute('aria-labelledby', linkLabel.id);
     const copy = extendedElement('button', 'btn btn-secondary', 'provider.portal.copy');
     copy.id = 'kiroBrowserCopyLink'; copy.type = 'button';
     linkHeader.append(linkLabel, copy);
@@ -30,7 +28,6 @@ function buildKiroOAuthPanel(advanced) {
     link.target = '_blank'; link.rel = 'noopener noreferrer';
     linkCard.append(link);
     copy.addEventListener('click', () => { if (flow && link.hasAttribute('href')) copyTextWithStatus(link.href); });
-    const cancel = extendedElement('button', 'btn btn-secondary', 'btn_cancel'); cancel.type = 'button';
     const actions = extendedElement('div', 'page-actions');
     const manualForm = extendedElement('form', 'extended-provider-form oauth-completion-panel'); manualForm.noValidate = true;
     const callbackGroup = extendedElement('div', 'form-group');
@@ -41,9 +38,9 @@ function buildKiroOAuthPanel(advanced) {
     input.placeholder = 'http://localhost:4283/oauth/callback?code=…&state=…';
     input.maxLength = 6144; input.autocomplete = 'off'; input.autocapitalize = 'none'; input.spellcheck = false;
     callbackGroup.append(callbackLabel, input); manualForm.append(callbackGroup);
-    const submit = extendedElement('button', 'btn btn-secondary', 'provider.portal.submit'); submit.type = 'submit';
-    actions.append(submit, cancel); manualForm.append(actions);
-    pending.append(status, linkHeader, linkCard, expiry, manualForm); panel.append(pending);
+    const submit = extendedElement('button', 'btn', 'runtime.save_credential'); submit.type = 'submit';
+    actions.append(submit); manualForm.append(actions);
+    pending.append(linkHeader, linkCard, manualForm); panel.append(pending);
     const saveResult = createProviderCredentialSaveResult(panel, 'kiroBrowser');
     const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
     const callbackOrigin = remote ? 'http://localhost:4283' : location.origin;
@@ -51,7 +48,7 @@ function buildKiroOAuthPanel(advanced) {
     let flow = null, timer = null, busy = false, expiresAt = 0;
     const setBusy = value => {
         busy = value;
-        [start, submit, cancel].forEach(button => { button.disabled = value; });
+        [start, submit].forEach(button => { button.disabled = value; });
     };
     const stopTimer = () => { clearTimeout(timer); timer = null; };
     const reset = () => {
@@ -99,7 +96,6 @@ function buildKiroOAuthPanel(advanced) {
             if (url.origin !== 'https://app.kiro.dev' || url.pathname !== '/signin' || url.username || url.password) throw new Error('invalid-url');
             flow = result.flow_id; expiresAt = Date.now() + result.expires_in * 1000;
             link.href = url.href; link.textContent = url.href;
-            expiry.textContent = t('provider.ui.expires_at', {time: new Date(expiresAt).toLocaleTimeString(document.documentElement.lang || 'en', {hour: '2-digit', minute: '2-digit'})});
             pending.classList.remove('hidden'); pending.focus({preventScroll: true});
         } catch (error) {
             if (!flow || error.terminal) reset();
@@ -113,14 +109,6 @@ function buildKiroOAuthPanel(advanced) {
         try { await request('callback', {flow_id: flow, callback_url: input.value.trim()}); input.value = ''; }
         catch { showStatus(t('provider.auth.error'), 'error'); }
         finally { setBusy(false); schedule(); }
-    });
-    cancel.addEventListener('click', async () => {
-        if (busy || !flow) return;
-        setBusy(true);
-        try { await request('cancel', {flow_id: flow}); reset(); }
-        catch { showStatus(t('provider.auth.error'), 'error'); }
-        finally { setBusy(false); schedule(); }
-        if (!flow) start.focus({preventScroll: true});
     });
     window.addEventListener('pagehide', stopTimer);
     window.addEventListener('pageshow', schedule);

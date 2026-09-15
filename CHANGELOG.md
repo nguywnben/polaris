@@ -19,6 +19,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
   Generate the sign-in link first, then open or copy it without an automatic popup;
   the callback textarea stays visible while authorization is pending. The link button
   remains available to cancel the previous pending flow and generate a new link.
+  Link spacing and the single primary save action match Antigravity, without pending
+  or expiry copy; the sign-in timeout still applies.
   AWS device login and API keys remain separate secondary options.
 - GroqCloud, DeepSeek Platform, Mistral AI Studio and Cerebras Cloud API-key
   providers, with credential-specific endpoints, JSON/ZIP imports, chat model

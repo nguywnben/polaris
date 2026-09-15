@@ -10,14 +10,15 @@
 .extended-provider-fields ::placeholder { font-weight: 400; }
 .provider-tools-column { display: grid; gap: 16px; min-width: 0; }
 .provider-aws-login { margin: 16px 20px; }
-.provider-browser-pending > details { min-width: 0; }
-.provider-browser-pending > details > form { margin-top: 16px; }
+.provider-browser-pending { margin-top: 18px; }
+.provider-browser-pending .form-group { margin-bottom: 0; }
+.provider-browser-pending .page-actions { margin-top: 14px; }
 .provider-device-code { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .provider-device-flow { display: grid; gap: 16px; }
 .provider-device-flow > :is(h4, p) { margin: 0; }
 .provider-device-code-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--bg-subtle); border-radius: var(--radius); }
 .provider-device-code-row .provider-device-code { font-family: monospace; font-size: 24px; letter-spacing: .04em; }
-.provider-device-flow:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+:is(.provider-device-flow, .provider-browser-pending):focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
 .provider-auth-settings { min-width: 0; margin: 20px; padding: 0; border: 0; }
 .provider-auth-settings + .provider-auth-settings { border-top: 1px solid var(--border); padding-top: 20px; }
 .provider-auth-settings > legend { padding: 0 0 16px; font-weight: 650; }
