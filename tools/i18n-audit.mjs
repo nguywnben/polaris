@@ -32,6 +32,11 @@ for (const file of sources) {
             fileReferences.add(match[1]);
         }
     }
+    for (const match of source.matchAll(/data-provider-form-copy=['"]([^'"]+)['"]/g)) {
+        const key = `provider.form.${match[1]}`;
+        referenced.add(key);
+        fileReferences.add(key);
+    }
     if (fileReferences.size) referencesByFile.set(path.relative(root, file), fileReferences);
 }
 

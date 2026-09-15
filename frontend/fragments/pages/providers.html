@@ -227,7 +227,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build">Grok Build Advanced Settings</h2>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_oauth_description" data-provider-name="Grok Build">Configure the endpoints and OAuth application used to connect to Grok Build.</p>
                                     <button type="button" hidden inert data-operator-only class="btn btn-secondary btn-small" data-provider-owned-link="xai_console"><span data-i18n="provider.ownership.shared">Shared settings</span> — Grok Build / SpaceXAI Console</button>
                                 </div>
                                 <div class="page-actions">
@@ -318,7 +318,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="SpaceXAI Console">SpaceXAI Console</h2>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="SpaceXAI Console">Configure the API endpoint Polaris uses to connect to SpaceXAI Console.</p>
 
                                 </div>
                                 <div class="page-actions">
@@ -412,8 +412,7 @@
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google AI Studio">Google AI Studio Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the upstream endpoint used to validate API keys and route Google AI Studio requests.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="Google AI Studio">Configure the API endpoint Polaris uses to connect to Google AI Studio.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-ai-studio-settings">Save</button>
@@ -488,8 +487,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Codex">Codex Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure authorization, inference, model discovery, and account quota services for Codex credentials.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_client_description" data-provider-name="Codex">Configure the OAuth application, service endpoints and client identification for Codex.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-openai-settings" data-openai-scope="codex">Save</button>
@@ -542,8 +540,7 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="OpenAI Platform">OpenAI Platform Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the API endpoint used for key validation, model discovery, and inference.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="OpenAI Platform">Configure the API endpoint Polaris uses to connect to OpenAI Platform.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-openai-settings" data-openai-scope="platform">Save</button>
@@ -591,7 +588,7 @@
                             </section>
                         </div>
                         <section class="tool-panel provider-settings-panel">
-                            <div class="provider-settings-header"><div><h2 class="card-title">Claude Code Advanced Settings</h2><button type="button" hidden inert data-operator-only class="btn btn-secondary btn-small" data-provider-owned-link="claude_platform"><span data-i18n="provider.ownership.shared">Shared settings</span> — Claude Code / Claude Platform</button></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
+                            <div class="provider-settings-header"><div><p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_oauth_description" data-provider-name="Claude Code">Configure the endpoints and OAuth application used to connect to Claude Code.</p><button type="button" hidden inert data-operator-only class="btn btn-secondary btn-small" data-provider-owned-link="claude_platform"><span data-i18n="provider.ownership.shared">Shared settings</span> — Claude Code / Claude Platform</button></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
                             <div id="claudeCodeSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Code settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div>
                             <div id="claudeCodeSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group config-two-column"><div class="form-group"><label for="claudeAuthorizeUrl">Authorization service</label><input type="url" id="claudeAuthorizeUrl" autocomplete="off" placeholder="https://login.example.com/authorize"></div><div class="form-group"><label for="claudeTokenUrl">Token service</label><input type="url" id="claudeTokenUrl" autocomplete="off" placeholder="https://login.example.com/token"></div><div class="form-group"><label for="claudeClientId">OAuth client ID</label><input type="text" id="claudeClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div></section></div>
                         </section>
@@ -738,7 +735,7 @@
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google Antigravity">Google Antigravity Advanced Settings</h2>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_client_description" data-provider-name="Google Antigravity">Configure the OAuth application, service endpoints and client identification for Google Antigravity.</p>
 
                                 </div>
                                 <div class="page-actions">

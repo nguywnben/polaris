@@ -143,6 +143,12 @@ def _select_all_providers(page: Page) -> None:
             if not advanced.evaluate("details => details.open"):
                 advanced.locator("summary").click()
             expect(advanced).to_have_attribute("open", "")
+            description = advanced.locator('.provider-settings-header p[data-provider-form-copy]')
+            expect(description).to_be_visible()
+            expect(description).not_to_have_text("")
+            assert "{provider}" not in description.inner_text()
+            assert not description.inner_text().startswith("provider.form.")
+            assert int(description.evaluate("element => getComputedStyle(element).fontWeight")) < 600
         for shared in page.locator(
             '[data-provider-owned-link], #xaiSharedSettingsForm, '
             '#claudePlatformSettingsForm, [data-google-settings]'

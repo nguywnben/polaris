@@ -3288,3 +3288,26 @@ const PROVIDER_ARCHIVE_RESULT_MESSAGES = {
 for (const [locale, message] of Object.entries(PROVIDER_ARCHIVE_RESULT_MESSAGES)) {
     PAGE_LOCALE_TRANSLATIONS[locale]['import.archive_intro'] = message;
 }
+
+const PROVIDER_ADVANCED_DESCRIPTION_VALUES = {
+    en: ['Configure the API endpoint Polaris uses to connect to {provider}.', 'Configure the endpoints and OAuth application used to connect to {provider}.', 'Configure the OAuth application, service endpoints and client identification for {provider}.'],
+    vi: ['Cấu hình endpoint API để Polaris kết nối với {provider}.', 'Cấu hình các endpoint và ứng dụng OAuth dùng để kết nối với {provider}.', 'Cấu hình ứng dụng OAuth, các endpoint dịch vụ và thông tin nhận diện client của {provider}.'],
+    'zh-CN': ['配置 Polaris 连接 {provider} 时使用的 API 端点。', '配置连接 {provider} 时使用的端点和 OAuth 应用。', '配置 {provider} 的 OAuth 应用、服务端点和客户端标识信息。'],
+    'zh-TW': ['設定 Polaris 連線至 {provider} 時使用的 API 端點。', '設定連線至 {provider} 時使用的端點和 OAuth 應用程式。', '設定 {provider} 的 OAuth 應用程式、服務端點和用戶端識別資訊。'],
+    de: ['Konfigurieren Sie den API-Endpunkt, über den Polaris eine Verbindung zu {provider} herstellt.', 'Konfigurieren Sie die Endpunkte und die OAuth-Anwendung für die Verbindung zu {provider}.', 'Konfigurieren Sie die OAuth-Anwendung, Dienstendpunkte und Client-Kennung für {provider}.'],
+    es: ['Configura el endpoint de API que Polaris utiliza para conectarse a {provider}.', 'Configura los endpoints y la aplicación OAuth utilizados para conectarse a {provider}.', 'Configura la aplicación OAuth, los endpoints de servicio y la identificación del cliente de {provider}.'],
+    fr: ['Configurez le point de terminaison API utilisé par Polaris pour se connecter à {provider}.', 'Configurez les points de terminaison et l’application OAuth utilisés pour se connecter à {provider}.', 'Configurez l’application OAuth, les points de terminaison des services et l’identification du client pour {provider}.'],
+    id: ['Konfigurasikan endpoint API yang digunakan Polaris untuk terhubung ke {provider}.', 'Konfigurasikan endpoint dan aplikasi OAuth yang digunakan untuk terhubung ke {provider}.', 'Konfigurasikan aplikasi OAuth, endpoint layanan, dan identitas klien untuk {provider}.'],
+    it: ['Configura l’endpoint API utilizzato da Polaris per connettersi a {provider}.', 'Configura gli endpoint e l’applicazione OAuth utilizzati per connettersi a {provider}.', 'Configura l’applicazione OAuth, gli endpoint dei servizi e l’identificazione del client per {provider}.'],
+    ja: ['Polaris が {provider} への接続に使用する API エンドポイントを設定します。', '{provider} への接続に使用するエンドポイントと OAuth アプリケーションを設定します。', '{provider} の OAuth アプリケーション、サービスエンドポイント、クライアント識別情報を設定します。'],
+    ko: ['Polaris가 {provider}에 연결할 때 사용하는 API 엔드포인트를 설정합니다.', '{provider} 연결에 사용하는 엔드포인트와 OAuth 애플리케이션을 설정합니다.', '{provider}의 OAuth 애플리케이션, 서비스 엔드포인트 및 클라이언트 식별 정보를 설정합니다.'],
+    pt: ['Configure o endpoint de API que o Polaris usa para se conectar a {provider}.', 'Configure os endpoints e o aplicativo OAuth usados para se conectar a {provider}.', 'Configure o aplicativo OAuth, os endpoints de serviço e a identificação do cliente de {provider}.'],
+    ru: ['Настройте конечную точку API, которую Polaris использует для подключения к {provider}.', 'Настройте конечные точки и приложение OAuth для подключения к {provider}.', 'Настройте приложение OAuth, конечные точки сервисов и идентификационные данные клиента для {provider}.'],
+    th: ['กำหนดค่า endpoint API ที่ Polaris ใช้เชื่อมต่อกับ {provider}', 'กำหนดค่า endpoint และแอปพลิเคชัน OAuth ที่ใช้เชื่อมต่อกับ {provider}', 'กำหนดค่าแอปพลิเคชัน OAuth, endpoint ของบริการ และข้อมูลระบุไคลเอนต์ของ {provider}'],
+    tr: ['Polaris’in {provider} bağlantısı için kullandığı API uç noktasını yapılandırın.', '{provider} bağlantısı için kullanılan uç noktaları ve OAuth uygulamasını yapılandırın.', '{provider} için OAuth uygulamasını, hizmet uç noktalarını ve istemci kimlik bilgilerini yapılandırın.']
+};
+for (const [locale, descriptions] of Object.entries(PROVIDER_ADVANCED_DESCRIPTION_VALUES)) {
+    ['api', 'oauth', 'client'].forEach((kind, index) => {
+        PAGE_LOCALE_TRANSLATIONS[locale][`provider.form.advanced_${kind}_description`] = descriptions[index];
+    });
+}
