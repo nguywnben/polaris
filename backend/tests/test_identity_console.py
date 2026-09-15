@@ -14,6 +14,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from core.identity.authorization import ManagementPermission
 from core.panel.root import serve_control_panel
 
 ROOT = BACKEND_DIR.parent
@@ -43,6 +44,8 @@ class IdentityConsoleContractTests(unittest.TestCase):
     api: identityApi,
     renderOidc: renderIdentityOidc,
     renderPrincipal: renderIdentityPrincipal,
+    renderPagination: renderIdentityPagination,
+    renderSessionPagination: renderIdentitySessionPagination,
     renderRecord: renderIdentityRecord,
     toggle: toggleManagedIdentity,
     updateRole: updateIdentityRole,
@@ -60,7 +63,10 @@ class IdentityConsoleContractTests(unittest.TestCase):
 const fs = require('fs');
 const vm = require('vm');
 class TestElement {{
-    constructor() {{
+    constructor(tagName = 'div') {{
+        this.tagName = tagName.toUpperCase();
+        this.hidden = false;
+        this.attributes = new Map();
         this.classes = new Set();
         this.classList = {{
             add: (...names) => names.forEach((name) => this.classes.add(name)),
@@ -77,13 +83,23 @@ class TestElement {{
         if (!this.listeners.has(type)) this.listeners.set(type, []);
         this.listeners.get(type).push(listener);
     }}
-    append(...children) {{ this.children.push(...children); }}
-    appendChild(child) {{ this.children.push(child); return child; }}
+    append(...children) {{ children.forEach(child => this.appendChild(child)); }}
+    appendChild(child) {{ child.parentElement = this; this.children.push(child); return child; }}
+    closest(selector) {{
+        if (selector.startsWith('.') && (this.className || '').split(' ').includes(selector.slice(1))) return this;
+        return this.parentElement?.closest(selector) || null;
+    }}
     close() {{ this.open = false; }}
     focus() {{ this.focused = true; }}
     matches() {{ return true; }}
-    replaceChildren(...children) {{ this.children = children; }}
-    setAttribute() {{}}
+    replaceChildren(...children) {{ this.children = []; this.append(...children); }}
+    setAttribute(name, value) {{
+        this.attributes.set(name, String(value));
+        if (name === 'open') this.open = true;
+        if (name === 'hidden') this.hidden = true;
+    }}
+    getAttribute(name) {{ return this.attributes.get(name) ?? null; }}
+    hasAttribute(name) {{ return this.attributes.has(name); }}
     dispatchEvent(event) {{
         for (const listener of this.listeners.get(event.type) || []) listener(event);
     }}
@@ -94,7 +110,7 @@ global.document = {{
     addEventListener() {{}},
     getElementById(id) {{ return global.__elements.get(id) || null; }},
     querySelector() {{ return global.__queryResult; }},
-    createElement() {{ return new TestElement(); }}
+    createElement(tagName) {{ return new TestElement(tagName); }}
 }};
 global.HTMLElement = TestElement;
 global.CSS = {{ escape(value) {{ return String(value); }} }};
@@ -145,9 +161,10 @@ contract.state.principal = {
     permissions: ['identity.read', 'sessions.manage']
 };
 contract.renderPrincipal();
-const permissions = summary.children.find(child => child.className === 'identity-permissions');
+function descendants(element) { return element.children.flatMap(child => [child, ...descendants(child)]); }
+const permissions = descendants(summary).find(child => child.className === 'identity-permissions');
 assert(permissions, 'permissions lack a dedicated full-width region');
-const list = permissions.children[1].children[0];
+const list = descendants(permissions).find(child => child.className === 'identity-permission-list');
 assert(list.children.length === 2, 'permissions are not individually scannable');
 assert(list.children[0].textContent === 'identity.read', 'permission value changed');
 contract.state.permissions = new Set(['identity.manage', 'owners.manage']);
@@ -165,6 +182,90 @@ assert(editable.children.some(child => child.className === 'identity-record-acti
 """,
             include_feature=True,
         )
+
+    def test_permissions_default_to_native_collapsed_disclosure_without_losing_values(self):
+        permission_ids = sorted(permission.value for permission in ManagementPermission)
+        self.assertEqual(len(permission_ids), 32)
+        self._run_identity_contract(
+            "const permissionIds = "
+            + json.dumps(permission_ids)
+            + ";\n"
+            + """
+const container = new HTMLElement('dl');
+global.__elements.set('identityPrincipalSummary', container);
+contract.state.principal = {
+    identityId: 'local-owner', principalType: 'local_owner', role: 'owner',
+    roleSource: 'local_bootstrap', authenticationContext: 'opaque_session',
+    permissions: permissionIds
+};
+contract.renderPrincipal();
+function descendants(element) { return element.children.flatMap(child => [child, ...descendants(child)]); }
+const disclosure = descendants(container).find(child => child.className === 'identity-permissions');
+assert(disclosure?.tagName === 'DETAILS', 'effective permissions need a native details disclosure');
+assert(disclosure.open === false && !disclosure.hasAttribute('open'),
+    'all 32 permissions must be collapsed by default');
+const summary = disclosure.children[0];
+assert(summary?.tagName === 'SUMMARY', 'native disclosure requires a leading summary');
+assert(summary.textContent === 'identity.permissions', 'reuse the existing translated permission label');
+const list = descendants(disclosure).find(child => child.className === 'identity-permission-list');
+assert(list?.tagName === 'UL', 'permissions must remain a semantic list inside the disclosure');
+assert(!list.hidden && list.getAttribute('aria-hidden') !== 'true',
+    'permissions must become accessible when native details opens');
+assert(list.children.length === permissionIds.length, 'collapsed view must retain every permission');
+assert(list.children.every((child, index) => child.tagName === 'LI' && child.textContent === permissionIds[index]),
+    'permission identifiers must remain exact and individually readable');
+""",
+            include_feature=True,
+        )
+
+    def _assert_compact_pagination(self, *, sessions: bool):
+        prefix = "identitySession" if sessions else "identity"
+        state_prefix = "session" if sessions else "identity"
+        render_method = "renderSessionPagination" if sessions else "renderPagination"
+        self._run_identity_contract(
+            f"const prefix = {json.dumps(prefix)}, statePrefix = {json.dumps(state_prefix)};\n"
+            f"const render = contract.{render_method};\n"
+            + """
+const pagination = new HTMLElement('div');
+pagination.className = 'identity-pagination';
+global.__elements.set(`${prefix}Pagination`, pagination);
+for (const suffix of ['PreviousPage', 'NextPage', 'PageNumber']) {
+    const element = new HTMLElement(suffix === 'PageNumber' ? 'span' : 'button');
+    pagination.appendChild(element);
+    global.__elements.set(`${prefix}${suffix}`, element);
+}
+const previous = global.__elements.get(`${prefix}PreviousPage`);
+const next = global.__elements.get(`${prefix}NextPage`);
+// Empty results on a later page must still allow returning to prior pages.
+for (const busy of [false, true]) {
+    for (const [stack, cursor, page, visible] of [
+        [[], null, 1, false],
+        [[], 'next-page', 1, true],
+        [[null], null, 2, true],
+        [[null, 'previous-page'], 'next-page', 3, true],
+        [[], null, 1, false]
+    ]) {
+        contract.state[`${statePrefix}CursorStack`] = stack;
+        contract.state[`${statePrefix}NextCursor`] = cursor;
+        contract.state[`${statePrefix}Page`] = page;
+        contract.state[`${statePrefix}PageLoading`] = busy;
+        render();
+        assert(pagination.hidden === !visible,
+            `${prefix}: pagination visibility must reflect previous stack or next cursor (page=${page}, busy=${busy})`);
+        assert(previous.disabled === (busy || stack.length === 0), 'previous-page availability regressed');
+        assert(next.disabled === (busy || !cursor), 'next-page availability regressed');
+        assert(contract.state[`${statePrefix}Page`] === page, 'rendering must not reset the current page');
+    }
+}
+""",
+            include_feature=True,
+        )
+
+    def test_identity_pagination_hides_only_when_no_previous_or_next_page_exists(self):
+        self._assert_compact_pagination(sessions=False)
+
+    def test_session_pagination_hides_only_when_no_previous_or_next_page_exists(self):
+        self._assert_compact_pagination(sessions=True)
 
     def test_identity_destination_is_reachable_and_bundled(self):
         body = serve_control_panel().body.decode("utf-8")

@@ -26,10 +26,20 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.identity-permissions {
+.identity-permission-fact {
     grid-column: 1 / -1;
     padding-top: 16px;
     border-top: 1px solid var(--border);
+}
+
+.identity-permissions > summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding-block: 6px;
+}
+
+.identity-pagination[hidden] {
+    display: none;
 }
 
 .identity-permission-list {

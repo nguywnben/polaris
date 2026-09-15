@@ -130,17 +130,20 @@ function renderIdentityPrincipal() {
     const container = document.getElementById('identityPrincipalSummary');
     if (!container || !IdentityConsoleState.principal) return;
     const principal = IdentityConsoleState.principal;
-    const permissions = identityFact('identity.permissions', '');
-    permissions.className = 'identity-permissions';
-    const values = permissions.children[1];
+    const permissionFact = identityFact('identity.permissions', '');
+    permissionFact.className = 'identity-permission-fact';
+    permissionFact.children[0].className = 'visually-hidden';
+    const permissions = identityElement('details', 'identity-permissions');
+    permissions.appendChild(identityElement('summary', '', t('identity.permissions')));
+    permissionFact.children[1].appendChild(permissions);
     if (principal.permissions.length) {
         const list = identityElement('ul', 'identity-permission-list');
         for (const permission of principal.permissions) {
             list.appendChild(identityElement('li', 'identity-technical-value', permission));
         }
-        values.appendChild(list);
+        permissions.appendChild(list);
     } else {
-        values.textContent = t('identity.none');
+        permissions.appendChild(identityElement('p', '', t('identity.none')));
     }
     container.replaceChildren(
         identityFact('identity.identity_id', principal.identityId, { technical: true }),
@@ -148,7 +151,7 @@ function renderIdentityPrincipal() {
         identityFact('identity.role', identityRoleLabel(principal.role)),
         identityFact('identity.role_source', identityProtocolLabel(principal.roleSource), { technical: true }),
         identityFact('identity.authentication', identityProtocolLabel(principal.authenticationContext), { technical: true }),
-        permissions
+        permissionFact
     );
     container.setAttribute('aria-busy', 'false');
     identityStatusBadge('identityPrincipalBadge', 'identity.authorized', 'success');
@@ -326,6 +329,9 @@ function renderIdentityList() {
 
 function renderIdentityPagination() {
     const busy = IdentityConsoleState.identityPageLoading;
+    const pagination = document.getElementById('identityPreviousPage')?.closest('.identity-pagination');
+    if (pagination) pagination.hidden = !IdentityConsoleState.identityCursorStack.length
+        && !IdentityConsoleState.identityNextCursor;
     document.getElementById('identityPreviousPage').disabled =
         busy || IdentityConsoleState.identityCursorStack.length === 0;
     document.getElementById('identityNextPage').disabled =
@@ -384,6 +390,9 @@ function renderIdentitySessions() {
 
 function renderIdentitySessionPagination() {
     const busy = IdentityConsoleState.sessionPageLoading;
+    const pagination = document.getElementById('identitySessionPreviousPage')?.closest('.identity-pagination');
+    if (pagination) pagination.hidden = !IdentityConsoleState.sessionCursorStack.length
+        && !IdentityConsoleState.sessionNextCursor;
     document.getElementById('identitySessionPreviousPage').disabled =
         busy || IdentityConsoleState.sessionCursorStack.length === 0;
     document.getElementById('identitySessionNextPage').disabled =
