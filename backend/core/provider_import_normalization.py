@@ -23,6 +23,10 @@ _SUPPORTED_FAMILIES = (
     | EXTENDED_PROVIDERS.keys()
 )
 _EXTENDED_IMPORT_FIELDS = {
+    "groq": ("base_url",),
+    "deepseek": ("base_url",),
+    "mistral": ("base_url",),
+    "cerebras": ("base_url",),
     "meta": ("base_url",),
     "kimi": ("base_url",),
     "cloudflare": ("base_url", "account_id"),

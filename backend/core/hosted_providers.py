@@ -23,6 +23,10 @@ from core.provider_registry import (
 )
 
 HOSTED_PROVIDERS = {
+    "groq": {"name": "GroqCloud", "base_url": "https://api.groq.com/openai/v1"},
+    "deepseek": {"name": "DeepSeek Platform", "base_url": "https://api.deepseek.com/v1"},
+    "mistral": {"name": "Mistral AI Studio", "base_url": "https://api.mistral.ai/v1"},
+    "cerebras": {"name": "Cerebras Cloud", "base_url": "https://api.cerebras.ai/v1"},
     "kimi": {"name": "Kimi API Platform", "base_url": "https://api.moonshot.ai/v1"},
     "cloudflare": {
         "name": "Cloudflare Workers AI",
@@ -40,7 +44,9 @@ CATALOG_PAGE_SIZE = 50
 # Cloudflare Chat schema; Poolside OpenAI examples; Kilo streaming guide.
 # Poolside/Kilo also send usage automatically. Kimchi does not document this
 # optional parameter, so do not infer support merely from OpenAI compatibility.
-STREAM_USAGE_PROVIDERS = frozenset({"kimi", "cloudflare", "nvidia", "poolside", "kilo"})
+STREAM_USAGE_PROVIDERS = frozenset(
+    {"kimi", "cloudflare", "nvidia", "poolside", "kilo", "groq", "deepseek"}
+)
 
 
 class HostedProviderError(ValueError):
@@ -232,6 +238,34 @@ def prepare_request(
     if not _valid_model_id(model):
         raise HostedProviderError("Invalid model ID.")
     base = data["base_url"]
+    if data["provider"] in {"groq", "deepseek", "mistral", "cerebras"}:
+        config = gemini_request.get("generationConfig") or {}
+        allowed = {
+            "temperature",
+            "topP",
+            "maxOutputTokens",
+            "stopSequences",
+            "candidateCount",
+            "seed",
+            "frequencyPenalty",
+            "presencePenalty",
+            "responseMimeType",
+            "responseSchema",
+        }
+        if data["provider"] == "deepseek":
+            allowed.remove("seed")
+        if (
+            not isinstance(config, dict)
+            or any(value is not None and key not in allowed for key, value in config.items())
+            or config.get("responseMimeType") not in (None, "text/plain", "application/json")
+            or (
+                config.get("responseSchema") is not None
+                and config.get("responseMimeType") != "application/json"
+            )
+        ):
+            raise HostedProviderError(
+                "This provider does not support the requested generation options."
+            )
     if data["provider"] == "cloudflare":
         base += f"/accounts/{data['account_id']}/ai/v1"
     gemini_request = _link_tool_history(gemini_request)
@@ -263,7 +297,48 @@ def prepare_request(
             assistant["reasoning_content"] = reasoning
         messages.extend(converted)
     payload["messages"] = messages
+    # Polaris Chat rejects reasoning_content history at its public boundary.
+    # Default to replay-safe chat; canonical callers that retain thoughts can
+    # continue reasoning histories without dropping the provider's state.
+    has_reasoning = any(message.get("reasoning_content") for message in messages)
+    if data["provider"] == "deepseek":
+        payload["thinking"] = {"type": "enabled" if has_reasoning else "disabled"}
+    if data["provider"] == "mistral":
+        payload["reasoning_effort"] = "high" if has_reasoning else "none"
+        if "seed" in payload:
+            payload["random_seed"] = payload.pop("seed")
+        _mistral_history(messages)
     return base + "/chat/completions", _headers(data, streaming), payload
+
+
+def _mistral_history(messages: list[dict]) -> None:
+    """Use Mistral content chunks and paired nine-character wire tool IDs."""
+    ids = {call["id"] for message in messages for call in message.get("tool_calls", [])}
+    mapping = {key: key for key in ids if re.fullmatch(r"[A-Za-z0-9]{9}", key)}
+    reserved = set(mapping.values())
+    counter = 0
+    for key in sorted(ids - mapping.keys()):
+        counter += 1
+        candidate = f"p{counter:08d}"
+        while candidate in reserved:
+            counter += 1
+            candidate = f"p{counter:08d}"
+        mapping[key] = candidate
+        reserved.add(candidate)
+    for message in messages:
+        reasoning = message.pop("reasoning_content", None)
+        if reasoning:
+            content = message.get("content")
+            chunks = [{"type": "thinking", "thinking": [{"type": "text", "text": reasoning}]}]
+            if isinstance(content, str) and content:
+                chunks.append({"type": "text", "text": content})
+            elif isinstance(content, list):
+                chunks.extend(content)
+            message["content"] = chunks
+        for call in message.get("tool_calls", []):
+            call["id"] = mapping[call["id"]]
+        if "tool_call_id" in message:
+            message["tool_call_id"] = mapping[message["tool_call_id"]]
 
 
 async def _catalog_json(url: str, headers: dict) -> dict:
@@ -303,6 +378,8 @@ def _catalog_ids(payload: dict, provider: str) -> list[str]:
         provider == "cloudflare" and payload.get("success") is not True
     ):
         raise HostedProviderError("Provider returned an invalid model response.", 502)
+    if provider in {"groq", "deepseek", "mistral", "cerebras"} and len(items) > MAX_DECLARED_MODELS:
+        raise HostedProviderError("Provider model response is too large.", 502)
     result = []
     for item in items:
         model = None
@@ -316,6 +393,18 @@ def _catalog_ids(payload: dict, provider: str) -> list[str]:
             )
         if not _valid_model_id(model):
             raise HostedProviderError("Provider returned an invalid model response.", 502)
+        if provider == "groq" and (
+            item.get("active") is False
+            or model.startswith(("whisper-", "canopylabs/orpheus-", "playai-", "groq/compound"))
+            or "prompt-guard" in model
+        ):
+            continue
+        if provider == "mistral" and (
+            item.get("archived") is True
+            or not isinstance(item.get("capabilities"), dict)
+            or item["capabilities"].get("completion_chat") is not True
+        ):
+            continue
         if model not in result:
             result.append(model)
         if len(result) > MAX_DECLARED_MODELS:

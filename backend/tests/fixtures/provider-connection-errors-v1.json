@@ -2,6 +2,38 @@
   "schema_version": 1,
   "fixtures": [
     {
+      "variant_id": "groq",
+      "status_code": 401,
+      "body": {"error": {"message": "Provider request failed."}},
+      "category": "credential",
+      "provider_code": null,
+      "retryable": false
+    },
+    {
+      "variant_id": "deepseek",
+      "status_code": 401,
+      "body": {"error": {"message": "Provider request failed."}},
+      "category": "credential",
+      "provider_code": null,
+      "retryable": false
+    },
+    {
+      "variant_id": "mistral",
+      "status_code": 401,
+      "body": {"error": {"message": "Provider request failed."}},
+      "category": "credential",
+      "provider_code": null,
+      "retryable": false
+    },
+    {
+      "variant_id": "cerebras",
+      "status_code": 401,
+      "body": {"error": {"message": "Provider request failed."}},
+      "category": "credential",
+      "provider_code": null,
+      "retryable": false
+    },
+    {
       "variant_id": "google_antigravity",
       "status_code": 401,
       "body": {

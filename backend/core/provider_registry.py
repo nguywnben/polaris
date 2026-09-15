@@ -21,6 +21,10 @@ CLAUDE_CODE = "claude_code"
 CLAUDE_PLATFORM = "claude_platform"
 OLLAMA = "ollama"
 EXTENDED_PROVIDERS = {
+    "groq": "GroqCloud",
+    "deepseek": "DeepSeek Platform",
+    "mistral": "Mistral AI Studio",
+    "cerebras": "Cerebras Cloud",
     "meta": "Meta Model API",
     "kimi": "Kimi API Platform",
     "cloudflare": "Cloudflare Workers AI",
@@ -40,6 +44,10 @@ EXTENDED_CONNECTION_FIELDS = (
     "profile_arn",
 )
 EXTENDED_PROVIDER_CONNECTION_FIELDS = {
+    "groq": ("base_url",),
+    "deepseek": ("base_url",),
+    "mistral": ("base_url",),
+    "cerebras": ("base_url",),
     "meta": ("base_url",),
     "kimi": ("base_url",),
     "cloudflare": ("base_url", "account_id"),
@@ -52,6 +60,10 @@ EXTENDED_PROVIDER_CONNECTION_FIELDS = {
 }
 # Data-only defaults avoid importing transports back into their shared registry.
 EXTENDED_PROVIDER_DEFAULT_BASE_URLS = {
+    "groq": "https://api.groq.com/openai/v1",
+    "deepseek": "https://api.deepseek.com/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "cerebras": "https://api.cerebras.ai/v1",
     "meta": "https://api.meta.ai/v1",
     "kimi": "https://api.moonshot.ai/v1",
     "cloudflare": "https://api.cloudflare.com/client/v4",

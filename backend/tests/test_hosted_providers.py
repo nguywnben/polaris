@@ -41,8 +41,12 @@ class HostedProviderTests(unittest.IsolatedAsyncioTestCase):
             with patch("core.hosted_providers.http_client.get_client", get_client):
                 yield
 
-    def test_six_defaults_are_specific_and_normalized_without_mutation(self):
+    def test_hosted_defaults_are_specific_and_normalized_without_mutation(self):
         expected = {
+            "groq": "https://api.groq.com/openai/v1",
+            "deepseek": "https://api.deepseek.com/v1",
+            "mistral": "https://api.mistral.ai/v1",
+            "cerebras": "https://api.cerebras.ai/v1",
             "kimi": "https://api.moonshot.ai/v1",
             "cloudflare": "https://api.cloudflare.com/client/v4",
             "nvidia": "https://integrate.api.nvidia.com/v1",
@@ -159,9 +163,15 @@ class HostedProviderTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(url.endswith("/chat/completions"))
             self.assertEqual("text/event-stream", headers["Accept"])
             self.assertTrue(payload["stream"])
-            self.assertEqual("call-1", payload["messages"][1]["tool_calls"][0]["id"])
-            self.assertEqual("Need a tool", payload["messages"][1]["reasoning_content"])
-            self.assertEqual("call-1", payload["messages"][2]["tool_call_id"])
+            expected_id = "p00000001" if provider == "mistral" else "call-1"
+            self.assertEqual(expected_id, payload["messages"][1]["tool_calls"][0]["id"])
+            if provider == "mistral":
+                self.assertEqual(
+                    "Need a tool", payload["messages"][1]["content"][0]["thinking"][0]["text"]
+                )
+            else:
+                self.assertEqual("Need a tool", payload["messages"][1]["reasoning_content"])
+            self.assertEqual(expected_id, payload["messages"][2]["tool_call_id"])
             self.assertEqual(50, payload["max_tokens"])
         self.assertEqual(source, before)
 

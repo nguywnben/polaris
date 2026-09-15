@@ -1,6 +1,23 @@
 """Reviewed provider onboarding copy; mirrors the console's fifteen locales."""
 
 MESSAGES = {
+    "provider.ext.unsupported_generation": {
+        "en": "This provider does not support the requested generation options.",
+        "vi": "Nhà cung cấp này không hỗ trợ các tùy chọn sinh nội dung được yêu cầu.",
+        "zh-CN": "此提供商不支持所请求的生成选项。",
+        "zh-TW": "此供應商不支援所要求的生成選項。",
+        "de": "Dieser Anbieter unterstützt die angeforderten Generierungsoptionen nicht.",
+        "es": "Este proveedor no admite las opciones de generación solicitadas.",
+        "fr": "Ce fournisseur ne prend pas en charge les options de génération demandées.",
+        "id": "Penyedia ini tidak mendukung opsi pembuatan konten yang diminta.",
+        "it": "Questo fornitore non supporta le opzioni di generazione richieste.",
+        "ja": "このプロバイダーは、指定された生成オプションに対応していません。",
+        "ko": "이 제공업체는 요청한 생성 옵션을 지원하지 않습니다.",
+        "pt": "Este provedor não oferece suporte às opções de geração solicitadas.",
+        "ru": "Этот провайдер не поддерживает запрошенные параметры генерации.",
+        "th": "ผู้ให้บริการนี้ไม่รองรับตัวเลือกการสร้างเนื้อหาที่ร้องขอ",
+        "tr": "Bu sağlayıcı istenen içerik üretme seçeneklerini desteklemiyor.",
+    },
     "provider.ext.import_api_key": {
         "en": "Import an API key credential for this provider.",
         "vi": "Hãy nhập thông tin xác thực bằng khóa API dành cho nhà cung cấp này.",

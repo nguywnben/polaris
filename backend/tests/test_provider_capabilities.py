@@ -67,6 +67,10 @@ class ProviderCapabilityTests(unittest.TestCase):
                     "opencode",
                     "kiro",
                     "meta",
+                    "groq",
+                    "deepseek",
+                    "mistral",
+                    "cerebras",
                 ),
                 common,
             ),
@@ -116,6 +120,10 @@ class ProviderCapabilityTests(unittest.TestCase):
                 "opencode",
                 "kiro",
                 "meta",
+                "groq",
+                "deepseek",
+                "mistral",
+                "cerebras",
             },
         )
         self.assertTrue(all(variant["operations"] for variant in variants))
@@ -148,6 +156,10 @@ class ProviderCapabilityTests(unittest.TestCase):
                     "opencode",
                     "kiro",
                     "meta",
+                    "groq",
+                    "deepseek",
+                    "mistral",
+                    "cerebras",
                 ),
                 common,
             ),
@@ -236,6 +248,10 @@ class ProviderCapabilityTests(unittest.TestCase):
                 "opencode",
                 "kiro",
                 "meta",
+                "groq",
+                "deepseek",
+                "mistral",
+                "cerebras",
             },
         )
 

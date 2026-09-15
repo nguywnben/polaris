@@ -7,6 +7,7 @@ quotas and cancellation. This module only adapts provider wire formats.
 from __future__ import annotations
 
 import asyncio
+import copy
 import importlib
 import json
 from contextlib import aclosing
@@ -80,11 +81,50 @@ def _count(value):
     return value
 
 
+def _platform_stream_event(provider, event):
+    """Normalize documented vendor extensions before the strict shared decoder."""
+    if provider == "groq":
+        metadata = event.get("x_groq") or {}
+        if not isinstance(metadata, dict) or metadata.get("error"):
+            raise ProviderStreamError("Provider returned a streaming error.")
+        if not event.get("usage") and metadata.get("usage"):
+            return {**event, "usage": metadata["usage"]}
+    if provider == "mistral":
+        event = copy.deepcopy(event)
+        for choice in event.get("choices") or []:
+            delta = choice.get("delta") or {}
+            content = delta.get("content")
+            if isinstance(content, list):
+                text, reasoning = [], []
+                for block in content:
+                    if not isinstance(block, dict):
+                        raise ProviderStreamError("Provider returned invalid text content.")
+                    if block.get("type") == "text" and isinstance(block.get("text"), str):
+                        text.append(block["text"])
+                    elif block.get("type") == "thinking" and isinstance(
+                        block.get("thinking"), list
+                    ):
+                        for thought in block["thinking"]:
+                            if (
+                                not isinstance(thought, dict)
+                                or thought.get("type") != "text"
+                                or not isinstance(thought.get("text"), str)
+                            ):
+                                raise ProviderStreamError("Provider returned invalid text content.")
+                            reasoning.append(thought["text"])
+                    else:
+                        raise ProviderStreamError("Provider returned invalid text content.")
+                delta["content"] = "".join(text)
+                delta["reasoning_content"] = "".join(reasoning)
+    return event
+
+
 class _StreamDecoder:
     """Per-request protocol state: no shared tool buffers across credentials."""
 
-    def __init__(self, protocol):
+    def __init__(self, protocol, provider=None):
         self.protocol = protocol
+        self.provider = provider
         self.tools = {}
         self.usage = {}
         self.output_tokens = None
@@ -201,11 +241,14 @@ class _StreamDecoder:
                 if not isinstance(choice, dict) or self.stopped:
                     raise ProviderStreamError("Provider returned content after completion.")
                 delta = choice.get("delta") or {}
-                for key, thought in (
+                text_fields = (
                     ("content", False),
                     ("reasoning_content", True),
                     ("reasoning", True),
-                ):
+                )
+                if self.provider == "mistral":
+                    text_fields = (text_fields[1], text_fields[2], text_fields[0])
+                for key, thought in text_fields:
                     if delta.get(key):
                         if not isinstance(delta[key], str):
                             raise ProviderStreamError("Provider returned invalid text content.")
@@ -422,12 +465,12 @@ async def stream_extended_request(
                     async for chunk in stream:
                         yield chunk
                 return
-            decoder = _StreamDecoder(protocol)
+            decoder = _StreamDecoder(protocol, provider)
             completed_event = None
             async for event in _json_events(response):
                 try:
                     native_event = _meta_event(event) if native_responses else None
-                    decode_event = event
+                    decode_event = _platform_stream_event(provider, event)
                     output_limited = (
                         provider == "meta" and event.get("type") == "response.incomplete"
                     )

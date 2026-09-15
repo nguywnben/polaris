@@ -38,7 +38,7 @@ def archive(payloads):
 
 
 class ExtendedImportNormalizationTests(unittest.TestCase):
-    def test_all_nine_providers_normalize_and_classify_without_network(self):
+    def test_all_extended_providers_normalize_and_classify_without_network(self):
         for provider in EXTENDED_PROVIDERS:
             with self.subTest(provider=provider):
                 result = normalize_provider_import(credential(provider))
@@ -93,7 +93,7 @@ class ExtendedImportNormalizationTests(unittest.TestCase):
 
 
 class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
-    async def test_mixed_archive_imports_all_nine_catalogs(self):
+    async def test_mixed_archive_imports_all_extended_catalogs(self):
         stored = {"filename": "safe.json", "action": "created", "label": "Account"}
         with (
             patch("core.pool_import.discover_extended_models", new_callable=AsyncMock) as discover,
@@ -109,10 +109,10 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             report = await restore_pool_archive(
                 archive([credential(p) for p in EXTENDED_PROVIDERS])
             )
-        self.assertEqual(report["uploaded_count"], 9)
+        self.assertEqual(report["uploaded_count"], 13)
         self.assertEqual(report["error_count"], 0)
-        self.assertEqual(discover.await_count, 9)
-        self.assertEqual(store.await_count, 9)
+        self.assertEqual(discover.await_count, 13)
+        self.assertEqual(store.await_count, 13)
         self.assertEqual(
             {call.args[0]["provider"] for call in store.await_args_list},
             {
@@ -125,6 +125,10 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
                 "kimchi",
                 "kilo",
                 "meta",
+                "groq",
+                "deepseek",
+                "mistral",
+                "cerebras",
             },
         )
         for result in report["results"]:
