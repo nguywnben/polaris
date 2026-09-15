@@ -39,16 +39,17 @@ function deferred() {
     return {promise, resolve};
 }
 const initialPermissions = deferred(), pendingConfig = deferred();
-const location = {pathname: '/dashboard', search: ''};
+const location = new URL('http://localhost/dashboard');
 let requests = 0;
 const context = vm.createContext({
+    URL,
     document: {getElementById: element, querySelectorAll: () => [],
         querySelector: selector => selector === '.tab-content.active'
             ? [...elements].find(([id, el]) => id.endsWith('Tab') && el.classList.contains('active'))?.[1]
             : null},
     window: {location},
-    history: {replaceState: (_, __, path) => {location.pathname = path;},
-        pushState: (_, __, path) => {location.pathname = path;}},
+    history: {replaceState: (_, __, path) => {location.href = new URL(path, location.href).href;},
+        pushState: (_, __, path) => {location.href = new URL(path, location.href).href;}},
     AppState: {authenticated: true, setupRequired: false, tabLoadTimes: {},
         tabLoadPromises: {config: pendingConfig.promise}},
     t: key => key, getAuthHeaders: () => ({}), setMobileMenuState() {},

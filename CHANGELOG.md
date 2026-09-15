@@ -19,6 +19,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Shared Google configuration saves and resets now emit correlated, redacted
+  provider audit events through the same pipeline as other provider settings.
 - Settings groups keep-alive with server connections, places inference timeout
   under Storage and Connections, and removes the duplicate routing summary.
   Independent columns stay compact while retention and backups remain full width.

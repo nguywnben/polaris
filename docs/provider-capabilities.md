@@ -42,6 +42,9 @@ advanced controls has no empty advanced-settings disclosure.
 This is a presentation change, not deletion or a security boundary. Stored values,
 runtime defaults, environment overrides and authenticated management APIs are retained.
 Hidden editors remain inert to user interaction, even after family configuration loads.
+Shared Google configuration saves and resets are audited as `provider.update` against
+the `google` target, with the request outcome and correlation ID but no configuration
+values or secrets. Hiding an editor does not exempt its management API from auditing.
 There is no new Code Assist enable/disable switch: `COMPATIBILITY_MODE` controls AI
 quality behavior and must not be used to expose the legacy editor.
 

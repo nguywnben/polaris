@@ -92,9 +92,8 @@
     {"id": "backupRestorePassphrase", "tier": "core", "journey": "install_configure"},
     {"id": "backupConflictPolicy", "tier": "core", "journey": "install_configure"},
     {"id": "upstreamTimeoutSeconds", "tier": "core", "journey": "model_routing"},
-    {"id": "codeAssistEndpoint", "tier": "compatibility", "journey": "provider_onboarding"},
-    {"id": "codeAssistClientId", "tier": "compatibility", "journey": "provider_onboarding"},
-    {"id": "codeAssistClientSecret", "tier": "compatibility", "journey": "provider_onboarding"},
+    {"id": "streamToNonstream", "tier": "core", "journey": "model_routing"},
+    {"id": "switchCredentialEnabled", "tier": "core", "journey": "model_routing"},
     {"id": "keepaliveUrl", "tier": "compatibility", "journey": "install_configure"},
     {"id": "keepaliveInterval", "tier": "compatibility", "journey": "install_configure"}
   ],

@@ -109,6 +109,12 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/providers/antigravity/config/reset"): _mutation(
         "provider.update", "provider", "settings_changed"
     ),
+    ("POST", "/api/providers/google/config"): _mutation(
+        "provider.update", "provider", "settings_changed"
+    ),
+    ("POST", "/api/providers/google/config/reset"): _mutation(
+        "provider.update", "provider", "settings_changed"
+    ),
     ("POST", "/api/providers/google-ai-studio/config"): _mutation(
         "provider.update", "provider", "settings_changed"
     ),
