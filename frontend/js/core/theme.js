@@ -4,6 +4,7 @@
     const STORAGE_KEY = 'polaris_theme';
     const SUPPORTED_PREFERENCES = new Set(['system', 'light', 'dark']);
     const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    let transitionFrame = null;
 
     function normalizePreference(value) {
         return SUPPORTED_PREFERENCES.has(value) ? value : 'system';
@@ -27,6 +28,19 @@
     function applyTheme(preference) {
         const normalizedPreference = normalizePreference(preference);
         const resolvedTheme = resolveTheme(normalizedPreference);
+        const root = document.documentElement;
+        if (root.dataset.theme && root.dataset.theme !== resolvedTheme) {
+            // Hover/focus transitions must not stagger a whole-page palette change.
+            root.classList.add('theme-switching');
+            if (transitionFrame !== null) window.cancelAnimationFrame(transitionFrame);
+            transitionFrame = window.requestAnimationFrame(() => {
+                // Keep the guard for the first paint of the new palette.
+                transitionFrame = window.requestAnimationFrame(() => {
+                    root.classList.remove('theme-switching');
+                    transitionFrame = null;
+                });
+            });
+        }
         document.documentElement.dataset.themePreference = normalizedPreference;
         document.documentElement.dataset.theme = resolvedTheme;
         return { preference: normalizedPreference, resolvedTheme };

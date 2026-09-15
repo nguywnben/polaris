@@ -81,6 +81,16 @@
     font-family: var(--font-sans) !important;
 }
 
+/* Only palette changes bypass transitions; normal interactions keep their motion. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after,
+html.theme-switching *::placeholder,
+html.theme-switching *::backdrop {
+    transition: none !important;
+}
+
 html {
     background: var(--bg);
     color: var(--text);

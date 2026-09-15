@@ -19,6 +19,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Light/dark changes apply the palette together instead of letting input and card
+  hover transitions lag behind the page background. Normal interaction transitions remain enabled.
 - Page-header actions share a consistent height and concise contextual labels.
   Identity refresh reports success or failure through toasts, without inline
   success messages or moving focus into fields; partial failures are not reported as success.
