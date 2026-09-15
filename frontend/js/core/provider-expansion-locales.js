@@ -1,6 +1,10 @@
 // Additional provider copy is kept together for semantic review across all locales.
 const PROVIDER_EXPANSION_COPY = {
     en: {
+        groq: 'Connect GroqCloud chat models with your Groq API key.',
+        deepseek: 'Connect DeepSeek models with your platform API key.',
+        mistral: 'Connect Mistral chat models with your Studio API key.',
+        cerebras: 'Connect Cerebras inference models with your cloud API key.',
         meta: 'Connect Muse Spark models through Meta Model API with an API key.',
         meta_contributor_notice: 'Models ending in -contributor allow Meta to use prompts and responses for training. Polaris does not select these variants by default; choose one only if you agree to this data use.',
         add_description: 'Validate the API key against the model catalog, then add it to the credential pool.',
@@ -26,6 +30,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Model catalog refreshed. Test a model to check inference access.'
     },
     vi: {
+        groq: 'Kết nối các mô hình chat GroqCloud bằng khóa API Groq.',
+        deepseek: 'Kết nối các mô hình DeepSeek bằng khóa API của nền tảng.',
+        mistral: 'Kết nối các mô hình chat Mistral bằng khóa API Studio.',
+        cerebras: 'Kết nối các mô hình suy luận Cerebras bằng khóa API đám mây.',
         meta: 'Kết nối các mô hình Muse Spark qua Meta Model API bằng khóa API.',
         meta_contributor_notice: 'Mô hình có hậu tố -contributor cho phép Meta dùng nội dung yêu cầu và phản hồi để huấn luyện. Polaris không chọn mặc định các phiên bản này; chỉ chọn nếu bạn đồng ý với việc sử dụng dữ liệu đó.',
         add_description: 'Kiểm tra khóa API qua danh mục mô hình, rồi thêm vào kho thông tin xác thực.',
@@ -51,6 +59,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Đã làm mới danh mục mô hình. Hãy kiểm tra một mô hình để xác nhận quyền gọi.'
     },
     'zh-CN': {
+        groq: '使用 Groq API 密钥连接 GroqCloud 聊天模型。',
+        deepseek: '使用平台 API 密钥连接 DeepSeek 模型。',
+        mistral: '使用 Studio API 密钥连接 Mistral 聊天模型。',
+        cerebras: '使用云平台 API 密钥连接 Cerebras 推理模型。',
         meta: '使用 API 密钥通过 Meta Model API 连接 Muse Spark 模型。',
         meta_contributor_notice: '名称以 -contributor 结尾的模型允许 Meta 使用提示和响应进行训练。Polaris 不会默认选择这些版本；仅在您同意此数据用途时选择。',
         add_description: '通过模型目录验证 API 密钥，然后将其添加到凭据池。',
@@ -76,6 +88,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '模型目录已刷新。请测试一个模型以确认推理访问权限。'
     },
     'zh-TW': {
+        groq: '使用 Groq API 金鑰連接 GroqCloud 聊天模型。',
+        deepseek: '使用平台 API 金鑰連接 DeepSeek 模型。',
+        mistral: '使用 Studio API 金鑰連接 Mistral 聊天模型。',
+        cerebras: '使用雲端平台 API 金鑰連接 Cerebras 推論模型。',
         meta: '使用 API 金鑰透過 Meta Model API 連線至 Muse Spark 模型。',
         meta_contributor_notice: '名稱以 -contributor 結尾的模型允許 Meta 使用提示與回應進行訓練。Polaris 不會預設選取這些版本；請僅在同意此資料用途時選取。',
         add_description: '透過模型目錄驗證 API 金鑰，再將其新增至憑證集區。',
@@ -101,6 +117,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '模型目錄已重新整理。請測試一個模型以確認推論存取權。'
     },
     de: {
+        groq: 'GroqCloud-Chatmodelle mit Ihrem Groq-API-Schlüssel verbinden.',
+        deepseek: 'DeepSeek-Modelle mit Ihrem Plattform-API-Schlüssel verbinden.',
+        mistral: 'Mistral-Chatmodelle mit Ihrem Studio-API-Schlüssel verbinden.',
+        cerebras: 'Cerebras-Inferenzmodelle mit Ihrem Cloud-API-Schlüssel verbinden.',
         meta: 'Verbinden Sie Muse-Spark-Modelle über die Meta Model API mit einem API-Schlüssel.',
         meta_contributor_notice: 'Modelle mit der Endung -contributor erlauben Meta, Prompts und Antworten für das Training zu verwenden. Polaris wählt diese Varianten nicht standardmäßig aus. Wählen Sie sie nur, wenn Sie dieser Datennutzung zustimmen.',
         add_description: 'Prüfen Sie den API-Schlüssel anhand des Modellkatalogs und fügen Sie ihn anschließend zum Zugangsdatenpool hinzu.',
@@ -126,6 +146,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Modellkatalog aktualisiert. Testen Sie ein Modell, um den Inferenzzugriff zu prüfen.'
     },
     es: {
+        groq: 'Conecta modelos de chat de GroqCloud con tu clave API de Groq.',
+        deepseek: 'Conecta modelos de DeepSeek con tu clave API de la plataforma.',
+        mistral: 'Conecta modelos de chat de Mistral con tu clave API de Studio.',
+        cerebras: 'Conecta modelos de inferencia de Cerebras con tu clave API de la nube.',
         meta: 'Conecta modelos Muse Spark a través de Meta Model API con una clave API.',
         meta_contributor_notice: 'Los modelos cuyo nombre termina en -contributor permiten que Meta use las instrucciones y respuestas para entrenar modelos. Polaris no selecciona estas variantes de forma predeterminada; elígelas solo si aceptas este uso de tus datos.',
         add_description: 'Valida la clave API con el catálogo de modelos y añádela al grupo de credenciales.',
@@ -151,6 +175,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catálogo de modelos actualizado. Prueba un modelo para comprobar el acceso a la inferencia.'
     },
     fr: {
+        groq: 'Connectez les modèles de chat GroqCloud avec votre clé API Groq.',
+        deepseek: 'Connectez les modèles DeepSeek avec votre clé API de la plateforme.',
+        mistral: 'Connectez les modèles de chat Mistral avec votre clé API Studio.',
+        cerebras: 'Connectez les modèles d’inférence Cerebras avec votre clé API cloud.',
         meta: 'Connectez les modèles Muse Spark via Meta Model API avec une clé API.',
         meta_contributor_notice: 'Les modèles dont le nom se termine par -contributor autorisent Meta à utiliser les instructions et les réponses pour entraîner ses modèles. Polaris ne sélectionne pas ces variantes par défaut ; choisissez-les uniquement si vous acceptez cette utilisation des données.',
         add_description: 'Vérifiez la clé API à l’aide du catalogue de modèles, puis ajoutez-la au pool d’identifiants.',
@@ -176,6 +204,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catalogue de modèles actualisé. Testez un modèle pour vérifier l’accès à l’inférence.'
     },
     id: {
+        groq: 'Hubungkan model chat GroqCloud dengan kunci API Groq Anda.',
+        deepseek: 'Hubungkan model DeepSeek dengan kunci API platform Anda.',
+        mistral: 'Hubungkan model chat Mistral dengan kunci API Studio Anda.',
+        cerebras: 'Hubungkan model inferensi Cerebras dengan kunci API cloud Anda.',
         meta: 'Hubungkan model Muse Spark melalui Meta Model API dengan kunci API.',
         meta_contributor_notice: 'Model dengan akhiran -contributor mengizinkan Meta menggunakan prompt dan respons untuk pelatihan. Polaris tidak memilih varian ini secara default; pilih hanya jika Anda menyetujui penggunaan data tersebut.',
         add_description: 'Validasi kunci API melalui katalog model, lalu tambahkan ke kumpulan kredensial.',
@@ -201,6 +233,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Katalog model diperbarui. Uji sebuah model untuk memeriksa akses inferensi.'
     },
     it: {
+        groq: 'Collega i modelli di chat GroqCloud con la tua chiave API Groq.',
+        deepseek: 'Collega i modelli DeepSeek con la tua chiave API della piattaforma.',
+        mistral: 'Collega i modelli di chat Mistral con la tua chiave API Studio.',
+        cerebras: 'Collega i modelli di inferenza Cerebras con la tua chiave API cloud.',
         meta: 'Collega i modelli Muse Spark tramite Meta Model API con una chiave API.',
         meta_contributor_notice: 'I modelli con suffisso -contributor consentono a Meta di usare prompt e risposte per addestrare i modelli. Polaris non seleziona queste varianti per impostazione predefinita; sceglile solo se accetti questo utilizzo dei dati.',
         add_description: 'Verifica la chiave API tramite il catalogo dei modelli, quindi aggiungila al pool di credenziali.',
@@ -226,6 +262,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catalogo dei modelli aggiornato. Prova un modello per verificare l’accesso all’inferenza.'
     },
     ja: {
+        groq: 'Groq API キーで GroqCloud のチャットモデルに接続します。',
+        deepseek: 'プラットフォームの API キーで DeepSeek モデルに接続します。',
+        mistral: 'Studio API キーで Mistral のチャットモデルに接続します。',
+        cerebras: 'クラウドの API キーで Cerebras の推論モデルに接続します。',
         meta: 'API キーを使用し、Meta Model API 経由で Muse Spark モデルに接続します。',
         meta_contributor_notice: '名前が -contributor で終わるモデルでは、Meta がプロンプトと応答を学習に使用できます。Polaris はこれらのモデルを既定では選択しません。このデータの利用に同意する場合のみ選択してください。',
         add_description: 'モデルカタログで API キーを検証してから、認証情報プールに追加します。',
@@ -251,6 +291,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'モデルカタログを更新しました。モデルをテストして推論へのアクセス権を確認してください。'
     },
     ko: {
+        groq: 'Groq API 키로 GroqCloud 채팅 모델에 연결합니다.',
+        deepseek: '플랫폼 API 키로 DeepSeek 모델에 연결합니다.',
+        mistral: 'Studio API 키로 Mistral 채팅 모델에 연결합니다.',
+        cerebras: '클라우드 API 키로 Cerebras 추론 모델에 연결합니다.',
         meta: 'API 키로 Meta Model API를 통해 Muse Spark 모델에 연결합니다.',
         meta_contributor_notice: '이름이 -contributor로 끝나는 모델은 Meta가 프롬프트와 응답을 학습에 사용하도록 허용합니다. Polaris는 이 모델들을 기본으로 선택하지 않습니다. 해당 데이터 사용에 동의하는 경우에만 선택하세요.',
         add_description: '모델 카탈로그를 통해 API 키를 검증한 후 인증 정보 풀에 추가합니다.',
@@ -276,6 +320,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: '모델 카탈로그를 새로 고쳤습니다. 모델을 테스트하여 추론 접근 권한을 확인하세요.'
     },
     pt: {
+        groq: 'Conecte modelos de chat GroqCloud com sua chave de API Groq.',
+        deepseek: 'Conecte modelos DeepSeek com sua chave de API da plataforma.',
+        mistral: 'Conecte modelos de chat Mistral com sua chave de API Studio.',
+        cerebras: 'Conecte modelos de inferência Cerebras com sua chave de API da nuvem.',
         meta: 'Conecte modelos Muse Spark pela Meta Model API com uma chave de API.',
         meta_contributor_notice: 'Modelos com o sufixo -contributor permitem que a Meta use prompts e respostas para treinamento. O Polaris não seleciona essas variantes por padrão; escolha-as apenas se concordar com esse uso dos dados.',
         add_description: 'Valide a chave de API usando o catálogo de modelos e adicione-a ao pool de credenciais.',
@@ -301,6 +349,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Catálogo de modelos atualizado. Teste um modelo para verificar o acesso à inferência.'
     },
     ru: {
+        groq: 'Подключайте чат-модели GroqCloud с помощью API-ключа Groq.',
+        deepseek: 'Подключайте модели DeepSeek с помощью API-ключа платформы.',
+        mistral: 'Подключайте чат-модели Mistral с помощью API-ключа Studio.',
+        cerebras: 'Подключайте модели для инференса Cerebras с помощью облачного API-ключа.',
         meta: 'Подключайте модели Muse Spark через Meta Model API с помощью API-ключа.',
         meta_contributor_notice: 'Модели с суффиксом -contributor разрешают Meta использовать запросы и ответы для обучения. Polaris не выбирает эти варианты по умолчанию. Выбирайте их, только если вы согласны с таким использованием данных.',
         add_description: 'Проверьте API-ключ через каталог моделей, затем добавьте его в пул учётных данных.',
@@ -326,6 +378,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'Каталог моделей обновлён. Протестируйте модель, чтобы проверить доступ к инференсу.'
     },
     th: {
+        groq: 'เชื่อมต่อโมเดลแชต GroqCloud ด้วยคีย์ API ของ Groq',
+        deepseek: 'เชื่อมต่อโมเดล DeepSeek ด้วยคีย์ API ของแพลตฟอร์ม',
+        mistral: 'เชื่อมต่อโมเดลแชต Mistral ด้วยคีย์ API ของ Studio',
+        cerebras: 'เชื่อมต่อโมเดลสำหรับการอนุมานของ Cerebras ด้วยคีย์ API ของคลาวด์',
         meta: 'เชื่อมต่อโมเดล Muse Spark ผ่าน Meta Model API ด้วยคีย์ API',
         meta_contributor_notice: 'โมเดลที่ลงท้ายด้วย -contributor อนุญาตให้ Meta ใช้พรอมป์ต์และคำตอบในการฝึกโมเดล Polaris จะไม่เลือกโมเดลเหล่านี้โดยค่าเริ่มต้น โปรดเลือกเฉพาะเมื่อคุณยินยอมให้ใช้ข้อมูลในลักษณะนี้',
         add_description: 'ตรวจสอบคีย์ API ผ่านรายการโมเดล แล้วเพิ่มลงในคลังข้อมูลรับรอง',
@@ -351,6 +407,10 @@ const PROVIDER_EXPANSION_COPY = {
         catalog_refreshed: 'รีเฟรชรายการโมเดลแล้ว ทดสอบโมเดลเพื่อตรวจสอบสิทธิ์เรียกใช้งานการอนุมาน'
     },
     tr: {
+        groq: 'Groq API anahtarınızla GroqCloud sohbet modellerine bağlanın.',
+        deepseek: 'Platform API anahtarınızla DeepSeek modellerine bağlanın.',
+        mistral: 'Studio API anahtarınızla Mistral sohbet modellerine bağlanın.',
+        cerebras: 'Bulut API anahtarınızla Cerebras çıkarım modellerine bağlanın.',
         meta: 'Muse Spark modellerini bir API anahtarıyla Meta Model API üzerinden bağlayın.',
         meta_contributor_notice: '-contributor ile biten modeller, Meta’nın istemleri ve yanıtları eğitim için kullanmasına izin verir. Polaris bu varyantları varsayılan olarak seçmez; yalnızca bu veri kullanımını kabul ediyorsanız seçin.',
         add_description: 'API anahtarını model kataloğu üzerinden doğrulayın, ardından kimlik bilgileri havuzuna ekleyin.',

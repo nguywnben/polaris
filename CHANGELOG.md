@@ -9,6 +9,11 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- GroqCloud, DeepSeek Platform, Mistral AI Studio and Cerebras Cloud API-key
+  providers, with credential-specific endpoints, JSON/ZIP imports, chat model
+  discovery, streaming/tool adapters, PNG logos and descriptions in 15 languages.
+- Groq streaming usage/error metadata and Mistral reasoning chunks/tool IDs are
+  adapted at the provider boundary. See the API-platform guide for reasoning limits.
 - Complete contextual interface catalogs for all 15 supported languages, including exact
   provider authorization/import instructions and localized field hints.
 - Regression checks for missing translations, interpolation variables, provider-copy fidelity,

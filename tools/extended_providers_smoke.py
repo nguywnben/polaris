@@ -20,11 +20,15 @@ PROVIDERS = (
     "kimchi",
     "kilo",
     "meta",
+    "groq",
+    "deepseek",
+    "mistral",
+    "cerebras",
 )
 CATALOG_COUNT = 9 + len(PROVIDERS)
 
 
-def verify_catalog_layout(page, widths=(1440, 1201, 768, 320)):
+def verify_catalog_layout(page, widths=(1440, 1201, 1024, 768, 360, 320)):
     search = page.locator("#providerCatalogSearch")
     for width in widths:
         page.set_viewport_size({"width": width, "height": 1000})
@@ -295,6 +299,10 @@ def main():
                 (1440, "dark"),
                 (768, "light"),
                 (768, "dark"),
+                (1024, "light"),
+                (1024, "dark"),
+                (360, "light"),
+                (360, "dark"),
                 (320, "light"),
                 (320, "dark"),
             ):
@@ -318,6 +326,10 @@ def main():
                     "opencode",
                     "kimchi",
                     "meta",
+                    "groq",
+                    "deepseek",
+                    "mistral",
+                    "cerebras",
                 ):
                     page.screenshot(
                         path=str(shots / f"{provider}-{width}-{theme}.png"), full_page=True
@@ -386,7 +398,7 @@ def main():
         browser.close()
     print(
         f"Provider catalog: {CATALOG_COUNT} cards, 15 locales, pagination/search and responsive layout passed. "
-        f"Extended providers: {len(PROVIDERS)} forms, {len(PROVIDERS) * 6} responsive/theme cases, "
+        f"Extended providers: {len(PROVIDERS)} forms, {len(PROVIDERS) * 10} responsive/theme cases, "
         f"{len(PROVIDERS) * 3} real JSON/ZIP/rejection imports, Meta pool editor, no page errors."
     )
 

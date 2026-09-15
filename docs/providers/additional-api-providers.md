@@ -23,6 +23,10 @@ single-column screens each card grows naturally with its own content.
 | Poolside Platform | Platform API key | Poolside inference endpoint |
 | Kimchi Coding | API/service key | Kimchi OpenAI-compatible endpoint |
 | Kilo | API key | Gateway endpoint; optional organization ID |
+| GroqCloud | Groq API key | Groq API endpoint |
+| DeepSeek Platform | Platform API key | DeepSeek API endpoint |
+| Mistral AI Studio | Studio API key | Mistral API endpoint |
+| Cerebras Cloud | Cloud API key | Cerebras API endpoint |
 
 Empty endpoint fields use official defaults. Endpoint overrides are limited to
 trusted vendor HTTPS hosts; this is not a generic arbitrary-proxy feature.
@@ -79,3 +83,5 @@ Exported credential archives contain secrets and must be protected accordingly.
 
 Source links and implementation acceptance criteria are recorded in
 [the integration specification](../specs/provider-expansion-2026-09.md).
+See [the four API-platform guide](api-platforms.md) for their endpoints, catalog
+filters and reasoning compatibility limits.

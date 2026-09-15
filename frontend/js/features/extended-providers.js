@@ -8,7 +8,11 @@ const EXTENDED_PROVIDER_UI = Object.freeze({
     poolside: {name: 'Poolside Platform', logo: 'poolside-platform-logo.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
     kimchi: {name: 'Kimchi Coding', logo: 'kimchi-logo.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
     kilo: {name: 'Kilo', logo: 'kilo-logo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
-    meta: {name: 'Meta Model API', logo: 'meta-model-api-logo.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'}
+    meta: {name: 'Meta Model API', logo: 'meta-model-api-logo.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'},
+    groq: {name: 'GroqCloud', logo: 'groqcloud-logo.png', site: 'https://console.groq.com/', base: 'https://api.groq.com/openai/v1'},
+    deepseek: {name: 'DeepSeek Platform', logo: 'deepseek-platform-logo.png', site: 'https://platform.deepseek.com/', base: 'https://api.deepseek.com/v1'},
+    mistral: {name: 'Mistral AI Studio', logo: 'mistral-ai-studio-logo.png', site: 'https://console.mistral.ai/', base: 'https://api.mistral.ai/v1'},
+    cerebras: {name: 'Cerebras Cloud', logo: 'cerebras-cloud-logo.png', site: 'https://cloud.cerebras.ai/', base: 'https://api.cerebras.ai/v1'}
 });
 
 function extendedElement(tag, className = '', key = '') {

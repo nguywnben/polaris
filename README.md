@@ -85,7 +85,7 @@ Polaris adapts requests seamlessly across leading AI providers, local runtime en
 
 Additional API-key integrations are available for **Meta Model API, Kimi API Platform, Kiro,
 Cloudflare Workers AI, NVIDIA NIM, OpenCode Zen/Go, Poolside Platform, Kimchi
-Coding, and Kilo**. Their connection settings belong to each credential on the
+Coding, Kilo, GroqCloud, DeepSeek Platform, Mistral AI Studio, and Cerebras Cloud**. Their connection settings belong to each credential on the
 Providers page, not to System Settings. See the [connection guide and current
 limitations](docs/providers/additional-api-providers.md) before onboarding.
 Meta's stateless Responses replay and Contributor privacy considerations are

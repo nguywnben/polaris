@@ -17,6 +17,8 @@ img[src$="/cloudflare-logo.png"], img[src$="/kilo-logo.png"] { border-radius: va
 /* Kimchi's circular mark has opaque white corners in the supplied PNG. */
 img[src$="/kimchi-logo.png"] { border-radius: 50%; }
 .extended-logo-kimchi { background: transparent; }
+.extended-logo-groq img, .extended-logo-mistral img { border-radius: var(--radius); }
+[data-theme="dark"] .extended-logo-deepseek img { filter: invert(1); }
 @media (max-width: 640px) { .extended-provider-fields { grid-template-columns: minmax(0, 1fr); } }
 
 .provider-hero-card {
