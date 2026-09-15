@@ -205,7 +205,7 @@ def verify_kiro(page):
 
 def verify_kiro_browser(page):
     calls = []
-    state = {"accepted": False, "invalid": True, "unsafe_link": False}
+    state = {"accepted": False, "invalid": True, "unsafe_link": False, "cancel_error": False}
 
     def respond(route):
         action = route.request.url.rsplit("/", 1)[-1]
@@ -232,6 +232,8 @@ def verify_kiro_browser(page):
             else:
                 state["accepted"] = True
             payload = {"status": "received"}
+        elif action == "cancel" and state["cancel_error"]:
+            status = 503
         route.fulfill(status=status, content_type="application/json", body=json.dumps(payload))
 
     page.route("**/api/providers/kiro/browser/*", respond)
@@ -247,6 +249,8 @@ def verify_kiro_browser(page):
     expect(workspace.locator("#kiroOAuthForm")).to_be_hidden()
     form.locator("button").click()
     expect(pending).to_be_visible()
+    expect(form.locator("button")).to_be_visible()
+    expect(form.locator("button")).to_be_enabled()
     expect(pending).to_be_focused()
     assert page.evaluate("window.kiroPopupCalls") == 0
     expect(page).to_have_url(page.url.split("/providers")[0] + "/providers")
@@ -269,9 +273,26 @@ def verify_kiro_browser(page):
     )
     expect(pending.locator(".provider-device-code")).to_have_count(0)
     expect(pending.locator('[data-i18n="runtime.check_authorization"]')).to_have_count(0)
-    callback = pending.locator('input[name="callback_url"]')
+    callback = pending.locator('textarea[name="callback_url"]')
     expect(callback).to_be_visible()
     expect(callback).not_to_be_focused()
+    callback.fill("http://localhost:4283/oauth/callback?code=old&state=synthetic")
+    state["cancel_error"] = True
+    before_failure = len(calls)
+    form.locator("button").click()
+    expect(form.locator("button")).to_be_enabled()
+    expect(pending).to_be_visible()
+    expect(callback).to_have_value("http://localhost:4283/oauth/callback?code=old&state=synthetic")
+    assert [action for action in calls[before_failure:] if action != "complete"] == ["cancel"]
+    state["cancel_error"] = False
+    before_restart = len(calls)
+    form.locator("button").click()
+    expect(callback).to_have_value("")
+    expect(form.locator("button")).to_be_enabled()
+    assert [action for action in calls[before_restart:] if action != "complete"] == [
+        "cancel",
+        "start",
+    ]
     for locale in page.evaluate("Object.keys(PROVIDER_PORTAL_COPY)"):
         page.evaluate("locale => { setLanguage(locale, true); applyLanguage(); }", locale)
         expect(pending.locator("#kiroBrowserCopyLink")).to_have_text(
@@ -318,6 +339,7 @@ def verify_kiro_browser(page):
     )
     expect(pending.locator("a")).to_have_text("")
     assert calls[-1] == "cancel"
+    expect(form.locator("button")).to_be_focused()
     state["unsafe_link"] = True
     with page.expect_response("**/api/providers/kiro/browser/start"):
         form.locator("button").click()

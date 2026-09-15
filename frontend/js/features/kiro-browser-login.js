@@ -33,9 +33,14 @@ function buildKiroOAuthPanel(advanced) {
     const cancel = extendedElement('button', 'btn btn-secondary', 'btn_cancel'); cancel.type = 'button';
     const actions = extendedElement('div', 'page-actions');
     const manualForm = extendedElement('form', 'extended-provider-form oauth-completion-panel'); manualForm.noValidate = true;
-    const input = extendedField(manualForm, 'kiro-browser', 'callback_url', 'provider.portal.manual', '', {type: 'url', required: true});
+    const callbackGroup = extendedElement('div', 'form-group');
+    const callbackLabel = extendedElement('label', '', 'provider.portal.manual');
+    const input = extendedElement('textarea');
+    input.id = 'extended-kiro-browser-callback_url'; input.name = 'callback_url';
+    input.rows = 3; input.required = true; callbackLabel.htmlFor = input.id;
     input.placeholder = 'http://localhost:4283/oauth/callback?code=…&state=…';
-    input.maxLength = 6144; input.autocomplete = 'off'; input.spellcheck = false;
+    input.maxLength = 6144; input.autocomplete = 'off'; input.autocapitalize = 'none'; input.spellcheck = false;
+    callbackGroup.append(callbackLabel, input); manualForm.append(callbackGroup);
     const submit = extendedElement('button', 'btn btn-secondary', 'provider.portal.submit'); submit.type = 'submit';
     actions.append(submit, cancel); manualForm.append(actions);
     pending.append(status, linkHeader, linkCard, expiry, manualForm); panel.append(pending);
@@ -44,10 +49,14 @@ function buildKiroOAuthPanel(advanced) {
     const callbackOrigin = remote ? 'http://localhost:4283' : location.origin;
     if (remote) panel.append(extendedElement('p', 'card-copy', 'provider.portal.remote'));
     let flow = null, timer = null, busy = false, expiresAt = 0;
+    const setBusy = value => {
+        busy = value;
+        [start, submit, cancel].forEach(button => { button.disabled = value; });
+    };
     const stopTimer = () => { clearTimeout(timer); timer = null; };
     const reset = () => {
         stopTimer(); flow = null; input.value = ''; link.removeAttribute('href'); link.textContent = '';
-        pending.classList.add('hidden'); form.classList.remove('hidden'); region.disabled = false;
+        pending.classList.add('hidden'); region.disabled = false;
     };
     async function request(action, payload) {
         const response = await fetch(`./api/providers/kiro/browser/${action}`, {
@@ -62,7 +71,7 @@ function buildKiroOAuthPanel(advanced) {
         if (!flow) return;
         if (Date.now() >= expiresAt) { reset(); showStatus(t('provider.auth.error'), 'error'); return; }
         if (busy || document.hidden) { schedule(); return; }
-        busy = true; cancel.disabled = true; submit.disabled = true;
+        setBusy(true);
         try {
             const result = await request('complete', {flow_id: flow});
             if (result.credential_saved) {
@@ -74,37 +83,44 @@ function buildKiroOAuthPanel(advanced) {
             }
         } catch (error) {
             if (error.terminal) { reset(); showStatus(t('provider.auth.error'), 'error'); }
-        } finally { busy = false; cancel.disabled = false; submit.disabled = false; schedule(); }
+        } finally { setBusy(false); schedule(); }
     }
     form.addEventListener('submit', async event => {
-        event.preventDefault(); if (busy || flow) return;
+        event.preventDefault(); if (busy) return;
         saveResult.classList.add('hidden');
-        busy = true; start.disabled = true; region.disabled = true;
+        stopTimer(); setBusy(true); copy.disabled = true; region.disabled = true;
         try {
+            if (flow) {
+                await request('cancel', {flow_id: flow});
+                reset(); region.disabled = true;
+            }
             const result = await request('start', {callback_origin: callbackOrigin, region: region.value});
             const url = new URL(result.authorization_url);
             if (url.origin !== 'https://app.kiro.dev' || url.pathname !== '/signin' || url.username || url.password) throw new Error('invalid-url');
             flow = result.flow_id; expiresAt = Date.now() + result.expires_in * 1000;
             link.href = url.href; link.textContent = url.href;
             expiry.textContent = t('provider.ui.expires_at', {time: new Date(expiresAt).toLocaleTimeString(document.documentElement.lang || 'en', {hour: '2-digit', minute: '2-digit'})});
-            form.classList.add('hidden'); pending.classList.remove('hidden'); pending.focus({preventScroll: true});
-            schedule();
-        } catch { reset(); showStatus(t('provider.auth.error'), 'error'); }
-        finally { busy = false; start.disabled = false; region.disabled = Boolean(flow); }
+            pending.classList.remove('hidden'); pending.focus({preventScroll: true});
+        } catch (error) {
+            if (!flow || error.terminal) reset();
+            showStatus(t('provider.auth.error'), 'error');
+        }
+        finally { setBusy(false); copy.disabled = false; region.disabled = Boolean(flow); schedule(); }
     });
     manualForm.addEventListener('submit', async event => {
         event.preventDefault(); if (!flow || busy || !manualForm.reportValidity()) return;
-        busy = true; submit.disabled = true; cancel.disabled = true;
+        setBusy(true);
         try { await request('callback', {flow_id: flow, callback_url: input.value.trim()}); input.value = ''; }
         catch { showStatus(t('provider.auth.error'), 'error'); }
-        finally { busy = false; submit.disabled = false; cancel.disabled = false; schedule(); }
+        finally { setBusy(false); schedule(); }
     });
     cancel.addEventListener('click', async () => {
         if (busy || !flow) return;
-        busy = true; cancel.disabled = true;
-        try { await request('cancel', {flow_id: flow}); reset(); start.focus({preventScroll: true}); }
+        setBusy(true);
+        try { await request('cancel', {flow_id: flow}); reset(); }
         catch { showStatus(t('provider.auth.error'), 'error'); }
-        finally { busy = false; cancel.disabled = false; schedule(); }
+        finally { setBusy(false); schedule(); }
+        if (!flow) start.focus({preventScroll: true});
     });
     window.addEventListener('pagehide', stopTimer);
     window.addEventListener('pageshow', schedule);

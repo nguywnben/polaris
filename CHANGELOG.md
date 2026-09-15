@@ -17,7 +17,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with automatic
   callback completion and a manual callback-URL fallback for remote instances.
   Generate the sign-in link first, then open or copy it without an automatic popup;
-  the callback URL field stays visible while authorization is pending.
+  the callback textarea stays visible while authorization is pending. The link button
+  remains available to cancel the previous pending flow and generate a new link.
   AWS device login and API keys remain separate secondary options.
 - GroqCloud, DeepSeek Platform, Mistral AI Studio and Cerebras Cloud API-key
   providers, with credential-specific endpoints, JSON/ZIP imports, chat model
