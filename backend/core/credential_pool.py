@@ -51,6 +51,8 @@ async def resolve_credential_email(credential_data: Dict[str, Any]) -> str:
         return email
     if get_static_credential_identity(credential_data):
         return ""
+    if get_credential_provider(credential_data) != GOOGLE_ANTIGRAVITY:
+        return ""
 
     try:
         from core.google_oauth_api import Credentials, get_user_email

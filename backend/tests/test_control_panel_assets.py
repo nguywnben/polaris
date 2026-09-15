@@ -267,10 +267,14 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("function getCurrentUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("function getHistoricalUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("Boolean(stats.is_historical || stats.is_deleted)", dashboard_script)
+        usage_renderer = dashboard_script.split("function renderUsageList()", 1)[1].split(
+            "function renderUsageProviderSummary()", 1
+        )[0]
+        self.assertIn("const entries = getCurrentUsageEntriesWithTraffic();", usage_renderer)
         self.assertIn(
-            "for (const [filename, stats] of getCurrentUsageEntriesWithTraffic())",
-            dashboard_script,
+            "const pagedEntries = UsagePages.current ? entries : entries.slice(", usage_renderer
         )
+        self.assertRegex(usage_renderer, r"renderUsageTableRows\(\s*list,\s*pagedEntries,")
 
     def test_dashboard_time_range_text_does_not_share_select_hover_state(self):
         body = serve_control_panel().body.decode("utf-8")
@@ -403,7 +407,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertNotIn("Open xAI authorization", settings_script)
         self.assertNotIn(">xAI<", body)
         self.assertNotIn("name: 'xAI'", upload_script)
-        self.assertIn('<option value="xai">Grok Build</option>', body)
+        self.assertIn('<option value="grok">Grok Build</option>', body)
+        self.assertIn('<option value="xai_console">SpaceXAI Console</option>', body)
 
     def test_openai_provider_ui_references_existing_assets_and_endpoints(self):
         response = serve_control_panel()

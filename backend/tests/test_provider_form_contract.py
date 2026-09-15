@@ -14,6 +14,14 @@ CONTRACT_SOURCE = (ROOT / "frontend/js/features/provider-settings-shared.js").re
 LOCALE_SOURCE = (ROOT / "frontend/js/core/page-locales.js").read_text(encoding="utf-8")
 
 EXPECTED_FIELDS = {
+    "grokApiUrl",
+    "googleOauthUrl",
+    "googleUserinfoUrl",
+    "codeAssistEndpoint",
+    "codeAssistClientId",
+    "codeAssistClientSecret",
+    "codeAssistResourceManager",
+    "codeAssistServiceUsage",
     "xaiAuthorizationCode",
     "xaiClientId",
     "xaiOauthIssuer",
@@ -30,7 +38,6 @@ EXPECTED_FIELDS = {
     "openaiPlatformApiKey",
     "openaiApiUrl",
     "claudeAuthorizationCode",
-    "anthropicApiUrlCode",
     "claudeAuthorizeUrl",
     "claudeTokenUrl",
     "claudeClientId",
@@ -43,17 +50,12 @@ EXPECTED_FIELDS = {
     "antigravityOauthClientId",
     "antigravityOauthClientSecret",
     "antigravityApiUrl",
-    "antigravityOauthUrl",
-    "antigravityGoogleApisUrl",
-    "antigravityResourceManagerUrl",
-    "antigravityServiceUsageUrl",
     "antigravityUserAgent",
     "antigravityPayloadUserAgent",
-    "antigravityStreamToNonstream",
-    "antigravitySwitchCredential",
 }
 
 SECRET_FIELDS = {
+    "codeAssistClientSecret",
     "xaiAuthorizationCode",
     "xaiApiKey",
     "googleAiStudioApiKey",
@@ -72,10 +74,6 @@ GOOGLE_HELP_FIELDS = {
     "antigravityOauthClientId",
     "antigravityOauthClientSecret",
     "antigravityApiUrl",
-    "antigravityOauthUrl",
-    "antigravityGoogleApisUrl",
-    "antigravityResourceManagerUrl",
-    "antigravityServiceUsageUrl",
     "antigravityUserAgent",
     "antigravityPayloadUserAgent",
 }
@@ -90,10 +88,7 @@ class ProviderFormContractTests(unittest.TestCase):
                 self.assertRegex(PROVIDER_HTML, rf'id="{re.escape(field_id)}"')
 
     def test_every_visible_contract_field_has_an_explicit_label(self):
-        for field_id in EXPECTED_FIELDS - {
-            "antigravityStreamToNonstream",
-            "antigravitySwitchCredential",
-        }:
+        for field_id in EXPECTED_FIELDS:
             with self.subTest(field_id=field_id):
                 self.assertRegex(PROVIDER_HTML, rf'<label[^>]+for="{re.escape(field_id)}"')
 
@@ -220,7 +215,7 @@ class ProviderFormContractTests(unittest.TestCase):
         expected_calls = {
             "xai": (
                 "validateProviderFormScope(contractScope)",
-                "applyProviderEnvironmentLocks(['grok.settings', 'xai.settings']",
+                "applyProviderEnvironmentLocks(['grok.settings', 'xai.settings', 'xai.shared']",
                 "resetProviderTransientSecrets('xai.credential')",
                 "resetProviderTransientSecrets('grok.oauth')",
             ),
@@ -231,7 +226,7 @@ class ProviderFormContractTests(unittest.TestCase):
             ),
             "anthropic": (
                 "validateProviderFormScope(contractScope)",
-                "applyProviderEnvironmentLocks(['claude-code.settings', 'claude-platform.settings']",
+                "applyProviderEnvironmentLocks(['claude-code.settings', 'anthropic.shared']",
                 "resetProviderTransientSecrets('claude-platform.credential')",
                 "resetProviderTransientSecrets('claude-code.oauth')",
             ),

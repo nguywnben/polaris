@@ -45,13 +45,14 @@ function createUploadManager(type, options = {}) {
             const savedCount = Number(data.uploaded_count || data.loaded_count || 0);
             const skippedCount = Number(data.skipped_count || 0);
             const errorCount = results.filter(item => item.status === 'error').length;
+            const hasUnverifiedImport = results.some(item => item.status === 'success' && item.validation_status === 'unverified');
 
             let variant = 'success';
             if (fallbackVariant === 'error' || (errorCount > 0 && savedCount === 0 && skippedCount === 0)) {
                 variant = 'error';
             } else if (skippedCount > 0 && savedCount === 0 && errorCount === 0) {
                 variant = 'info';
-            } else if (skippedCount > 0 || errorCount > 0) {
+            } else if (skippedCount > 0 || errorCount > 0 || hasUnverifiedImport) {
                 variant = 'warning';
             }
 
@@ -68,8 +69,12 @@ function createUploadManager(type, options = {}) {
 
             title.textContent = titleText;
             const savedLabel = t('runtime.credentials_imported', {count: savedCount});
+            if (hasUnverifiedImport) text.setAttribute('data-i18n', 'provider.ownership.import_unverified');
+            else text.removeAttribute('data-i18n');
             text.textContent = ensureTerminalPunctuation(
-                data.message || t('status_upload_success', {credentials: savedLabel})
+                hasUnverifiedImport
+                    ? t('provider.ownership.import_unverified')
+                    : data.message || t('status_upload_success', {credentials: savedLabel})
             );
             details.replaceChildren();
 
@@ -94,7 +99,14 @@ function createUploadManager(type, options = {}) {
 
                 const messageLine = document.createElement('div');
                 messageLine.className = 'upload-result-message';
-                messageLine.textContent = ensureTerminalPunctuation(item.message || data.message || '');
+                if (item.status === 'success' && item.validation_status === 'unverified') {
+                    messageLine.setAttribute('data-i18n', 'provider.ownership.import_unverified');
+                }
+                messageLine.textContent = ensureTerminalPunctuation(
+                    item.status === 'success' && item.validation_status === 'unverified'
+                        ? t('provider.ownership.import_unverified')
+                        : item.message || data.message || ''
+                );
 
                 detailItem.append(fileLine, messageLine);
                 details.appendChild(detailItem);

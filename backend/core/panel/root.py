@@ -120,6 +120,8 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/anthropic-settings.js",
     "js/features/ollama-settings.js",
     "js/features/antigravity-settings.js",
+    "js/features/provider-credit-settings.js",
+    "js/features/provider-owned-settings.js",
     "js/features/system-settings.js",
     "js/features/backups.js",
     "js/features/quality-policy.js",

@@ -19,6 +19,7 @@ from core.openai_platform import (
     validate_openai_api_key,
 )
 from core.pool_import import PoolImportError, restore_openai_credential
+from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import CODEX, OPENAI, OPENAI_PLATFORM, api_key_fingerprint
 from core.provider_store import store_codex_credential, store_openai_platform_credential
 from core.storage_adapter import get_storage_adapter
@@ -232,30 +233,14 @@ def _parse_openai_json(content: bytes, source_name: str, credential_type: str) -
             raise ValueError(f"{source_name} must contain credential objects.")
         candidate_name = f"{source_name} #{index}" if len(values) > 1 else source_name
         try:
-            provider = item.get("provider") or item.get("provider_id")
             if credential_type == "api_key":
+                item = normalize_provider_import(item, "openai_platform")
                 api_key = str(item.get("api_key") or "").strip()
                 if not api_key:
                     raise ValueError("API key is missing.")
                 candidates.append({"source_filename": candidate_name, "api_key": api_key})
             else:
-                provider_id = str(provider or "openai").strip()
-                if provider_id.lower().replace("-", "_") not in {"openai", "codex", "openai_codex"}:
-                    raise ValueError("Credential is not a Codex credential.")
-                normalized_item = dict(item)
-                aliases = {
-                    "access_token": "accessToken",
-                    "refresh_token": "refreshToken",
-                    "id_token": "idToken",
-                    "account_id": "accountId",
-                    "user_email": "email",
-                    "model_ids": "models",
-                }
-                for canonical, alias in aliases.items():
-                    if not normalized_item.get(canonical) and normalized_item.get(alias):
-                        normalized_item[canonical] = normalized_item[alias]
-                normalized_item["provider"] = OPENAI
-                normalized_item["credential_type"] = "oauth"
+                normalized_item = normalize_provider_import(item, "codex")
                 candidates.append({"source_filename": candidate_name, "payload": normalized_item})
         except ValueError as exc:
             raise ValueError(f"{candidate_name}: {exc}") from exc

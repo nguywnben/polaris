@@ -38,6 +38,9 @@ CLAUDE_OAUTH_BETA = "claude-code-20250219,oauth-2025-04-20"
 CLAUDE_SCOPE = "org:create_api_key user:profile user:inference"
 ANTHROPIC_REDIRECT_URI = "http://localhost:4283/callback"
 CLAUDE_FLOW_TTL_SECONDS = 15 * 60
+CLAUDE_OAUTH_HOSTS = frozenset(
+    {"claude.ai", "api.anthropic.com", "console.anthropic.com", "platform.claude.com"}
+)
 _stream_tool_blocks: Dict[str, Dict[int, Dict[str, Any]]] = {}
 
 
@@ -70,17 +73,21 @@ def normalize_anthropic_api_url(value: str) -> str:
 
 def normalize_claude_oauth_url(value: str, label: str) -> str:
     normalized = str(value or "").strip().rstrip("/")
+    if (
+        not normalized
+        or len(normalized) > 2048
+        or any(character.isspace() or not character.isprintable() for character in normalized)
+        or any(character in normalized for character in ("?", "#", "\\"))
+    ):
+        raise ValueError(f"{label} must be a plain HTTPS endpoint without a query or fragment.")
     parsed = urlparse(normalized)
     hostname = str(parsed.hostname or "").lower()
     if parsed.scheme != "https" or not hostname:
         raise ValueError(f"{label} must use HTTPS.")
-    if (
-        hostname != "anthropic.com"
-        and not hostname.endswith(".anthropic.com")
-        and hostname != "claude.ai"
-        and not hostname.endswith(".claude.ai")
-    ):
-        raise ValueError(f"{label} must use an Anthropic or Claude host.")
+    if parsed.username is not None or parsed.password is not None or parsed.port not in (None, 443):
+        raise ValueError(f"{label} must not contain credentials or a nonstandard port.")
+    if hostname not in CLAUDE_OAUTH_HOSTS:
+        raise ValueError(f"{label} must use a supported official Anthropic or Claude host.")
     return normalized
 
 
@@ -270,7 +277,10 @@ async def _exchange_claude_token(payload: Dict[str, Any], token_url: str) -> Dic
     except (httpx.HTTPError, OSError) as exc:
         raise AnthropicError("Unable to reach the Claude OAuth token endpoint.", 502) from exc
     if response.status_code != 200:
-        raise AnthropicError("Claude Code did not accept the OAuth authorization response.")
+        status = response.status_code
+        if status not in {400, 401, 403, 429} and not 500 <= status <= 599:
+            status = 502
+        raise AnthropicError("Claude Code did not accept the OAuth authorization response.", status)
     try:
         tokens = response.json()
     except ValueError as exc:

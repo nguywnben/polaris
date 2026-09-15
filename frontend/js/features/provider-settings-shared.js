@@ -9,6 +9,31 @@ function defineProviderField(options) {
 }
 
 const PROVIDER_FORM_CONTRACT = Object.freeze({
+    'google.shared': Object.freeze([
+        defineProviderField({id: 'googleOauthUrl', configKey: 'oauth_url', type: 'url',
+            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
+            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
+        defineProviderField({id: 'googleUserinfoUrl', configKey: 'google_apis_url', type: 'url',
+            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
+            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'})
+    ]),
+    'google.compatibility': Object.freeze([
+        defineProviderField({id: 'codeAssistEndpoint', configKey: 'code_assist_endpoint', type: 'url',
+            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
+            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
+        defineProviderField({id: 'codeAssistResourceManager', configKey: 'resource_manager_url', type: 'url',
+            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
+            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
+        defineProviderField({id: 'codeAssistServiceUsage', configKey: 'service_usage_url', type: 'url',
+            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
+            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
+        defineProviderField({id: 'codeAssistClientId', configKey: 'code_assist_client_id', required: true,
+            minLength: 3, environmentLock: true, validation: 'trimmed'}),
+        defineProviderField({id: 'codeAssistClientSecret', configKey: 'code_assist_client_secret',
+            type: 'password', required: false, minLength: 0, maxLength: 4096,
+            autocomplete: 'new-password', secretLifetime: 'edit-session', environmentLock: true,
+            helpKey: 'provider.form.client_secret_help', validation: 'optional-secret', resetBehavior: 'clear'})
+    ]),
     'grok.oauth': Object.freeze([
         defineProviderField({
             id: 'xaiAuthorizationCode', type: 'password', required: true, minLength: 1,
@@ -18,6 +43,7 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
         })
     ]),
     'grok.settings': Object.freeze([
+        defineProviderField({id: 'grokApiUrl', configKey: 'xai_oauth_api_url', type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url', environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
         defineProviderField({id: 'xaiClientId', configKey: 'xai_client_id', required: true,
             minLength: 3, environmentLock: true, helpKey: 'provider.form.client_id_help',
             validation: 'trimmed'}),
@@ -33,13 +59,15 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
             validation: 'secret', resetBehavior: 'clear'
         })
     ]),
+    'xai.shared': Object.freeze([
+        defineProviderField({id: 'xaiUserAgent', configKey: 'xai_user_agent', required: true,
+            minLength: 3, environmentLock: true, helpKey: 'provider.form.user_agent_help',
+            validation: 'trimmed'})
+    ]),
     'xai.settings': Object.freeze([
         defineProviderField({id: 'xaiApiUrl', configKey: 'xai_api_url', type: 'url',
             required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
             environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
-        defineProviderField({id: 'xaiUserAgent', configKey: 'xai_user_agent', required: true,
-            minLength: 3, environmentLock: true, helpKey: 'provider.form.user_agent_help',
-            validation: 'trimmed'})
     ]),
     'google-ai-studio.credential': Object.freeze([
         defineProviderField({
@@ -93,9 +121,6 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
         })
     ]),
     'claude-code.settings': Object.freeze([
-        defineProviderField({id: 'anthropicApiUrlCode', configKey: 'anthropic_api_url',
-            type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
-            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
         defineProviderField({id: 'claudeAuthorizeUrl', configKey: 'claude_oauth_authorize_url',
             type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
             environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
@@ -105,9 +130,6 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
         defineProviderField({id: 'claudeClientId', configKey: 'claude_client_id', required: true,
             minLength: 3, environmentLock: true, helpKey: 'provider.form.client_id_help',
             validation: 'trimmed'}),
-        defineProviderField({id: 'claudeUserAgent', configKey: 'claude_user_agent', required: true,
-            minLength: 3, environmentLock: true, helpKey: 'provider.form.user_agent_help',
-            validation: 'trimmed'})
     ]),
     'claude-platform.credential': Object.freeze([
         defineProviderField({
@@ -117,7 +139,11 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
             validation: 'secret', resetBehavior: 'clear'
         })
     ]),
-    'claude-platform.settings': Object.freeze([
+    'anthropic.shared': Object.freeze([
+        defineProviderField({id: 'claudeUserAgent', configKey: 'claude_user_agent', required: true,
+            minLength: 3, environmentLock: true, helpKey: 'provider.form.user_agent_help',
+            validation: 'trimmed'}),
+
         defineProviderField({id: 'anthropicApiUrlPlatform', configKey: 'anthropic_api_url',
             type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
             environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'})
@@ -156,31 +182,12 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
         defineProviderField({id: 'antigravityApiUrl', configKey: 'antigravity_api_url', type: 'url',
             required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
             environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
-        defineProviderField({id: 'antigravityOauthUrl', configKey: 'oauth_url', type: 'url',
-            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
-            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
-        defineProviderField({id: 'antigravityGoogleApisUrl', configKey: 'google_apis_url', type: 'url',
-            required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
-            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
-        defineProviderField({id: 'antigravityResourceManagerUrl', configKey: 'resource_manager_url',
-            type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
-            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
-        defineProviderField({id: 'antigravityServiceUsageUrl', configKey: 'service_usage_url',
-            type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
-            environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'}),
         defineProviderField({id: 'antigravityUserAgent', configKey: 'antigravity_user_agent',
             required: true, minLength: 3, environmentLock: true,
             helpKey: 'provider.form.user_agent_help', validation: 'trimmed'}),
         defineProviderField({id: 'antigravityPayloadUserAgent',
             configKey: 'antigravity_payload_user_agent', required: true, minLength: 3,
             environmentLock: true, helpKey: 'provider.form.user_agent_help', validation: 'trimmed'}),
-        defineProviderField({id: 'antigravityStreamToNonstream', configKey: 'stream_to_nonstream',
-            type: 'checkbox', maxLength: 0, autocomplete: 'off', environmentLock: true,
-            helpKey: 'provider.form.streaming_help', validation: 'boolean'}),
-        defineProviderField({id: 'antigravitySwitchCredential',
-            configKey: 'switch_credential_enabled', type: 'checkbox', maxLength: 0,
-            autocomplete: 'off', environmentLock: true,
-            helpKey: 'provider.form.credential_switch_help', validation: 'boolean'})
     ])
 });
 
@@ -190,7 +197,6 @@ const PROVIDER_FORM_COPY_CONTRACT = Object.freeze([
     {selector: '#claudeCodeSettingsForm label[for="claudeTokenUrl"]', key: 'token_service'},
     {selector: '#claudeCodeSettingsForm label[for="claudeClientId"]', key: 'oauth_client_id'},
     {selector: '#providerWorkspaceClaudePlatform .provider-tools-grid .tool-panel:first-child h2', key: 'api_key_title', provider: 'Claude Platform'},
-    {selector: '#providerWorkspaceClaudePlatform .provider-settings-header h2', key: 'advanced_settings', provider: 'Claude Platform'},
     {selector: '#providerWorkspaceOllama .provider-tools-grid .tool-panel:first-child h2', key: 'connection_title', provider: 'Ollama'},
     {selector: '#ollamaCredentialForm label[for="ollamaBaseUrl"]', key: 'endpoint_label'},
     {selector: '#ollamaCredentialForm .field-optional', key: 'optional'}

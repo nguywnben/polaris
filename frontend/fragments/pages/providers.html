@@ -228,7 +228,7 @@
                             <div class="provider-settings-header">
                                 <div>
                                     <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build">Grok Build Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the public OAuth client and authorization issuer used for Grok Build accounts.</p>
+                                    <button type="button" class="btn btn-secondary btn-small" data-provider-owned-link="xai_console"><span data-i18n="provider.ownership.shared">Shared settings</span> — Grok Build / SpaceXAI Console</button>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-grok-settings">Save</button>
@@ -240,6 +240,7 @@
                                 <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div>
                             </div>
                             <div id="grokSettingsForm" class="config-grid provider-config-grid hidden">
+                                <div class="form-group"><label for="grokApiUrl" data-provider-form-copy="upstream_endpoints">Upstream endpoint</label><input type="url" id="grokApiUrl" autocomplete="url" placeholder="https://grok.com"></div>
                                 <div class="form-group"><label for="xaiClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="xaiClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
                                 <div class="form-group"><label for="xaiOauthIssuer" data-provider-form-copy="oauth_issuer">OAuth issuer</label><input type="url" id="xaiOauthIssuer" autocomplete="off" placeholder="https://login.example.com"></div>
                             </div>
@@ -317,8 +318,8 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build / SpaceXAI Console">Grok Build and SpaceXAI Console Transport Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the API endpoint and HTTP identity shared by Grok Build OAuth accounts and SpaceXAI Console API keys.</p>
+                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="SpaceXAI Console">SpaceXAI Console</h2>
+
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-xai-console-settings">Save</button>
@@ -331,9 +332,9 @@
                             </div>
                             <div id="xaiConsoleSettingsForm" class="config-grid provider-config-grid hidden">
                                 <div class="form-group"><label for="xaiApiUrl">xAI API endpoint</label><input type="url" id="xaiApiUrl" autocomplete="off" placeholder="https://api.example.com"></div>
-                                <div class="form-group"><label for="xaiUserAgent">HTTP User-Agent</label><input type="text" id="xaiUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
+
                             </div>
-                        </section>
+                        <div id="xaiSharedSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group"><h3><span data-i18n="provider.ownership.shared">Shared settings</span> — Grok Build / SpaceXAI Console</h3><div class="form-group"><label for="xaiUserAgent">HTTP User-Agent</label><input type="text" id="xaiUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div><div class="page-actions"><button type="button" class="btn btn-small" data-provider-owned-action="save-xai-shared" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-xai-shared" data-i18n="reset_defaults">Reset defaults</button></div></section></div></section>
                     </section>
 
                     <section class="provider-workspace hidden" id="providerWorkspaceGoogleAiStudio" role="tabpanel" aria-labelledby="providerSelectorGoogleAiStudio">
@@ -405,6 +406,8 @@
                                 <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
                             </div>
                         </section>
+
+
 
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
@@ -588,9 +591,9 @@
                             </section>
                         </div>
                         <section class="tool-panel provider-settings-panel">
-                            <div class="provider-settings-header"><div><h2 class="card-title">Claude Code Advanced Settings</h2><p class="card-copy provider-tool-copy">Configure Anthropic OAuth, API, and protocol identity used by Claude Code.</p></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
+                            <div class="provider-settings-header"><div><h2 class="card-title">Claude Code Advanced Settings</h2><button type="button" class="btn btn-secondary btn-small" data-provider-owned-link="claude_platform"><span data-i18n="provider.ownership.shared">Shared settings</span> — Claude Code / Claude Platform</button></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
                             <div id="claudeCodeSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Code settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div>
-                            <div id="claudeCodeSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group config-two-column"><div class="form-group"><label for="anthropicApiUrlCode">Anthropic API</label><input type="url" id="anthropicApiUrlCode" autocomplete="off" placeholder="https://api.example.com"></div><div class="form-group"><label for="claudeAuthorizeUrl">Authorization service</label><input type="url" id="claudeAuthorizeUrl" autocomplete="off" placeholder="https://login.example.com/authorize"></div><div class="form-group"><label for="claudeTokenUrl">Token service</label><input type="url" id="claudeTokenUrl" autocomplete="off" placeholder="https://login.example.com/token"></div><div class="form-group"><label for="claudeClientId">OAuth client ID</label><input type="text" id="claudeClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div><div class="form-group"><label for="claudeUserAgent">HTTP User-Agent</label><input type="text" id="claudeUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div></section></div>
+                            <div id="claudeCodeSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group config-two-column"><div class="form-group"><label for="claudeAuthorizeUrl">Authorization service</label><input type="url" id="claudeAuthorizeUrl" autocomplete="off" placeholder="https://login.example.com/authorize"></div><div class="form-group"><label for="claudeTokenUrl">Token service</label><input type="url" id="claudeTokenUrl" autocomplete="off" placeholder="https://login.example.com/token"></div><div class="form-group"><label for="claudeClientId">OAuth client ID</label><input type="text" id="claudeClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div></section></div>
                         </section>
                     </section>
 
@@ -602,7 +605,7 @@
                             <section class="tool-panel"><h2 class="card-title">Claude Platform API Key</h2><p class="card-copy provider-tool-copy">Validate an Anthropic API key, discover its models, and add it to the active pool.</p><form id="claudePlatformCredentialForm" autocomplete="off"><div class="form-group"><label for="claudePlatformApiKey">API key</label><input type="password" id="claudePlatformApiKey" name="claude-platform-api-key" placeholder="Enter an Anthropic API key" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false" required></div><button type="submit" class="btn" id="addClaudePlatformKeyBtn">Validate and add</button></form><div id="claudePlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="claudePlatformSaveResultTitle">API key added to pool</strong><p id="claudePlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
                             <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p class="card-copy provider-tool-copy">Import Claude Platform API key JSON files or ZIP archives.</p><button type="button" class="upload-area" id="claudePlatformUploadArea" aria-describedby="claudePlatformUploadHelp" data-ui-action="select-claude-platform-files"><div><div class="upload-title">Drop API key files here</div><p class="upload-copy" id="claudePlatformUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="claudePlatformFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="claude-platform-files"><div id="claudePlatformFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="claudePlatformFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-claude-platform-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-claude-platform-files">Clear</button></div></div><div id="claudePlatformUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="claudePlatformProgressFill"></div></div><p id="claudePlatformProgressText" class="page-description provider-progress-copy">0%</p></div><div id="claudePlatformUploadResult" class="save-result upload-result hidden"><div><strong id="claudePlatformUploadResultTitle">Import complete</strong><p id="claudePlatformUploadResultText"></p><div id="claudePlatformUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
                         </div>
-                        <section class="tool-panel provider-settings-panel"><div class="provider-settings-header"><div><h2 class="card-title">Claude Platform Advanced Settings</h2><p class="card-copy provider-tool-copy">Configure the Anthropic API endpoint used for validation, discovery, and inference.</p></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="platform">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="platform">Reset defaults</button></div></div><div id="claudePlatformSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Platform settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div><div id="claudePlatformSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden"><section class="provider-settings-group"><div class="form-group"><label for="anthropicApiUrlPlatform">Anthropic API</label><input type="url" id="anthropicApiUrlPlatform" autocomplete="off" placeholder="https://api.example.com"></div></section></div></section>
+                        <section class="tool-panel provider-settings-panel"><div class="provider-settings-header"><div><h2 class="card-title"><span data-i18n="provider.ownership.shared">Shared settings</span> — Claude Code / Claude Platform</h2></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="shared">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="shared">Reset defaults</button></div></div><div id="claudePlatformSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Platform settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div><div id="claudePlatformSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden"><section class="provider-settings-group"><div class="form-group"><label for="anthropicApiUrlPlatform">Anthropic API</label><input type="url" id="anthropicApiUrlPlatform" autocomplete="off" placeholder="https://api.anthropic.com"></div><div class="form-group"><label for="claudeUserAgent">HTTP User-Agent</label><input type="text" id="claudeUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div></section></div></section>
                     </section>
 
                     <section class="provider-workspace hidden" id="providerWorkspaceOllama" role="tabpanel" aria-labelledby="providerSelectorOllama">
@@ -706,11 +709,37 @@
                             </div>
                         </section>
 
+                        <section class="tool-panel" id="antigravityCreditSettings">
+                            <div class="provider-settings-header">
+                                <div>
+                                    <h2 class="card-title" data-i18n="providers.antigravity.credit_title">Google One AI credits</h2>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.antigravity.credit_description">Choose an Antigravity account and control whether its available Google One AI credits may be used.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-small" id="antigravityCreditRefreshBtn" data-i18n="btn_refresh">Refresh</button>
+                            </div>
+                            <p id="antigravityCreditLoading" class="page-description" role="status" aria-live="polite" data-i18n="providers.antigravity.credit_loading">Loading Antigravity credentials...</p>
+                            <p id="antigravityCreditEmpty" class="page-description hidden" role="status" data-i18n="providers.antigravity.credit_empty">No Antigravity credentials are available. Add or import an account first.</p>
+                            <p id="antigravityCreditError" class="page-description hidden" role="alert"></p>
+                            <div id="antigravityCreditContent" class="hidden">
+                                <div class="form-group">
+                                    <label for="antigravityCreditSelect" data-i18n="providers.antigravity.credit_select_label">Antigravity credential</label>
+                                    <select id="antigravityCreditSelect"></select>
+                                </div>
+                                <p id="antigravityCreditState" class="card-copy provider-tool-copy" aria-live="polite"></p>
+                                <div class="page-actions">
+                                    <button type="button" class="btn btn-small" id="antigravityCreditToggleBtn" data-i18n="btn_enable_credit">Enable credits</button>
+                                    <button type="button" class="btn btn-secondary btn-small" id="antigravityCreditPrevBtn" data-i18n="previous">Previous</button>
+                                    <button type="button" class="btn btn-secondary btn-small" id="antigravityCreditNextBtn" data-i18n="next">Next</button>
+                                </div>
+                                <p id="antigravityCreditPageInfo" class="page-description"></p>
+                            </div>
+                        </section>
+
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
                                     <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google Antigravity">Google Antigravity Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy" data-i18n="providers.antigravity_settings_hint">Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.</p>
+
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-antigravity-settings">Save</button>
@@ -734,24 +763,35 @@
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="upstream_endpoints">Upstream Endpoints</h3>
-                                    <p class="card-copy provider-tool-copy" data-i18n="providers.google_hosts_hint">Configure provider and Google API hosts used by Google Antigravity requests.</p>
+
                                     <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="url" id="antigravityApiUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
-                                    <div class="form-group"><label for="antigravityOauthUrl">OAuth API</label><input type="url" id="antigravityOauthUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
-                                    <div class="form-group"><label for="antigravityGoogleApisUrl">Google APIs</label><input type="url" id="antigravityGoogleApisUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
-                                    <div class="form-group"><label for="antigravityResourceManagerUrl">Resource Manager API</label><input type="url" id="antigravityResourceManagerUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
-                                    <div class="form-group"><label for="antigravityServiceUsageUrl">Service Usage API</label><input type="url" id="antigravityServiceUsageUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
                                 </section>
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="protocol_behavior">Protocol Behavior</h3>
-                                    <p class="card-copy provider-tool-copy" data-i18n="providers.protocol_hint">Tune headers, streaming conversion, and retry credential switching.</p>
+
                                     <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
                                     <div class="form-group"><label for="antigravityPayloadUserAgent" data-provider-form-copy="payload_user_agent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
-                                    <label class="switch-row"><input type="checkbox" id="antigravityStreamToNonstream" class="config-checkbox"><span data-provider-form-copy="stream_to_nonstream">Collect streaming responses for non-stream clients</span></label>
-                                    <label class="switch-row" style="margin-top: 12px;"><input type="checkbox" id="antigravitySwitchCredential" class="config-checkbox"><span data-provider-form-copy="switch_credential">Switch Google Antigravity credentials during retries</span></label>
                                 </section>
                             </div>
                         </section>
                     </div>
                     </section>
-                </div>
+                <details class="tool-panel provider-secondary-disclosure" data-google-settings="shared">
+<summary class="provider-disclosure-summary"><span><span data-i18n="provider.ownership.shared">Shared settings</span> <span data-i18n-technical>— Google OAuth / Code Assist</span></span></summary>
+<form id="googleSharedSettingsForm" class="provider-config-grid" data-google-scope="shared" novalidate>
+<div class="form-group"><label for="googleOauthUrl" data-i18n-technical>Google OAuth API</label><input id="googleOauthUrl" type="url" data-google-config="oauth_url" placeholder="https://oauth2.googleapis.com" required autocomplete="url"></div>
+<div class="form-group"><label for="googleUserinfoUrl" data-i18n-technical>Google APIs</label><input id="googleUserinfoUrl" type="url" data-google-config="google_apis_url" placeholder="https://www.googleapis.com" required autocomplete="url"></div>
+<div class="page-actions"><button type="submit" class="btn btn-small" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-google" data-i18n="reset_defaults">Reset defaults</button></div>
+</form></details>
+<details class="tool-panel provider-secondary-disclosure" data-google-settings="compatibility"><summary class="provider-disclosure-summary" data-i18n="settings.code_assist">Code Assist Compatibility</summary><form id="googleCompatibilitySettingsForm" class="provider-config-grid" data-google-scope="compatibility" novalidate>
+
+                                    <p class="card-copy card-title-copy" data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</p>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="url" required id="codeAssistEndpoint" data-google-config="code_assist_endpoint" placeholder="https://cloudcode-pa.googleapis.com"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-google-config="code_assist_client_id" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><div class="setup-secret-field"><input type="password" id="codeAssistClientSecret" data-google-config="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"><button id="codeAssistClientSecretToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="codeAssistClientSecret" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button></div></div>
+
+<div class="form-group"><label for="codeAssistResourceManager" data-i18n-technical>Resource Manager API</label><input type="url" id="codeAssistResourceManager" data-google-config="resource_manager_url" required placeholder="https://cloudresourcemanager.googleapis.com"></div>
+<div class="form-group"><label for="codeAssistServiceUsage" data-i18n-technical>Service Usage API</label><input type="url" id="codeAssistServiceUsage" data-google-config="service_usage_url" required placeholder="https://serviceusage.googleapis.com"></div>
+<div class="page-actions"><button type="submit" class="btn btn-small" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-google" data-i18n="reset_defaults">Reset defaults</button></div></form></details>
+</div>

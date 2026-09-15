@@ -339,7 +339,7 @@ _BASIC_NAMES = frozenset(
 _PROVIDER_NAMES = frozenset(
     name
     for name in _DECLARED_DEFAULTS
-    if name.startswith(("ANTIGRAVITY_", "XAI_", "CODEX_", "CLAUDE_"))
+    if name.startswith(("ANTIGRAVITY_", "XAI_", "CODEX_", "CLAUDE_", "CODE_ASSIST_"))
     or name
     in {
         "OAUTH_URL",
@@ -350,8 +350,6 @@ _PROVIDER_NAMES = frozenset(
         "OPENAI_API_URL",
         "ANTHROPIC_API_URL",
         "VERTEX_ANON_API_KEY",
-        "STREAM_TO_NONSTREAM",
-        "SWITCH_CREDENTIAL_ENABLED",
     }
 )
 _QUALITY_NAMES = frozenset(

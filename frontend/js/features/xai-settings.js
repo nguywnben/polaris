@@ -1,4 +1,5 @@
 const XAI_CONFIG_FIELDS = {
+    grokApiUrl: 'xai_oauth_api_url',
     xaiClientId: 'xai_client_id',
     xaiOauthIssuer: 'xai_oauth_issuer',
     xaiApiUrl: 'xai_api_url',
@@ -8,11 +9,18 @@ const XAI_CONFIG_FIELDS = {
 const XAI_CONFIG_GROUPS = {
     oauth: {
         label: 'Grok Build',
-        fieldIds: ['xaiClientId', 'xaiOauthIssuer']
+        formId: 'grokSettingsForm',
+        fieldIds: ['xaiClientId', 'xaiOauthIssuer', 'grokApiUrl']
     },
     api: {
-        label: 'Grok Build and SpaceXAI Console transport',
-        fieldIds: ['xaiApiUrl', 'xaiUserAgent']
+        label: 'SpaceXAI Console',
+        formId: 'xaiConsoleSettingsForm',
+        fieldIds: ['xaiApiUrl']
+    },
+    shared: {
+        label: 'Grok Build / SpaceXAI Console',
+        formId: 'xaiSharedSettingsForm',
+        fieldIds: ['xaiUserAgent']
     }
 };
 
@@ -20,22 +28,29 @@ async function loadXaiSettings(options = {}) {
     if (!Object.keys(XAI_CONFIG_FIELDS).some(fieldId => document.getElementById(fieldId))) return;
 
     const loadingIds = ['grokSettingsLoading', 'xaiConsoleSettingsLoading'];
-    const formIds = ['grokSettingsForm', 'xaiConsoleSettingsForm'];
+    const formIds = ['grokSettingsForm', 'xaiConsoleSettingsForm', 'xaiSharedSettingsForm'];
     const preserveContent = options.preserveContent ?? formIds.some(
         id => document.getElementById(id)?.dataset.loaded === 'true'
     );
     setProviderSettingsLoading(loadingIds, formIds, true, preserveContent);
+    formIds.forEach(id => {
+        const form = document.getElementById(id);
+        if (form && form.dataset.loaded !== 'true') form.inert = true;
+    });
 
     try {
         const response = await fetch('./api/providers/xai/config', { headers: getAuthHeaders() });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
+        if (!data.config || typeof data.config !== 'object' || Array.isArray(data.config)) {
+            throw new Error(t('unknown_error'));
+        }
         Object.entries(XAI_CONFIG_FIELDS).forEach(([fieldId, configKey]) => {
             const field = document.getElementById(fieldId);
             if (!field) return;
             field.value = data.config?.[configKey] || '';
         });
-        applyProviderEnvironmentLocks(['grok.settings', 'xai.settings'], data.env_locked);
+        applyProviderEnvironmentLocks(['grok.settings', 'xai.settings', 'xai.shared'], data.env_locked);
         formIds.forEach((id) => {
             const form = document.getElementById(id);
             if (form) form.dataset.loaded = 'true';
@@ -44,13 +59,19 @@ async function loadXaiSettings(options = {}) {
         showStatus(t('provider.settings_load_failed', {provider: 'Grok Build / SpaceXAI Console', error: error.message}), 'error');
     } finally {
         setProviderSettingsLoading(loadingIds, formIds, false, preserveContent);
+        formIds.forEach(id => {
+            const form = document.getElementById(id);
+            if (form) form.inert = form.dataset.loaded !== 'true';
+        });
     }
 }
 
 async function saveXaiSettings(scope) {
     const group = XAI_CONFIG_GROUPS[scope];
     if (!group) return;
-    const contractScope = scope === 'oauth' ? 'grok.settings' : 'xai.settings';
+    const form = document.getElementById(group.formId);
+    if (form?.dataset.loaded !== 'true' || form.dataset.saving === 'true') return;
+    const contractScope = scope === 'oauth' ? 'grok.settings' : scope === 'shared' ? 'xai.shared' : 'xai.settings';
     if (!validateProviderFormScope(contractScope)) return;
     const config = {};
     group.fieldIds.forEach((fieldId) => {
@@ -58,6 +79,8 @@ async function saveXaiSettings(scope) {
         const field = document.getElementById(fieldId);
         if (field && !field.disabled) config[configKey] = field.value.trim();
     });
+    form.dataset.saving = 'true';
+    form.inert = true;
     try {
         const response = await fetch('./api/providers/xai/config', {
             method: 'POST',
@@ -67,15 +90,19 @@ async function saveXaiSettings(scope) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
         showStatus(t('provider.settings_saved', {provider: group.label}), 'success');
-        await loadXaiSettings();
     } catch (error) {
         showStatus(t('provider.settings_save_failed', {provider: group.label, error: error.message}), 'error');
+    } finally {
+        form.inert = false;
+        delete form.dataset.saving;
     }
 }
 
 async function resetXaiSettings(scope) {
     const group = XAI_CONFIG_GROUPS[scope];
     if (!group) return;
+    const form = document.getElementById(group.formId);
+    if (form?.dataset.loaded !== 'true' || form.dataset.saving === 'true') return;
     const confirmed = await showConfirmModal(
         t('provider.reset_confirm', {provider: group.label}),
         {
@@ -83,7 +110,9 @@ async function resetXaiSettings(scope) {
             confirmLabel: t('btn_reset_defaults')
         }
     );
-    if (!confirmed) return;
+    if (!confirmed || form.dataset.saving === 'true') return;
+    form.dataset.saving = 'true';
+    form.inert = true;
     try {
         const response = await fetch(`./api/providers/xai/config/reset?scope=${encodeURIComponent(scope)}`, {
             method: 'POST',
@@ -92,9 +121,16 @@ async function resetXaiSettings(scope) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
         showStatus(data.message || t('provider.settings_reset', {provider: group.label}), 'success');
-        await loadXaiSettings();
+        group.fieldIds.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const key = XAI_CONFIG_FIELDS[fieldId];
+            if (field && data.config && Object.hasOwn(data.config, key)) field.value = data.config[key];
+        });
     } catch (error) {
         showStatus(t('provider.settings_reset_failed', {provider: group.label, error: error.message}), 'error');
+    } finally {
+        form.inert = false;
+        delete form.dataset.saving;
     }
 }
 
@@ -223,12 +259,6 @@ const ANTIGRAVITY_CONFIG_FIELD_KEYS = {
     antigravityOauthClientId: 'antigravity_client_id',
     antigravityOauthClientSecret: 'antigravity_client_secret',
     antigravityApiUrl: 'antigravity_api_url',
-    antigravityOauthUrl: 'oauth_url',
-    antigravityGoogleApisUrl: 'google_apis_url',
-    antigravityResourceManagerUrl: 'resource_manager_url',
-    antigravityServiceUsageUrl: 'service_usage_url',
     antigravityUserAgent: 'antigravity_user_agent',
     antigravityPayloadUserAgent: 'antigravity_payload_user_agent',
-    antigravityStreamToNonstream: 'stream_to_nonstream',
-    antigravitySwitchCredential: 'switch_credential_enabled'
 };

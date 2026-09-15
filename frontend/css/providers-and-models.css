@@ -1055,9 +1055,6 @@
 #configTab .settings-schema-legend { padding: 0 0 16px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
 
 .settings-save-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1067,11 +1064,20 @@
     border-top: 1px solid var(--border);
     background: var(--bg);
 }
-/* Keep the viewport as the sticky scroll container on this long settings page. */
-html:has(#configTab.active),
-body:has(#configTab.active),
-.dashboard-wrapper:has(#configTab.active),
-.dashboard-main:has(#configTab.active) { overflow-x: clip; }
+
+#antigravityCreditSettings { grid-column: 1 / -1; }
+[data-google-settings] { margin-top: 16px; }
+[data-google-scope] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding: 20px;
+}
+[data-google-scope] > .form-group { margin: 0; min-width: 0; }
+[data-google-scope] > :is(.page-actions, .card-copy) { grid-column: 1 / -1; }
+@media (max-width: 600px) {
+    [data-google-scope] { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+}
 .settings-save-bar .card-copy { font-size: 12px; }
 .settings-save-bar .page-actions { flex: 0 0 auto; }
 body:has(#configTab.active) #statusSection { top: 76px; bottom: auto; }

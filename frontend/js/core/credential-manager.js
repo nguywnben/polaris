@@ -389,6 +389,7 @@ function createCredsManager(type) {
                             credential_label: item.credential_label,
 
                             credential_type: item.credential_type,
+                            validation_status: item.validation_status === 'unverified' ? 'unverified' : null,
 
                             provider: item.provider,
 

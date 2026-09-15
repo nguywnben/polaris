@@ -3054,3 +3054,237 @@ for (const locale of Object.keys(PAGE_LOCALE_TRANSLATIONS)) {
         SETTINGS_ABOUT_WORKFLOW_MESSAGES[locale] || {}
     );
 }
+
+const PROVIDER_OWNERSHIP_MESSAGES = {
+    "en": {
+        "provider.ownership.shared": "Shared settings",
+        "provider.ownership.switch_credentials": "Allow credential switching during retries",
+        "provider.ownership.import_unverified": "Stored, not verified. Test this credential in the credential pool before use."
+    },
+    "zh-CN": {
+        "provider.ownership.shared": "共用设置",
+        "provider.ownership.switch_credentials": "允许重试时切换凭据",
+        "provider.ownership.import_unverified": "已保存，尚未验证。使用前请在凭据池中测试此凭据。"
+    },
+    "zh-TW": {
+        "provider.ownership.shared": "共用設定",
+        "provider.ownership.switch_credentials": "允許重試時切換憑證",
+        "provider.ownership.import_unverified": "已儲存，尚未驗證。使用前請在憑證池中測試此憑證。"
+    },
+    "de": {
+        "provider.ownership.shared": "Gemeinsame Einstellungen",
+        "provider.ownership.switch_credentials": "Wechsel der Zugangsdaten bei Wiederholungen erlauben",
+        "provider.ownership.import_unverified": "Gespeichert, noch nicht geprüft. Testen Sie diese Zugangsdaten vor der Verwendung im Zugangsdaten-Pool."
+    },
+    "es": {
+        "provider.ownership.shared": "Configuración compartida",
+        "provider.ownership.switch_credentials": "Permitir cambiar de credenciales al reintentar",
+        "provider.ownership.import_unverified": "Guardado, sin verificar. Prueba estas credenciales en el grupo de credenciales antes de usarlas."
+    },
+    "fr": {
+        "provider.ownership.shared": "Paramètres partagés",
+        "provider.ownership.switch_credentials": "Autoriser le changement d’identifiants lors des nouvelles tentatives",
+        "provider.ownership.import_unverified": "Enregistré, non vérifié. Testez ces identifiants dans le pool avant de les utiliser."
+    },
+    "id": {
+        "provider.ownership.shared": "Pengaturan bersama",
+        "provider.ownership.switch_credentials": "Izinkan pergantian kredensial saat mencoba ulang",
+        "provider.ownership.import_unverified": "Tersimpan, belum diverifikasi. Uji kredensial ini di kumpulan kredensial sebelum digunakan."
+    },
+    "it": {
+        "provider.ownership.shared": "Impostazioni condivise",
+        "provider.ownership.switch_credentials": "Consenti il cambio di credenziali durante i tentativi",
+        "provider.ownership.import_unverified": "Salvate, non verificate. Prova queste credenziali nel pool prima di utilizzarle."
+    },
+    "ja": {
+        "provider.ownership.shared": "共通設定",
+        "provider.ownership.switch_credentials": "再試行時の認証情報の切り替えを許可",
+        "provider.ownership.import_unverified": "保存済みですが、未検証です。使用前に認証情報プールで接続をテストしてください。"
+    },
+    "ko": {
+        "provider.ownership.shared": "공유 설정",
+        "provider.ownership.switch_credentials": "재시도 시 인증 정보 전환 허용",
+        "provider.ownership.import_unverified": "저장되었지만 검증되지 않았습니다. 사용 전에 인증 정보 풀에서 테스트하세요."
+    },
+    "pt": {
+        "provider.ownership.shared": "Configurações compartilhadas",
+        "provider.ownership.switch_credentials": "Permitir trocar credenciais nas novas tentativas",
+        "provider.ownership.import_unverified": "Salvas, não verificadas. Teste estas credenciais no pool antes de usá-las."
+    },
+    "ru": {
+        "provider.ownership.shared": "Общие настройки",
+        "provider.ownership.switch_credentials": "Разрешить смену учётных данных при повторных попытках",
+        "provider.ownership.import_unverified": "Сохранено, но не проверено. Перед использованием проверьте эти учётные данные в пуле."
+    },
+    "th": {
+        "provider.ownership.shared": "การตั้งค่าที่ใช้ร่วมกัน",
+        "provider.ownership.switch_credentials": "อนุญาตให้สลับข้อมูลรับรองเมื่อลองใหม่",
+        "provider.ownership.import_unverified": "บันทึกแล้ว แต่ยังไม่ได้ตรวจสอบ โปรดทดสอบข้อมูลรับรองนี้ในคลังข้อมูลรับรองก่อนใช้งาน"
+    },
+    "tr": {
+        "provider.ownership.shared": "Paylaşılan ayarlar",
+        "provider.ownership.switch_credentials": "Yeniden denemelerde kimlik bilgilerini değiştirmeye izin ver",
+        "provider.ownership.import_unverified": "Kaydedildi, henüz doğrulanmadı. Kullanmadan önce bu kimlik bilgilerini havuzda test edin."
+    },
+    "vi": {
+        "provider.ownership.shared": "Cài đặt dùng chung",
+        "provider.ownership.switch_credentials": "Cho phép đổi thông tin xác thực khi thử lại",
+        "provider.ownership.import_unverified": "Đã lưu, chưa xác minh. Hãy kiểm tra kết nối của thông tin xác thực này trong kho trước khi sử dụng."
+    }
+};
+for (const [locale, messages] of Object.entries(PROVIDER_OWNERSHIP_MESSAGES)) {
+    Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
+}
+
+const PROVIDER_IMPORT_PROVENANCE = {
+    "en": "Imported without provider verification.",
+    "zh-CN": "导入时未向提供商验证。",
+    "zh-TW": "匯入時未向供應商驗證。",
+    "de": "Ohne Prüfung beim Anbieter importiert.",
+    "es": "Importado sin verificación del proveedor.",
+    "fr": "Importé sans vérification auprès du fournisseur.",
+    "id": "Diimpor tanpa verifikasi penyedia.",
+    "it": "Importato senza verifica del fornitore.",
+    "ja": "プロバイダーでの検証を行わずにインポートしました。",
+    "ko": "제공자 검증 없이 가져왔습니다.",
+    "pt": "Importado sem verificação do provedor.",
+    "ru": "Импортировано без проверки у поставщика.",
+    "th": "นำเข้าโดยไม่ได้ตรวจสอบกับผู้ให้บริการ",
+    "tr": "Sağlayıcı doğrulaması yapılmadan içe aktarıldı.",
+    "vi": "Được nhập mà chưa xác minh với nhà cung cấp."
+};
+for (const [locale, message] of Object.entries(PROVIDER_IMPORT_PROVENANCE)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['provider.ownership.import_unverified_provenance'] = message;
+}
+
+const ANTIGRAVITY_CREDIT_MESSAGES = {
+    "en": {
+        "providers.antigravity.credit_title": "Antigravity credits",
+        "providers.antigravity.credit_description": "Choose an account to enable or disable credit usage. This can incur provider charges.",
+        "providers.antigravity.credit_empty": "No Antigravity accounts yet.",
+        "providers.antigravity.credit_loading": "Loading accounts…",
+        "providers.antigravity.credit_select_label": "Account"
+    },
+    "vi": {
+        "providers.antigravity.credit_title": "Tín dụng Antigravity",
+        "providers.antigravity.credit_description": "Chọn tài khoản để bật hoặc tắt sử dụng tín dụng. Việc này có thể phát sinh phí từ nhà cung cấp.",
+        "providers.antigravity.credit_empty": "Chưa có tài khoản Antigravity.",
+        "providers.antigravity.credit_loading": "Đang tải tài khoản…",
+        "providers.antigravity.credit_select_label": "Tài khoản"
+    },
+    "zh-CN": {
+        "providers.antigravity.credit_title": "Antigravity 信用额度",
+        "providers.antigravity.credit_description": "选择账户以启用或停用信用额度使用。这可能产生提供商费用。",
+        "providers.antigravity.credit_empty": "尚无 Antigravity 账户。",
+        "providers.antigravity.credit_loading": "正在加载账户…",
+        "providers.antigravity.credit_select_label": "账户"
+    },
+    "zh-TW": {
+        "providers.antigravity.credit_title": "Antigravity 額度",
+        "providers.antigravity.credit_description": "選擇帳戶以啟用或停用額度使用。這可能產生供應商費用。",
+        "providers.antigravity.credit_empty": "尚無 Antigravity 帳戶。",
+        "providers.antigravity.credit_loading": "正在載入帳戶…",
+        "providers.antigravity.credit_select_label": "帳戶"
+    },
+    "de": {
+        "providers.antigravity.credit_title": "Antigravity-Guthaben",
+        "providers.antigravity.credit_description": "Wählen Sie ein Konto, um die Guthabennutzung ein- oder auszuschalten. Dabei können Anbietergebühren entstehen.",
+        "providers.antigravity.credit_empty": "Noch keine Antigravity-Konten.",
+        "providers.antigravity.credit_loading": "Konten werden geladen…",
+        "providers.antigravity.credit_select_label": "Konto"
+    },
+    "es": {
+        "providers.antigravity.credit_title": "Créditos de Antigravity",
+        "providers.antigravity.credit_description": "Elige una cuenta para activar o desactivar el uso de créditos. Esto puede generar cargos del proveedor.",
+        "providers.antigravity.credit_empty": "Aún no hay cuentas de Antigravity.",
+        "providers.antigravity.credit_loading": "Cargando cuentas…",
+        "providers.antigravity.credit_select_label": "Cuenta"
+    },
+    "fr": {
+        "providers.antigravity.credit_title": "Crédits Antigravity",
+        "providers.antigravity.credit_description": "Choisissez un compte pour activer ou désactiver l’utilisation des crédits. Des frais du fournisseur peuvent s’appliquer.",
+        "providers.antigravity.credit_empty": "Aucun compte Antigravity pour le moment.",
+        "providers.antigravity.credit_loading": "Chargement des comptes…",
+        "providers.antigravity.credit_select_label": "Compte"
+    },
+    "id": {
+        "providers.antigravity.credit_title": "Kredit Antigravity",
+        "providers.antigravity.credit_description": "Pilih akun untuk mengaktifkan atau menonaktifkan penggunaan kredit. Biaya penyedia mungkin berlaku.",
+        "providers.antigravity.credit_empty": "Belum ada akun Antigravity.",
+        "providers.antigravity.credit_loading": "Memuat akun…",
+        "providers.antigravity.credit_select_label": "Akun"
+    },
+    "it": {
+        "providers.antigravity.credit_title": "Crediti Antigravity",
+        "providers.antigravity.credit_description": "Scegli un account per attivare o disattivare l’uso dei crediti. Il fornitore potrebbe addebitare costi.",
+        "providers.antigravity.credit_empty": "Nessun account Antigravity.",
+        "providers.antigravity.credit_loading": "Caricamento degli account…",
+        "providers.antigravity.credit_select_label": "Account"
+    },
+    "ja": {
+        "providers.antigravity.credit_title": "Antigravity クレジット",
+        "providers.antigravity.credit_description": "アカウントを選択してクレジットの使用を切り替えます。プロバイダーの料金が発生する場合があります。",
+        "providers.antigravity.credit_empty": "Antigravity アカウントはまだありません。",
+        "providers.antigravity.credit_loading": "アカウントを読み込み中…",
+        "providers.antigravity.credit_select_label": "アカウント"
+    },
+    "ko": {
+        "providers.antigravity.credit_title": "Antigravity 크레딧",
+        "providers.antigravity.credit_description": "계정을 선택하여 크레딧 사용을 켜거나 끄세요. 제공자 요금이 발생할 수 있습니다.",
+        "providers.antigravity.credit_empty": "Antigravity 계정이 없습니다.",
+        "providers.antigravity.credit_loading": "계정 불러오는 중…",
+        "providers.antigravity.credit_select_label": "계정"
+    },
+    "pt": {
+        "providers.antigravity.credit_title": "Créditos Antigravity",
+        "providers.antigravity.credit_description": "Escolha uma conta para ativar ou desativar o uso de créditos. Isso pode gerar cobranças do provedor.",
+        "providers.antigravity.credit_empty": "Ainda não há contas Antigravity.",
+        "providers.antigravity.credit_loading": "Carregando contas…",
+        "providers.antigravity.credit_select_label": "Conta"
+    },
+    "ru": {
+        "providers.antigravity.credit_title": "Кредиты Antigravity",
+        "providers.antigravity.credit_description": "Выберите аккаунт, чтобы включить или отключить использование кредитов. Поставщик может взимать плату.",
+        "providers.antigravity.credit_empty": "Аккаунтов Antigravity пока нет.",
+        "providers.antigravity.credit_loading": "Загрузка аккаунтов…",
+        "providers.antigravity.credit_select_label": "Аккаунт"
+    },
+    "th": {
+        "providers.antigravity.credit_title": "เครดิต Antigravity",
+        "providers.antigravity.credit_description": "เลือกบัญชีเพื่อเปิดหรือปิดการใช้เครดิต ผู้ให้บริการอาจเรียกเก็บค่าบริการ",
+        "providers.antigravity.credit_empty": "ยังไม่มีบัญชี Antigravity",
+        "providers.antigravity.credit_loading": "กำลังโหลดบัญชี…",
+        "providers.antigravity.credit_select_label": "บัญชี"
+    },
+    "tr": {
+        "providers.antigravity.credit_title": "Antigravity kredileri",
+        "providers.antigravity.credit_description": "Kredi kullanımını açmak veya kapatmak için bir hesap seçin. Sağlayıcı ücretleri oluşabilir.",
+        "providers.antigravity.credit_empty": "Henüz Antigravity hesabı yok.",
+        "providers.antigravity.credit_loading": "Hesaplar yükleniyor…",
+        "providers.antigravity.credit_select_label": "Hesap"
+    }
+};
+for (const [locale, messages] of Object.entries(ANTIGRAVITY_CREDIT_MESSAGES)) {
+    Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
+}
+
+const PROVIDER_ARCHIVE_RESULT_MESSAGES = {
+    "en": "The archive was inspected. Review each credential’s import and verification result below.",
+    "vi": "Đã kiểm tra tệp lưu trữ. Xem kết quả nhập và xác minh của từng thông tin xác thực bên dưới.",
+    "zh-CN": "已检查归档文件。请查看下方每项凭据的导入和验证结果。",
+    "zh-TW": "已檢查封存檔。請查看下方各項憑證的匯入及驗證結果。",
+    "de": "Das Archiv wurde geprüft. Prüfen Sie unten die Import- und Verifizierungsergebnisse der einzelnen Zugangsdaten.",
+    "es": "Se inspeccionó el archivo. Revisa los resultados de importación y verificación de cada credencial a continuación.",
+    "fr": "L’archive a été inspectée. Consultez ci-dessous les résultats d’importation et de vérification de chaque identifiant.",
+    "id": "Arsip telah diperiksa. Tinjau hasil impor dan verifikasi setiap kredensial di bawah.",
+    "it": "L’archivio è stato esaminato. Controlla qui sotto i risultati di importazione e verifica di ogni credenziale.",
+    "ja": "アーカイブを確認しました。各認証情報のインポート結果と検証結果を以下で確認してください。",
+    "ko": "보관 파일을 확인했습니다. 아래에서 각 인증 정보의 가져오기 및 검증 결과를 확인하세요.",
+    "pt": "O arquivo foi inspecionado. Confira abaixo os resultados de importação e verificação de cada credencial.",
+    "ru": "Архив проверен. Ниже приведены результаты импорта и проверки каждых учётных данных.",
+    "th": "ตรวจสอบไฟล์เก็บถาวรแล้ว โปรดดูผลการนำเข้าและการตรวจสอบข้อมูลรับรองแต่ละรายการด้านล่าง",
+    "tr": "Arşiv incelendi. Her kimlik bilgisinin içe aktarma ve doğrulama sonucunu aşağıda inceleyin."
+};
+for (const [locale, message] of Object.entries(PROVIDER_ARCHIVE_RESULT_MESSAGES)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['import.archive_intro'] = message;
+}

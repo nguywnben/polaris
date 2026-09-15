@@ -16,7 +16,8 @@ const PROVIDER_SETTINGS_LOADERS = Object.freeze({
 const PROVIDER_SETTINGS_LOADED = Object.freeze({
     antigravity: () => AppState.antigravityConfigLoaded === true,
     'google-ai-studio': () => document.getElementById('googleAiStudioApiUrl')?.dataset.loaded === 'true',
-    xai: () => document.getElementById('xaiSettingsForm')?.dataset.loaded === 'true',
+    xai: () => ['grokSettingsForm', 'xaiConsoleSettingsForm', 'xaiSharedSettingsForm']
+        .every(id => document.getElementById(id)?.dataset.loaded === 'true'),
     openai: () => document.getElementById('openaiPlatformSettingsForm')?.dataset.loaded === 'true',
     anthropic: () => document.getElementById('claudePlatformSettingsForm')?.dataset.loaded === 'true'
 });

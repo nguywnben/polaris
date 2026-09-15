@@ -325,6 +325,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         storage = AsyncMock()
         current = {
             "xai_api_url": "https://api.x.ai/v1",
+            "xai_oauth_api_url": "https://api.x.ai",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "locked-client-id",
             "xai_user_agent": "grok-cli/polaris",
@@ -361,6 +362,7 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         storage = AsyncMock()
         current = {
             "xai_api_url": "https://api.x.ai/v1",
+            "xai_oauth_api_url": "https://api.x.ai",
             "xai_oauth_issuer": "https://auth.x.ai",
             "xai_client_id": "client-id",
             "xai_user_agent": "grok-cli/polaris",
@@ -388,7 +390,43 @@ class XaiProviderTests(unittest.IsolatedAsyncioTestCase):
         payload = json.loads(response.body)
         self.assertEqual(payload["message"], "Grok Build settings reset to defaults.")
         deleted_keys = {call.args[0] for call in storage.delete_config.await_args_list}
-        self.assertEqual(deleted_keys, {"xai_client_id", "xai_oauth_issuer"})
+        self.assertEqual(deleted_keys, {"xai_client_id", "xai_oauth_issuer", "xai_oauth_api_url"})
+
+    async def test_grok_endpoint_save_does_not_change_console_endpoint(self):
+        storage = AsyncMock()
+        current = {
+            "xai_api_url": "https://api.x.ai/v1",
+            "xai_oauth_api_url": "https://api.x.ai",
+            "xai_oauth_issuer": "https://auth.x.ai",
+            "xai_client_id": "client-id",
+            "xai_user_agent": "grok-cli/polaris",
+        }
+        with (
+            patch("core.panel.providers.xai.get_env_locked_keys", return_value=set()),
+            patch("core.panel.providers.xai._current_xai_config", AsyncMock(return_value=current)),
+            patch("core.panel.providers.xai.get_storage_adapter", AsyncMock(return_value=storage)),
+            patch("core.panel.providers.xai.config.reload_config", AsyncMock()),
+        ):
+            response = await save_xai_config(
+                ConfigSaveRequest(config={"xai_oauth_api_url": "https://grok.example.com/v1/"}),
+                token="panel-token",
+            )
+        self.assertEqual(response.status_code, 200)
+        storage.set_config.assert_awaited_once_with(
+            "xai_oauth_api_url", "https://grok.example.com/v1"
+        )
+
+    async def test_shared_reset_preserves_both_product_endpoints(self):
+        storage = AsyncMock()
+        with (
+            patch("core.panel.providers.xai.get_env_locked_keys", return_value=set()),
+            patch("core.panel.providers.xai._current_xai_config", AsyncMock(return_value={})),
+            patch("core.panel.providers.xai.get_storage_adapter", AsyncMock(return_value=storage)),
+            patch("core.panel.providers.xai.config.reload_config", AsyncMock()),
+        ):
+            response = await reset_xai_config(scope="shared", token="panel-token")
+        self.assertEqual(response.status_code, 200)
+        storage.delete_config.assert_awaited_once_with("xai_user_agent")
 
     async def test_api_key_route_returns_secret_free_frontend_contract(self):
         with (

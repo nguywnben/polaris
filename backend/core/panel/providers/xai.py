@@ -9,6 +9,7 @@ import config
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ConfigSaveRequest, XaiCredentialRequest, XaiOAuthCodeRequest
 from core.pool_import import PoolImportError, classify_pool_credential, restore_xai_credential
+from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import XAI, api_key_fingerprint
 from core.provider_store import store_xai_api_key_credential
 from core.storage_adapter import get_storage_adapter
@@ -34,16 +35,24 @@ from .import_utils import (
 
 router = APIRouter(tags=["provider-xai"])
 
-XAI_CONFIG_KEYS = {"xai_api_url", "xai_oauth_issuer", "xai_client_id", "xai_user_agent"}
+XAI_CONFIG_KEYS = {
+    "xai_api_url",
+    "xai_oauth_api_url",
+    "xai_oauth_issuer",
+    "xai_client_id",
+    "xai_user_agent",
+}
 XAI_CONFIG_SCOPES = {
-    "oauth": {"xai_oauth_issuer", "xai_client_id"},
-    "api": {"xai_api_url", "xai_user_agent"},
+    "oauth": {"xai_oauth_issuer", "xai_client_id", "xai_oauth_api_url"},
+    "api": {"xai_api_url"},
+    "shared": {"xai_user_agent"},
 }
 
 
 async def _current_xai_config() -> dict:
     return {
         "xai_api_url": await config.get_xai_api_url(),
+        "xai_oauth_api_url": await config.get_xai_oauth_api_url(),
         "xai_oauth_issuer": await config.get_xai_oauth_issuer(),
         "xai_client_id": await config.get_xai_client_id(),
         "xai_user_agent": await config.get_xai_user_agent(),
@@ -79,6 +88,9 @@ async def save_xai_config(
     try:
         normalized = {
             "xai_api_url": normalize_xai_api_url(str(candidate_config["xai_api_url"] or "")),
+            "xai_oauth_api_url": normalize_xai_api_url(
+                str(candidate_config["xai_oauth_api_url"] or "")
+            ),
             "xai_oauth_issuer": normalize_xai_issuer(
                 str(candidate_config["xai_oauth_issuer"] or "")
             ),
@@ -115,7 +127,7 @@ async def reset_xai_config(
     if normalized_scope and normalized_scope not in XAI_CONFIG_SCOPES:
         raise HTTPException(
             status_code=400,
-            detail="Grok Build and SpaceXAI Console setting scope must be 'oauth' or 'api'.",
+            detail="Grok Build and SpaceXAI Console setting scope must be 'oauth', 'api', or 'shared'.",
         )
 
     env_locked = get_env_locked_keys() & XAI_CONFIG_KEYS
@@ -126,7 +138,8 @@ async def reset_xai_config(
     await config.reload_config()
     scope_label = {
         "oauth": "Grok Build settings",
-        "api": "Grok Build and SpaceXAI Console transport settings",
+        "api": "SpaceXAI Console settings",
+        "shared": "Grok Build and SpaceXAI Console shared settings",
     }.get(normalized_scope, "Grok Build and SpaceXAI Console settings")
     return JSONResponse(
         content={
@@ -209,6 +222,7 @@ def _parse_xai_import_document(content: bytes, source_name: str) -> Dict[str, An
         raise ValueError(f"{source_name} is not valid UTF-8 JSON.") from exc
 
     try:
+        payload = normalize_provider_import(payload)
         provider_id = classify_pool_credential(payload)
     except PoolImportError as exc:
         raise ValueError(f"{source_name}: {exc}") from exc
@@ -401,6 +415,7 @@ async def import_xai_credentials(
                     "filename": restored.get("filename", candidate["filename"]),
                     "source_filename": candidate["source_filename"],
                     "model_count": restored.get("model_count"),
+                    "validation_status": restored.get("validation_status"),
                     "message": restored.get("message") or "Provider credential imported.",
                 }
             )

@@ -144,8 +144,8 @@ vm.runInThisContext({json.dumps(source)});
         self.assertIn("normalizeSettingsMetadata", source)
         self.assertIn("renderSettingsMetadata", source)
         self.assertIn("collectSystemConfigForm", source)
-        self.assertIn("code_assist_client_secret_configured", source)
-        self.assertNotIn("c.code_assist_client_secret || ''", source)
+        self.assertNotIn("code_assist_client_secret", source)
+        self.assertNotIn("codeAssistClientSecret", SETTINGS.read_text(encoding="utf-8"))
         self.assertNotIn(".innerHTML", source)
 
     def test_settings_use_independent_columns_without_per_field_notes(self) -> None:
@@ -167,7 +167,7 @@ vm.runInThisContext({json.dumps(source)});
             styles, r"\.page-header\s*>\s*\.page-actions\s*\{[^}]*flex:\s*0\s+0\s+auto"
         )
 
-    def test_blank_secret_is_not_sent_back_as_a_destructive_clear(self) -> None:
+    def test_provider_secret_is_never_submitted_by_system_settings(self) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the Settings UI contract.")
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
@@ -183,7 +183,7 @@ const config = globalThis.contract.collectSystemConfigForm();
 if (Object.hasOwn(config, 'code_assist_client_secret')) throw new Error('blank secret sent');
 values.codeAssistClientSecret = 'replacement-secret';
 const updated = globalThis.contract.collectSystemConfigForm();
-if (updated.code_assist_client_secret !== 'replacement-secret') throw new Error('secret update lost');
+if (Object.hasOwn(updated, 'code_assist_client_secret')) throw new Error('provider secret sent by system settings');
 vm.runInThisContext('const AppState = {{envLockedFields: new Set(["host", "code_assist_client_secret"])}};');
 const locked = globalThis.contract.collectSystemConfigForm();
 if ('host' in locked || 'code_assist_client_secret' in locked) throw new Error('environment-managed fields submitted');

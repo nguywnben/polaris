@@ -3,9 +3,8 @@ const SYSTEM_CONFIG_FIELD_KEYS = Object.freeze({
     port: 'port',
     credentialsDir: 'credentials_dir',
     proxy: 'proxy',
-    codeAssistClientId: 'code_assist_client_id',
-    codeAssistClientSecret: 'code_assist_client_secret',
-    codeAssistEndpoint: 'code_assist_endpoint',
+    streamToNonstream: 'stream_to_nonstream',
+    switchCredentialEnabled: 'switch_credential_enabled',
     autoBanEnabled: 'auto_disable_enabled',
     autoBanErrorCodes: 'auto_disable_error_codes',
     retry429Enabled: 'retry_429_enabled',
@@ -167,17 +166,8 @@ function populateConfigForm() {
 
     setConfigField('proxy', c.proxy || '');
 
-    setConfigField('codeAssistClientId', c.code_assist_client_id || '');
-
-    setConfigField('codeAssistClientSecret', '');
-    setSetupSecretVisibility(document.getElementById('codeAssistClientSecret'), false);
-
-    const codeAssistSecret = document.getElementById('codeAssistClientSecret');
-    if (codeAssistSecret) {
-        codeAssistSecret.dataset.configured = String(Boolean(c.code_assist_client_secret_configured));
-    }
-
-    setConfigField('codeAssistEndpoint', c.code_assist_endpoint || '');
+    setConfigCheckbox('streamToNonstream', c.stream_to_nonstream !== false);
+    setConfigCheckbox('switchCredentialEnabled', c.switch_credential_enabled !== false);
 
     setConfigCheckbox('autoBanEnabled', Boolean(c.auto_disable_enabled));
 
@@ -269,13 +259,12 @@ function collectSystemConfigForm() {
 
             port: getNumber('port', 4283, Number.parseInt),
 
-            code_assist_endpoint: getValue('codeAssistEndpoint'),
 
             credentials_dir: getValue('credentialsDir'),
 
             proxy: getValue('proxy'),
-
-            code_assist_client_id: getValue('codeAssistClientId'),
+            stream_to_nonstream: getChecked('streamToNonstream'),
+            switch_credential_enabled: getChecked('switchCredentialEnabled'),
 
             auto_disable_enabled: getChecked('autoBanEnabled'),
 
@@ -302,8 +291,6 @@ function collectSystemConfigForm() {
             keepalive_interval: getNumber('keepaliveInterval', 60, Number.parseInt)
 
         };
-    const replacementSecret = getValue('codeAssistClientSecret');
-    if (replacementSecret) config.code_assist_client_secret = replacementSecret;
     const locked = typeof AppState !== 'undefined' ? AppState.envLockedFields : undefined;
     if (locked instanceof Set) {
         for (const key of locked) delete config[key];

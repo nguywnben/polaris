@@ -214,6 +214,8 @@ def enrich_credential_summary(
         ),
         "source": source,
     }
+    if credential_data.get("validation_status") == "unverified":
+        item["validation_status"] = "unverified"
     if mode == "code_assist":
         item["preview"] = bool(summary.get("preview", True))
     else:

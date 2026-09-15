@@ -271,7 +271,6 @@ function createCredCard(credInfo, manager) {
     const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
     const supportsExport = manager.credentialSupportsOperation(credInfo, 'export');
     const supportsModelDiscovery = manager.credentialSupportsOperation(credInfo, 'model_discovery');
-    const supportsCreditMode = manager.credentialSupportsOperation(credInfo, 'credit_mode');
     const supportsVerify = manager.credentialSupportsOperation(credInfo, 'verify');
     const supportsTest = manager.credentialSupportsOperation(credInfo, 'test');
     const supportsDelete = manager.credentialSupportsOperation(credInfo, 'delete');
@@ -452,14 +451,6 @@ function createCredCard(credInfo, manager) {
 
         ${supportsQuotaPreview ? `<button type="button" class="cred-btn" data-credential-command="quota" title="${escapeAttribute(t('btn_view_quota_title'))}">${t('btn_view_quota')}</button>` : ''}
 
-        ${managerType === 'primary' && supportsCreditMode ? (credInfo.enable_credit
-
-            ? `<button type="button" class="cred-btn" data-credential-command="disable_credit" title="${escapeAttribute(t('btn_disable_credit_title'))}">${t('btn_disable_credit')}</button>`
-
-            : `<button type="button" class="cred-btn" data-credential-command="enable_credit" title="${escapeAttribute(t('btn_enable_credit_title'))}">${t('btn_enable_credit')}</button>`
-
-        ) : ''}
-
         ${managerType !== 'primary' ? `<button type="button" class="cred-btn" data-credential-command="preview" title="${escapeAttribute(t('btn_setup_preview_title'))}">${t('btn_setup_preview')}</button>` : ''}
 
         ${supportsVerify ? `<button type="button" class="cred-btn" data-credential-command="verify" title="${escapeAttribute(t('btn_verify_id_title'))}">${t('btn_verify_id')}</button>` : ''}
@@ -494,6 +485,8 @@ function createCredCard(credInfo, manager) {
             <div class="cred-status">${statusBadges}</div>
 
         </div>
+
+        ${credInfo.validation_status === 'unverified' ? `<p class="upload-result-message" data-i18n="provider.ownership.import_unverified_provenance">${escapeHtml(t('provider.ownership.import_unverified_provenance'))}</p>` : ''}
 
         <div class="cred-actions">
             <div class="cred-actions-primary">${primaryActionButtons}</div>

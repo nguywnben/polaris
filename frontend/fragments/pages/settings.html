@@ -59,6 +59,8 @@
                                     <label class="switch-row"><input type="checkbox" id="autoBanEnabled" class="config-checkbox" data-config-key="auto_disable_enabled"><span data-i18n="settings.auto_disable">Auto-disable credentials for configured error codes</span></label>
                                     <div class="form-group config-spaced-field"><label for="autoBanErrorCodes" data-i18n="settings.auto_disable_codes">Auto-disable error codes</label><input type="text" id="autoBanErrorCodes" data-config-key="auto_disable_error_codes" placeholder="400,403"></div>
                                     <label class="switch-row"><input type="checkbox" id="retry429Enabled" class="config-checkbox" data-config-key="retry_429_enabled"><span data-i18n="settings.retry_alternate">Retry failed requests with alternate credentials</span></label>
+                                    <label class="switch-row"><input type="checkbox" id="switchCredentialEnabled" class="config-checkbox" data-config-key="switch_credential_enabled"><span data-i18n="provider.ownership.switch_credentials">Allow credential switching during retries</span></label>
+                                    <label class="switch-row"><input type="checkbox" id="streamToNonstream" class="config-checkbox" data-config-key="stream_to_nonstream"><span data-i18n="provider.form.stream_to_nonstream">Collect streaming responses for non-stream clients</span></label>
                                     <div class="form-group config-spaced-field"><label for="retry429MaxRetries" data-i18n="settings.maximum_retries">Maximum retries</label><input type="number" id="retry429MaxRetries" data-config-key="retry_429_max_retries" min="0" max="100" placeholder="5"></div>
                                     <div class="form-group"><label for="retry429Interval" data-i18n="settings.retry_interval">Retry interval in seconds</label><input type="number" id="retry429Interval" data-config-key="retry_429_interval" min="0.01" max="10" step="0.01" placeholder="1"></div>
                                 </section>
@@ -115,13 +117,7 @@
                                     <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1" placeholder="300"></div>
                                 </section>
 
-                                <section class="config-group" data-settings-tier="compatibility">
-                                    <h2 class="card-title" data-i18n="settings.code_assist">Code Assist Compatibility</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</p>
-                                    <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="text" id="codeAssistEndpoint" data-config-key="code_assist_endpoint" placeholder="https://cloudcode-pa.googleapis.com"></div>
-                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-config-key="code_assist_client_id" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
-                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><div class="setup-secret-field"><input type="password" id="codeAssistClientSecret" data-config-key="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"><button id="codeAssistClientSecretToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="codeAssistClientSecret" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button></div></div>
-                                </section>
+
 
 
                                 </div>

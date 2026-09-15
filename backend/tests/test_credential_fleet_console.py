@@ -140,18 +140,17 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
 
         self.assertIn('class="cred-actions-primary"', source)
         self.assertIn('class="cred-actions-secondary"', source)
-        self.assertIn("supportsCreditMode", source)
         self.assertIn("supportsQuotaPreview", source)
         primary_start = source.index("const primaryActionButtons")
         secondary_start = source.index("const secondaryActionButtons")
         test_action = source.index('data-credential-command="test"')
-        credit_action = source.index('data-credential-command="enable_credit"')
         quota_action = source.index('data-credential-command="quota"')
         self.assertLess(primary_start, secondary_start)
         self.assertGreater(test_action, primary_start)
         self.assertLess(test_action, secondary_start)
-        self.assertGreater(credit_action, secondary_start)
         self.assertGreater(quota_action, secondary_start)
+        self.assertNotIn('data-credential-command="enable_credit"', source)
+        self.assertNotIn('data-credential-command="disable_credit"', source)
 
     def test_cards_expose_safe_edit_and_oauth_reauthentication_actions(self) -> None:
         cards = CARD_SOURCE.read_text(encoding="utf-8")

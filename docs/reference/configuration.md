@@ -53,14 +53,14 @@ Values marked `secret` never expose a default through the Settings API.
 | `POSTGRESQL_URI` | advanced | string / secret | `(empty)` | read_only | environment |
 | `CODE_ASSIST_CREDENTIALS_JSON` | advanced | json / secret | `(empty)` | read_only | environment |
 | `CREDENTIALS_JSON` | advanced | json / secret | `(empty)` | read_only | environment |
-| `CODE_ASSIST_CLIENT_ID` | advanced | string | `(empty)` | live | system |
-| `CODE_ASSIST_CLIENT_SECRET` | advanced | string / secret | `(empty)` | live | system |
+| `CODE_ASSIST_CLIENT_ID` | advanced | string | `(empty)` | live | provider |
+| `CODE_ASSIST_CLIENT_SECRET` | advanced | string / secret | `(empty)` | live | provider |
 | `ANTIGRAVITY_CLIENT_ID` | advanced | string | `(empty)` | live | provider |
 | `ANTIGRAVITY_CLIENT_SECRET` | advanced | string / secret | `(empty)` | live | provider |
 | `ANTIGRAVITY_USER_AGENT` | advanced | string | `antigravity/cli/1.0.1 windows/amd64` | live | provider |
 | `ANTIGRAVITY_PAYLOAD_USER_AGENT` | advanced | string | `antigravity` | live | provider |
 | `PROXY` | basic | string | `(empty)` | live | system |
-| `CODE_ASSIST_ENDPOINT` | advanced | string | `https://cloudcode-pa.googleapis.com` | live | system |
+| `CODE_ASSIST_ENDPOINT` | advanced | string | `https://cloudcode-pa.googleapis.com` | live | provider |
 | `ANTIGRAVITY_API_URL` | advanced | string | `https://daily-cloudcode-pa.googleapis.com` | live | provider |
 | `GOOGLE_AI_STUDIO_API_URL` | advanced | string | `https://generativelanguage.googleapis.com` | live | provider |
 | `XAI_API_URL` | advanced | string | `https://api.x.ai/v1` | live | provider |
@@ -89,7 +89,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `RETRY_429_ENABLED` | advanced | boolean | `true` | live | system |
 | `RETRY_429_MAX_RETRIES` | advanced | integer | `5` | live | system |
 | `RETRY_429_INTERVAL` | advanced | number | `1` | live | system |
-| `SWITCH_CREDENTIAL_ENABLED` | advanced | boolean | `true` | live | provider |
+| `SWITCH_CREDENTIAL_ENABLED` | advanced | boolean | `true` | live | system |
 | `ROUTING_STRATEGY` | basic | string | `balanced` | live | system |
 | `PREFERRED_PROVIDER` | basic | string | `(empty)` | live | system |
 | `UPSTREAM_TIMEOUT_SECONDS` | advanced | number | `300` | live | system |
@@ -104,7 +104,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `PRICING_SYNC_INTERVAL_HOURS` | advanced | integer | `24` | read_only | environment |
 | `COMPATIBILITY_MODE` | advanced | boolean | `false` | live | quality |
 | `RETURN_THOUGHTS_TO_FRONTEND` | advanced | boolean | `true` | live | quality |
-| `STREAM_TO_NONSTREAM` | advanced | boolean | `true` | live | provider |
+| `STREAM_TO_NONSTREAM` | advanced | boolean | `true` | live | system |
 | `ANTI_TRUNCATION_MAX_ATTEMPTS` | advanced | integer | `3` | live | quality |
 | `TOKEN_COMPRESSION_ENABLED` | advanced | boolean | `true` | live | quality |
 | `TOKEN_COMPRESSION_THRESHOLD` | advanced | integer | `32000` | live | quality |

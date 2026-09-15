@@ -20,6 +20,7 @@ from core.credential_manager import credential_manager
 from core.google_ai_studio import GoogleAIStudioError, validate_api_key
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
 from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
+from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
@@ -178,7 +179,10 @@ def _parse_archive_payload(content: bytes, source_name: str) -> Dict[str, Any]:
         raise PoolImportError(f"{source_name} is not valid UTF-8 JSON.") from exc
     if not isinstance(payload, dict):
         raise PoolImportError(f"{source_name} must contain one credential object.")
-    return payload
+    try:
+        return normalize_provider_import(payload)
+    except ValueError as exc:
+        raise PoolImportError(f"{source_name}: {exc}") from exc
 
 
 async def extract_pool_archive(
@@ -314,7 +318,7 @@ async def _restore_ai_studio(candidate: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def restore_xai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate and import one Grok Build or SpaceXAI Console credential without returning secrets."""
+    """Store Grok OAuth offline or validate a Console API key without returning secrets."""
     payload = dict(candidate["payload"])
     payload["provider"] = XAI
     if str(payload.get("credential_type") or "").lower() == "api_key":
@@ -334,6 +338,7 @@ async def restore_xai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]:
             "message": "SpaceXAI Console API key validated and imported into the pool.",
         }
 
+    payload["validation_status"] = "unverified"
     identity = str(
         payload.get("account_fingerprint")
         or payload.get("user_email")
@@ -353,12 +358,17 @@ async def restore_xai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]:
         "label": payload.get("credential_label")
         or payload.get("user_email")
         or "Grok Build OAuth account",
-        "message": result.get("message") or "Grok Build OAuth credential imported into the pool.",
+        "validation_status": "unverified",
+        "message": (
+            "Grok Build OAuth credential stored; provider access is not verified. Verify it in the pool before use."
+            if result.get("stored", True)
+            else "Grok Build OAuth credential was not added; provider access was not verified."
+        ),
     }
 
 
 async def restore_openai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate and import one Codex or OpenAI Platform credential."""
+    """Store Codex OAuth offline or validate an OpenAI Platform API key."""
     payload = dict(candidate["payload"])
     payload["provider"] = OPENAI
     credential_type = str(payload.get("credential_type") or "").strip().lower()
@@ -386,9 +396,11 @@ async def restore_openai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]
         raise CodexError("Codex credential is missing its OAuth token.")
     if not payload.get("model_ids"):
         payload["model_ids"] = list(CODEX_DEFAULT_MODEL_IDS)
+    payload["validation_status"] = "unverified"
     identity = str(
         payload.get("account_fingerprint")
         or payload.get("user_email")
+        or payload.get("account_id")
         or payload.get("refresh_token")
         or payload.get("access_token")
         or ""
@@ -401,7 +413,12 @@ async def restore_openai_credential(candidate: Dict[str, Any]) -> Dict[str, Any]
         "action": result.get("action", "created"),
         "filename": result.get("filename", filename),
         "label": payload.get("credential_label") or payload.get("user_email") or "Codex account",
-        "message": result.get("message") or "Codex credential imported into the pool.",
+        "validation_status": "unverified",
+        "message": (
+            "Codex OAuth credential stored; provider access is not verified. Verify it in the pool before use."
+            if result.get("stored", True)
+            else "Codex OAuth credential was not added; provider access was not verified."
+        ),
     }
 
 
