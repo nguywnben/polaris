@@ -65,6 +65,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/core/number-format.js",
     "js/core/i18n.js",
     "js/core/identity-locales.js",
+    "js/core/oidc-entry-locales.js",
     "js/locales/de.js",
     "js/locales/es.js",
     "js/locales/fr.js",

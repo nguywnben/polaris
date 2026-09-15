@@ -33,6 +33,12 @@
                                 <span id="identityOidcBadge" class="status-badge muted" data-i18n="identity.unavailable">Unavailable</span>
                             </div>
                             <dl id="identityOidcSummary" class="identity-fact-list" aria-busy="true"></dl>
+                            <details class="identity-summary-action">
+                                <summary data-i18n="oidc_entry.setup_title">Set up team sign-in</summary>
+                                <p class="card-copy" data-i18n="oidc_entry.setup_help">Configure OIDC in the deployment environment using the guide, then restart Polaris. Keep your local-owner password for recovery.</p>
+                                <p class="card-copy" data-i18n="oidc_entry.access_help">Grant access through an exact issuer and subject binding below, or an explicit role mapping. Verify readiness after restarting.</p>
+                                <p><a href="https://github.com/nguywnben/polaris/blob/main/docs/oidc-foundation.md" target="_blank" rel="noopener noreferrer" data-i18n="oidc_entry.setup_guide">OIDC setup guide</a></p>
+                            </details>
                             <button id="identityOidcAdvance" type="button" class="btn btn-secondary identity-summary-action hidden" data-ui-action="identity-oidc-advance" data-i18n="identity.advance_oidc">Invalidate OIDC sessions</button>
                         </section>
 

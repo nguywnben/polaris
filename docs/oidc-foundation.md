@@ -9,6 +9,13 @@ the localized console are active, but they do not enable OIDC on their own.
 The local-owner login and recovery path remain available and independent of the identity provider.
 `WORKERS=1` and one application replica remain the only supported topology.
 
+The login page offers an explicit **Sign in with a team account** link only after initial setup
+is complete and local OIDC configuration validates as enabled. It does not redirect automatically.
+`GET /api/auth/setup/status` exposes only the additive `oidc_enabled` Boolean; this check does not
+perform discovery or prove that the identity provider is reachable. Invalid optional configuration
+does not hide the owner-password form. Identity and sessions includes deployment guidance and
+links to this configuration contract. Configuration changes still require a controlled restart.
+
 ## Configuration Contract
 
 OIDC is disabled when `OIDC_ENABLED` is absent or false. A disabled snapshot carries no active

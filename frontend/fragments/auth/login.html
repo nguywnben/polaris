@@ -23,6 +23,10 @@
                     </div>
                 </div>
                 <button id="loginSubmitButton" type="submit" class="btn" data-i18n="login_submit">Sign in</button>
+                <div id="loginOidcEntry" class="login-form hidden" hidden>
+                    <a class="btn btn-secondary" href="/api/identity/oidc/start" data-i18n="oidc_entry.sign_in">Sign in with a team account</a>
+                    <p class="login-copy" data-i18n="oidc_entry.retry_hint">If team sign-in does not finish, retry or use your console password.</p>
+                </div>
             </form>
         </div>
         <footer class="login-footer" data-i18n-aria-label="site_footer" aria-label="Site footer">

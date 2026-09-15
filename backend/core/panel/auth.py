@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import UTC, datetime
 
 import config
 from core.auth import (
@@ -11,7 +12,13 @@ from core.auth import (
     verify_password,
 )
 from core.i18n import LocalizedJSONResponse as JSONResponse
-from core.identity import SESSION_TOKEN_PREFIX, get_session_service
+from core.identity import (
+    SESSION_TOKEN_PREFIX,
+    OidcConfigurationError,
+    OidcPolicyRevisionRecord,
+    get_session_service,
+    load_oidc_configuration,
+)
 from core.models import (
     AuthCallbackRequest,
     AuthCallbackUrlRequest,
@@ -135,14 +142,24 @@ async def setup_status(request: Request):
             except HTTPException:
                 authenticated = False
         storage = await get_storage_adapter() if setup_required else None
-        return JSONResponse(
-            content=await build_setup_status(
-                request,
-                storage,
-                setup_required=setup_required,
-                authenticated=authenticated,
-            )
+        content = await build_setup_status(
+            request,
+            storage,
+            setup_required=setup_required,
+            authenticated=authenticated,
         )
+        content["oidc_enabled"] = False
+        if not setup_required:
+            try:
+                # Validate environment inputs only. This provisional revision is never
+                # used for authentication or persisted; no IdP or identity-store I/O.
+                configuration = load_oidc_configuration(
+                    OidcPolicyRevisionRecord.initial(now=datetime.now(UTC))
+                )
+                content["oidc_enabled"] = configuration.policy.enabled
+            except OidcConfigurationError:
+                pass  # Invalid optional configuration must leave owner login available.
+        return JSONResponse(content=content)
     except Exception as e:
         log.error(f"Failed to determine setup status: {e}")
         raise HTTPException(

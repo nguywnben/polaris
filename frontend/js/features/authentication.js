@@ -94,7 +94,17 @@ function invalidateSetupVerification() {
     }
 }
 
+function renderLoginOidcEntry(data) {
+    const entry = document.getElementById('loginOidcEntry');
+    if (!entry) return;
+    const enabled = data?.oidc_enabled === true && data?.setup_required === false;
+    entry.hidden = !enabled;
+    entry.classList.toggle('hidden', !enabled);
+}
+
 function renderSetupStatus(data, {tokenVerified = false} = {}) {
+
+    renderLoginOidcEntry(data);
 
     if (!data || typeof data !== 'object') return;
 
