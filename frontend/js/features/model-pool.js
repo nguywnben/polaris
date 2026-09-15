@@ -137,6 +137,8 @@ function updateModelFirstRunState() {
         && !AppState.modelBlacklist?.length;
     tab?.classList.toggle('is-pristine-empty', isEmpty);
     if (firstRun) firstRun.hidden = !isEmpty;
+    const policyPanel = document.getElementById('modelRoutingPolicyPanel');
+    if (policyPanel) policyPanel.hidden = !AppState.modelCatalogLoaded || isEmpty;
 }
 
 function modelRouteHasUnsavedChanges() {
@@ -582,7 +584,6 @@ async function loadModelCatalog(forceRefresh = false, options = {}) {
         AppState.modelRoutingPolicy = data.routing_policy || {strategy: 'balanced', preferred_provider: ''};
         clearPageState('modelCatalogState');
         populateModelRoutingPolicy();
-        if (policyPanel) policyPanel.hidden = false;
         renderSelectedModels();
         renderModelCatalog();
         renderModelBlacklist();

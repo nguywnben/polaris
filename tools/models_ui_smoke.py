@@ -65,6 +65,7 @@ def main():
             expect(page).to_have_url(base + "/dashboard")
             page.goto(base + "/models", wait_until="networkidle")
             expect(page.locator("#modelFirstRun")).to_be_visible()
+            expect(page.locator("#modelRoutingPolicyPanel")).to_be_hidden()
             expect(page.locator("#modelFirstRun h2")).to_have_text("Chưa có mô hình")
             page.evaluate("AppState.lang = 'en'; applyLanguage()")
             expect(page.locator("#modelFirstRun h2")).to_have_text("No models yet")
@@ -77,6 +78,7 @@ def main():
                 page.locator("#refreshModelCatalogBtn").click()
                 expect(page.locator("#refreshModelCatalogBtn")).to_be_enabled()
                 if mode == "populated":
+                    expect(page.locator("#modelRoutingPolicyPanel")).to_be_visible()
                     expect(page.locator("#modelCatalogList input")).to_have_count(3)
                     expect(page.locator("#modelCatalogList input").last).to_be_disabled()
                     page.locator('[data-model-id="gpt-fixture"]').check()
@@ -97,6 +99,7 @@ def main():
                     expect(page.locator("#testModelRouteBtn")).to_be_enabled()
                     assert state["selected"] == ["claude-fixture", "gpt-fixture"]
                 elif mode == "missing":
+                    expect(page.locator("#modelRoutingPolicyPanel")).to_be_visible()
                     expect(page.locator("#modelFirstRun")).to_be_hidden()
                     expect(page.locator("#deleteModelRouteBtn")).to_be_visible()
                     expect(page.locator("#modelBlacklistList .model-blacklist-item")).to_be_visible()
