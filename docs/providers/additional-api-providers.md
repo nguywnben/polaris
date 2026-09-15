@@ -35,7 +35,7 @@ Cloudflare files must include `account_id`; OpenCode files can specify `plan`.
 Use the downloadable examples or exported Polaris credentials.
 These imports validate file structure and connection fields offline, save no
 archive-supplied model catalog, and remain marked as imported without verification.
-Open the pool to discover models and explicitly test inference. Mixed-provider
+Open **Credentials** in the sidebar to discover models and explicitly test inference. Mixed-provider
 archives still belong in the pool's import workflow and require explicit identifiers.
 Reimporting the same key and connection context skips it atomically: the existing
 model catalog, label and operational state stay unchanged. Failed files remain

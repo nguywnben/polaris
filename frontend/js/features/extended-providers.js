@@ -170,9 +170,7 @@ function buildExtendedProviderWorkspaces() {
         advanced.append(settings);
         const actions = extendedElement('div', 'page-actions');
         const save = extendedElement('button', 'btn', 'runtime.save_credential'); save.type = 'submit';
-        const view = extendedElement('button', 'btn btn-secondary', 'provider.ext.open_pool');
-        view.type = 'button'; view.dataset.uiAction = 'switch-tab'; view.dataset.tab = 'pool';
-        actions.append(save, view); form.append(actions);
+        actions.append(save); form.append(actions);
         form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
         panel.append(form); tools.append(panel, buildExtendedProviderImport(provider));
         workspace.append(tools, advanced); page.append(workspace);

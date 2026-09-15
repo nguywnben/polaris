@@ -139,6 +139,7 @@ def main():
             workspace = page.locator(f"#providerWorkspace-{provider}")
             expect(workspace).to_be_visible()
             expect(workspace.locator(".provider-tools-grid > .tool-panel")).to_have_count(2)
+            expect(workspace.locator('[data-i18n="provider.ext.open_pool"]')).to_have_count(0)
             expect(workspace.locator('input[type="file"]')).to_have_count(1)
             expect(workspace.locator(".upload-area")).to_be_visible()
             expect(workspace.locator('[type="password"]')).not_to_be_focused()
@@ -216,7 +217,7 @@ def main():
             verify_import(page, workspace, base, provider)
         assert len(saved) == 8, saved
         # Open the actual pool editor for a credential saved by the import route.
-        page.locator('#providerWorkspace-kilo [data-tab="pool"]').click()
+        page.locator('#primaryNavigation [data-tab="pool"]').click()
         for provider in PROVIDERS:
             name = page.evaluate("id => EXTENDED_PROVIDER_UI[id].name", provider)
             imported = page.locator(".cred-card").filter(
