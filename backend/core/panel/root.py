@@ -103,6 +103,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/audit.js",
     "js/features/traces.js",
     "js/features/activity.js",
+    "js/features/extended-provider-import.js",
     "js/features/extended-providers.js",
     "js/features/navigation.js",
     "js/features/model-pool.js",

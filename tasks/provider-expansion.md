@@ -29,3 +29,22 @@ Docker replacement, remote push or release were performed.
 Threat model: untrusted console fields and vendor replies cross authenticated management,
 credential storage and outbound HTTP boundaries. Protect keys, existing pool contents,
 request integrity and bounded resource usage. No automatic inference during discovery.
+
+## Provider workspace remediation — 2026-09-15
+
+- [x] Align all eight workspaces with the established provider header, add/import
+  panels and full-width advanced section. Keep settings credential-specific.
+- [x] Provide inline JSON/ZIP import, safe example downloads, retained failed files,
+  bounded archives and selected-provider validation without upstream calls.
+- [x] Preserve existing catalog, label and operational state on duplicate imports,
+  including concurrent writes. Keep explicit credential updates working.
+- [x] Correct all eight provider identities and API-key badges in the credential
+  pool; verify OpenCode plan changes in the actual existing-credential editor.
+- [x] Cover failure/key retention, busy states, empty eye buttons and responsive
+  light/dark layouts; localize new UI/error copy in all fifteen locales.
+
+Verification: core suite ran 1,998 tests (1,976 passed, 22 optional skips), zero
+failures. Fast quality gate passed. Browser smoke passed eight forms, 48
+viewport/theme cases and 24 real JSON/ZIP/rejection imports against disposable
+storage, plus pool identity badges and OpenCode editing. Dependency audit found
+no known vulnerabilities. No real vendor credentials or paid calls were used.

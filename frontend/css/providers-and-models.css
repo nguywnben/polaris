@@ -1,19 +1,22 @@
-.extended-provider-form { max-width: 960px; }
+.extended-provider-form > .extended-provider-fields { grid-template-columns: minmax(0, 1fr); }
+.extended-provider-form > .page-actions { margin-top: 16px; }
 .extended-provider-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .extended-provider-fields > * { min-width: 0; }
+.extended-provider-fields .form-group { margin-bottom: 0; }
 .extended-provider-fields input, .extended-provider-fields select { width: 100%; }
 .extended-provider-fields .setup-secret-field input { padding-inline-end: 48px; }
 .extended-provider-fields .setup-secret-toggle svg { width: 18px; height: 18px; }
 .extended-provider-fields > :only-child { grid-column: 1 / -1; }
 .extended-provider-fields ::placeholder { font-weight: 400; }
-.extended-provider-advanced { margin: 20px 0; }
 .extended-provider-advanced > p, .extended-provider-advanced > .extended-provider-fields { margin: 16px; }
+.extended-provider-import .provider-upload-section { margin-top: 16px; }
+.extended-provider-import .page-actions { margin-top: 12px; }
 #providersTab .provider-logo-frame.extended-logo-kimi { background: #000; border-radius: var(--radius); }
 img[src$="/kimi-api-platform.png"] { background: #000; border-radius: var(--radius); }
 img[src$="/cloudflare-logo.png"], img[src$="/kilo-logo.png"] { border-radius: var(--radius); }
 /* Kimchi's circular mark has opaque white corners in the supplied PNG. */
 img[src$="/kimchi-logo.png"] { border-radius: 50%; }
-.provider-logo-frame.extended-logo-kimchi { background: transparent; }
+.extended-logo-kimchi { background: transparent; }
 @media (max-width: 640px) { .extended-provider-fields { grid-template-columns: minmax(0, 1fr); } }
 
 .provider-hero-card {

@@ -17,11 +17,11 @@ function extendedElement(tag, className = '', key = '') {
     return element;
 }
 
-function extendedLogo(id, definition) {
-    const frame = extendedElement('div', `provider-logo-frame extended-logo-${id}`);
+function extendedLogo(id, definition, workspace = false) {
+    const frame = extendedElement('div', `${workspace ? 'provider-workspace-logo' : 'provider-logo-frame'} extended-logo-${id}`);
     const image = document.createElement('img');
     image.src = `/frontend/assets/providers/${definition.logo}`;
-    image.alt = definition.name;
+    image.alt = '';
     frame.append(image);
     return frame;
 }
@@ -33,13 +33,14 @@ function extendedField(form, provider, name, key, placeholder, {type = 'text', r
     input.id = `extended-${provider}-${name}`;
     input.name = name;
     label.htmlFor = input.id;
-    if (options) options.forEach(item => input.add(new Option(item, item)));
+    if (options) options.forEach(item => input.add(new Option({zen: 'Zen', go: 'Go'}[item] || item, item)));
     else {
         input.type = type;
         input.placeholder = placeholder;
-        input.autocomplete = type === 'password' ? 'new-password' : 'off';
+        input.autocomplete = type === 'password' ? 'one-time-code' : 'off';
+        input.autocapitalize = 'none';
         input.spellcheck = false;
-        input.maxLength = name === 'api_key' ? 4096 : 2048;
+        input.maxLength = {api_key: 4096, account_id: 64, organization_id: 128, profile_arn: 512}[name] || 2048;
     }
     input.required = required;
     input.value = value;
@@ -66,6 +67,8 @@ async function saveExtendedProvider(event, provider, form) {
     if (form.dataset.saving === 'true' || !form.reportValidity()) return;
     const payload = Object.fromEntries(new FormData(form));
     const submit = form.querySelector('[type="submit"]');
+    const controls = [...form.elements].filter(control => !control.disabled);
+    controls.forEach(control => { control.disabled = true; });
     form.dataset.saving = 'true'; submit.disabled = true; form.setAttribute('aria-busy', 'true');
     try {
         const response = await fetch(`./api/providers/extended/${provider}/credentials`, {
@@ -76,10 +79,10 @@ async function saveExtendedProvider(event, provider, form) {
         form.elements.api_key.value = '';
         setSetupSecretVisibility(form.elements.api_key, false);
         showStatus(t('provider.ext.saved'), 'success');
-        form.querySelector('[data-extended-saved]').classList.remove('hidden');
     } catch (error) {
         showStatus(error.message || t('unknown_error'), 'error');
     } finally {
+        controls.forEach(control => { control.disabled = false; });
         delete form.dataset.saving; submit.disabled = false; form.removeAttribute('aria-busy');
     }
 }
@@ -110,6 +113,7 @@ function buildExtendedProviderWorkspaces() {
         const workspace = extendedElement('section', 'provider-workspace hidden');
         workspace.id = `providerWorkspace-${provider}`;
         workspace.setAttribute('role', 'tabpanel'); workspace.setAttribute('aria-labelledby', card.id);
+        const header = extendedElement('div', 'provider-workspace-header');
         const heading = extendedElement('div', 'provider-workspace-heading');
         const intro = document.createElement('div');
         const title = document.createElement('h2'); title.textContent = definition.name;
@@ -117,24 +121,32 @@ function buildExtendedProviderWorkspaces() {
         website.href = definition.site; website.target = '_blank'; website.rel = 'noopener noreferrer';
         website.textContent = definition.site;
         intro.append(title, extendedElement('p', '', `provider.ext.${provider}`), website);
-        heading.append(extendedLogo(provider, definition), intro); workspace.append(heading);
+        heading.append(extendedLogo(provider, definition, true), intro); header.append(heading); workspace.append(header);
 
-        const form = extendedElement('form', 'tool-panel extended-provider-form'); form.noValidate = true;
+        const tools = extendedElement('div', 'provider-tools-grid');
+        const panel = extendedElement('section', 'tool-panel');
+        const form = extendedElement('form', 'extended-provider-form'); form.noValidate = true;
+        form.id = `extended-${provider}-credential-form`;
         const formTitle = extendedElement('h3', 'card-title');
         formTitle.dataset.providerFormCopy = 'api_key_title';
         formTitle.dataset.providerName = definition.name;
         formTitle.textContent = t('provider.form.api_key_title', {provider: definition.name});
-        form.append(formTitle);
+        panel.append(formTitle, extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.add_description'));
         const fields = extendedElement('div', 'extended-provider-fields');
         const key = extendedField(fields, provider, 'api_key', 'api_key', '', {type: 'password', required: true});
         key.placeholder = t('provider.ext.key_placeholder'); key.dataset.i18nPlaceholder = 'provider.ext.key_placeholder';
         if (provider === 'cloudflare') extendedField(fields, provider, 'account_id', 'provider.ext.account', '0123456789abcdef0123456789abcdef', {required: true});
         if (provider === 'opencode') extendedField(fields, provider, 'plan', 'provider.ext.plan', '', {value: 'zen', options: ['zen', 'go']});
         form.append(fields);
-        const advanced = extendedElement('details', 'provider-secondary-disclosure extended-provider-advanced');
+        const advanced = extendedElement('details', 'tool-panel provider-settings-panel provider-secondary-disclosure extended-provider-advanced');
+        advanced.dataset.disclosureKind = 'settings';
         advanced.append(extendedElement('summary', 'provider-disclosure-summary', 'providers.advanced_settings'));
+        const settingsHeader = extendedElement('div', 'provider-settings-header');
+        settingsHeader.append(extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.connection_description'));
+        const reset = extendedElement('button', 'btn btn-secondary btn-small', 'provider.ext.reset_connection');
+        reset.type = 'button';
+        settingsHeader.append(reset); advanced.append(settingsHeader);
         const settings = extendedElement('div', 'extended-provider-fields');
-        if (provider !== 'kiro') advanced.append(extendedElement('p', 'card-copy', 'provider.ext.settings'));
         if (definition.base) {
             const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', definition.base, {type: 'url'});
             if (provider === 'opencode') fields.querySelector('[name="plan"]').addEventListener('change', event => {
@@ -147,18 +159,23 @@ function buildExtendedProviderWorkspaces() {
             extendedField(settings, provider, 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
             extendedField(settings, provider, 'profile_arn', 'provider.ext.profile', 'arn:aws:codewhisperer:us-east-1:123456789012:profile/example');
         }
-        advanced.append(settings); form.append(advanced);
+        settings.querySelectorAll('input, select').forEach(input => input.setAttribute('form', form.id));
+        reset.addEventListener('click', () => {
+            if (form.dataset.saving === 'true') return;
+            settings.querySelectorAll('input, select').forEach(input => {
+                input.value = input.name === 'region' ? 'us-east-1' : '';
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+            });
+        });
+        advanced.append(settings);
         const actions = extendedElement('div', 'page-actions');
         const save = extendedElement('button', 'btn', 'runtime.save_credential'); save.type = 'submit';
-        const imports = extendedElement('button', 'btn btn-secondary', 'providers.import_credentials');
-        imports.type = 'button'; imports.dataset.uiAction = 'switch-tab'; imports.dataset.tab = 'pool';
-        actions.append(save, imports); form.append(actions);
-        const result = extendedElement('div', 'provider-save-result hidden'); result.dataset.extendedSaved = '';
-        result.append(extendedElement('p', '', 'provider.ext.saved'));
         const view = extendedElement('button', 'btn btn-secondary', 'provider.ext.open_pool');
-        view.type = 'button'; view.dataset.uiAction = 'switch-tab'; view.dataset.tab = 'pool'; result.append(view);
-        form.append(result); form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
-        workspace.append(form); page.append(workspace);
+        view.type = 'button'; view.dataset.uiAction = 'switch-tab'; view.dataset.tab = 'pool';
+        actions.append(save, view); form.append(actions);
+        form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
+        panel.append(form); tools.append(panel, buildExtendedProviderImport(provider));
+        workspace.append(tools, advanced); page.append(workspace);
     });
 }
 
@@ -171,10 +188,20 @@ function appendExtendedCredentialFields(form, configuration) {
     Object.entries(labels).forEach(([name, key]) => {
         if (!configuration.editable_fields?.includes(name)) return;
         const options = name === 'plan' ? ['zen', 'go'] : name === 'region' ? ['us-east-1', 'eu-central-1'] : undefined;
-        extendedField(body, 'edit', name, key, placeholders[name] || '', {
+        const input = extendedField(body, 'edit', name, key, placeholders[name] || '', {
             value: configuration[name] || '', options, required: name === 'account_id'
         });
+        input.classList.add('message-modal-input');
+        input.parentElement.classList.add('message-modal-field');
     });
+    const plan = form.elements.plan;
+    const endpoint = form.elements.base_url;
+    if (plan && endpoint) plan.addEventListener('change', () => {
+        endpoint.value = plan.value === 'go' ? 'https://opencode.ai/zen/go/v1' : 'https://opencode.ai/zen/v1';
+        endpoint.dispatchEvent(new Event('input', {bubbles: true}));
+    });
+    const error = body.querySelector('[data-credential-edit-error]');
+    if (error) body.append(error);
 }
 
 buildExtendedProviderWorkspaces();

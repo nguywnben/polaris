@@ -43,6 +43,12 @@ function getCredentialProviderMeta(credInfo, managerType) {
         .toLowerCase()
         .replace(/[\s-]+/g, '_');
 
+    const extended = typeof EXTENDED_PROVIDER_UI !== 'undefined' && Object.hasOwn(EXTENDED_PROVIDER_UI, provider)
+        ? EXTENDED_PROVIDER_UI[provider] : null;
+    if (extended) {
+        return {id: provider, name: extended.name, logo: `/frontend/assets/providers/${extended.logo}`};
+    }
+
     if (provider === 'google_ai_studio' || provider === 'ai_studio' || provider === 'aistudio' || provider === 'gemini') {
 
         return {

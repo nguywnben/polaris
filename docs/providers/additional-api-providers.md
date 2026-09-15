@@ -25,8 +25,27 @@ not the Kimi Coding subscription endpoint.
 
 Keys are stored with the existing credential storage protections. They are never
 returned by the configuration editor. Leave an existing key blank to keep it;
-changing the endpoint/account/plan requires a new discovery check. JSON/ZIP
-imports use the same validation and require an explicit provider identifier.
+changing the endpoint/account/plan requires a new discovery check.
+
+Each provider has an inline JSON/ZIP import panel with a downloadable JSON
+example. The example never contains the key entered in the form. Imports on this
+page are constrained to the selected provider: a missing provider identifier is
+inferred from that selection, but a conflicting provider or OAuth export is rejected.
+Cloudflare files must include `account_id`; OpenCode files can specify `plan`.
+Use the downloadable examples or exported Polaris credentials.
+These imports validate file structure and connection fields offline, save no
+archive-supplied model catalog, and remain marked as imported without verification.
+Open the pool to discover models and explicitly test inference. Mixed-provider
+archives still belong in the pool's import workflow and require explicit identifiers.
+Reimporting the same key and connection context skips it atomically: the existing
+model catalog, label and operational state stay unchanged. Failed files remain
+selected for correction and retry; each entry reports its own result.
+
+Advanced fields belong to the API-key form above them; they are saved with that
+key, not as global provider defaults. Reset only clears the connection draft,
+without clearing the entered key or altering any stored credential. Existing
+credentials are edited in the pool. Switching OpenCode plans selects the
+corresponding endpoint, including in the existing-credential editor.
 Exported credential archives contain secrets and must be protected accordingly.
 
 ## Scope and limitations
