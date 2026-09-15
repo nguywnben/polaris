@@ -89,11 +89,6 @@
     margin-bottom: 24px;
 }
 
-[data-theme="dark"] .setup-card .app-mark-image,
-[data-theme="dark"] .signin-card .app-mark-image {
-    filter: invert(1);
-}
-
 .setup-card .login-form {
     gap: 24px;
 }

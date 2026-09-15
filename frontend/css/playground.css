@@ -395,16 +395,18 @@
     }
 }
 
-@media (max-width: 600px) {
-    .playground-stream-control {
-        min-height: 44px;
-    }
-
+@media (max-width: 960px) {
     .playground-message .playground-message-role select,
     .playground-message-remove,
     .playground-example-toolbar select {
         min-height: 44px;
         height: 44px;
+    }
+}
+
+@media (max-width: 600px) {
+    .playground-stream-control {
+        min-height: 44px;
     }
 
     .playground-control-grid,

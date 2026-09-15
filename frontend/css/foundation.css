@@ -7,7 +7,7 @@
     --surface: #ffffff;
     --text: #111111;
     --text-muted: #666666;
-    --text-soft: #767676;
+    --text-soft: #6b6b6b;
     --border: #e7e7e7;
     --border-strong: #d8d8d8;
     --control-hover: #f4f4f4;
@@ -25,7 +25,7 @@
     --danger-border-hover: #e8aaa4;
     --warning: #9a6700;
     --warning-bg: #fff7df;
-    --info: #1a73e8;
+    --info: #1765cc;
     --info-bg: #eef4ff;
     --skeleton: #ededed;
     --skeleton-strong: #e4e4e4;
@@ -179,4 +179,8 @@ code {
     height: 80%;
     display: block;
     object-fit: contain;
+}
+
+[data-theme="dark"] .app-mark-image {
+    filter: invert(1);
 }

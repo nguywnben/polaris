@@ -100,7 +100,7 @@
 .raw-log-controls { margin-bottom: 14px; }
 .raw-log-section #logConnectionStatus { margin-bottom: 14px; }
 .trace-detail-dialog { width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; overflow-x: hidden; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); }
-.trace-detail-dialog::backdrop { background: rgb(0 0 0 / .45); }
+.trace-detail-dialog::backdrop { background: var(--overlay); }
 .trace-detail-header, .trace-detail-actions, .trace-detail-dialog > p { padding: 18px 20px; }
 .trace-detail-header { border-bottom: 1px solid var(--border); }
 .trace-detail-header h2, .trace-detail-dialog > p { margin: 0; overflow-wrap: anywhere; }
@@ -131,6 +131,10 @@
 .slo-route-health h3 { margin: 0 0 10px; font-size: 14px; }
 .recent-activity-card { min-width: 0; }
 .recent-activity-header, .dashboard-activity-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.recent-activity-header { align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.recent-activity-header .card-title { margin-bottom: 0; }
+.recent-activity-header .btn { flex-shrink: 0; }
+.recent-activity-header + .card-title-copy { margin-top: 0; }
 .dashboard-activity-list { display: grid; gap: 9px; margin: 16px 0 0; padding: 0; list-style: none; }
 .dashboard-activity-item { display: grid; gap: 5px; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-subtle); }
 .dashboard-activity-item strong, .dashboard-activity-item span, .dashboard-activity-item code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -194,4 +198,4 @@
     #dashboardTab .operational-health-card, #dashboardTab .recent-activity-card { grid-column: span 12; }
     .slo-red-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 520px) { .activity-filter-grid, .trace-filter-grid { grid-template-columns: 1fr; } .activity-filter-request, .activity-filter-status { grid-column: auto; } .activity-filter-actions, .trace-filter-actions, .dashboard-activity-correlation { align-items: stretch; flex-direction: column; } .activity-filter-actions .btn, .trace-filter-actions .btn, .dashboard-activity-correlation .btn { width: 100%; } .operational-health-header, .recent-activity-header { flex-direction: column; } .slo-red-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .activity-filter-grid, .trace-filter-grid { grid-template-columns: 1fr; } .activity-filter-request, .activity-filter-status { grid-column: auto; } .activity-filter-actions, .trace-filter-actions, .dashboard-activity-correlation { align-items: stretch; flex-direction: column; } .activity-filter-actions .btn, .trace-filter-actions .btn, .dashboard-activity-correlation .btn { width: 100%; } .operational-health-header { flex-direction: column; } .slo-red-grid { grid-template-columns: 1fr; } }

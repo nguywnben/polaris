@@ -51,6 +51,50 @@
 }
 
 @media (max-width: 960px) {
+    /* The drawer breakpoint is also the shared phone/tablet control size. */
+    .btn,
+    .batch-btn,
+    .pagination-btn,
+    .cred-btn,
+    .remove-btn,
+    .message-modal-btn,
+    .mobile-menu-btn,
+    button.endpoint-code-card {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="email"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea,
+    .filter-select,
+    .page-size-select {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    .access-secret-input #apiKey {
+        padding-right: 52px;
+    }
+
+    .access-secret-input #toggleApiKeyVisibilityBtn {
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+
+    .setup-secret-toggle {
+        width: 44px;
+        height: 44px;
+    }
+
     .provider-catalog {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -264,30 +308,6 @@
     .dashboard-range-control .filter-select {
         width: 112px;
         min-width: 112px;
-    }
-
-    .btn,
-    .batch-btn,
-    .pagination-btn,
-    .cred-btn,
-    .remove-btn,
-    .message-modal-btn,
-    .mobile-menu-btn {
-        min-height: 44px;
-        touch-action: manipulation;
-    }
-
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea {
-        min-height: 44px;
-        font-size: 16px;
     }
 
     .card,
@@ -635,5 +655,10 @@
 
     #dashboardTab.has-no-traffic #dashboardStats {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    #dashboardTab.has-no-traffic #dashboardStats .stat-item + .stat-item {
+        border-inline-start: 0;
+        border-top: 1px solid var(--border);
     }
 }

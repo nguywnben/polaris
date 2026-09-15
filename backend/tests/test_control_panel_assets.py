@@ -307,11 +307,11 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("grid-template-columns: repeat(4, minmax(0, 1fr))", provider_styles)
         self.assertRegex(
             provider_styles,
-            r"(?s)\.provider-catalog \.provider-hero-card\s*\{[^}]*min-height: 154px;[^}]*padding: 14px;",
+            r"(?s)\.provider-catalog \.provider-hero-card\s*\{[^}]*min-height: 0;[^}]*height: 100%;[^}]*padding: 14px;",
         )
         self.assertRegex(
             provider_styles,
-            r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 42px;[^}]*height: 42px;",
+            r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 32px;[^}]*height: 32px;",
         )
         self.assertIn(".provider-workspace-header", provider_styles)
         self.assertNotIn('class="provider-catalog-search-label"', body)

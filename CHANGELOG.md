@@ -19,6 +19,10 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Shared light/dark styling keeps the Polaris logo visible and secondary/status text readable.
+  Phone and tablet controls use consistent touch sizing; mobile navigation contains keyboard
+  focus and disables background interaction until closed. Native dialog backdrops use the
+  shared theme, and the dashboard's recent-activity heading no longer crowds its description.
 - Opening a modal no longer automatically focuses its first input, textarea, or select.
   Focus starts on a non-editable surface while Tab, Shift+Tab, Escape, and return focus remain available.
 - Toasts stay above native and custom modals without moving focus into form controls;
