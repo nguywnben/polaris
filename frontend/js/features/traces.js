@@ -174,7 +174,13 @@ function renderTraces() {
         button.type = 'button'; button.dataset.uiAction = 'view-trace-detail'; button.dataset.traceId = trace.trace_id;
         card.append(primary, metadata, button); item.append(card); list.append(item);
     }
-    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded && !TraceConsoleState.loading && !TraceConsoleState.loadError) list.append(traceText('li', 'trace-empty', t('trace.empty')));
+    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded && !TraceConsoleState.loading && !TraceConsoleState.loadError) {
+        const filters = TraceConsoleState.filters;
+        const filtered = ['protocols', 'outcomes', 'providers', 'models'].some(key => filters[key]?.length)
+            || ['request_id', 'started_after', 'started_before'].some(key => filters[key])
+            || TraceConsoleState.cursor || TraceConsoleState.cursorStack.length;
+        list.append(traceText('li', 'trace-empty', t(filtered ? 'trace.empty' : 'dashboard.recent_empty')));
+    }
     const pagination = traceElement('tracePreviousPage')?.closest('.trace-pagination');
     if (pagination) pagination.hidden = !TraceConsoleState.traces.length && !TraceConsoleState.cursorStack.length;
     if (traceElement('tracePreviousPage')) traceElement('tracePreviousPage').disabled = TraceConsoleState.loading || !TraceConsoleState.cursorStack.length;

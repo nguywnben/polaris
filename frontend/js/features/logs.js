@@ -136,13 +136,13 @@ function disconnectWebSocket() {
 
 }
 
-function clearLogsDisplay() {
+function clearLogsDisplay({cleared = false} = {}) {
 
     AppState.allLogs = [];
 
     AppState.filteredLogs = [];
 
-    document.getElementById('logContent').textContent = t('logs_cleared_waiting_for_new_logs');
+    document.getElementById('logContent').textContent = t(cleared ? 'logs_cleared_waiting_for_new_logs' : 'no_logs_yet');
 
 }
 
@@ -224,7 +224,7 @@ async function clearLogs() {
 
         if (response.ok) {
 
-            clearLogsDisplay();
+            clearLogsDisplay({cleared: true});
 
             showStatus(data.message, 'success');
 

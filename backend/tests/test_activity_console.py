@@ -22,6 +22,160 @@ ACTIVITY_STYLE = FRONTEND / "css/observability.css"
 
 
 class ActivityConsoleContractTests(unittest.TestCase):
+    def _run_empty_state_contract(self, feature: str, assertions: str) -> None:
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node is required for the Activity empty-state contract")
+        source = (FRONTEND / "js/features" / feature).read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const elements = new Map();
+function element(id) {{
+    if (!elements.has(id)) elements.set(id, {{
+        value: '', textContent: '', children: [], dataset: {{}},
+        replaceChildren() {{ this.children = []; }},
+        append(...nodes) {{ this.children.push(...nodes); }},
+        setAttribute() {{}}, closest() {{ return null; }}
+    }});
+    return elements.get(id);
+}}
+global.document = {{addEventListener() {{}}, getElementById: element,
+    createElement() {{ return {{textContent: '', dataset: {{}}}}; }} }};
+global.window = {{location: {{href: 'http://localhost/activity'}}}};
+global.WebSocket = class {{ static OPEN = 1; constructor(url) {{ this.url = url; this.readyState = 0; }} }};
+global.AppState = {{allLogs: [], filteredLogs: [], currentLogFilter: 'all', logWebSocket: null}};
+global.t = key => key;
+global.getAuthHeaders = () => ({{}});
+global.showStatus = () => {{}};
+global.showConfirmModal = async () => true;
+global.fetch = async () => {{ throw new Error('Unexpected network request'); }};
+vm.runInThisContext({json.dumps(source)});
+(async () => {{
+{assertions}
+}})().catch(error => {{console.error(error); process.exitCode = 1;}});
+"""
+        result = subprocess.run(
+            [node, "-e", harness],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_trace_first_empty_state_uses_applied_filters_not_unsubmitted_fields(self):
+        self._run_empty_state_contract(
+            "traces.js",
+            """
+TraceConsoleState.loaded = true;
+TraceConsoleState.filters = {
+    protocols: [], outcomes: [], providers: [], models: [], request_id: '',
+    started_after: '', started_before: '', page_size: 200
+};
+element('traceProtocol').value = 'openai_chat';
+element('traceModel').value = 'draft-model';
+element('activityRequestId').value = 'draft-request';
+element('activityProvider').value = 'draft-provider';
+renderTraces();
+assert.equal(element('traceList').children.length, 1);
+assert.equal(element('traceList').children[0].textContent, 'dashboard.recent_empty',
+    'first empty response needs a no-requests message even when unapplied fields contain drafts');
+TraceConsoleState.filters = {};
+renderTraces();
+assert.equal(element('traceList').children[0].textContent, 'dashboard.recent_empty');
+""",
+        )
+
+    def test_trace_filtered_or_later_page_empty_state_retains_filter_message(self):
+        self._run_empty_state_contract(
+            "traces.js",
+            """
+TraceConsoleState.loaded = true;
+for (const filters of [
+    {protocols: ['openai_chat']}, {outcomes: ['succeeded']}, {providers: ['openai']},
+    {models: ['test-model']}, {request_id: 'req-missing'},
+    {started_after: '2026-09-15T00:00:00Z'}, {started_before: '2026-09-16T00:00:00Z'}
+]) {
+    TraceConsoleState.filters = filters;
+    renderTraces();
+    assert.equal(element('traceList').children[0]?.textContent, 'trace.empty',
+        `applied ${Object.keys(filters)[0]} filter must explain no matching results`);
+}
+TraceConsoleState.filters = {};
+for (const [cursor, stack] of [['opaque-cursor', []], [null, [null]]]) {
+    TraceConsoleState.cursor = cursor;
+    TraceConsoleState.cursorStack = stack;
+    renderTraces();
+    assert.equal(element('traceList').children[0]?.textContent, 'trace.empty',
+        'an empty later page must not claim no requests have ever been recorded');
+}
+""",
+        )
+
+    def test_trace_loading_and_errors_suppress_both_empty_messages(self):
+        self._run_empty_state_contract(
+            "traces.js",
+            """
+for (const filters of [{}, {request_id: 'req-missing'}]) {
+    TraceConsoleState.filters = filters;
+    for (const [loaded, loading, error] of [[false, false, false], [true, true, false], [true, false, true]]) {
+        TraceConsoleState.loaded = loaded;
+        TraceConsoleState.loading = loading;
+        TraceConsoleState.loadError = error;
+        renderTraces();
+        assert.equal(element('traceList').children.length, 0, 'only successful completed loads may announce empty results');
+    }
+}
+""",
+        )
+
+    def test_log_connection_and_default_reset_do_not_claim_logs_were_cleared(self):
+        self._run_empty_state_contract(
+            "logs.js",
+            """
+AppState.allLogs = ['previous display line'];
+AppState.filteredLogs = ['previous display line'];
+connectWebSocket();
+assert.equal(typeof AppState.logWebSocket.onopen, 'function');
+AppState.logWebSocket.onopen();
+assert.equal(element('logContent').textContent, 'no_logs_yet',
+    'opening the stream must not announce a user clear operation');
+assert.equal(AppState.allLogs.length, 0);
+assert.equal(AppState.filteredLogs.length, 0);
+element('logContent').textContent = 'stale display';
+clearLogsDisplay();
+assert.equal(element('logContent').textContent, 'no_logs_yet', 'the default display reset must be neutral');
+""",
+        )
+
+    def test_only_successful_confirmed_log_clear_announces_cleared_state(self):
+        self._run_empty_state_contract(
+            "logs.js",
+            """
+let requests = 0;
+global.fetch = async () => { requests++; return {ok: false, json: async () => ({})}; };
+element('logContent').textContent = 'retained display';
+AppState.allLogs = ['retained display'];
+global.showConfirmModal = async () => false;
+await clearLogs();
+assert.equal(requests, 0);
+assert.equal(element('logContent').textContent, 'retained display');
+global.showConfirmModal = async () => true;
+await clearLogs();
+assert.equal(requests, 1);
+assert.equal(element('logContent').textContent, 'retained display', 'failed server clear must preserve displayed logs');
+global.fetch = async (url, options) => {
+    assert.equal(url, './api/logs/clear');
+    assert.equal(options.method, 'POST');
+    return {ok: true, json: async () => ({message: 'done'})};
+};
+await clearLogs();
+assert.equal(element('logContent').textContent, 'logs_cleared_waiting_for_new_logs');
+assert.equal(AppState.allLogs.length, 0);
+""",
+        )
+
     def _run_javascript_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         if node is None:
@@ -163,10 +317,10 @@ assert(AppState.activeActivityView === 'audit', 'request pivot did not select ta
 
     def test_load_errors_never_render_as_empty_results(self) -> None:
         for feature, state, render, list_id in (
-            ('traces.js', 'TraceConsoleState', 'renderTraces', 'traceList'),
-            ('audit.js', 'AuditConsoleState', 'renderAuditEvents', 'auditEventList'),
+            ("traces.js", "TraceConsoleState", "renderTraces", "traceList"),
+            ("audit.js", "AuditConsoleState", "renderAuditEvents", "auditEventList"),
         ):
-            source = (FRONTEND / 'js/features' / feature).read_text(encoding='utf-8')
+            source = (FRONTEND / "js/features" / feature).read_text(encoding="utf-8")
             harness = f"""
 const vm = require('vm');
 const items = [];
@@ -187,7 +341,9 @@ if (items.length) throw new Error('Loading must not render an empty-result messa
 {render}();
 if (items.length !== 1) throw new Error('Successful empty response needs an empty message');
 """
-            result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+            result = subprocess.run(
+                [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+            )
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
