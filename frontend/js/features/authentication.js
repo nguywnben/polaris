@@ -327,7 +327,6 @@ async function completeInitialSetup() {
         passwordInput.setAttribute('aria-invalid', 'true');
         passwordInput.setAttribute('data-validation-error', '');
         showStatus(t(!checks.variety ? 'password_check_variety' : 'password_check_uncommon'), 'error');
-        passwordInput.focus();
         return;
     }
 

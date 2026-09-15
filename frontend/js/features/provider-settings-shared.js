@@ -300,7 +300,6 @@ function validateProviderFormScope(scope, {report = true} = {}) {
     });
     if (firstInvalid && report) {
         firstInvalid.reportValidity();
-        firstInvalid.focus();
     }
     return !firstInvalid;
 }

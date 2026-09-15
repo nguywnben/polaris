@@ -396,7 +396,6 @@ async function saveAccessCredentials() {
 
     if (!currentPassword) {
         showStatus(t('settings.current_password_required'), 'error');
-        document.getElementById('currentConsolePassword')?.focus();
         return;
     }
     if (!panelPassword) {

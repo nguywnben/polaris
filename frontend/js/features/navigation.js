@@ -107,7 +107,6 @@ function initControlValidationFeedback() {
             firstInvalid = null;
             if (!target.isConnected || target.validity.valid) return;
             showStatus(controlValidationMessage(target), 'error');
-            target.focus();
         }, 0);
     }, true);
     const clearEditedError = (event) => {

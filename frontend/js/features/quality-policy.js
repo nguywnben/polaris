@@ -265,12 +265,10 @@ function validateQualityDraft() {
     const keywords = settings.guardrails.blocked_keywords;
     if (keywords.length > 100 || keywords.some(keyword => keyword.length > 128)) {
         showStatus(t('quality.error_keywords'), 'error');
-        document.getElementById('qualityBlockedKeywords')?.focus();
         return false;
     }
     if (settings.compression.target_tokens >= settings.compression.threshold_tokens) {
         showStatus(t('quality.error_target'), 'error');
-        document.getElementById('tokenCompressionTarget')?.focus();
         return false;
     }
     return true;

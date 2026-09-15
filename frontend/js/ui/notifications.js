@@ -71,11 +71,39 @@ function unmountModal(modal) {
 
 }
 
+function elevateStatusSection(statusSection) {
+    // Native modal dialogs sit above every z-index. Keep their live region inside
+    // the active dialog (outside content is inert), then promote it without focus.
+    const dialogs = [...document.querySelectorAll('dialog:modal')];
+    const activeDialog = dialogs.find(dialog => dialog.contains(document.activeElement)) || dialogs.at(-1);
+    const parent = activeDialog || document.body;
+    if (typeof statusSection.hidePopover === 'function' && statusSection.matches(':popover-open')) {
+        statusSection.hidePopover();
+    }
+    if (statusSection.parentElement !== parent) parent.appendChild(statusSection);
+    if (typeof statusSection.showPopover === 'function') {
+        statusSection.setAttribute('popover', 'manual');
+        statusSection.showPopover();
+    }
+}
+
+// A modal opened after a toast must not cover that existing notification.
+document.addEventListener('toggle', event => {
+    if (!(event.target instanceof HTMLDialogElement)) return;
+    const statusSection = document.getElementById('statusSection');
+    if (statusSection?.childElementCount) elevateStatusSection(statusSection);
+}, true);
+
 function showStatus(message, type = 'info') {
 
     const displayMessage = ensureTerminalPunctuation(message);
 
-    const statusSection = document.getElementById('statusSection');
+    let statusSection = document.getElementById('statusSection');
+    if (!statusSection) {
+        statusSection = document.createElement('div');
+        statusSection.id = 'statusSection';
+        document.body.appendChild(statusSection);
+    }
 
     if (statusSection) {
 
@@ -95,16 +123,19 @@ function showStatus(message, type = 'info') {
         statusDiv.setAttribute('role', statusType === 'error' ? 'alert' : 'status');
         statusDiv.textContent = displayMessage;
         statusSection.replaceChildren(statusDiv);
+        elevateStatusSection(statusSection);
 
         window._statusTimeout = setTimeout(() => {
 
-            if (statusDiv.parentElement === statusSection) statusDiv.remove();
+            if (statusDiv.parentElement === statusSection) {
+                statusDiv.remove();
+                if (typeof statusSection.hidePopover === 'function' && statusSection.matches(':popover-open')) {
+                    statusSection.hidePopover();
+                }
+                document.body.appendChild(statusSection);
+            }
 
         }, 5000);
-
-    } else {
-
-        showMessageModal(t('dialog_tip'), displayMessage, 'info');
 
     }
 

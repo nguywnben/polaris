@@ -211,7 +211,7 @@ async function getPrimaryCredentials() {
         }
 
         if (statusData.status !== 'completed') {
-            setPrimaryCallbackUrlSectionVisible(true, true);
+            setPrimaryCallbackUrlSectionVisible(true);
             showStatus(t('provider_authorization_pending'), 'info');
             return;
         }

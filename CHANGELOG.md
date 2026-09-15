@@ -19,6 +19,9 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Toasts stay above native and custom modals without moving focus into form controls;
+  validation keeps field error markers and normal keyboard navigation. Identity creation
+  uses its Cancel action without a duplicate close icon.
 - Late translations now override old English defaults in the live translator. Provider auto-copy
   no longer overwrites explicitly localized labels or caches placeholders in a previous language.
 - Text inputs and textareas have contextual placeholders at normal weight; configured OAuth
