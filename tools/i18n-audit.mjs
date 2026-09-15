@@ -56,6 +56,7 @@ for (const file of ['oidc-entry-locales.js', 'backup-locales.js']) {
 }
 vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-copy-locales.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-expansion-locales.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-auth-locales.js'), 'utf8'), context);
 // Load the same late locale overrides as the shipped bundle, including Identity aliases.
 const completionDirectory = path.join(frontend, 'js/locales');
 if (fs.existsSync(completionDirectory)) {

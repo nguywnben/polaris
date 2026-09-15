@@ -75,6 +75,8 @@ async function saveExtendedProvider(event, provider, form) {
     const controls = [...form.elements].filter(control => !control.disabled);
     controls.forEach(control => { control.disabled = true; });
     form.dataset.saving = 'true'; submit.disabled = true; form.setAttribute('aria-busy', 'true');
+    const submitText = submit.textContent;
+    submit.textContent = t('runtime.validating');
     try {
         const response = await fetch(`./api/providers/extended/${provider}/credentials`, {
             method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
@@ -84,11 +86,13 @@ async function saveExtendedProvider(event, provider, form) {
         form.elements.api_key.value = '';
         setSetupSecretVisibility(form.elements.api_key, false);
         showStatus(t('provider.ext.saved'), 'success');
+        await AppState.primaryCreds.refresh();
     } catch (error) {
         showStatus(error.message || t('unknown_error'), 'error');
     } finally {
         controls.forEach(control => { control.disabled = false; });
         delete form.dataset.saving; submit.disabled = false; form.removeAttribute('aria-busy');
+        submit.textContent = submitText;
     }
 }
 
@@ -112,7 +116,7 @@ function buildExtendedProviderWorkspaces() {
         const name = extendedElement('strong', 'provider-name'); name.textContent = definition.name;
         summary.append(name, extendedElement('p', '', `provider.ext.${provider}`));
         const badges = extendedElement('div', 'provider-capabilities');
-        const badge = document.createElement('span'); badge.textContent = 'API Key'; badges.append(badge);
+        const badge = document.createElement('span'); badge.textContent = provider === 'kiro' ? 'OAuth · API Key' : provider === 'cloudflare' ? t('provider.auth.token_label') : 'API Key'; badges.append(badge);
         card.append(extendedLogo(provider, definition), summary, badges); catalog.append(card);
 
         const workspace = extendedElement('section', 'provider-workspace hidden');
@@ -144,8 +148,12 @@ function buildExtendedProviderWorkspaces() {
         panel.append(formTitle, extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.add_description'));
         const fields = extendedElement('div', 'extended-provider-fields');
         const key = extendedField(fields, provider, 'api_key', 'api_key', '', {type: 'password', required: true});
+        if (provider === 'cloudflare') {
+            const label = fields.querySelector('label'); label.dataset.i18n = 'provider.auth.token_label'; label.textContent = t(label.dataset.i18n);
+        }
         if (provider === 'meta') key.setAttribute('aria-describedby', 'extended-meta-contributor-notice');
         key.placeholder = t('provider.ext.key_placeholder'); key.dataset.i18nPlaceholder = 'provider.ext.key_placeholder';
+        if (provider === 'cloudflare') { key.dataset.i18nPlaceholder = 'provider.auth.token_placeholder'; key.placeholder = t(key.dataset.i18nPlaceholder); }
         if (provider === 'cloudflare') extendedField(fields, provider, 'account_id', 'provider.ext.account', '0123456789abcdef0123456789abcdef', {required: true});
         if (provider === 'opencode') extendedField(fields, provider, 'plan', 'provider.ext.plan', '', {value: 'zen', options: ['zen', 'go']});
         form.append(fields);
@@ -183,8 +191,20 @@ function buildExtendedProviderWorkspaces() {
         const save = extendedElement('button', 'btn', 'runtime.save_credential'); save.type = 'submit';
         actions.append(save); form.append(actions);
         form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
-        panel.append(form); tools.append(panel, buildExtendedProviderImport(provider));
-        workspace.append(tools, advanced); page.append(workspace);
+        panel.append(form);
+        if (provider === 'kiro') {
+            const column = extendedElement('div', 'provider-tools-column');
+            const alternative = extendedElement('details', 'tool-panel provider-secondary-disclosure');
+            const summary = extendedElement('summary', 'provider-disclosure-summary'); summary.textContent = 'API Key';
+            const help = extendedElement('p', 'card-copy provider-tool-copy', 'provider.auth.key_help');
+            const account = extendedElement('a', 'provider-site-link'); account.href = 'https://app.kiro.dev/'; account.target = '_blank'; account.rel = 'noopener noreferrer'; account.textContent = 'app.kiro.dev';
+            alternative.append(summary, help, account, form, advanced);
+            column.append(buildKiroOAuthPanel(), alternative); tools.append(column);
+        } else tools.append(panel);
+        tools.append(buildExtendedProviderImport(provider));
+        workspace.append(tools);
+        if (provider !== 'kiro') workspace.append(advanced);
+        page.append(workspace);
     });
 }
 

@@ -1,4 +1,5 @@
 function createUploadManager(type, options = {}) {
+    options = {preserveFailedFiles: true, ...options};
 
     const modeParam = type === 'primary' ? 'mode=provider' : 'mode=code_assist';
 

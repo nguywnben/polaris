@@ -70,7 +70,7 @@ function renderProviderCapabilityBadges() {
         const badges = selector?.querySelector('.provider-capabilities');
         if (!capability || !selector || !badges) return;
 
-        const labels = [getProviderCapabilityLabel(capability.credential_type)];
+        const labels = [variantId === 'kiro' ? 'OAuth · API Key' : variantId === 'cloudflare' ? t('provider.auth.token_label') : getProviderCapabilityLabel(capability.credential_type)];
         if (capability.operations.includes('test')) labels.push(t('providers.connection_test'));
         if (capability.operations.includes('model_discovery')) labels.push(t('providers.model_discovery'));
         badges.replaceChildren(...labels.map((label) => {

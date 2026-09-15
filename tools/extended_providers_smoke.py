@@ -128,7 +128,15 @@ def verify_import(page, workspace, base, provider):
     with page.expect_download() as download:
         panel.locator('[data-i18n="provider.ext.template"]').click()
     sample = json.loads(Path(download.value.path()).read_text())
-    assert sample["provider"] == provider and sample["api_key"] == "<YOUR_API_KEY>"
+    assert sample["provider"] == provider
+    if provider == "kiro":
+        assert (
+            sample["credential_type"] == "oauth"
+            and sample["refresh_token"] == "<YOUR_REFRESH_TOKEN>"
+        )
+        assert "api_key" not in sample
+    else:
+        assert sample["api_key"] == "<YOUR_API_KEY>"
     # A wrong provider must not enter this workspace's pool, and remains retryable.
     payload["provider"] = "nvidia" if provider != "nvidia" else "kimi"
     input_file.set_input_files(
@@ -147,6 +155,55 @@ def verify_import(page, workspace, base, provider):
     expect(panel).to_have_attribute("aria-busy", "false")
     pending.locator("button").filter(has_text="Xóa").last.click()
     expect(pending).to_be_hidden()
+
+
+def verify_kiro_device_ui(page, workspace):
+    """Exercise device form states without signing in to a real provider."""
+    calls = []
+
+    def device_api(route):
+        action = route.request.url.rsplit("/", 1)[-1]
+        calls.append((action, route.request.post_data_json))
+        result = {"status": "cancelled"}
+        if action == "start":
+            result = {
+                "flow_id": "kiro_synthetic",
+                "verification_uri": "https://app.kiro.dev/device",
+                "user_code": "TEST-CODE",
+                "interval": 0,
+                "expires_in": 300,
+            }
+        elif action == "complete":
+            result = {"status": "complete", "credential_saved": True}
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(result))
+
+    page.route("**/api/providers/kiro/oauth/*", device_api)
+    form = workspace.locator("#kiroOAuthForm")
+    panel = form.locator("..")
+    pending = panel.locator(".provider-upload-section")
+    for method in ("google", "github", "builder-id", "identity-center"):
+        form.locator('[name="method"]').select_option(method)
+        if method in ("builder-id", "identity-center"):
+            expect(form.locator('[name="token_region"]')).to_be_visible()
+        else:
+            expect(form.locator('[name="token_region"]')).to_be_hidden()
+        if method == "identity-center":
+            form.locator('[name="start_url"]').fill("https://example.awsapps.com/start")
+        form.locator('[type="submit"]').click()
+        expect(pending).to_be_visible()
+        expect(pending.locator('[role="status"]')).to_have_text("TEST-CODE")
+        expect(pending.locator("a")).to_have_attribute("target", "_blank")
+        assert calls[-1][1]["method"] == method
+        expect(form.locator('[name="token_region"]')).not_to_be_focused()
+        if method == "identity-center":
+            pending.locator('[data-i18n="runtime.check_authorization"]').click()
+        else:
+            pending.locator('[data-i18n="cancel"]').click()
+        expect(pending).to_be_hidden()
+    assert [action for action, _ in calls].count("start") == 4
+    assert [action for action, _ in calls].count("complete") == 1
+    form.locator('[name="method"]').select_option("google")
+    page.unroute("**/api/providers/kiro/oauth/*", device_api)
 
 
 def main():
@@ -248,7 +305,12 @@ def main():
             selector.click()
             workspace = page.locator(f"#providerWorkspace-{provider}")
             expect(workspace).to_be_visible()
-            expect(workspace.locator(".provider-tools-grid > .tool-panel")).to_have_count(2)
+            expect(workspace.locator(".provider-tools-grid > *")).to_have_count(2)
+            form = workspace.locator(f"#extended-{provider}-credential-form")
+            if provider == "kiro":
+                expect(workspace.locator("#kiroOAuthForm")).to_be_visible()
+                verify_kiro_device_ui(page, workspace)
+                workspace.locator("summary", has_text="API Key").click()
             expect(workspace.locator('[data-i18n="provider.ext.open_pool"]')).to_have_count(0)
             expect(workspace.locator('input[type="file"]')).to_have_count(1)
             expect(workspace.locator(".upload-area")).to_be_visible()
@@ -263,7 +325,7 @@ def main():
             toggle.click()
             if provider == "cloudflare":
                 workspace.locator('[name="account_id"]').fill("a" * 32)
-            workspace.locator("summary").click()
+            workspace.locator(".extended-provider-advanced > summary").click()
             if provider == "meta":
                 expect(workspace.locator('[name="base_url"]')).to_have_attribute(
                     "placeholder", "https://api.meta.ai/v1"
@@ -282,9 +344,7 @@ def main():
                     "placeholder", "https://opencode.ai/zen/go/v1"
                 )
             # External advanced fields remain associated with the add form.
-            values = workspace.locator("form").evaluate(
-                "(form) => Object.fromEntries(new FormData(form))"
-            )
+            values = form.evaluate("(form) => Object.fromEntries(new FormData(form))")
             assert ("region" if provider == "kiro" else "base_url") in values
             if provider == "kilo":
                 workspace.locator('[name="organization_id"]').fill(
@@ -337,11 +397,11 @@ def main():
             with page.expect_response(
                 lambda response: response.url.endswith(f"/extended/{provider}/credentials")
             ):
-                workspace.locator('[type="submit"]').click()
-            expect(workspace.locator('[type="submit"]')).to_be_enabled()
+                form.locator('[type="submit"]').click()
+            expect(form.locator('[type="submit"]')).to_be_enabled()
             expect(key).to_have_value("fixture-key-not-a-real-secret")
             expect(key).not_to_be_focused()
-            workspace.locator('[type="submit"]').click()
+            form.locator('[type="submit"]').click()
             expect(key).to_have_value("")
             expect(workspace.locator("[data-extended-saved]")).to_have_count(0)
             page.set_viewport_size({"width": 1440, "height": 1000})

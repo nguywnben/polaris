@@ -1,5 +1,20 @@
 # Polaris Production Self-Hosted R1 — Fixed Checklist
 
+## Approved provider authentication repair (2026-09-15)
+
+Spec: `docs/specs/provider-auth-consistency.md`. Existing completed R1 checklist remains unchanged.
+
+- [x] Kiro OAuth credential normalization, storage identity and refresh; preserve API keys (unit tests).
+- [x] Owner-bound device login, cancellation, expiry, replay protection (API/security tests).
+- [x] Kiro OAuth-first UI, API-key fallback, localized help/imports (DOM/browser tests).
+- [x] Offline import parity and retention of failed files (backend/DOM regression tests).
+- [x] Provider-specific terminology, consistent actions/results and advanced scope (22-provider browser check).
+- [x] Focused/full core checks, frontend assembly/browser checks, review and local commits; live-test limits recorded in the spec.
+
+Verification: core 2,106 tests (22 existing conditional skips), final focused set 84 tests,
+fast quality gate, all locale audits, 22-card/15-locale browser checks and four Kiro device UI methods.
+Backend commit: `35b409f`; UI/documentation are the following commit. No Docker update, push or merge.
+
 Progress denominator: **36/36** implementation tasks. Planning artifacts do not count as completed
 implementation. The denominator cannot change without an approved `CR-###` in `tasks/plan.md`.
 

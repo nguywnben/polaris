@@ -434,6 +434,14 @@ request.
 
 ## Change Request Log
 
+### CR-002 — Kiro OAuth and provider onboarding consistency (2026-09-15)
+
+User approved the follow-up provider audit plan and explicitly required sequential work without
+subagents. This bounded repair supersedes key-only Kiro presentation and online-validation-at-import
+behavior; it does not expand the completed 36-task R1 baseline. Existing API keys remain supported.
+Contracts, implementation order, user workflow and test boundaries are recorded in
+`docs/specs/provider-auth-consistency.md`. No automatic Docker rollout, push or merge is included.
+
 ### CR-001 — Provider ownership and authentication corrections (2026-09-15)
 
 Owner approved the provider audit corrections and parallel implementation. This is a bounded

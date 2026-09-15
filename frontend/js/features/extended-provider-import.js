@@ -21,7 +21,7 @@ function buildExtendedProviderImport(provider) {
     help.id = `${prefix}-upload-help`;
     drop.setAttribute('aria-describedby', help.id);
     const dropContent = document.createElement('div');
-    dropContent.append(extendedElement('div', 'upload-title', 'provider.copy.drop_keys'), help);
+    dropContent.append(extendedElement('div', 'upload-title', 'provider.copy.drop_credentials'), help);
     drop.append(dropContent);
     drop.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', event => { manager.handleFileSelect(event); fileInput.value = ''; });
@@ -61,7 +61,10 @@ function buildExtendedProviderImport(provider) {
         const example = {provider, api_key: '<YOUR_API_KEY>'};
         if (provider === 'cloudflare') example.account_id = '<YOUR_CLOUDFLARE_ACCOUNT_ID>';
         if (provider === 'opencode') example.plan = 'zen';
-        if (provider === 'kiro') example.region = 'us-east-1';
+        if (provider === 'kiro') {
+            delete example.api_key;
+            Object.assign(example, {credential_type: 'oauth', auth_method: 'social', refresh_token: '<YOUR_REFRESH_TOKEN>', region: 'us-east-1'});
+        }
         const url = URL.createObjectURL(new Blob([JSON.stringify(example, null, 2)], {type: 'application/json'}));
         const link = document.createElement('a'); link.href = url; link.download = `${provider}-example.json`;
         link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);

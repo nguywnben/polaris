@@ -1,5 +1,6 @@
 // Apply curated page translations after legacy defaults and Identity aliases.
 // t() reads MESSAGE_CATALOGS first, so updating only the source maps is insufficient.
+applyProviderAuthCopy();
 for (const locale of Object.keys(SUPPORTED_LOCALES)) {
     Object.assign(MESSAGE_CATALOGS[locale], PAGE_LOCALE_TRANSLATIONS[locale] || {});
 }
