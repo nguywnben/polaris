@@ -1,9 +1,9 @@
 const ANTHROPIC_CONFIG_FIELDS = {
-    anthropicApiUrlPlatform: 'anthropic_api_url',
+    anthropicApiUrlPlatform: 'claude_platform_api_url',
     claudeAuthorizeUrl: 'claude_oauth_authorize_url',
     claudeTokenUrl: 'claude_oauth_token_url',
     claudeClientId: 'claude_client_id',
-    claudeUserAgent: 'claude_user_agent'
+    claudeUserAgent: 'claude_platform_user_agent'
 };
 
 const ANTHROPIC_CONFIG_GROUPS = {
@@ -13,8 +13,8 @@ const ANTHROPIC_CONFIG_GROUPS = {
         resetTitle: 'Reset Claude Code Settings',
         fieldIds: ['claudeAuthorizeUrl', 'claudeTokenUrl', 'claudeClientId']
     },
-    shared: {
-        label: 'Claude Code / Claude Platform',
+    platform: {
+        label: 'Claude Platform',
         formId: 'claudePlatformSettingsForm',
         fieldIds: ['anthropicApiUrlPlatform', 'claudeUserAgent']
     }
@@ -44,7 +44,7 @@ async function loadAnthropicSettings(options = {}) {
             if (!field) return;
             field.value = data.config?.[configKey] || '';
         });
-        applyProviderEnvironmentLocks(['claude-code.settings', 'anthropic.shared'], data.env_locked);
+        applyProviderEnvironmentLocks(['claude-code.settings', 'claude-platform.settings'], data.env_locked);
         formIds.forEach((id) => {
             const form = document.getElementById(id);
             if (form) form.dataset.loaded = 'true';
@@ -65,8 +65,8 @@ async function saveAnthropicSettings(scope) {
     if (!group) return;
     const form = document.getElementById(group.formId);
     if (form?.dataset.loaded !== 'true' || form.dataset.saving === 'true') return;
-    const contractScope = scope === 'shared'
-        ? 'anthropic.shared'
+    const contractScope = scope === 'platform'
+        ? 'claude-platform.settings'
         : 'claude-code.settings';
     if (!validateProviderFormScope(contractScope)) return;
     const config = {};

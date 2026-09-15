@@ -16,9 +16,15 @@ reset credentials or configuration.
   per-account credit-use controls. Pool shows credit state but does not edit it.
 - Grok Build owns `xai_oauth_api_url` and its OAuth issuer/client. SpaceXAI Console owns
   `xai_api_url`. Their shared HTTP User-Agent is operator-only configuration.
-- Claude Code owns its OAuth settings. Claude Code and Claude Platform share one API
-  endpoint/User-Agent configuration, which is operator-only. Existing API reset scopes
-  remain `code` and `shared`, respectively.
+- Claude Code owns its OAuth settings (`code` reset scope). Its legacy API endpoint
+  and User-Agent overrides remain operator-only (`shared` reset scope, retained for
+  API compatibility). Claude Platform owns `claude_platform_api_url` and
+  `claude_platform_user_agent` with a separate `platform` reset scope. Validation,
+  imports, model discovery and inference all use these private Platform values.
+  Saving or resetting either provider does not modify the other provider's values.
+  Platform now defaults to the official API and `polaris/claude-platform`; deployments
+  that previously customized the shared endpoint must set the Platform override
+  explicitly. Old settings and credentials are retained, but no longer inherited.
 - Shared Google OAuth/user-info endpoints and the separate legacy Code Assist settings
   are operator-only, not visible provider settings. `GET/POST /api/providers/google/config` uses the existing config
   keys. Reset requires `?scope=shared` or `?scope=compatibility`; blank client secrets
@@ -47,7 +53,7 @@ For exceptional deployments, set these variables in the application's environmen
 | Shared Google OAuth/account lookup | `OAUTH_URL`, `GOOGLE_APIS_URL` |
 | Legacy Code Assist | `CODE_ASSIST_ENDPOINT`, `CODE_ASSIST_CLIENT_ID`, `CODE_ASSIST_CLIENT_SECRET`, `RESOURCE_MANAGER_URL`, `SERVICE_USAGE_URL` |
 | Grok Build / SpaceXAI Console | `XAI_USER_AGENT` |
-| Claude Code / Claude Platform | `ANTHROPIC_API_URL`, `CLAUDE_USER_AGENT` |
+| Claude Code only | `ANTHROPIC_API_URL`, `CLAUDE_USER_AGENT` |
 
 Restart/recreate the process or container after changing its environment. Normal
 deployments should keep defaults. Existing saved values remain effective when no

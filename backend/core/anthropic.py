@@ -17,6 +17,8 @@ from config import (
     get_claude_client_id,
     get_claude_oauth_authorize_url,
     get_claude_oauth_token_url,
+    get_claude_platform_api_url,
+    get_claude_platform_user_agent,
     get_claude_user_agent,
 )
 from core.credential_manager import credential_manager
@@ -139,13 +141,26 @@ def parse_anthropic_model_ids(payload: Any) -> List[str]:
     return models
 
 
+async def get_anthropic_connection(credential_data: Dict[str, Any]) -> tuple[str, str]:
+    """Select settings using the same credential discriminator as authentication."""
+    if str(credential_data.get("credential_type") or "").strip().lower() == "oauth":
+        return normalize_anthropic_api_url(
+            await get_anthropic_api_url()
+        ), await get_claude_user_agent()
+    return (
+        normalize_anthropic_api_url(await get_claude_platform_api_url()),
+        await get_claude_platform_user_agent(),
+    )
+
+
 async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str]:
+    base_url, user_agent = await get_anthropic_connection(credential_data)
     try:
         response = await get_async(
-            f"{normalize_anthropic_api_url(await get_anthropic_api_url())}/models",
+            f"{base_url}/models",
             headers=build_anthropic_headers(
                 credential_data,
-                user_agent=await get_claude_user_agent(),
+                user_agent=user_agent,
             ),
             timeout=30.0,
         )

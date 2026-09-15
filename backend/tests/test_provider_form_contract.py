@@ -226,7 +226,7 @@ class ProviderFormContractTests(unittest.TestCase):
             ),
             "anthropic": (
                 "validateProviderFormScope(contractScope)",
-                "applyProviderEnvironmentLocks(['claude-code.settings', 'anthropic.shared']",
+                "applyProviderEnvironmentLocks(['claude-code.settings', 'claude-platform.settings']",
                 "resetProviderTransientSecrets('claude-platform.credential')",
                 "resetProviderTransientSecrets('claude-code.oauth')",
             ),

@@ -220,11 +220,13 @@ Polaris đọc cấu hình ưu tiên từ các biến môi trường trước, s
 | `CODEX_AUTH_BASE` | `https://auth.openai.com` | Ghi đè tùy chọn cho dịch vụ ủy quyền thiết bị của Codex. |
 | `CODEX_CLIENT_ID` | tích hợp sẵn | Ghi đè tùy chọn cho Client ID OAuth thiết bị của Codex. |
 | `CODEX_USER_AGENT` | tương thích Codex CLI | Ghi đè tùy chọn cho User-Agent đối với các request Codex. |
-| `ANTHROPIC_API_URL` | `https://api.anthropic.com/v1` | Ghi đè tùy chọn cho endpoint API Messages của Claude Platform và Claude Code. Có thể quản lý từ trang Providers. |
+| `ANTHROPIC_API_URL` | `https://api.anthropic.com/v1` | Ghi đè endpoint API Messages dành riêng cho Claude Code ở cấp vận hành. |
 | `CLAUDE_OAUTH_AUTHORIZE_URL` | `https://claude.ai/oauth/authorize` | Ghi đè tùy chọn cho endpoint ủy quyền PKCE của Claude Code. Bảng điều khiển chỉ chấp nhận host Anthropic và Claude. |
 | `CLAUDE_OAUTH_TOKEN_URL` | `https://api.anthropic.com/v1/oauth/token` | Ghi đè tùy chọn cho endpoint lấy token của Claude Code. Bảng điều khiển chỉ chấp nhận host Anthropic và Claude. |
 | `CLAUDE_CLIENT_ID` | tích hợp sẵn | Ghi đè tùy chọn cho Client ID OAuth PKCE của Claude Code. |
-| `CLAUDE_USER_AGENT` | `claude-cli/polaris` | Ghi đè tùy chọn cho User-Agent đối với các request Claude Code và Claude Platform. |
+| `CLAUDE_USER_AGENT` | `claude-cli/polaris` | Ghi đè User-Agent dành riêng cho Claude Code ở cấp vận hành. |
+| `CLAUDE_PLATFORM_API_URL` | `https://api.anthropic.com/v1` | Endpoint riêng của Claude Platform; có thể chỉnh trong cài đặt nâng cao của nhà cung cấp này. |
+| `CLAUDE_PLATFORM_USER_AGENT` | `polaris/claude-platform` | User-Agent riêng của Claude Platform, không dùng chung với Claude Code. |
 | `ANTIGRAVITY_USER_AGENT` | `antigravity/cli/1.0.1 windows/amd64` | Ghi đè tùy chọn cho User-Agent giao thức Google Antigravity. |
 | `ANTIGRAVITY_PAYLOAD_USER_AGENT` | `antigravity` | Ghi đè tùy chọn cho trường userAgent ở cấp payload của Google Antigravity. |
 | `PROMETHEUS_EXPORT_ENABLED` | `false` | Bật rõ ràng endpoint Prometheus `GET /metrics` có xác thực. |

@@ -83,6 +83,8 @@ Values marked `secret` never expose a default through the Settings API.
 | `CLAUDE_OAUTH_TOKEN_URL` | advanced | string | `https://api.anthropic.com/v1/oauth/token` | live | provider |
 | `CLAUDE_CLIENT_ID` | advanced | string | `9d1c250a-e61b-44d9-88ed-5944d1962f5e` | live | provider |
 | `CLAUDE_USER_AGENT` | advanced | string | `claude-cli/polaris` | live | provider |
+| `CLAUDE_PLATFORM_API_URL` | advanced | string | `https://api.anthropic.com/v1` | live | provider |
+| `CLAUDE_PLATFORM_USER_AGENT` | advanced | string | `polaris/claude-platform` | live | provider |
 | `VERTEX_ANON_API_KEY` | advanced | string / secret | `(empty)` | read_only | environment |
 | `AUTO_DISABLE` | advanced | boolean | `false` | live | system |
 | `AUTO_DISABLE_ERROR_CODES` | advanced | integer_list | `403` | live | system |

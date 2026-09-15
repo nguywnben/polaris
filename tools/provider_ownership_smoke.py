@@ -173,8 +173,7 @@ def _select_all_providers(page: Page, output_dir: Path) -> None:
                     / f"advanced-{_provider_id}-{theme}-{page.viewport_size['width']}.png"
                 )
         for shared in page.locator(
-            "[data-provider-owned-link], #xaiSharedSettingsForm, "
-            "#claudePlatformSettingsForm, [data-google-settings]"
+            "[data-provider-owned-link], #xaiSharedSettingsForm, [data-google-settings]"
         ).all():
             expect(shared).to_be_hidden()
 
@@ -236,6 +235,67 @@ def _verify_settings_ownership(page: Page) -> None:
         raise AssertionError(f"Settings save bar is overlay-positioned: {save_bar_layout!r}")
     if save_bar_layout["overlaps"]:
         raise AssertionError(f"Settings save bar overlaps content: {save_bar_layout!r}")
+
+
+def _verify_claude_platform_isolation(page: Page) -> None:
+    """Save/reset against the disposable backend, never the user's installation."""
+    _open_providers(page)
+    page.locator("#providerSelectorClaudeCode").click()
+    code_advanced = page.locator(
+        '#providerWorkspaceClaudeCode details[data-disclosure-kind="settings"]'
+    )
+    code_advanced.locator("summary").click()
+    code_field = page.locator("#claudeClientId")
+    expect(code_field).to_be_visible()
+    expect(code_field).to_be_enabled()
+    code_field.fill("unsaved-code-client")
+    page.locator("#providerSelectorClaudePlatform").click()
+    advanced = page.locator(
+        '#providerWorkspaceClaudePlatform details[data-disclosure-kind="settings"]'
+    )
+    advanced.locator("summary").click()
+    endpoint = page.locator("#anthropicApiUrlPlatform")
+    agent = page.locator("#claudeUserAgent")
+    expect(endpoint).to_be_visible()
+    expect(endpoint).to_be_enabled()
+    assert page.evaluate("document.activeElement?.tagName") not in ("INPUT", "TEXTAREA", "SELECT")
+    endpoint.fill("https://platform.example/v1")
+    agent.fill("polaris/platform-browser-test")
+    with page.expect_response(
+        lambda response: (
+            response.url.endswith("/api/providers/anthropic/config")
+            and response.request.method == "POST"
+        )
+    ) as saved:
+        advanced.locator('[data-ui-action="save-anthropic-settings"]').click()
+    assert saved.value.ok
+    body = saved.value.request.post_data_json["config"]
+    assert set(body) == {"claude_platform_api_url", "claude_platform_user_agent"}
+    assert (
+        saved.value.json()["config"]["claude_platform_user_agent"]
+        == "polaris/platform-browser-test"
+    )
+    before_reset = saved.value.json()["config"]
+    page.locator("#providerSelectorClaudeCode").click()
+    expect(code_field).to_have_value("unsaved-code-client")
+    page.locator("#providerSelectorClaudePlatform").click()
+    expect(agent).to_have_value("polaris/platform-browser-test")
+    advanced.locator('[data-ui-action="reset-anthropic-settings"]').click()
+    with page.expect_response(
+        lambda response: "/api/providers/anthropic/config/reset?scope=platform" in response.url
+    ) as reset:
+        page.locator("[data-dialog-confirm]").click()
+    assert reset.value.ok
+    after_reset = reset.value.json()["config"]
+    for key, value in before_reset.items():
+        if not key.startswith("claude_platform_"):
+            assert after_reset[key] == value, key
+    expect(agent).to_have_value("polaris/claude-platform")
+    expect(endpoint).to_have_value("https://api.anthropic.com/v1")
+    page.locator("#providerSelectorClaudeCode").click()
+    expect(code_field).to_have_value("unsaved-code-client")
+    code_field.fill(after_reset["claude_client_id"])
+    print("[provider-ownership-smoke] Claude Platform save/reset isolation passed", flush=True)
 
 
 def _capture_matrix(page: Page, output_dir: Path) -> None:
@@ -304,6 +364,7 @@ def main() -> int:
             page.on("pageerror", lambda error: console_errors.append(str(error)))
             _install_network_guard(page, unexpected_external)
             _complete_setup(page, base_url)
+            _verify_claude_platform_isolation(page)
             _capture_matrix(page, output_dir)
             context.close()
             browser.close()

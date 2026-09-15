@@ -79,6 +79,8 @@ DEFAULT_CLAUDE_OAUTH_AUTHORIZE_URL = "https://claude.ai/oauth/authorize"
 DEFAULT_CLAUDE_OAUTH_TOKEN_URL = "https://api.anthropic.com/v1/oauth/token"
 DEFAULT_CLAUDE_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 DEFAULT_CLAUDE_USER_AGENT = "claude-cli/polaris"
+DEFAULT_CLAUDE_PLATFORM_API_URL = "https://api.anthropic.com/v1"
+DEFAULT_CLAUDE_PLATFORM_USER_AGENT = "polaris/claude-platform"
 
 
 ENV_MAPPINGS = {
@@ -911,6 +913,33 @@ async def get_claude_oauth_authorize_url() -> str:
         .strip()
         .rstrip("/")
     )
+
+
+async def get_claude_platform_api_url() -> str:
+    """Platform API-key connections do not inherit Claude Code overrides."""
+    return (
+        str(
+            await get_config_value(
+                "claude_platform_api_url",
+                DEFAULT_CLAUDE_PLATFORM_API_URL,
+                "CLAUDE_PLATFORM_API_URL",
+            )
+            or DEFAULT_CLAUDE_PLATFORM_API_URL
+        )
+        .strip()
+        .rstrip("/")
+    )
+
+
+async def get_claude_platform_user_agent() -> str:
+    return str(
+        await get_config_value(
+            "claude_platform_user_agent",
+            DEFAULT_CLAUDE_PLATFORM_USER_AGENT,
+            "CLAUDE_PLATFORM_USER_AGENT",
+        )
+        or DEFAULT_CLAUDE_PLATFORM_USER_AGENT
+    ).strip()
 
 
 async def get_claude_oauth_token_url() -> str:

@@ -8,13 +8,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from config import (
-    get_anthropic_api_url,
     get_antigravity_api_url,
     get_antigravity_payload_user_agent,
     get_antigravity_stream_to_nonstream,
     get_antigravity_switch_credential_enabled,
     get_auto_disable_error_codes,
-    get_claude_user_agent,
     get_codex_api_url,
     get_codex_user_agent,
     get_google_ai_studio_api_url,
@@ -31,6 +29,7 @@ from core.anthropic import (
     build_anthropic_headers,
     fetch_anthropic_model_ids,
     gemini_request_to_anthropic,
+    get_anthropic_connection,
 )
 from core.antigravity import (
     build_antigravity_headers,
@@ -343,10 +342,11 @@ async def prepare_provider_request(
             )
     elif provider_id == ANTHROPIC:
         payload = gemini_request_to_anthropic(dict(compressed_request), model_name, streaming)
-        target_url = f"{(await get_anthropic_api_url()).rstrip('/')}/messages"
+        anthropic_base_url, anthropic_user_agent = await get_anthropic_connection(credential_data)
+        target_url = f"{anthropic_base_url}/messages"
         auth_headers = build_anthropic_headers(
             credential_data,
-            user_agent=await get_claude_user_agent(),
+            user_agent=anthropic_user_agent,
         )
     elif provider_id == OLLAMA:
         payload = gemini_request_to_ollama(dict(compressed_request), model_name, streaming)
@@ -408,7 +408,7 @@ async def prepare_provider_request(
             auth_headers.update(
                 build_anthropic_headers(
                     credential_data,
-                    user_agent=await get_claude_user_agent(),
+                    user_agent=anthropic_user_agent,
                 )
             )
         elif provider_id == OLLAMA:

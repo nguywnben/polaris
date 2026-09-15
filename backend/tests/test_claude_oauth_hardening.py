@@ -170,7 +170,7 @@ class ClaudeSettingsHardeningTests(unittest.IsolatedAsyncioTestCase):
         scopes = {
             "shared": {"anthropic_api_url", "claude_user_agent"},
             "code": {"claude_oauth_authorize_url", "claude_oauth_token_url", "claude_client_id"},
-            "platform": set(),
+            "platform": {"claude_platform_api_url", "claude_platform_user_agent"},
         }
         for scope, keys in scopes.items():
             with self.subTest(scope=scope):

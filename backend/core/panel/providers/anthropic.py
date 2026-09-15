@@ -41,10 +41,12 @@ ANTHROPIC_CONFIG_KEYS = {
     "claude_oauth_token_url",
     "claude_client_id",
     "claude_user_agent",
+    "claude_platform_api_url",
+    "claude_platform_user_agent",
 }
 ANTHROPIC_CONFIG_SCOPES = {
     "shared": {"anthropic_api_url", "claude_user_agent"},
-    "platform": set(),
+    "platform": {"claude_platform_api_url", "claude_platform_user_agent"},
     "code": {
         "claude_oauth_authorize_url",
         "claude_oauth_token_url",
@@ -60,6 +62,8 @@ async def _current_anthropic_config() -> dict:
         "claude_oauth_token_url": await config.get_claude_oauth_token_url(),
         "claude_client_id": await config.get_claude_client_id(),
         "claude_user_agent": await config.get_claude_user_agent(),
+        "claude_platform_api_url": await config.get_claude_platform_api_url(),
+        "claude_platform_user_agent": await config.get_claude_platform_user_agent(),
     }
 
 
@@ -88,8 +92,13 @@ async def save_anthropic_config(
     try:
         for key in new_config.keys() - locked:
             value = str(new_config[key] or "").strip()
-            if key == "anthropic_api_url":
+            if key in {"anthropic_api_url", "claude_platform_api_url"}:
                 value = normalize_anthropic_api_url(value)
+            elif key == "claude_platform_user_agent":
+                if not value or len(value) > 512 or not value.isascii() or not value.isprintable():
+                    raise ValueError(
+                        "HTTP User-Agent must be between 1 and 512 printable ASCII characters."
+                    )
             elif key in {"claude_oauth_authorize_url", "claude_oauth_token_url"}:
                 label = (
                     "Claude authorization endpoint"

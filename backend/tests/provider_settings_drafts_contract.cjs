@@ -46,7 +46,7 @@ function harness() {
     const contract = vm.runInContext('PROVIDER_FORM_CONTRACT', context);
     const config = {};
     const scopes = family === 'google' ? ['google.shared', 'google.compatibility']
-        : family === 'anthropic' ? ['claude-code.settings', 'anthropic.shared']
+        : family === 'anthropic' ? ['claude-code.settings', 'claude-platform.settings']
         : ['grok.settings', 'xai.settings', 'xai.shared'];
     const formIds = family === 'google' ? ['googleSharedSettingsForm', 'googleCompatibilitySettingsForm']
         : family === 'anthropic' ? ['claudeCodeSettingsForm', 'claudePlatformSettingsForm']
@@ -106,10 +106,22 @@ tests.push(async function malformedSuccessDoesNotEnableUnknownSettings() {
     h.malformed(false); await h.api.load();
     assert(h.forms.every(form => !form.inert), 'Malformed initial response remains retryable');
 });
-if (family === 'anthropic') tests.push(async function sharedScopeActuallyValidatesItsFields() {
+if (family === 'anthropic') tests.push(async function platformScopeActuallyValidatesItsFields() {
     const h = harness(); await h.api.load(); h.elements.get('claudeUserAgent').value = '';
-    const count = h.requests.length; await h.api.save('shared');
-    assert.equal(h.requests.length, count, 'Shared required User-Agent must validate before POST');
+    const count = h.requests.length; await h.api.save('platform');
+    assert.equal(h.requests.length, count, 'Platform required User-Agent must validate before POST');
+});
+if (family === 'anthropic') tests.push(async function platformSaveAndResetLeaveCodeDraftIntact() {
+    const h = harness(); await h.api.load();
+    const code = h.elements.get('claudeClientId'); code.value = 'unsaved-code-client';
+    h.elements.get('claudeUserAgent').value = 'platform-agent';
+    await h.api.save('platform');
+    const sent = JSON.parse(h.requests.at(-1).options.body).config;
+    assert.deepEqual(Object.keys(sent).sort(), ['claude_platform_api_url', 'claude_platform_user_agent']);
+    assert.equal(sent.claude_platform_user_agent, 'platform-agent');
+    await h.api.reset('platform');
+    assert(h.requests.at(-1).url.endsWith('reset?scope=platform'));
+    assert.equal(code.value, 'unsaved-code-client');
 });
 if (family === 'xai') tests.push(async function siblingWorkspaceReusesLoadedFamily() {
     const h = harness(); await h.api.load(); h.forms[0].children[0].value = 'https://unsaved.example.test';

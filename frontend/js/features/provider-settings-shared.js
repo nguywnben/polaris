@@ -139,12 +139,12 @@ const PROVIDER_FORM_CONTRACT = Object.freeze({
             validation: 'secret', resetBehavior: 'clear'
         })
     ]),
-    'anthropic.shared': Object.freeze([
-        defineProviderField({id: 'claudeUserAgent', configKey: 'claude_user_agent', required: true,
-            minLength: 3, environmentLock: true, helpKey: 'provider.form.user_agent_help',
+    'claude-platform.settings': Object.freeze([
+        defineProviderField({id: 'claudeUserAgent', configKey: 'claude_platform_user_agent', required: true,
+            minLength: 1, maxLength: 512, environmentLock: true, helpKey: 'provider.form.user_agent_help',
             validation: 'trimmed'}),
 
-        defineProviderField({id: 'anthropicApiUrlPlatform', configKey: 'anthropic_api_url',
+        defineProviderField({id: 'anthropicApiUrlPlatform', configKey: 'claude_platform_api_url',
             type: 'url', required: true, minLength: 8, maxLength: 2048, autocomplete: 'url',
             environmentLock: true, helpKey: 'provider.form.endpoint_help', validation: 'http-url'})
     ]),
