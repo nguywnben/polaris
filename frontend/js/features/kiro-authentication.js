@@ -112,7 +112,8 @@ function buildKiroDevicePanel(advanced) {
             waitUntil = Date.now() + result.interval * 1000;
             showStatus(t('provider.authorization_pending', {provider: 'Kiro'}), 'info');
         } else if (result.credential_saved === true) {
-            finish(); showStatus(t('provider.ext.saved'), 'success');
+            finish(); showProviderCredentialSaveResult('kiroDevice', result);
+            showStatus(providerCredentialResultCopy(result).title, 'success');
             await AppState.primaryCreds.refresh();
         }
     }));
@@ -120,5 +121,7 @@ function buildKiroDevicePanel(advanced) {
         try { if (flow) await request('cancel', {flow_id: flow}); }
         finally { finish(); }
     }, cancel));
+    createProviderCredentialSaveResult(panel, 'kiroDevice');
+    form.addEventListener('submit', () => document.getElementById('kiroDeviceSaveResult').classList.add('hidden'));
     return panel;
 }

@@ -78,6 +78,7 @@ class KiroBrowserLoginTests(unittest.IsolatedAsyncioTestCase):
         ):
             result = await complete_login("owner", started["flow_id"])
             self.assertTrue(result["credential_saved"])
+            self.assertEqual(result["credential_action"], "created")
             self.assertNotIn("refresh", json.dumps(result))
             body = exchange.call_args.args[1]
             challenge = (
@@ -177,7 +178,10 @@ class KiroBrowserLoginTests(unittest.IsolatedAsyncioTestCase):
             patch(
                 "core.kiro_browser_login.store_extended_credential",
                 AsyncMock(
-                    side_effect=[OSError("synthetic storage failure"), {"filename": "kiro.json"}]
+                    side_effect=[
+                        OSError("synthetic storage failure"),
+                        {"filename": "kiro.json", "action": "updated"},
+                    ]
                 ),
             ) as save,
         ):

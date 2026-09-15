@@ -9,6 +9,9 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- New providers show the same persistent credential-save result and pool shortcut
+  as legacy providers. Result summaries use the selected UI language instead of
+  mixing raw English server messages with translated labels.
 - Every provider now offers a JSON credential example beside the import heading,
   with provider-specific OAuth, API-key or Ollama connection fields and no copied secrets.
 - Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with automatic

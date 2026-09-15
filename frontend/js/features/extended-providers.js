@@ -71,6 +71,7 @@ async function saveExtendedProvider(event, provider, form) {
     event.preventDefault();
     if (form.dataset.saving === 'true' || !form.reportValidity()) return;
     const payload = Object.fromEntries(new FormData(form));
+    document.getElementById(`extended-${provider}SaveResult`)?.classList.add('hidden');
     const submit = form.querySelector('[type="submit"]');
     const controls = [...form.elements].filter(control => !control.disabled);
     controls.forEach(control => { control.disabled = true; });
@@ -85,7 +86,8 @@ async function saveExtendedProvider(event, provider, form) {
         if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : t('unknown_error'));
         form.elements.api_key.value = '';
         setSetupSecretVisibility(form.elements.api_key, false);
-        showStatus(t('provider.ext.saved'), 'success');
+        showProviderCredentialSaveResult(`extended-${provider}`, result);
+        showStatus(providerCredentialResultCopy(result).title, 'success');
         await AppState.primaryCreds.refresh();
     } catch (error) {
         showStatus(error.message || t('unknown_error'), 'error');
@@ -190,6 +192,7 @@ function buildExtendedProviderWorkspaces() {
         const actions = extendedElement('div', 'page-actions');
         const save = extendedElement('button', 'btn', 'provider.ui.add_key'); save.type = 'submit';
         actions.append(save); form.append(actions);
+        createProviderCredentialSaveResult(form, `extended-${provider}`);
         form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
         panel.append(form);
         if (provider === 'kiro') {

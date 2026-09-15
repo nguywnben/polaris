@@ -114,18 +114,7 @@ function validateCallbackUrl(callbackUrl) {
 
 async function completePrimaryCredentialSave(data) {
     const credentialSaved = data.credential_saved !== false;
-    const credentialAction = data.credential_action || 'created';
-    const resultTitle = credentialAction === 'skipped'
-        ? t('provider_credential_skipped_title')
-        : credentialAction === 'replaced'
-            ? t('provider_credential_replaced_title')
-            : t('provider_credential_saved_title');
-    const fileSuffix = data.file_path ? ` File: ${data.file_path}.` : '';
-    const resultBody = data.message
-        ? `${data.message}${data.message.endsWith('.') ? '' : '.'}${fileSuffix}`
-        : credentialSaved
-            ? t('provider_credential_saved_body', {data_file_path: data.file_path})
-            : t('provider_credential_skipped_body', {data_file_path: data.file_path});
+    const resultCopy = providerCredentialResultCopy(data);
 
     const primaryCredsSection = document.getElementById('primaryCredsSection');
     const primaryCredsContent = document.getElementById('primaryCredsContent');
@@ -147,14 +136,7 @@ async function completePrimaryCredentialSave(data) {
     setPrimaryCallbackUrlSectionVisible(false);
     resetProviderTransientSecrets('antigravity.oauth');
 
-    const saveResult = document.getElementById('primarySaveResult');
-    const saveResultTitle = document.getElementById('primarySaveResultTitle');
-    const saveResultText = document.getElementById('primarySaveResultText');
-    if (saveResult && saveResultText) {
-        if (saveResultTitle) saveResultTitle.textContent = resultTitle;
-        saveResultText.textContent = resultBody;
-        saveResult.classList.remove('hidden');
-    }
+    showProviderCredentialSaveResult('primary', data);
 
     try {
         await AppState.primaryCreds.refresh();
@@ -163,7 +145,7 @@ async function completePrimaryCredentialSave(data) {
         console.warn('Credential flow completed, but pool refresh failed:', refreshError);
     }
 
-    showStatus(resultBody, credentialSaved ? 'success' : 'info');
+    showStatus(resultCopy.title, resultCopy.variant);
 }
 
 async function getPrimaryCredentials() {

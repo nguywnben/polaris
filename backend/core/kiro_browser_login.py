@@ -202,6 +202,7 @@ async def complete_login(token, flow_id):
         return {
             "status": "complete",
             "credential_saved": True,
+            "credential_action": saved["action"],
             "filename": saved["filename"],
             "connection_test_required": True,
         }

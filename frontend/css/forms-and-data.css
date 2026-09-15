@@ -131,6 +131,16 @@ button.endpoint-code-card:hover {
     margin-top: 14px;
 }
 
+.provider-save-result > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.provider-save-result > .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 .upload-result {
     align-items: flex-start;
 }

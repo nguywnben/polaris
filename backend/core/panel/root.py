@@ -105,6 +105,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/traces.js",
     "js/features/activity.js",
     "js/features/provider-credential-examples.js",
+    "js/features/provider-save-results.js",
     "js/features/extended-provider-import.js",
     "js/features/kiro-authentication.js",
     "js/features/kiro-browser-login.js",

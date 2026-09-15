@@ -33,6 +33,7 @@ function buildKiroOAuthPanel(advanced) {
     const submit = extendedElement('button', 'btn btn-secondary', 'provider.portal.submit'); submit.type = 'submit';
     manualForm.append(submit); manual.append(summary, manualForm);
     pending.append(status, expiry, actions, manual); panel.append(pending);
+    const saveResult = createProviderCredentialSaveResult(panel, 'kiroBrowser');
     const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
     const callbackOrigin = remote ? 'http://localhost:4283' : location.origin;
     if (remote) panel.append(extendedElement('p', 'card-copy', 'provider.portal.remote'));
@@ -59,7 +60,8 @@ function buildKiroOAuthPanel(advanced) {
         try {
             const result = await request('complete', {flow_id: flow});
             if (result.credential_saved) {
-                reset(); showStatus(t('provider.ext.saved'), 'success');
+                reset(); showProviderCredentialSaveResult('kiroBrowser', result);
+                showStatus(providerCredentialResultCopy(result).title, 'success');
                 await AppState.primaryCreds.refresh();
             } else if (result.status === 'error') {
                 reset(); showStatus(t(result.reason === 'unsupported_method' ? 'provider.portal.unsupported' : 'provider.auth.error'), 'error');
@@ -70,6 +72,7 @@ function buildKiroOAuthPanel(advanced) {
     }
     form.addEventListener('submit', async event => {
         event.preventDefault(); if (busy || flow) return;
+        saveResult.classList.add('hidden');
         // Open on the user gesture; browsers may block a popup opened after fetch.
         const popup = window.open('about:blank', '_blank');
         if (popup) popup.opener = null;

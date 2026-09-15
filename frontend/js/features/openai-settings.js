@@ -112,19 +112,7 @@ async function resetOpenAISettings(scope) {
 function showOpenAICredentialSaveResult(kind, data) {
     const isCodex = kind === 'codex';
     const prefix = isCodex ? 'codexOauth' : 'openaiPlatform';
-    const result = document.getElementById(`${prefix}SaveResult`);
-    const title = document.getElementById(`${prefix}SaveResultTitle`);
-    const text = document.getElementById(`${prefix}SaveResultText`);
-    if (title) {
-        title.textContent = t(data.credential_action === 'updated'
-            ? 'runtime.credential_updated_title'
-            : 'runtime.credential_added_title');
-    }
-    if (text) {
-        const modelCount = Number(data.model_count) || 0;
-        text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(modelCount)})}`;
-    }
-    result?.classList.remove('hidden');
+    showProviderCredentialSaveResult(prefix, data);
 }
 
 async function addOpenAIPlatformCredential(event) {
@@ -147,7 +135,7 @@ async function addOpenAIPlatformCredential(event) {
         if (!response.ok) throw createProviderRequestError(response, data);
         resetProviderTransientSecrets('openai-platform.credential');
         showOpenAICredentialSaveResult('platform', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();
@@ -224,7 +212,7 @@ async function completeCodexOauth() {
 
         delete fields.dataset.flowId;
         showOpenAICredentialSaveResult('codex', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();

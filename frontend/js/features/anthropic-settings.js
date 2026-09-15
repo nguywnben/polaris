@@ -130,16 +130,7 @@ async function resetAnthropicSettings(scope) {
 function showAnthropicCredentialSaveResult(kind, data) {
     const isCode = kind === 'code';
     const prefix = isCode ? 'claudeOauth' : 'claudePlatform';
-    const title = document.getElementById(`${prefix}SaveResultTitle`);
-    const text = document.getElementById(`${prefix}SaveResultText`);
-    if (title) title.textContent = t(data.credential_action === 'updated'
-        ? 'runtime.credential_updated_title'
-        : 'runtime.credential_added_title');
-    if (text) {
-        const count = Number(data.model_count) || 0;
-        text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(count)})}`;
-    }
-    document.getElementById(`${prefix}SaveResult`)?.classList.remove('hidden');
+    showProviderCredentialSaveResult(prefix, data);
 }
 
 async function addClaudePlatformCredential(event) {
@@ -159,7 +150,7 @@ async function addClaudePlatformCredential(event) {
         if (!response.ok) throw createProviderRequestError(response, data);
         resetProviderTransientSecrets('claude-platform.credential');
         showAnthropicCredentialSaveResult('platform', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();
@@ -228,7 +219,7 @@ async function saveClaudeOauth() {
         delete fields.dataset.oauthState;
         resetProviderTransientSecrets('claude-code.oauth');
         showAnthropicCredentialSaveResult('code', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();

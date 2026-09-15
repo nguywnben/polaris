@@ -21,20 +21,9 @@ async function addOllamaCredential(event) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
 
-        const title = document.getElementById('ollamaSaveResultTitle');
-        const text = document.getElementById('ollamaSaveResultText');
-        if (title) {
-            title.textContent = t(data.credential_action === 'updated'
-                ? 'runtime.credential_updated_title'
-                : 'runtime.credential_added_title');
-        }
-        if (text) {
-            const count = Number(data.model_count) || 0;
-            text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(count)})}`;
-        }
-        document.getElementById('ollamaSaveResult')?.classList.remove('hidden');
+        showProviderCredentialSaveResult('ollama', data);
         resetProviderTransientSecrets('ollama.credential');
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();

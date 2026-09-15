@@ -273,10 +273,13 @@ def verify_kiro_browser(page):
     pending.locator('button[type="submit"]').click()
     expect(pending).to_be_hidden(timeout=10000)
     expect(callback).to_have_value("")
+    expect(workspace.locator("#kiroBrowserSaveResult")).to_be_visible()
+    expect(workspace.locator('#kiroBrowserSaveResult [data-tab="pool"]')).to_have_text("Xem")
     assert "complete" in calls and calls.count("callback") == 2
     state["accepted"] = False
     form.locator("button").click()
     expect(pending).to_be_visible()
+    expect(workspace.locator("#kiroBrowserSaveResult")).to_be_hidden()
     pending.locator('[data-i18n="btn_cancel"]').click()
     expect(pending).to_be_hidden()
     assert calls[-1] == "cancel"

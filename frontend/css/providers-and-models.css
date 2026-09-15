@@ -30,6 +30,7 @@
 .provider-import-heading .btn:hover { color: var(--text); }
 #providersTab .provider-tools-grid .page-actions { gap: 8px; }
 #providersTab .provider-tools-grid .btn:not(.setup-secret-toggle) { white-space: normal; overflow-wrap: anywhere; }
+#providersTab .provider-tools-grid .provider-save-result > .btn { white-space: nowrap; overflow-wrap: normal; }
 .provider-tools-column > .provider-secondary-disclosure > :is(form, p, a) { margin: 16px 20px; }
 .extended-provider-advanced > p, .extended-provider-advanced > .extended-provider-fields { margin: 16px; }
 .extended-provider-import .provider-upload-section { margin-top: 16px; }
