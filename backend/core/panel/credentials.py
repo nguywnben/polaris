@@ -128,6 +128,17 @@ def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
     return ("base_url", extra[provider]) if provider in extra else ("base_url",)
 
 
+async def _prepare_kiro_oauth(filename: str, data: dict, mode: str) -> dict:
+    if get_credential_provider(data) != "kiro" or data.get("credential_type") != "oauth":
+        return data
+    prepared = await credential_manager.prepare_credential(filename, data, mode=mode)
+    if not prepared:
+        raise HTTPException(
+            status_code=401, detail="Kiro OAuth session could not be renewed. Sign in again."
+        )
+    return prepared
+
+
 async def _get_available_credential_models(credential_data: dict) -> list[str]:
     """Return models that can be selected for one credential test."""
     declared_models = get_declared_credential_models(credential_data)
@@ -286,6 +297,7 @@ async def update_credential_configuration(
             detail=f"Unsupported credential field(s): {', '.join(unsupported)}.",
         )
 
+    credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
     candidate = dict(credential_data)
     if "credential_label" in changed_fields:
         candidate["credential_label"] = str(request.credential_label or "").strip()
@@ -464,6 +476,7 @@ async def get_credential_models(
             return rejection
 
         if mode == "primary" and get_credential_provider(credential_data) in EXTENDED_PROVIDERS:
+            credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
             candidate = dict(credential_data)
             candidate["model_ids"] = []
             candidate.update(normalize_extended_credential(candidate))
@@ -1755,6 +1768,7 @@ async def _test_credential_unbounded(
             )
 
         if mode == "primary" and provider_id in EXTENDED_PROVIDERS:
+            credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
             response = await test_extended_credential(credential_data, test_model)
             status_code = response.status_code
             if status_code == 200:

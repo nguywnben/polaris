@@ -1,4 +1,4 @@
-"""Kiro API-key transport at the gateway's canonical Gemini boundary.
+"""Kiro OAuth/API-key transport at the gateway's canonical Gemini boundary.
 
 API-key usage: https://kiro.dev/docs/getting-started/authentication/
 Direct HTTP protocol facts were checked against the read-only OmniRoute 3.8.49
@@ -39,6 +39,16 @@ class KiroError(ValueError):
 def normalize_credential(data: dict) -> dict:
     if not isinstance(data, dict):
         raise KiroError("Enter a valid Kiro credential.")
+    if data.get("credential_type") == "oauth" or any(
+        data.get(field)
+        for field in ("access_token", "accessToken", "refresh_token", "refreshToken")
+    ):
+        from core.kiro_credentials import normalize_oauth
+
+        try:
+            return normalize_oauth(data)
+        except ValueError as exc:
+            raise KiroError(str(exc)) from None
     key = data.get("api_key")
     key = key.strip() if isinstance(key, str) else ""
     if not 8 <= len(key) <= 4096 or not all(33 <= ord(char) <= 126 for char in key):
@@ -58,9 +68,12 @@ def normalize_credential(data: dict) -> dict:
 
 
 def _headers(data: dict) -> dict[str, str]:
+    bearer = data.get("api_key") or data.get("access_token")
+    if not bearer:
+        raise KiroError("Renew the Kiro OAuth session before making a request.", 401)
     return {
-        "Authorization": f"Bearer {data['api_key']}",
-        "tokentype": "API_KEY",
+        "Authorization": f"Bearer {bearer}",
+        **({"tokentype": "API_KEY"} if data["credential_type"] == "api_key" else {}),
         "Content-Type": "application/json",
         "Accept": "application/vnd.amazon.eventstream",
     }
@@ -95,7 +108,7 @@ async def discover_models(data: dict) -> list[str]:
                             response.status_code if response.status_code in {401, 403, 429} else 502
                         )
                         raise KiroError(
-                            "Kiro model discovery failed. Check the API key, permissions, and connection.",
+                            "Kiro model discovery failed. Check the credential, permissions, and connection.",
                             status,
                         )
                     body = bytearray()

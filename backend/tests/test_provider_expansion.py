@@ -14,7 +14,7 @@ from core.provider_registry import (
 
 
 class ProviderExpansionRegistryTests(unittest.TestCase):
-    def test_all_eight_providers_have_key_only_operations(self):
+    def test_provider_operations_preserve_key_support_and_kiro_oauth_default(self):
         for provider in (
             "kimi",
             "cloudflare",
@@ -28,7 +28,9 @@ class ProviderExpansionRegistryTests(unittest.TestCase):
             with self.subTest(provider=provider):
                 contract = get_credential_variant_capabilities(provider)
                 self.assertIsNotNone(contract)
-                self.assertEqual(contract.credential_type, "api_key")
+                self.assertEqual(
+                    contract.credential_type, "oauth" if provider == "kiro" else "api_key"
+                )
                 self.assertIn("test", contract.operations)
                 self.assertNotIn("refresh", contract.operations)
                 self.assertNotIn("quota", contract.operations)

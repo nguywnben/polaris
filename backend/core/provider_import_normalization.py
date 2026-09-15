@@ -105,6 +105,10 @@ def _claims(token: str) -> dict:
 
 def _native_source(data: dict) -> tuple[str | None, dict]:
     markers: list[tuple[str, Any]] = []
+    if "kiro_auth_token_raw" in data:
+        # Cockpit exports intentionally repeat tokens at the account level.
+        # The Kiro normalizer below verifies both containers and their aliases.
+        markers.append(("kiro", data))
     if "tokens" in data:
         if data.get("OPENAI_API_KEY"):
             raise ValueError("Import one credential type at a time.")
@@ -184,6 +188,40 @@ def normalize_provider_import(data: Any, variant: str | None = None) -> dict:
     if family in EXTENDED_PROVIDERS:
         from core.extended_provider_runtime import normalize_extended_credential
 
+        if family == "kiro" and (
+            credential_type == "oauth"
+            or any(
+                data.get(field)
+                for field in (
+                    "access_token",
+                    "accessToken",
+                    "refresh_token",
+                    "refreshToken",
+                    "kiro_auth_token_raw",
+                )
+            )
+        ):
+            if any(
+                data.get(field) not in (None, "", "oauth", "kiro")
+                for field in ("type", "auth_kind")
+            ):
+                raise ValueError("Import one Kiro authentication method at a time.")
+            raw = data.get("kiro_auth_token_raw") or {}
+            if not isinstance(raw, dict) or len(raw) > 64:
+                raise ValueError("Invalid Kiro OAuth token container.")
+            if any(
+                key in data and data[key] not in (None, "", value) for key, value in raw.items()
+            ):
+                raise ValueError("Conflicting Kiro OAuth token containers.")
+            clean = {**data, **raw, "provider": "kiro"}
+            clean.pop("account_fingerprint", None)
+            result = normalize_extended_credential(clean)
+            if data.get("credential_label") not in (None, ""):
+                label = _text(data["credential_label"])
+                if len(label) > 128:
+                    raise ValueError("Credential label is too long.")
+                result["credential_label"] = label
+            return result
         if (
             native_family
             or credential_type not in ("", "api_key")

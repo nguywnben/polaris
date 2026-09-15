@@ -93,10 +93,12 @@ class ExtendedImportNormalizationTests(unittest.TestCase):
 
 
 class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
-    async def test_mixed_archive_imports_all_extended_catalogs(self):
+    async def test_mixed_archive_imports_all_extended_credentials_offline(self):
         stored = {"filename": "safe.json", "action": "created", "label": "Account"}
         with (
-            patch("core.pool_import.discover_extended_models", new_callable=AsyncMock) as discover,
+            patch(
+                "core.extended_provider_runtime.discover_extended_models", new_callable=AsyncMock
+            ) as discover,
             patch(
                 "core.pool_import.store_extended_credential",
                 new_callable=AsyncMock,
@@ -111,7 +113,7 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             )
         self.assertEqual(report["uploaded_count"], 13)
         self.assertEqual(report["error_count"], 0)
-        self.assertEqual(discover.await_count, 13)
+        discover.assert_not_awaited()
         self.assertEqual(store.await_count, 13)
         self.assertEqual(
             {call.args[0]["provider"] for call in store.await_args_list},
@@ -150,7 +152,10 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             credential("kiro", region="eu-central-1"),
         ]
         with (
-            patch("core.pool_import.discover_extended_models", AsyncMock(return_value=["gpt-5"])),
+            patch(
+                "core.extended_provider_runtime.discover_extended_models",
+                AsyncMock(return_value=["gpt-5"]),
+            ),
             patch(
                 "core.pool_import.store_extended_credential",
                 AsyncMock(return_value={"filename": "safe.json", "action": "created"}),
@@ -160,30 +165,32 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report["uploaded_count"], 10)
         self.assertEqual(report["skipped_count"], 1)
 
-    async def test_failed_catalog_never_stores_or_exposes_upstream_error(self):
+    async def test_failed_catalog_does_not_block_offline_import(self):
         with (
             patch(
-                "core.pool_import.discover_extended_models",
-                AsyncMock(side_effect=RuntimeError("upstream leaked test-key-never-live")),
-            ),
-            patch("core.pool_import.store_extended_credential", new_callable=AsyncMock) as store,
+                "core.extended_provider_runtime.discover_extended_models",
+                AsyncMock(side_effect=RuntimeError("upstream secret")),
+            ) as catalog,
+            patch(
+                "core.pool_import.store_extended_credential",
+                AsyncMock(return_value={"filename": "safe.json", "action": "created"}),
+            ) as store,
         ):
             report = await restore_pool_archive(archive([credential("opencode")]))
-        store.assert_not_awaited()
-        self.assertEqual(report["error_count"], 1)
-        self.assertNotIn("test-key-never-live", json.dumps(report))
+        catalog.assert_not_awaited()
+        self.assertEqual(store.call_args.args[1], [])
+        self.assertEqual(report["uploaded_count"], 1)
+        self.assertEqual(report["results"][0]["validation_status"], "unverified")
+        self.assertNotIn("upstream secret", json.dumps(report))
 
-    async def test_cancellation_propagates_without_storing(self):
-        with (
-            patch(
-                "core.pool_import.discover_extended_models",
-                AsyncMock(side_effect=asyncio.CancelledError),
-            ),
-            patch("core.pool_import.store_extended_credential", new_callable=AsyncMock) as store,
-        ):
+    async def test_cancellation_propagates_without_later_writes(self):
+        with patch(
+            "core.pool_import.store_extended_credential",
+            AsyncMock(side_effect=asyncio.CancelledError),
+        ) as store:
             with self.assertRaises(asyncio.CancelledError):
-                await restore_pool_archive(archive([credential("opencode")]))
-        store.assert_not_awaited()
+                await restore_pool_archive(archive([credential("opencode"), credential("kimi")]))
+        self.assertEqual(store.await_count, 1)
 
     async def test_real_store_marks_catalog_access_unverified_for_every_provider(self):
         with patch(
@@ -202,7 +209,10 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_bad_entry_does_not_prevent_valid_entry(self):
         with (
-            patch("core.pool_import.discover_extended_models", AsyncMock(return_value=["gpt-5"])),
+            patch(
+                "core.extended_provider_runtime.discover_extended_models",
+                AsyncMock(return_value=["gpt-5"]),
+            ),
             patch(
                 "core.pool_import.store_extended_credential",
                 AsyncMock(return_value={"filename": "safe.json", "action": "created"}),

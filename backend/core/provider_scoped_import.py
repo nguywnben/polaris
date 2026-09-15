@@ -51,7 +51,7 @@ async def import_provider_files(provider: str, files: list[UploadFile]) -> dict:
             result.update(
                 status="skipped",
                 action="skipped",
-                message="Duplicate API key in this archive was skipped.",
+                message="Duplicate credential in this archive was skipped.",
             )
         else:
             try:
@@ -62,7 +62,7 @@ async def import_provider_files(provider: str, files: list[UploadFile]) -> dict:
                     action=action,
                     filename=saved["filename"],
                     message=(
-                        "Duplicate API key was skipped; the existing credential was kept unchanged."
+                        "Duplicate credential was skipped; the existing credential was kept unchanged."
                         if action == "skipped"
                         else "Credential imported. Inference access is not verified."
                     ),

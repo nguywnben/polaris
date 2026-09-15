@@ -33,6 +33,22 @@ class _RecordingStore(InMemoryStateStore):
 
 
 class DeviceAuthorizationServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_isolation_and_updated_release_payload(self) -> None:
+        service = DeviceAuthorizationService(InMemoryStateStore(), key=b"k" * 32, fencing_epoch=1)
+        flow = await service.create(b"initial", ttl_seconds=300, provider="kiro")
+        self.assertTrue(flow.startswith("kiro_"))
+        with self.assertRaises(DeviceAuthorizationError):
+            await service.claim(flow, lease_seconds=30)
+        claim = await service.claim(flow, lease_seconds=30, provider="kiro")
+        await service.release(claim, payload=b"next-poll")
+        await service.release(claim, payload=b"next-poll")
+        updated = await service.claim(flow, lease_seconds=30, provider="kiro")
+        self.assertEqual(updated.payload, b"next-poll")
+        self.assertEqual(updated.expires_at_ms, claim.expires_at_ms)
+        await service.consume(updated)
+        with self.assertRaises(DeviceAuthorizationError):
+            await service.claim(flow, lease_seconds=30, provider="kiro")
+
     def tearDown(self) -> None:
         configure_device_authorization_service(None)
 

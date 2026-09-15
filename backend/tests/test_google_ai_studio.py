@@ -137,11 +137,21 @@ class GoogleAIStudioImportArchiveTests(unittest.IsolatedAsyncioTestCase):
                 new=AsyncMock(return_value=validation),
             ) as validate_mock,
             patch(
-                "core.panel.providers.google_ai_studio._store_google_ai_studio_credential",
+                "core.panel.providers.google_ai_studio.store_imported_connection",
                 new=AsyncMock(
                     side_effect=[
-                        {"action": "created", "filename": "first.json", "label": "First"},
-                        {"action": "created", "filename": "second.json", "label": "Second"},
+                        {
+                            "status": "success",
+                            "action": "created",
+                            "filename": "first.json",
+                            "label": "First",
+                        },
+                        {
+                            "status": "success",
+                            "action": "created",
+                            "filename": "second.json",
+                            "label": "Second",
+                        },
                     ]
                 ),
             ),
@@ -153,7 +163,7 @@ class GoogleAIStudioImportArchiveTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["uploaded_count"], 2)
         self.assertEqual(payload["skipped_count"], 1)
         self.assertEqual(payload["error_count"], 0)
-        self.assertEqual(validate_mock.await_count, 2)
+        validate_mock.assert_not_awaited()
         self.assertNotIn(first_key, response_text)
         self.assertNotIn(second_key, response_text)
 

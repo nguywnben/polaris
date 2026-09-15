@@ -482,6 +482,12 @@ class CredentialManager:
 
             expiry_str = credential_data.get("expiry")
             if not expiry_str:
+                if get_credential_provider(credential_data) == "kiro" and not credential_data.get(
+                    "refresh_token"
+                ):
+                    # Access-only exports have no renewal material. Let the provider
+                    # validate the token; an expired token requires another sign-in.
+                    return False
                 log.debug("No expiration time found, refresh required")
                 return True
 
@@ -532,6 +538,12 @@ class CredentialManager:
         await self._ensure_initialized()
         try:
             provider_id = get_credential_provider(credential_data)
+            if provider_id == "kiro" and credential_data.get("credential_type") == "oauth":
+                from core.kiro_oauth import refresh_credential
+
+                refreshed_data = await refresh_credential(credential_data)
+                await self._storage_adapter.store_credential(filename, refreshed_data, mode=mode)
+                return refreshed_data
             if provider_id == XAI:
                 from core.xai import refresh_xai_oauth_credential
 

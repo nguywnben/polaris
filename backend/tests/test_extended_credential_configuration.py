@@ -213,6 +213,27 @@ class ExtendedCredentialConfigurationTests(unittest.IsolatedAsyncioTestCase):
         inference.assert_not_awaited()
         storage.update_credential_state.assert_not_awaited()
 
+    async def test_kiro_catalog_prepares_imported_refresh_token_without_exposing_it(self):
+        data = {"provider": "kiro", "credential_type": "oauth", "refresh_token": "refresh-only"}
+        storage = storage_for(data)
+        with (
+            patch.object(panel, "get_storage_adapter", AsyncMock(return_value=storage)),
+            patch.object(
+                panel.credential_manager,
+                "prepare_credential",
+                AsyncMock(return_value={**data, "access_token": "renewed"}),
+            ) as prepare,
+            patch.object(
+                panel, "discover_extended_models", AsyncMock(return_value=["model"])
+            ) as discover,
+        ):
+            result = await panel.get_credential_models(
+                "current.json", token="session", mode="provider"
+            )
+        prepare.assert_awaited_once()
+        self.assertEqual(discover.call_args.args[0]["access_token"], "renewed")
+        self.assertNotIn("renewed", result.body.decode())
+
     async def test_explicit_model_test_uses_extended_transport_and_429_is_not_success(self):
         for code in [200, 401, 429, 502]:
             with self.subTest(code=code):

@@ -369,14 +369,14 @@ for _provider_id, _provider_name in EXTENDED_PROVIDERS.items():
     _PROVIDER_CAPABILITIES[_provider_id] = ProviderCapabilities(
         provider_id=_provider_id,
         display_name=_provider_name,
-        credential_types=("api_key",),
+        credential_types=("oauth", "api_key") if _provider_id == "kiro" else ("api_key",),
         model_prefixes=(),
     )
     _CREDENTIAL_VARIANT_CAPABILITIES[_provider_id] = CredentialVariantCapabilities(
         variant_id=_provider_id,
         provider_id=_provider_id,
         display_name=_provider_name,
-        credential_type="api_key",
+        credential_type="oauth" if _provider_id == "kiro" else "api_key",
         operations=_COMMON_CREDENTIAL_OPERATIONS,
     )
 
@@ -609,6 +609,10 @@ def api_key_fingerprint(api_key: str) -> str:
 def get_static_credential_identity(credential_data: Dict[str, Any]) -> str:
     """Return a deduplication identity that does not require a network lookup."""
     provider_id = get_credential_provider(credential_data)
+    if provider_id == "kiro" and credential_data.get("credential_type") == "oauth":
+        from core.kiro_credentials import normalize_oauth
+
+        return f"kiro:{normalize_oauth(credential_data)['account_fingerprint']}"
     if provider_id == OLLAMA:
         fingerprint = str(credential_data.get("connection_fingerprint") or "").strip()
         return f"{provider_id}:{fingerprint}" if fingerprint else ""

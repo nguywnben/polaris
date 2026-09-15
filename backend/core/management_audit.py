@@ -154,6 +154,9 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/providers/openai/codex/oauth/complete"): _mutation(
         "credential.create", "credential", "created"
     ),
+    ("POST", "/api/providers/kiro/oauth/complete"): _mutation(
+        "credential.create", "credential", "created"
+    ),
     ("POST", "/api/providers/openai/credentials/import"): _mutation(
         "credential.import", "credential", "created"
     ),
@@ -221,6 +224,11 @@ MANAGEMENT_AUDIT_EXCLUSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/auth/start"): "OAuth handshake only; no durable state mutation.",
     ("POST", "/api/providers/xai/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/providers/openai/codex/oauth/start"): "OAuth handshake only.",
+    ("POST", "/api/providers/kiro/oauth/start"): "Ephemeral OAuth device handshake only.",
+    (
+        "POST",
+        "/api/providers/kiro/oauth/cancel",
+    ): "Cancels an ephemeral device grant; no stored credential is changed.",
     ("POST", "/api/providers/anthropic/claude-code/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/quality-policy/preview"): "Side-effect-free policy preview.",
     ("POST", "/api/model-routes/polaris/validate"): ("Side-effect-free model route validation."),

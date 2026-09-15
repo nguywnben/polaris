@@ -22,7 +22,7 @@ from core.coordination import (
 )
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-_FLOW_PATTERN = re.compile(r"^codex_[A-Za-z0-9_-]{43}$")
+_FLOW_PATTERN = re.compile(r"^(?:codex|kiro)_[A-Za-z0-9_-]{43}$")
 _LEASE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22}$")
 _HMAC_DOMAIN = b"polaris:device-authorization:v1\0"
 _PAYLOAD_KEY_DOMAIN = b"polaris:device-authorization-payload-key:v1\0"
@@ -216,11 +216,14 @@ class DeviceAuthorizationService:
         result = await self._coordination.read_coordination_time(epoch=self._fencing_epoch)
         return result.milliseconds
 
-    async def create(self, payload: bytes, *, ttl_seconds: int | float) -> str:
+    async def create(
+        self, payload: bytes, *, ttl_seconds: int | float, provider: str = "codex"
+    ) -> str:
         """Create an encrypted flow with an immutable absolute expiry."""
         try:
             if (
-                type(payload) is not bytes
+                provider not in {"codex", "kiro"}
+                or type(payload) is not bytes
                 or not 1 <= len(payload) <= _MAX_PAYLOAD_BYTES
                 or isinstance(ttl_seconds, bool)
                 or not isinstance(ttl_seconds, (int, float))
@@ -228,7 +231,7 @@ class DeviceAuthorizationService:
             ):
                 raise DeviceAuthorizationError
             token = self._token_factory(32)
-            flow_id = _flow_id(f"codex_{token}")
+            flow_id = _flow_id(f"{provider}_{token}")
             now_ms = await self._now_ms()
             expires_at_ms = now_ms + int(float(ttl_seconds) * 1_000)
             key = self._key(flow_id)
@@ -265,10 +268,13 @@ class DeviceAuthorizationService:
         flow_id: str,
         *,
         lease_seconds: int | float,
+        provider: str = "codex",
     ) -> DeviceAuthorizationClaim:
         """Atomically lease one flow for a bounded provider poll."""
         try:
             flow_id = _flow_id(flow_id)
+            if provider not in {"codex", "kiro"} or not flow_id.startswith(f"{provider}_"):
+                raise DeviceAuthorizationError
             if (
                 isinstance(lease_seconds, bool)
                 or not isinstance(lease_seconds, (int, float))
@@ -334,10 +340,17 @@ class DeviceAuthorizationService:
         except Exception:
             raise DeviceAuthorizationError from None
 
-    async def _finish(self, claim: DeviceAuthorizationClaim, *, consume: bool) -> None:
+    async def _finish(
+        self, claim: DeviceAuthorizationClaim, *, consume: bool, payload: bytes | None = None
+    ) -> None:
         try:
             if type(claim) is not DeviceAuthorizationClaim:
                 raise DeviceAuthorizationError
+            if payload is not None and (
+                consume or type(payload) is not bytes or not 1 <= len(payload) <= _MAX_PAYLOAD_BYTES
+            ):
+                raise DeviceAuthorizationError
+            release_payload = claim.payload if payload is None else payload
             flow_id = _flow_id(claim.flow_id)
             if (
                 not _LEASE_PATTERN.fullmatch(claim.lease_id)
@@ -379,7 +392,7 @@ class DeviceAuthorizationService:
             current = self._decrypt(key, snapshot.payload)
             if snapshot.revision == claim.revision + 1:
                 expected_status = "consumed" if consume else "ready"
-                expected_payload = b"" if consume else claim.payload
+                expected_payload = b"" if consume else release_payload
                 if (
                     current["status"] == expected_status
                     and current["lease_id"] == ""
@@ -407,7 +420,7 @@ class DeviceAuthorizationService:
                 "expires_at_ms": claim.expires_at_ms,
                 "lease_id": "",
                 "lease_until_ms": 0,
-                "payload": "" if consume else base64.b64encode(claim.payload).decode("ascii"),
+                "payload": "" if consume else base64.b64encode(release_payload).decode("ascii"),
                 "schema_version": 1,
                 "status": "consumed" if consume else "ready",
             }
@@ -431,9 +444,11 @@ class DeviceAuthorizationService:
         except Exception:
             raise DeviceAuthorizationError from None
 
-    async def release(self, claim: DeviceAuthorizationClaim) -> None:
+    async def release(
+        self, claim: DeviceAuthorizationClaim, *, payload: bytes | None = None
+    ) -> None:
         """Release a still-owned lease while retaining its absolute expiry."""
-        await self._finish(claim, consume=False)
+        await self._finish(claim, consume=False, payload=payload)
 
     async def consume(self, claim: DeviceAuthorizationClaim) -> None:
         """Consume a still-owned lease and erase its encrypted secret payload."""
