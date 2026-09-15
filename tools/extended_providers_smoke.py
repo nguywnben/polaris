@@ -178,10 +178,11 @@ def verify_kiro_device_ui(page, workspace):
         route.fulfill(status=200, content_type="application/json", body=json.dumps(result))
 
     page.route("**/api/providers/kiro/oauth/*", device_api)
+    workspace.locator("#kiroAwsLogin > summary").click()
     form = workspace.locator("#kiroOAuthForm")
     panel = form.locator("..")
     pending = panel.locator(".provider-upload-section")
-    for method in ("google", "github", "builder-id", "identity-center"):
+    for method in ("builder-id", "identity-center"):
         form.locator('[name="method"]').select_option(method)
         if method in ("builder-id", "identity-center"):
             workspace.locator(".extended-provider-advanced > summary").click()
@@ -202,9 +203,9 @@ def verify_kiro_device_ui(page, workspace):
         else:
             pending.locator('[data-i18n="btn_cancel"]').click()
         expect(pending).to_be_hidden()
-    assert [action for action, _ in calls].count("start") == 4
+    assert [action for action, _ in calls].count("start") == 2
     assert [action for action, _ in calls].count("complete") == 1
-    form.locator('[name="method"]').select_option("google")
+    form.locator('[name="method"]').select_option("builder-id")
     page.unroute("**/api/providers/kiro/oauth/*", device_api)
 
 
@@ -317,7 +318,7 @@ def main():
             expect(workspace.locator(".provider-tools-grid > *")).to_have_count(2)
             form = workspace.locator(f"#extended-{provider}-credential-form")
             if provider == "kiro":
-                expect(workspace.locator("#kiroOAuthForm")).to_be_visible()
+                expect(workspace.locator("#kiroBrowserForm")).to_be_visible()
                 verify_kiro_device_ui(page, workspace)
                 workspace.locator("summary", has_text="API Key").click()
             expect(workspace.locator('[data-i18n="provider.ext.open_pool"]')).to_have_count(0)

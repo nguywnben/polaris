@@ -106,6 +106,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/activity.js",
     "js/features/extended-provider-import.js",
     "js/features/kiro-authentication.js",
+    "js/features/kiro-browser-login.js",
     "js/features/extended-providers.js",
     "js/features/provider-catalog-layout.js",
     "js/features/navigation.js",
@@ -287,6 +288,15 @@ def _oauth_callback_page(
 @router.get("/callback", response_class=HTMLResponse, include_in_schema=False)
 async def serve_oauth_callback(request: Request):
     """Render the OAuth callback result page."""
+    if request.query_params.get("kiro") in {"received", "failed"}:
+        received = request.query_params["kiro"] == "received"
+        return _oauth_callback_page(
+            received,
+            "Kiro",
+            translate("oauth.callback_received")
+            if received
+            else translate("oauth.retry", provider="Kiro"),
+        )
     code = request.query_params.get("code")
     state = request.query_params.get("state")
     error = request.query_params.get("error")

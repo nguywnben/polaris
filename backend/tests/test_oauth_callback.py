@@ -36,7 +36,11 @@ def _callback_request(**query: str) -> Request:
 
 class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
     def test_navigation_labels_cover_every_locale(self):
-        for key in ("oauth.return_providers", "oauth.open_providers_new_tab"):
+        for key in (
+            "oauth.return_providers",
+            "oauth.open_providers_new_tab",
+            "oauth.callback_received",
+        ):
             self.assertEqual(set(MESSAGES[key]), set(SUPPORTED_LOCALES))
             self.assertTrue(all(MESSAGES[key].values()))
 

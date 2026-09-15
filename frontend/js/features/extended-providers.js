@@ -205,8 +205,16 @@ function buildExtendedProviderWorkspaces() {
             keySettings.append(keyLegend);
             while (advanced.children.length > 1) keySettings.append(advanced.children[1]);
             const oauth = buildKiroOAuthPanel(advanced);
+            const aws = extendedElement('details', 'tool-panel provider-secondary-disclosure');
+            aws.id = 'kiroAwsLogin';
+            const awsSummary = extendedElement('summary', 'provider-disclosure-summary');
+            awsSummary.textContent = 'AWS Builder ID / IAM Identity Center';
+            const device = buildKiroDevicePanel(advanced);
+            device.className = 'provider-aws-login';
+            device.querySelector('.card-title').remove();
+            aws.append(awsSummary, device);
             advanced.append(keySettings);
-            column.append(oauth, alternative); tools.append(column);
+            column.append(oauth, aws, alternative); tools.append(column);
         } else tools.append(panel);
         tools.append(buildExtendedProviderImport(provider));
         workspace.append(tools);

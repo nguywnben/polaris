@@ -34,11 +34,42 @@ def main():
             expect(workspace.locator(".upload-title")).to_have_text("Thả tệp khóa API vào đây")
             assert workspace.locator(".provider-import-panel > .page-actions").count() == 0
         if "--quick" not in sys.argv:
+            verify_kiro_browser(page)
             verify_kiro(page)
             verify_layout(page)
+        verify_kiro_routes(page)
         assert not errors, errors
         browser.close()
     print("Provider workspace consistency passed.")
+
+
+def verify_kiro_routes(page):
+    """Real local routing/auth/CSRF and callback capture, without vendor calls."""
+
+    def request(action, payload):
+        return page.evaluate(
+            """async ({action, payload}) => {
+            const response = await fetch(`/api/providers/kiro/browser/${action}`, {
+                method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
+            });
+            return {status: response.status, body: await response.json()};
+        }""",
+            {"action": action, "payload": payload},
+        )
+
+    origin = page.evaluate("location.origin")
+    started = request("start", {"callback_origin": origin})
+    assert started["status"] == 200, started
+    flow = started["body"]["flow_id"]
+    assert request("complete", {"flow_id": flow})["body"]["status"] == "pending"
+    callback = page.context.new_page()
+    callback.goto(origin + f"/oauth/callback?state={flow}&code=synthetic&login_option=google")
+    expect(callback).to_have_url(origin + "/callback?kiro=received")
+    expect(callback.locator(".login-copy")).to_contain_text("tab Polaris")
+    assert "synthetic" not in callback.content()
+    callback.close()
+    assert request("cancel", {"flow_id": flow})["status"] == 200
+    assert request("complete", {"flow_id": flow})["status"] == 409
 
 
 def verify_kiro(page):
@@ -64,9 +95,10 @@ def verify_kiro(page):
     page.locator("#providerCatalogSearch").fill("kiro")
     page.locator("#providerSelector-kiro").click()
     workspace = page.locator("#providerWorkspace-kiro")
+    workspace.locator("#kiroAwsLogin > summary").click()
     form = workspace.locator("#kiroOAuthForm")
     form.locator('[type="submit"]').click()
-    pending = workspace.locator(".provider-device-flow")
+    pending = workspace.locator("#kiroAwsLogin .provider-device-flow")
     expect(pending).to_be_visible()
     expect(form).to_be_hidden()
     expect(pending.locator(".provider-device-code")).to_have_text("TEST-CODE")
@@ -101,6 +133,87 @@ def verify_kiro(page):
     page.set_viewport_size({"width": 1440, "height": 1000})
     workspace.screenshot(path=str(shots / "kiro-settings-1440-dark.png"))
     workspace.locator(".extended-provider-advanced > summary").click()
+    workspace.locator("#kiroAwsLogin > summary").click()
+
+
+def verify_kiro_browser(page):
+    calls = []
+    state = {"accepted": False, "invalid": True}
+
+    def respond(route):
+        action = route.request.url.rsplit("/", 1)[-1]
+        calls.append(action)
+        payload = {"status": "cancelled"}
+        status = 200
+        if action == "start":
+            payload = {
+                "flow_id": "synthetic",
+                "expires_in": 600,
+                "authorization_url": "https://app.kiro.dev/signin?state=synthetic",
+            }
+        elif action == "complete":
+            payload = (
+                {"status": "complete", "credential_saved": True}
+                if state["accepted"]
+                else {"status": "pending"}
+            )
+        elif action == "callback":
+            if state["invalid"]:
+                status = 400
+            else:
+                state["accepted"] = True
+            payload = {"status": "received"}
+        route.fulfill(status=status, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/providers/kiro/browser/*", respond)
+    # Simulate a blocked popup: the visible sign-in link must still work.
+    page.evaluate("window.open = () => null")
+    page.locator("#providerCatalogSearch").fill("kiro")
+    page.locator("#providerSelector-kiro").click()
+    workspace = page.locator("#providerWorkspace-kiro")
+    form = workspace.locator("#kiroBrowserForm")
+    pending = workspace.locator(".provider-browser-pending")
+    expect(workspace.locator("#kiroOAuthForm")).to_be_hidden()
+    form.locator("button").click()
+    expect(pending).to_be_visible()
+    expect(pending).to_be_focused()
+    expect(pending.locator("a")).to_have_attribute(
+        "href", "https://app.kiro.dev/signin?state=synthetic"
+    )
+    expect(pending.locator(".provider-device-code")).to_have_count(0)
+    expect(pending.locator('[data-i18n="runtime.check_authorization"]')).to_have_count(0)
+    pending.locator("summary").click()
+    callback = pending.locator('input[name="callback_url"]')
+    callback.fill("http://localhost:4283/oauth/callback?code=test&state=synthetic")
+    pending.locator('button[type="submit"]').click()
+    expect(callback).to_have_value("http://localhost:4283/oauth/callback?code=test&state=synthetic")
+    expect(pending.locator('button[type="submit"]')).to_be_enabled()
+    shots = ROOT / "temp" / "provider-workspace-consistency"
+    shots.mkdir(parents=True, exist_ok=True)
+    for width, theme in (
+        (1440, "light"),
+        (1024, "dark"),
+        (768, "light"),
+        (360, "dark"),
+        (320, "dark"),
+    ):
+        page.set_viewport_size({"width": width, "height": 1000})
+        page.evaluate("theme => PolarisTheme.setPreference(theme)", theme)
+        expect(page.locator("html")).not_to_have_class("theme-switching")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        workspace.screenshot(path=str(shots / f"kiro-browser-{width}-{theme}.png"))
+    state["invalid"] = False
+    pending.locator('button[type="submit"]').click()
+    expect(pending).to_be_hidden(timeout=10000)
+    expect(callback).to_have_value("")
+    assert "complete" in calls and calls.count("callback") == 2
+    state["accepted"] = False
+    form.locator("button").click()
+    expect(pending).to_be_visible()
+    pending.locator('[data-i18n="btn_cancel"]').click()
+    expect(pending).to_be_hidden()
+    assert calls[-1] == "cancel"
+    page.unroute("**/api/providers/kiro/browser/*", respond)
 
 
 def verify_layout(page):

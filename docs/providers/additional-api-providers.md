@@ -16,7 +16,7 @@ single-column screens each card grows naturally with its own content.
 | --- | --- | --- |
 | [Meta Model API](meta-model-api.md) | Model API key | Official Meta API endpoint |
 | Kimi API Platform | Moonshot API key | Official Moonshot API endpoint |
-| Kiro | Kiro API key | Runtime region; optional profile ARN |
+| Kiro | Browser OAuth (Google/GitHub); AWS device login; optional API key | Per-method runtime region; AWS token region/start URL; API-key profile ARN |
 | Cloudflare Workers AI | API token and Account ID | Cloudflare management API root |
 | NVIDIA NIM | NVIDIA API key | Hosted NVIDIA inference endpoint |
 | OpenCode | API key and explicit Zen/Go plan | Plan-specific OpenCode endpoint |

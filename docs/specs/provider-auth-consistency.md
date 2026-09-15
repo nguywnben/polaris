@@ -57,8 +57,24 @@ expiry invalidate outstanding grants locally; transient upstream errors must rem
 
 ## User workflow and evidence boundaries
 
-Kiro: choose Google, GitHub, AWS Builder ID or IAM Identity Center; generate a device code,
-open the displayed vendor link yourself, approve there, then check authorization in Polaris.
+Kiro defaults to the cockpit-tools portal/PKCE flow: open the sign-in portal, choose Google
+or GitHub, then return to Polaris. A localhost callback captures the code; authenticated
+polling completes and saves the account automatically. The fallback disclosure accepts the
+full callback URL, checks its origin/path/state, and never fetches it. The code/verifier and
+tokens stay in the encrypted, expiring server-side flow store; only the initiating session
+can complete or cancel the flow. Callback parameters are removed by a fixed, no-store redirect.
+
+When Polaris is opened via localhost (including Docker on the same machine), its existing
+HTTP port receives the callback; no extra port is opened. For a remote instance, Kiro returns
+to localhost:4283 on the browser's machine: copy that complete URL from the sign-in tab and
+paste it in Polaris, even if localhost shows a connection error. Custom local TLS must be
+trusted by the browser. Reverse proxies must preserve the callback scheme and host, must not
+rewrite its path, and should omit callback query strings from access logs.
+
+The reference portal flow does not return a usable authorization code for every AWS method.
+AWS Builder ID and IAM Identity Center therefore retain the device-code flow in a separate,
+collapsed section: generate a device code, open the vendor link, approve access, then check
+authorization in Polaris. The existing device API remains available for compatibility.
 Identity Center requires the organization's AWS start URL and token region. No login page is
 embedded and no token or dynamic client secret is returned to the browser. API keys remain in
 a secondary disclosure, including their own runtime region/profile settings. Supported paid
@@ -71,6 +87,9 @@ Provider-specific connection settings remain in Providers or the corresponding c
 
 References: `https://kiro.dev/docs/getting-started/authentication/`; local OmniRoute 3.8.49,
 9router 0.5.35 and cockpit-tools under `C:/Users/nben6/Downloads/repo`.
+Portal protocol details follow `cockpit-tools/crates/cockpit-core/src/modules/kiro_oauth.rs`
+(`build_portal_auth_url`, callback parsing and `complete_login`). The public sign-in portal
+allows localhost return origins; the PKCE exchange targets Kiro's fixed desktop auth endpoint.
 Direct Kiro HTTP compatibility is based on reference implementations, not a guarantee of a
 documented public HTTP API. Live OAuth and inference were not exercised with a user's account.
 
@@ -87,3 +106,11 @@ JavaScript/YAML/shell syntax and whitespace. All four locale audits passed, incl
 across 15 locales. Browser smoke passed with no page errors. Screenshots were inspected at desktop
 dark and mobile light sizes. The UI reuses existing Impeccable-aligned spacing, disclosures and tokens.
 Self-review was used as explicitly requested; no subagent or cross-model review was performed.
+
+Portal-flow follow-up (2026-09-15): focused checks cover PKCE hashing, callback origin/path/state,
+session binding, replay, cancellation, expiry, busy claims, code-exchange failure, storage retries,
+public redirects and successful-save-only auditing. Browser tests cover automatic completion,
+popup blocking, retained invalid callback input, manual fallback, cancellation, real local
+authenticated endpoints and callback landing, plus light/dark layouts at 320–1440 px. All 15
+languages have the new instructions. The existing provider/import browser suite also passes.
+These checks use synthetic grants; live vendor login and inference still require an actual account.

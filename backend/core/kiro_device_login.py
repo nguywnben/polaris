@@ -182,7 +182,9 @@ async def _claim(token: str, flow_id: str):
     except DeviceAuthorizationError:
         raise KiroError(_INVALID_FLOW, 409) from None
     state = json.loads(claim.payload)
-    if not hmac.compare_digest(state.get("owner", ""), _owner(token)):
+    if state.get("kind") == "browser" or not hmac.compare_digest(
+        state.get("owner", ""), _owner(token)
+    ):
         await service.release(claim)
         raise KiroError(_INVALID_FLOW, 404)
     return service, claim, state

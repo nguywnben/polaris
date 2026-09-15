@@ -9,6 +9,9 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with automatic
+  callback completion and a manual callback-URL fallback for remote instances.
+  AWS device login and API keys remain separate secondary options.
 - GroqCloud, DeepSeek Platform, Mistral AI Studio and Cerebras Cloud API-key
   providers, with credential-specific endpoints, JSON/ZIP imports, chat model
   discovery, streaming/tool adapters, PNG logos and descriptions in 15 languages.

@@ -1,19 +1,19 @@
 // No access/refresh tokens enter the browser. Only a session-bound flow reference.
-function buildKiroOAuthPanel(advanced) {
+function buildKiroDevicePanel(advanced) {
     const panel = extendedElement('section', 'tool-panel');
-    const title = extendedElement('h3', 'card-title'); title.textContent = 'Kiro OAuth';
+    const title = extendedElement('h3', 'card-title'); title.textContent = 'AWS Builder ID / IAM Identity Center';
     panel.append(title, extendedElement('p', 'card-copy provider-tool-copy', 'provider.auth.login_help'));
     const form = extendedElement('form', 'extended-provider-form'); form.noValidate = true;
     form.id = 'kiroOAuthForm';
     const fields = extendedElement('div', 'extended-provider-fields');
     const method = extendedField(fields, 'kiro-oauth', 'method', 'provider.auth.method', '', {
-        value: 'google', options: ['google', 'github', 'builder-id', 'identity-center']
+        value: 'builder-id', options: ['builder-id', 'identity-center']
     });
     [...method.options].forEach(option => {
         option.textContent = {google: 'Google', github: 'GitHub', 'builder-id': 'AWS Builder ID', 'identity-center': 'IAM Identity Center'}[option.value];
     });
     const settings = extendedElement('fieldset', 'provider-auth-settings');
-    const legend = extendedElement('legend'); legend.textContent = 'Kiro OAuth';
+    const legend = extendedElement('legend'); legend.textContent = 'AWS Builder ID / IAM Identity Center';
     settings.append(legend);
     const settingFields = extendedElement('div', 'extended-provider-fields');
     settings.append(settingFields); advanced.append(settings);

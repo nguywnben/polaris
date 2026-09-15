@@ -501,6 +501,24 @@ _OAUTH_CREDENTIAL_SAVED_ROWS = {
     "vi": "Đã lưu thông tin xác thực {provider} của {account} vào kho nhà cung cấp. Bạn có thể đóng thẻ này và quay lại Polaris.",
 }
 
+MESSAGES["oauth.callback_received"] = {
+    "en": "Kiro returned its callback. Close this tab and return to the Polaris tab where you started signing in to complete the connection.",
+    "vi": "Đã nhận callback từ Kiro. Đóng tab này và quay lại tab Polaris đã dùng để bắt đầu đăng nhập để hoàn tất kết nối.",
+    "zh-CN": "已收到 Kiro 回调。请关闭此标签页，返回发起登录的 Polaris 标签页以完成连接。",
+    "zh-TW": "已收到 Kiro 回呼。請關閉此分頁，返回發起登入的 Polaris 分頁以完成連線。",
+    "de": "Der Kiro-Callback ist eingegangen. Schließen Sie diesen Tab und kehren Sie zum Polaris-Tab zurück, in dem Sie die Anmeldung gestartet haben, um die Verbindung abzuschließen.",
+    "es": "Se recibió la respuesta de Kiro. Cierra esta pestaña y vuelve a la pestaña de Polaris donde iniciaste sesión para completar la conexión.",
+    "fr": "Le retour de Kiro a été reçu. Fermez cet onglet et revenez à l’onglet Polaris où vous avez lancé la connexion pour la terminer.",
+    "id": "Callback Kiro telah diterima. Tutup tab ini dan kembali ke tab Polaris tempat Anda memulai login untuk menyelesaikan koneksi.",
+    "it": "Il callback di Kiro è stato ricevuto. Chiudi questa scheda e torna alla scheda Polaris in cui hai avviato l’accesso per completare la connessione.",
+    "ja": "Kiro からのコールバックを受信しました。このタブを閉じ、ログインを開始した Polaris のタブに戻って接続を完了してください。",
+    "ko": "Kiro 콜백을 받았습니다. 이 탭을 닫고 로그인을 시작한 Polaris 탭으로 돌아가 연결을 완료하세요.",
+    "pt": "O callback do Kiro foi recebido. Feche esta aba e volte à aba do Polaris em que iniciou o login para concluir a conexão.",
+    "ru": "Получен обратный вызов от Kiro. Закройте эту вкладку и вернитесь во вкладку Polaris, где вы начали вход, чтобы завершить подключение.",
+    "th": "ได้รับ callback จาก Kiro แล้ว ปิดแท็บนี้แล้วกลับไปที่แท็บ Polaris ที่เริ่มเข้าสู่ระบบเพื่อเชื่อมต่อให้เสร็จ",
+    "tr": "Kiro geri çağırması alındı. Bu sekmeyi kapatıp bağlantıyı tamamlamak için girişi başlattığınız Polaris sekmesine dönün.",
+}
+
 for _locale, _message in _OAUTH_CREDENTIAL_SAVED_ROWS.items():
     MESSAGES.setdefault("oauth.credential_saved", {})[_locale] = _message
 
