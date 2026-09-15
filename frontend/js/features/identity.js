@@ -18,6 +18,13 @@ function identitySetBusy(elementId, busy) {
     document.getElementById(elementId)?.setAttribute('aria-busy', String(Boolean(busy)));
 }
 
+function identitySetRefreshBusy(busy) {
+    const button = document.getElementById('identityRefreshButton');
+    if (!button) return;
+    button.disabled = busy;
+    button.setAttribute('aria-busy', String(busy));
+}
+
 function identityFocus(selector, fallbackId) {
     const target = document.querySelector(selector) || document.getElementById(fallbackId);
     if (!(target instanceof HTMLElement)) return;
@@ -35,6 +42,7 @@ function resetIdentityConsoleState() {
     if (createDialog?.open) createDialog.close();
     if (confirmResolver) confirmResolver(false);
     identityResetState();
+    identitySetRefreshBusy(false);
     if (AppState.tabLoadTimes) delete AppState.tabLoadTimes.identity;
     for (const elementId of (
         ['identityPrincipalSummary', 'identityOidcSummary', 'identityRecoverySummary',
@@ -433,6 +441,7 @@ async function loadIdentityPage({
         identitySetStatus(
             'identityListStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
+        return false;
     }
 }
 
@@ -469,6 +478,7 @@ async function loadIdentitySessions({
         identitySetStatus(
             'identitySessionStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
+        return false;
     }
 }
 
@@ -491,6 +501,8 @@ async function loadIdentityOidc({
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
         IdentityConsoleState.oidcPolicy = null;
+        renderIdentityOidc();
+        return false;
     }
     renderIdentityOidc();
 }
@@ -512,6 +524,8 @@ async function loadIdentityRecovery({
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
         IdentityConsoleState.recovery = null;
+        renderIdentityRecovery();
+        return false;
     }
     renderIdentityRecovery();
 }
@@ -523,7 +537,8 @@ async function loadIdentityConsole({ announce = false } = {}) {
     IdentityConsoleState.controller = new AbortController();
     const controller = IdentityConsoleState.controller;
     const generation = ++IdentityConsoleState.generation;
-    identitySetStatus('identityPageStatus', t('identity.loading'));
+    identitySetRefreshBusy(true);
+    identitySetStatus('identityPageStatus', announce ? '' : t('identity.loading'));
     try {
         const current = await identityApi('/session', {
             signal: controller.signal
@@ -532,7 +547,7 @@ async function loadIdentityConsole({ announce = false } = {}) {
         IdentityConsoleState.principal = identityValidatePrincipal(current);
         IdentityConsoleState.permissions = new Set(IdentityConsoleState.principal.permissions);
         renderIdentityPrincipal();
-        await Promise.all([
+        const results = await Promise.all([
             loadIdentityPage({ signal: controller.signal, generation }),
             loadIdentitySessions({ signal: controller.signal, generation }),
             loadIdentityOidc({ signal: controller.signal, generation }),
@@ -540,9 +555,12 @@ async function loadIdentityConsole({ announce = false } = {}) {
         ]);
         if (!identityLoadIsCurrent(generation, controller.signal)) return;
         IdentityConsoleState.loaded = true;
-        identitySetStatus(
-            'identityPageStatus', announce ? t('identity.refreshed') : '', announce ? 'success' : ''
-        );
+        identitySetStatus('identityPageStatus');
+        if (announce) {
+            const failed = results.includes(false);
+            showStatus(t(failed ? 'identity.request_failed' : 'identity.refreshed'),
+                failed ? 'error' : 'success');
+        }
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, controller.signal)) {
             return;
@@ -555,12 +573,17 @@ async function loadIdentityConsole({ announce = false } = {}) {
         renderIdentityRecovery();
         renderIdentityList();
         renderIdentitySessions();
-        identitySetStatus(
-            'identityPageStatus', identityErrorMessage(error, 'identity.load_failed'), 'error'
-        );
+        const message = identityErrorMessage(error, 'identity.load_failed');
+        if (announce) {
+            identitySetStatus('identityPageStatus');
+            showStatus(message, 'error');
+        } else {
+            identitySetStatus('identityPageStatus', message, 'error');
+        }
     } finally {
         if (generation === IdentityConsoleState.generation) {
             IdentityConsoleState.loading = false;
+            identitySetRefreshBusy(false);
         }
     }
 }

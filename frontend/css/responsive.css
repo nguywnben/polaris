@@ -51,6 +51,10 @@
 }
 
 @media (max-width: 960px) {
+    :root {
+        --page-action-height: 44px;
+    }
+
     /* The drawer breakpoint is also the shared phone/tablet control size. */
     .btn,
     .batch-btn,

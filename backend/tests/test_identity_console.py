@@ -53,6 +53,13 @@ class IdentityConsoleContractTests(unittest.TestCase):
     changePage: changeIdentityPage,
     changeSessionPage: changeIdentitySessionPage,
     loadPage: loadIdentityPage,
+    loadConsole: loadIdentityConsole,
+    stubConsoleViews() {
+        renderIdentityPrincipal = renderIdentityOidc = renderIdentityRecovery =
+            renderIdentityList = renderIdentitySessions = () => {};
+        loadIdentityPage = loadIdentitySessions = loadIdentityOidc =
+            loadIdentityRecovery = async () => true;
+    },
     initBindings: initIdentityBindings,
     setApi(fn) { identityApi = fn; },
     setConfirm(fn) { showIdentityConfirmation = fn; },
@@ -149,6 +156,45 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+    def test_refresh_uses_toasts_without_inline_success_or_focus_changes(self):
+        self._run_identity_contract(
+            """
+const status = new HTMLElement();
+const button = new HTMLElement('button');
+global.__elements.set('identityPageStatus', status);
+global.__elements.set('identityRefreshButton', button);
+const notices = [];
+global.showStatus = (message, type) => notices.push({ message, type });
+contract.stubConsoleViews();
+contract.setApi(async () => ({ principal: { permissions: [] } }));
+await contract.loadConsole();
+assert(notices.length === 0, 'initial load must remain quiet');
+await contract.loadConsole({ announce: true });
+assert(notices.at(-1).message === 'identity.refreshed', 'refresh needs success toast');
+assert(status.textContent === '', 'refresh must not insert raw inline feedback');
+assert(!button.disabled && !button.focused, 'refresh must restore button without moving focus');
+contract.setLoadSessions(async () => false);
+await contract.loadConsole({ announce: true });
+assert(notices.at(-1).type === 'error', 'partial failure must not announce success');
+contract.setApi(async () => { throw new Error('unavailable'); });
+await contract.loadConsole({ announce: true });
+assert(notices.at(-1).message === 'identity.load_failed', 'failure needs error toast');
+assert(status.textContent === '', 'manual failure must not insert page feedback');
+let finish;
+contract.setApi(() => new Promise(resolve => { finish = resolve; }));
+const pending = contract.loadConsole({ announce: true });
+assert(button.disabled && button.getAttribute('aria-busy') === 'true', 'refresh lacks busy state');
+await contract.loadConsole({ announce: true });
+const beforeReset = notices.length;
+contract.reset();
+finish({ principal: { permissions: [] } });
+await pending;
+assert(notices.length === beforeReset, 'cancelled refresh emitted stale toast');
+assert(!button.disabled, 'reset left refresh disabled');
+""",
+            include_feature=True,
+        )
 
     def test_permissions_are_individual_items_and_local_owner_is_read_only(self):
         self._run_identity_contract(

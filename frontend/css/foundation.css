@@ -36,6 +36,7 @@
     --overlay: rgba(0, 0, 0, 0.28);
     --sidebar-width: 248px;
     --radius: 8px;
+    --page-action-height: 34px;
     --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.08);
 }
 

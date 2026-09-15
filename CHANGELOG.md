@@ -19,6 +19,9 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Page-header actions share a consistent height and concise contextual labels.
+  Identity refresh reports success or failure through toasts, without inline
+  success messages or moving focus into fields; partial failures are not reported as success.
 - Provider settings now have one owner: Code Assist and shared Google endpoints are in
   Providers; routing-wide stream conversion and retry credential switching are in Settings.
   Claude and xAI shared fields have a single editor, and Grok's OAuth inference endpoint
