@@ -182,21 +182,26 @@ def _is_symlink(entry: zipfile.ZipInfo) -> bool:
     return stat.S_ISLNK((entry.external_attr >> 16) & 0xFFFF)
 
 
-def _parse_archive_payload(content: bytes, source_name: str) -> Dict[str, Any]:
+def _parse_archive_payload(
+    content: bytes, source_name: str, *, variant: str | None = None
+) -> Dict[str, Any]:
     try:
         payload = json.loads(content.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise PoolImportError(f"{source_name} is not valid UTF-8 JSON.") from exc
     if not isinstance(payload, dict):
         raise PoolImportError(f"{source_name} must contain one credential object.")
     try:
-        return normalize_provider_import(payload)
+        return normalize_provider_import(payload, variant)
     except ValueError as exc:
         raise PoolImportError(f"{source_name}: {exc}") from exc
 
 
 async def extract_pool_archive(
     upload: UploadFile,
+    *,
+    variant: str | None = None,
+    budget: dict[str, int] | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
     """Read a bounded ZIP archive in memory and classify each credential."""
     upload_name = PurePosixPath(
@@ -231,6 +236,10 @@ async def extract_pool_archive(
             )
         if sum(entry.file_size for entry in json_entries) > MAX_POOL_UNCOMPRESSED_BYTES:
             raise PoolImportError("Pool archive exceeds the 25 MB uncompressed limit.")
+        if budget is not None:
+            reserve_import_budget(
+                budget, len(entries), sum(entry.file_size for entry in json_entries)
+            )
 
         for entry in json_entries:
             source_name = entry.filename.replace("\\", "/")
@@ -249,7 +258,7 @@ async def extract_pool_archive(
                 if len(entry_content) > MAX_POOL_ENTRY_BYTES:
                     raise PoolImportError("Credential file exceeds the 2 MB entry limit.")
 
-                payload = _parse_archive_payload(entry_content, source_name)
+                payload = _parse_archive_payload(entry_content, source_name, variant=variant)
                 provider_id = classify_pool_credential(payload)
                 candidates.append(
                     {
@@ -269,6 +278,18 @@ async def extract_pool_archive(
                 )
 
     return candidates, errors
+
+
+def reserve_import_budget(budget: dict[str, int], entries: int, size: int) -> None:
+    """Enforce the existing archive limits across an entire multipart batch."""
+    budget["entries"] += entries
+    budget["bytes"] += size
+    if budget["entries"] > MAX_POOL_ARCHIVE_ENTRIES:
+        raise PoolImportError(
+            f"Import contains more than {MAX_POOL_ARCHIVE_ENTRIES} credential files."
+        )
+    if budget["bytes"] > MAX_POOL_UNCOMPRESSED_BYTES:
+        raise PoolImportError("Import exceeds the 25 MB uncompressed limit.")
 
 
 def _empty_provider_result(
@@ -521,7 +542,7 @@ async def restore_extended_credential(candidate: Dict[str, Any]) -> Dict[str, An
             "Provider model discovery failed. Check the credential and connection settings."
         ) from None
     try:
-        stored = await store_extended_credential(payload, model_ids)
+        stored = await store_extended_credential(payload, model_ids, file_import=True)
     except Exception:
         raise PoolImportError("Provider credential could not be stored.") from None
     return {

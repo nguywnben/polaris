@@ -4,13 +4,32 @@ from typing import Literal
 
 from core.extended_provider_runtime import discover_extended_models, normalize_extended_credential
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.pool_import import PoolImportError
 from core.provider_registry import EXTENDED_PROVIDERS
+from core.provider_scoped_import import import_provider_files
 from core.provider_store import store_extended_credential
 from core.utils import verify_panel_token
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 router = APIRouter(tags=["provider-extended"])
+
+
+@router.post("/api/providers/extended/{provider_id}/credentials/import")
+async def import_extended_credentials(
+    provider_id: str,
+    files: list[UploadFile] = File(...),
+    token: str = Depends(verify_panel_token),
+):
+    if provider_id not in EXTENDED_PROVIDERS:
+        raise HTTPException(
+            status_code=404,
+            detail="This operation is not supported for the selected provider or credential type.",
+        )
+    try:
+        return JSONResponse(content=await import_provider_files(provider_id, files))
+    except PoolImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
 
 
 class ExtendedCredentialRequest(BaseModel):

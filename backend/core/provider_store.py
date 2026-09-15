@@ -17,12 +17,16 @@ from core.provider_registry import (
 )
 
 
-async def store_extended_credential(credential_data: dict, model_ids: list[str]) -> dict:
+async def store_extended_credential(
+    credential_data: dict, model_ids: list[str], *, file_import: bool = False
+) -> dict:
     """Store normalized key credentials with account/endpoint-isolated identity."""
     from core.extended_provider_runtime import normalize_extended_credential
 
     payload = normalize_extended_credential(credential_data)
     payload["model_ids"] = list(model_ids)
+    if file_import:
+        payload["validation_status"] = "unverified"
     # validation_status="unverified" is immutable file-import provenance in
     # the existing console, not an inference test result. The onboarding
     # response explicitly requires an inference test after catalog discovery.
@@ -31,7 +35,12 @@ async def store_extended_credential(credential_data: dict, model_ids: list[str])
     fingerprint = get_static_credential_identity(payload).split(":", 1)[1]
     payload["key_fingerprint"] = api_key_fingerprint(payload["api_key"])
     filename = f"{payload['provider']}-{fingerprint}.json"
-    result = await credential_manager.add_primary_credential(filename, payload)
+    if file_import:
+        result = await credential_manager.add_primary_credential(
+            filename, payload, skip_existing=True
+        )
+    else:
+        result = await credential_manager.add_primary_credential(filename, payload)
     return {
         "action": result.get("action", "created"),
         "filename": result.get("filename", filename),

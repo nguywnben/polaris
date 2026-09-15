@@ -178,6 +178,9 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/providers/extended/{provider_id}/credentials"): _mutation(
         "credential.create", "credential", "created"
     ),
+    ("POST", "/api/providers/extended/{provider_id}/credentials/import"): _mutation(
+        "credential.import", "credential", "created"
+    ),
     ("POST", "/api/providers/ollama/credentials/import"): _mutation(
         "credential.import", "credential", "created"
     ),

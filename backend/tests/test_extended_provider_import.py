@@ -173,7 +173,7 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             for provider in EXTENDED_PROVIDERS:
                 with self.subTest(provider=provider):
                     data = normalize_provider_import(credential(provider, credential_label="Work"))
-                    await store_extended_credential(data, ["gpt-5"])
+                    await store_extended_credential(data, ["gpt-5"], file_import=True)
                     stored = persist.await_args.args[1]
                     self.assertEqual(stored["validation_status"], "unverified")
                     self.assertEqual(stored["model_ids"], ["gpt-5"])

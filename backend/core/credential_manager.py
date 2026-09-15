@@ -210,9 +210,13 @@ class CredentialManager:
         log.info(f"Credential pool write result: {result.get('action')} ({result.get('filename')})")
         return result
 
-    async def add_primary_credential(self, credential_name: str, credential_data: Dict[str, Any]):
+    async def add_primary_credential(
+        self, credential_name: str, credential_data: Dict[str, Any], *, skip_existing: bool = False
+    ):
         await self._ensure_initialized()
-        result = await upsert_credential_by_email(credential_name, credential_data, mode="primary")
+        result = await upsert_credential_by_email(
+            credential_name, credential_data, mode="primary", skip_existing=skip_existing
+        )
         log.info(
             f"Provider credential pool write result: {result.get('action')} ({result.get('filename')})"
         )

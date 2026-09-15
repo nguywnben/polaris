@@ -182,6 +182,7 @@ def normalize_provider_import(data: Any, variant: str | None = None) -> dict:
         if (
             native_family
             or credential_type not in ("", "api_key")
+            or any(data.get(field) not in (None, "", "api_key") for field in ("type", "auth_kind"))
             or any(data.get(field) for names in _TOKEN_FIELDS.values() for field in names)
         ):
             raise ValueError("Import an API key credential for this provider.")
