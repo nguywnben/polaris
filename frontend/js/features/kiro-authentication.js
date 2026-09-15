@@ -1,5 +1,5 @@
 // No access/refresh tokens enter the browser. Only a session-bound flow reference.
-function buildKiroOAuthPanel() {
+function buildKiroOAuthPanel(advanced) {
     const panel = extendedElement('section', 'tool-panel');
     const title = extendedElement('h3', 'card-title'); title.textContent = 'Kiro OAuth';
     panel.append(title, extendedElement('p', 'card-copy provider-tool-copy', 'provider.auth.login_help'));
@@ -12,29 +12,46 @@ function buildKiroOAuthPanel() {
     [...method.options].forEach(option => {
         option.textContent = {google: 'Google', github: 'GitHub', 'builder-id': 'AWS Builder ID', 'identity-center': 'IAM Identity Center'}[option.value];
     });
-    extendedField(fields, 'kiro-oauth', 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
-    const tokenRegion = extendedField(fields, 'kiro-oauth', 'token_region', 'provider.auth.token_region', 'us-east-1', {value: 'us-east-1'});
+    const settings = extendedElement('fieldset', 'provider-auth-settings');
+    const legend = extendedElement('legend'); legend.textContent = 'Kiro OAuth';
+    settings.append(legend);
+    const settingFields = extendedElement('div', 'extended-provider-fields');
+    settings.append(settingFields); advanced.append(settings);
+    const region = extendedField(settingFields, 'kiro-oauth', 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
+    const tokenRegion = extendedField(settingFields, 'kiro-oauth', 'token_region', 'provider.auth.token_region', 'us-east-1', {value: 'us-east-1'});
+    settingFields.querySelectorAll('input, select').forEach(input => input.setAttribute('form', form.id));
     tokenRegion.maxLength = 32;
     const startUrl = extendedField(fields, 'kiro-oauth', 'start_url', 'provider.auth.start_url', 'https://example.awsapps.com/start', {type: 'url'});
+    let flow = null;
     const syncFields = () => {
-        tokenRegion.disabled = !['builder-id', 'identity-center'].includes(method.value);
-        tokenRegion.parentElement.classList.toggle('hidden', tokenRegion.disabled);
+        const aws = ['builder-id', 'identity-center'].includes(method.value);
+        region.disabled = Boolean(flow);
+        tokenRegion.disabled = !aws || Boolean(flow);
+        tokenRegion.parentElement.classList.toggle('hidden', !aws);
         startUrl.disabled = method.value !== 'identity-center'; startUrl.required = !startUrl.disabled;
         startUrl.parentElement.classList.toggle('hidden', startUrl.disabled);
     };
     method.addEventListener('change', syncFields); syncFields();
     const actions = extendedElement('div', 'page-actions');
-    const start = extendedElement('button', 'btn btn-small', 'runtime.get_authorization_code'); start.type = 'submit';
+    const start = extendedElement('button', 'btn', 'runtime.get_authorization_code'); start.type = 'submit';
     actions.append(start); form.append(fields, actions); panel.append(form);
-    const pending = extendedElement('div', 'provider-upload-section hidden');
-    const code = extendedElement('p', 'provider-device-code'); code.setAttribute('role', 'status');
-    const link = extendedElement('a', 'provider-site-link');
+    const pending = extendedElement('section', 'provider-upload-section provider-device-flow hidden');
+    pending.tabIndex = -1;
+    const codeLabel = extendedElement('h4', '', 'provider.ui.device_code'); codeLabel.id = 'kiroDeviceCodeLabel';
+    pending.setAttribute('aria-labelledby', codeLabel.id);
+    const code = extendedElement('strong', 'provider-device-code');
+    const codeRow = extendedElement('div', 'provider-device-code-row');
+    const copy = extendedElement('button', 'btn btn-secondary', 'provider.ui.copy_code'); copy.type = 'button';
+    copy.addEventListener('click', () => { if (flow) void copyTextWithStatus(code.textContent); });
+    codeRow.append(code, copy);
+    const status = extendedElement('p', 'card-copy'); status.setAttribute('role', 'status');
+    const expiry = extendedElement('p', 'card-copy provider-device-expiry');
+    const link = extendedElement('a', 'btn', 'provider.ui.open_login');
     link.target = '_blank'; link.rel = 'noopener noreferrer';
-    const check = extendedElement('button', 'btn btn-small', 'runtime.check_authorization'); check.type = 'button';
-    const cancel = extendedElement('button', 'btn btn-secondary btn-small', 'cancel'); cancel.type = 'button';
+    const check = extendedElement('button', 'btn btn-secondary', 'runtime.check_authorization'); check.type = 'button';
+    const cancel = extendedElement('button', 'btn btn-secondary', 'btn_cancel'); cancel.type = 'button';
     const pendingActions = extendedElement('div', 'page-actions'); pendingActions.append(link, check, cancel);
-    pending.append(code, pendingActions); panel.append(pending);
-    let flow = null;
+    pending.append(codeLabel, codeRow, status, expiry, pendingActions); panel.append(pending);
     let busy = false;
     let waitUntil = 0;
     let expiresAt = 0;
@@ -48,11 +65,13 @@ function buildKiroOAuthPanel() {
     }
     function finish() {
         flow = null; pending.classList.add('hidden'); code.textContent = ''; link.removeAttribute('href');
+        form.classList.remove('hidden');
     }
     async function run(operation, button = check, busyKey = 'runtime.validating') {
         if (busy) return;
         busy = true; panel.setAttribute('aria-busy', 'true');
-        const controls = [...panel.querySelectorAll('input, select, button')].filter(input => !input.disabled);
+        const restoreStartFocus = pending.contains(document.activeElement);
+        const controls = [...new Set([...form.elements, ...pending.querySelectorAll('button')])].filter(input => !input.disabled);
         controls.forEach(input => { input.disabled = true; });
         const label = button.textContent; button.textContent = t(busyKey);
         try { await operation(); }
@@ -61,6 +80,7 @@ function buildKiroOAuthPanel() {
             busy = false; controls.forEach(input => { input.disabled = false; });
             syncFields(); panel.removeAttribute('aria-busy');
             button.textContent = label;
+            if (!flow && restoreStartFocus) start.focus({preventScroll: true});
         }
     }
     form.addEventListener('submit', event => {
@@ -72,9 +92,13 @@ function buildKiroOAuthPanel() {
             const result = await request('start', payload);
             const url = new URL(result.verification_uri);
             if (url.protocol !== 'https:' || url.username || url.password) throw new Error('invalid-url');
-            flow = result.flow_id; link.href = url.href; link.textContent = url.origin; code.textContent = result.user_code;
+            flow = result.flow_id; link.href = url.href; code.textContent = result.user_code;
             waitUntil = Date.now() + result.interval * 1000; expiresAt = Date.now() + result.expires_in * 1000;
+            status.textContent = t('provider.authorization_pending', {provider: 'Kiro'});
+            expiry.textContent = t('provider.ui.expires_at', {time: new Date(expiresAt).toLocaleTimeString(document.documentElement.lang || 'en', {hour: '2-digit', minute: '2-digit'})});
+            form.classList.add('hidden');
             pending.classList.remove('hidden');
+            pending.focus({preventScroll: true});
             showStatus(t('provider.device_code_ready', {provider: 'Kiro'}), 'success');
         }, start, 'runtime.generating');
     });

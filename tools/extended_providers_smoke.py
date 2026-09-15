@@ -184,21 +184,23 @@ def verify_kiro_device_ui(page, workspace):
     for method in ("google", "github", "builder-id", "identity-center"):
         form.locator('[name="method"]').select_option(method)
         if method in ("builder-id", "identity-center"):
-            expect(form.locator('[name="token_region"]')).to_be_visible()
+            workspace.locator(".extended-provider-advanced > summary").click()
+            expect(workspace.locator('[name="token_region"]')).to_be_visible()
+            workspace.locator(".extended-provider-advanced > summary").click()
         else:
-            expect(form.locator('[name="token_region"]')).to_be_hidden()
+            expect(workspace.locator('[name="token_region"]')).to_be_hidden()
         if method == "identity-center":
             form.locator('[name="start_url"]').fill("https://example.awsapps.com/start")
         form.locator('[type="submit"]').click()
         expect(pending).to_be_visible()
-        expect(pending.locator('[role="status"]')).to_have_text("TEST-CODE")
+        expect(pending.locator(".provider-device-code")).to_have_text("TEST-CODE")
         expect(pending.locator("a")).to_have_attribute("target", "_blank")
         assert calls[-1][1]["method"] == method
-        expect(form.locator('[name="token_region"]')).not_to_be_focused()
+        expect(workspace.locator('[name="token_region"]')).not_to_be_focused()
         if method == "identity-center":
             pending.locator('[data-i18n="runtime.check_authorization"]').click()
         else:
-            pending.locator('[data-i18n="cancel"]').click()
+            pending.locator('[data-i18n="btn_cancel"]').click()
         expect(pending).to_be_hidden()
     assert [action for action, _ in calls].count("start") == 4
     assert [action for action, _ in calls].count("complete") == 1
@@ -272,6 +274,13 @@ def main():
             with page.expect_navigation(wait_until="networkidle"):
                 page.evaluate("locale => changeLanguage(locale)", locale)
             verify_catalog_layout(page, widths=(1440, 1201, 320))
+            # Generated forms must resolve the same copy as legacy HTML in every locale.
+            assert page.evaluate("""() => [...document.querySelectorAll(
+                '.provider-workspace [data-i18n], .provider-workspace [data-i18n-placeholder]'
+            )].every(el => {
+                const key = el.dataset.i18n || el.dataset.i18nPlaceholder;
+                return t(key) && t(key) !== key;
+            })""")
             # The privacy warning is part of every locale, not an English fallback.
             meta_notice = page.locator(
                 '#providerWorkspace-meta [data-i18n="provider.ext.meta_contributor_notice"]'

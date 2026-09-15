@@ -22,6 +22,8 @@ const referencesByFile = new Map();
 const patterns = [
     /\bt\(\s*['"]([^'"]+)['"]/g,
     /data-i18n(?:-(?:title|alt|placeholder|aria-label))?=['"]([^'"]+)['"]/g,
+    /\bextendedElement\(\s*['"][^'"]+['"]\s*,\s*['"][^'"]*['"]\s*,\s*['"]([^'"]+)['"]/g,
+    /\.dataset\.i18n(?:Placeholder|AriaLabel)?\s*=\s*['"]([^'"]+)['"]/g,
 ];
 for (const file of sources) {
     const source = fs.readFileSync(file, 'utf8');

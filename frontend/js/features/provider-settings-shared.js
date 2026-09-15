@@ -233,8 +233,10 @@ function applyProviderFormContract() {
             field.dataset.advanced = String(definition.advanced);
             field.dataset.helpKey = definition.helpKey;
             if (definition.secretLifetime === 'submit') {
-                field.dataset.i18nPlaceholder = definition.helpKey;
-                field.placeholder = t(definition.helpKey);
+                const placeholderKey = definition.helpKey === 'provider.form.api_key_help'
+                    ? 'provider.ext.key_placeholder' : definition.helpKey;
+                field.dataset.i18nPlaceholder = placeholderKey;
+                field.placeholder = t(placeholderKey);
             }
             field.removeAttribute('aria-describedby');
         });
@@ -257,8 +259,10 @@ function applyProviderFormCopy() {
         if (definition.secretLifetime !== 'submit') return;
         const field = document.getElementById(definition.id);
         if (field) {
-            field.dataset.i18nPlaceholder = definition.helpKey;
-            field.placeholder = t(definition.helpKey);
+            const placeholderKey = definition.helpKey === 'provider.form.api_key_help'
+                ? 'provider.ext.key_placeholder' : definition.helpKey;
+            field.dataset.i18nPlaceholder = placeholderKey;
+            field.placeholder = t(placeholderKey);
         }
     });
 }

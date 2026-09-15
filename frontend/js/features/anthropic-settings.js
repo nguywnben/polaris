@@ -169,7 +169,7 @@ async function addClaudePlatformCredential(event) {
         }), 'error');
     } finally {
         button.disabled = false;
-        button.textContent = t('runtime.validate_add');
+        button.textContent = t('provider.ui.add_key');
     }
 }
 

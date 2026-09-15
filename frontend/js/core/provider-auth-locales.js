@@ -17,9 +17,30 @@ const PROVIDER_AUTH_COPY = {
     th: ['เข้าสู่ระบบ Kiro ด้วย OAuth หรือใช้คีย์ API จากบัญชี Kiro ของคุณ', 'การเชื่อมต่อ API ของ Kiro โดยตรงอิงตามการใช้งานอ้างอิงและอาจเปลี่ยนแปลงตามบริการต้นทาง', 'วิธีเข้าสู่ระบบ', 'ภูมิภาคที่ใช้เข้าสู่ระบบ AWS', 'URL เริ่มต้นของ IAM Identity Center', 'คุณสามารถสร้างคีย์ในเมนู API Keys ของบัญชี Kiro ได้เช่นกัน โดยต้องใช้แผนแบบชำระเงินที่รองรับ', 'สร้างรหัสอุปกรณ์ เปิดหน้าเข้าสู่ระบบ อนุญาตการเข้าถึง แล้วตรวจสอบการอนุญาตที่นี่', 'นำเข้าข้อมูลรับรองจาก JSON หรือ ZIP การนำเข้าไม่ตรวจสอบสิทธิ์การเข้าถึง โปรดตรวจสอบข้อมูลรับรองและทดสอบโมเดลในคลัง', 'โหลดรายการโมเดลและบันทึกข้อมูลรับรอง ยังต้องทดสอบโมเดลเพื่อยืนยันสิทธิ์การอนุมาน', 'โทเค็น API', 'วางโทเค็น API ของคุณ', 'เข้าสู่ระบบ Kiro ไม่สำเร็จ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง หรือเริ่มเข้าสู่ระบบใหม่'],
     tr: ['Kiro’ya OAuth ile giriş yapın veya Kiro hesabınızın API anahtarını kullanın.', 'Doğrudan Kiro API uyumluluğu referans uygulamayı temel alır ve üst hizmetle birlikte değişebilir.', 'Giriş yöntemi', 'AWS giriş bölgesi', 'IAM Identity Center başlangıç URL’si', 'Kiro hesabınızdaki API Keys bölümünde de anahtar oluşturabilirsiniz. Desteklenen ücretli bir plan gerekir.', 'Cihaz kodu oluşturun, giriş sayfasını açıp erişime izin verin ve yetkilendirmeyi burada kontrol edin.', 'JSON veya ZIP kimlik bilgilerini içe aktarın. İçe aktarma erişimi doğrulamaz; havuzda kimlik bilgilerini doğrulayın ve bir modeli test edin.', 'Model kataloğunu yükleyip kimlik bilgilerini kaydedin. Çıkarım erişimini doğrulamak için model testi yine de gereklidir.', 'API belirteci', 'API belirtecinizi yapıştırın', 'Kiro girişi tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin veya yeni bir giriş başlatın.']
 };
+// One interaction vocabulary for all provider workspaces; no claim of inference validation.
+const PROVIDER_UI_KEYS = ['add_key', 'key_intro', 'get_link', 'device_code', 'open_login', 'expires_at', 'copy_code'];
+const PROVIDER_UI_COPY = {
+    en: ['Add key', 'Add your API key to the credential pool. Then test a model in the pool to confirm access.', 'Get sign-in link', 'Device code', 'Open sign-in page', 'Expires at {time}', 'Copy code'],
+    vi: ['Thêm khóa', 'Thêm khóa API vào kho thông tin xác thực. Sau đó kiểm tra một mô hình trong kho để xác nhận quyền truy cập.', 'Lấy liên kết đăng nhập', 'Mã thiết bị', 'Mở trang đăng nhập', 'Hết hạn lúc {time}', 'Sao chép mã'],
+    'zh-CN': ['添加密钥', '将 API 密钥添加到凭据池，然后在池中测试一个模型以确认访问权限。', '获取登录链接', '设备代码', '打开登录页面', '到期时间：{time}', '复制代码'],
+    'zh-TW': ['新增金鑰', '將 API 金鑰新增至憑證集區，再於集區中測試一個模型以確認存取權限。', '取得登入連結', '裝置代碼', '開啟登入頁面', '到期時間：{time}', '複製代碼'],
+    de: ['Schlüssel hinzufügen', 'Fügen Sie den API-Schlüssel zum Zugangsdatenpool hinzu. Testen Sie anschließend dort ein Modell, um den Zugriff zu bestätigen.', 'Anmeldelink abrufen', 'Gerätecode', 'Anmeldeseite öffnen', 'Gültig bis {time}', 'Code kopieren'],
+    es: ['Añadir clave', 'Añade tu clave API al grupo de credenciales. Después, prueba un modelo del grupo para confirmar el acceso.', 'Obtener enlace de acceso', 'Código de dispositivo', 'Abrir página de acceso', 'Caduca a las {time}', 'Copiar código'],
+    fr: ['Ajouter la clé', 'Ajoutez votre clé API au pool d’identifiants, puis testez un modèle du pool pour confirmer l’accès.', 'Obtenir le lien de connexion', 'Code de l’appareil', 'Ouvrir la page de connexion', 'Expire à {time}', 'Copier le code'],
+    id: ['Tambah kunci', 'Tambahkan kunci API ke kumpulan kredensial. Lalu uji model di kumpulan untuk memastikan akses.', 'Dapatkan tautan masuk', 'Kode perangkat', 'Buka halaman masuk', 'Kedaluwarsa pukul {time}', 'Salin kode'],
+    it: ['Aggiungi chiave', 'Aggiungi la chiave API al pool di credenziali. Poi verifica l’accesso provando un modello nel pool.', 'Ottieni link di accesso', 'Codice dispositivo', 'Apri pagina di accesso', 'Scade alle {time}', 'Copia codice'],
+    ja: ['キーを追加', 'API キーを認証情報プールに追加します。その後、プール内のモデルをテストしてアクセス権を確認してください。', 'ログインリンクを取得', 'デバイスコード', 'ログインページを開く', '有効期限：{time}', 'コードをコピー'],
+    ko: ['키 추가', 'API 키를 인증 정보 풀에 추가한 다음 풀에서 모델을 테스트하여 접근 권한을 확인하세요.', '로그인 링크 받기', '기기 코드', '로그인 페이지 열기', '만료 시간: {time}', '코드 복사'],
+    pt: ['Adicionar chave', 'Adicione sua chave de API ao pool de credenciais. Depois, teste um modelo no pool para confirmar o acesso.', 'Obter link de login', 'Código do dispositivo', 'Abrir página de login', 'Expira às {time}', 'Copiar código'],
+    ru: ['Добавить ключ', 'Добавьте API-ключ в пул учётных данных. Затем проверьте модель в пуле, чтобы подтвердить доступ.', 'Получить ссылку для входа', 'Код устройства', 'Открыть страницу входа', 'Действует до {time}', 'Копировать код'],
+    th: ['เพิ่มคีย์', 'เพิ่มคีย์ API ลงในพูลข้อมูลรับรอง จากนั้นทดสอบโมเดลในพูลเพื่อยืนยันสิทธิ์เข้าถึง', 'รับลิงก์เข้าสู่ระบบ', 'รหัสอุปกรณ์', 'เปิดหน้าเข้าสู่ระบบ', 'หมดอายุเวลา {time}', 'คัดลอกรหัส'],
+    tr: ['Anahtar ekle', 'API anahtarınızı kimlik bilgisi havuzuna ekleyin. Ardından erişimi doğrulamak için havuzdaki bir modeli test edin.', 'Giriş bağlantısı al', 'Cihaz kodu', 'Giriş sayfasını aç', 'Son geçerlilik saati: {time}', 'Kodu kopyala']
+};
 function applyProviderAuthCopy() {
 for (const [locale, values] of Object.entries(PROVIDER_AUTH_COPY)) {
     const copy = PAGE_LOCALE_TRANSLATIONS[locale];
+    PROVIDER_UI_KEYS.forEach((key, index) => { copy[`provider.ui.${key}`] = PROVIDER_UI_COPY[locale][index]; });
+    copy['runtime.get_provider_auth'] = copy['provider.ui.get_link'];
     PROVIDER_AUTH_KEYS.forEach((key, index) => { copy[`provider.auth.${key}`] = values[index]; });
     copy['provider.ext.kiro'] = values[0];
     copy['provider.ext.kiro_notice'] = values[1];

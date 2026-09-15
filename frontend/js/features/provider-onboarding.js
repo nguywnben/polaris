@@ -168,6 +168,19 @@ function createProviderDisclosure(panel, {providerId}) {
 }
 
 function enhanceProviderWorkspaces() {
+    // Apply the same affordances to legacy HTML and generated workspaces.
+    for (const id of ['xaiCredentialForm', 'googleAiStudioCredentialForm', 'openaiPlatformCredentialForm', 'claudePlatformCredentialForm']) {
+        const form = document.getElementById(id);
+        const button = form?.querySelector('[type="submit"]');
+        if (!button) continue;
+        button.dataset.i18n = 'provider.ui.add_key';
+        button.textContent = t('provider.ui.add_key');
+        const description = form.closest('.tool-panel')?.querySelector('.provider-tool-copy');
+        if (description) {
+            description.dataset.i18n = 'provider.ui.key_intro';
+            description.textContent = t('provider.ui.key_intro');
+        }
+    }
     Object.entries(PROVIDER_ONBOARDING_VARIANTS).forEach(([providerId, definition]) => {
         const workspace = document.getElementById(definition.panelId);
         const descriptionKey = document.getElementById(definition.selectorId)
@@ -180,6 +193,15 @@ function enhanceProviderWorkspaces() {
         const tools = workspace?.querySelector(':scope > .provider-tools-grid');
         const importPanel = tools?.querySelector(':scope > .tool-panel:nth-child(2)');
         presentProviderImportPanel(importPanel);
+        if (tools) {
+            tools.querySelectorAll('.upload-title').forEach(title => {
+                const key = ['google_ai_studio', 'xai_console', 'openai_platform', 'claude_platform'].includes(providerId)
+                    || (providerId !== 'kiro' && typeof EXTENDED_PROVIDER_UI !== 'undefined' && EXTENDED_PROVIDER_UI[providerId])
+                    ? 'provider.copy.drop_keys' : 'provider.copy.drop_credentials';
+                title.dataset.i18n = key;
+                title.textContent = t(key);
+            });
+        }
 
         const settingsPanel = workspace?.querySelector(
             '.provider-settings-panel, .provider-advanced-panel'

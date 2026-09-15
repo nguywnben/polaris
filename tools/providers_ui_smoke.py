@@ -78,9 +78,10 @@ def main():
                 panel = page.locator("#" + panel_id)
                 expect(panel).to_be_visible()
                 expect(page.locator("#providersTab > #providerCatalogPagination")).to_have_count(1)
-                details = panel.locator("details.provider-secondary-disclosure")
+                details = panel.locator("details.provider-advanced-panel")
                 if details.count():
-                    details.locator("summary").click()
+                    expect(details).to_have_count(1)
+                    details.locator(":scope > summary").click()
                     expect(panel.locator('[id$="SettingsForm"]').first).to_be_visible()
                 for width, theme in (
                     (320, "light"),

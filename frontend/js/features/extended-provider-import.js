@@ -69,6 +69,9 @@ function buildExtendedProviderImport(provider) {
         const link = document.createElement('a'); link.href = url; link.download = `${provider}-example.json`;
         link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
-    const templateActions = extendedElement('div', 'page-actions'); templateActions.append(template); panel.append(templateActions);
+    // Optional format help belongs with the heading, not in a second action footer.
+    const header = extendedElement('div', 'provider-import-heading');
+    header.append(panel.querySelector('.card-title'), template);
+    panel.prepend(header);
     return panel;
 }

@@ -145,7 +145,7 @@ function buildExtendedProviderWorkspaces() {
         formTitle.dataset.providerFormCopy = 'api_key_title';
         formTitle.dataset.providerName = definition.name;
         formTitle.textContent = t('provider.form.api_key_title', {provider: definition.name});
-        panel.append(formTitle, extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.add_description'));
+        panel.append(formTitle, extendedElement('p', 'card-copy provider-tool-copy', 'provider.ui.key_intro'));
         const fields = extendedElement('div', 'extended-provider-fields');
         const key = extendedField(fields, provider, 'api_key', 'api_key', '', {type: 'password', required: true});
         if (provider === 'cloudflare') {
@@ -188,7 +188,7 @@ function buildExtendedProviderWorkspaces() {
         });
         advanced.append(settings);
         const actions = extendedElement('div', 'page-actions');
-        const save = extendedElement('button', 'btn', 'runtime.save_credential'); save.type = 'submit';
+        const save = extendedElement('button', 'btn', 'provider.ui.add_key'); save.type = 'submit';
         actions.append(save); form.append(actions);
         form.addEventListener('submit', event => saveExtendedProvider(event, provider, form));
         panel.append(form);
@@ -198,12 +198,19 @@ function buildExtendedProviderWorkspaces() {
             const summary = extendedElement('summary', 'provider-disclosure-summary'); summary.textContent = 'API Key';
             const help = extendedElement('p', 'card-copy provider-tool-copy', 'provider.auth.key_help');
             const account = extendedElement('a', 'provider-site-link'); account.href = 'https://app.kiro.dev/'; account.target = '_blank'; account.rel = 'noopener noreferrer'; account.textContent = 'app.kiro.dev';
-            alternative.append(summary, help, account, form, advanced);
-            column.append(buildKiroOAuthPanel(), alternative); tools.append(column);
+            alternative.append(summary, help, account, form);
+            // OAuth and API-key settings share placement, never values or form ownership.
+            const keySettings = extendedElement('fieldset', 'provider-auth-settings');
+            const keyLegend = extendedElement('legend'); keyLegend.textContent = 'API Key';
+            keySettings.append(keyLegend);
+            while (advanced.children.length > 1) keySettings.append(advanced.children[1]);
+            const oauth = buildKiroOAuthPanel(advanced);
+            advanced.append(keySettings);
+            column.append(oauth, alternative); tools.append(column);
         } else tools.append(panel);
         tools.append(buildExtendedProviderImport(provider));
         workspace.append(tools);
-        if (provider !== 'kiro') workspace.append(advanced);
+        workspace.append(advanced);
         page.append(workspace);
     });
 }

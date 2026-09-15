@@ -24,6 +24,13 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Provider workspaces use consistent API-key actions, concise placeholders and
+  import wording across old and new integrations. JSON examples sit beside the
+  import heading instead of adding a competing action footer.
+- Kiro device authorization presents a copyable code, sign-in action, expiry and
+  localized cancellation. OAuth and API-key settings are grouped in one full-width
+  advanced section while remaining bound to their own credential forms.
+- Translation checks cover generated provider controls as well as static markup.
 - Shared Google configuration saves and resets now emit correlated, redacted
   provider audit events through the same pipeline as other provider settings.
 - Settings groups keep-alive with server connections, places inference timeout

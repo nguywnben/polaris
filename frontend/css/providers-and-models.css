@@ -10,6 +10,24 @@
 .extended-provider-fields ::placeholder { font-weight: 400; }
 .provider-tools-column { display: grid; gap: 16px; min-width: 0; }
 .provider-device-code { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.provider-device-flow { display: grid; gap: 16px; }
+.provider-device-flow > :is(h4, p) { margin: 0; }
+.provider-device-code-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--bg-subtle); border-radius: var(--radius); }
+.provider-device-code-row .provider-device-code { font-family: monospace; font-size: 24px; letter-spacing: .04em; }
+.provider-device-flow:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+.provider-auth-settings { min-width: 0; margin: 20px; padding: 0; border: 0; }
+.provider-auth-settings + .provider-auth-settings { border-top: 1px solid var(--border); padding-top: 20px; }
+.provider-auth-settings > legend { padding: 0 0 16px; font-weight: 650; }
+.provider-auth-settings > .card-copy { margin: 16px 0; }
+.provider-auth-settings .extended-provider-fields:has(> .form-group:first-child + .form-group.hidden:last-child) > .form-group:first-child { grid-column: 1 / -1; }
+.provider-auth-settings .provider-settings-header { padding: 0; margin-bottom: 16px; }
+.provider-import-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
+.provider-import-heading .card-title { margin: 0; }
+.provider-import-heading .btn { min-height: 32px; padding: 4px 0; border: 0; border-radius: 0; background: transparent; color: var(--text-muted); font-weight: 400; text-decoration: underline; text-underline-offset: 3px; }
+.provider-import-heading .btn:hover { color: var(--text); }
+#providersTab .provider-tools-grid .page-actions { gap: 8px; }
+#providersTab .provider-tools-grid .btn:not(.setup-secret-toggle) { white-space: normal; overflow-wrap: anywhere; }
+.provider-tools-column > .provider-secondary-disclosure > :is(form, p, a) { margin: 16px 20px; }
 .extended-provider-advanced > p, .extended-provider-advanced > .extended-provider-fields { margin: 16px; }
 .extended-provider-import .provider-upload-section { margin-top: 16px; }
 .extended-provider-import .page-actions { margin-top: 12px; }
