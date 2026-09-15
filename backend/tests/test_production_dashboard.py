@@ -20,6 +20,7 @@ from core.panel.usage_routes import get_usage_stats, get_usage_stats_page
 ROOT = BACKEND_DIR.parent
 DASHBOARD_FRAGMENT = ROOT / "frontend/fragments/pages/dashboard.html"
 DASHBOARD_SCRIPT = ROOT / "frontend/js/features/dashboard.js"
+USAGE_PAGINATION_SCRIPT = ROOT / "frontend/js/features/usage-pagination.js"
 DASHBOARD_STYLES = ROOT / "frontend/css/observability.css"
 NUMBER_FORMAT_SCRIPT = ROOT / "frontend/js/core/number-format.js"
 
@@ -38,7 +39,9 @@ const fs = require('fs');
 const vm = require('vm');
 const numberSource = fs.readFileSync({json.dumps(str(NUMBER_FORMAT_SCRIPT))}, 'utf8');
 const source = fs.readFileSync({json.dumps(str(DASHBOARD_SCRIPT))}, 'utf8');
+const paginationSource = fs.readFileSync({json.dumps(str(USAGE_PAGINATION_SCRIPT))}, 'utf8');
 vm.runInThisContext(numberSource);
+vm.runInThisContext(paginationSource);
 vm.runInThisContext(source + `\n;globalThis.__renderDashboardTimeline = renderTimelineChart;`);
 function assert(condition, message) {{ if (!condition) throw new Error(message); }}
 {assertions}
@@ -80,6 +83,78 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             fragment.index('id="operationalHealthCard"'), fragment.index('id="providerHealthCard"')
         )
 
+    def test_stale_dashboard_refresh_cannot_replace_metrics_or_finish_newer_refresh(self):
+        self._run_state_contract("""
+const elements = new Map(), statuses = [], secondary = [], details = [], renders = [];
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, dataset: {}, textContent: '',
+        innerHTML: '', setAttribute(name, value) {this[name] = value;}, closest() {return this;}});
+    return elements.get(id);
+}};
+globalThis.AppState = {usagePeriod: '1d', usageStatsLoaded: false};
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({});
+globalThis.clearPageState = () => {};
+globalThis.showPageState = () => statuses.push('page-error');
+globalThis.showStatus = () => statuses.push('status');
+updateUsagePeriodLabels = () => {};
+setDashboardTrafficState = () => {};
+setDashboardSummaryMetric = (id, value) => {document.getElementById(id).textContent = String(value);};
+formatUsageNumber = String;
+renderPricingSource = () => {};
+renderTokenDistribution = () => {};
+renderProviderHealthMatrix = () => renders.push('providers');
+renderUsageList = () => renders.push('usage');
+refreshOperationalHealth = async () => secondary.push('health');
+refreshRecentActivity = async () => secondary.push('activity');
+loadUsagePages = async () => {details.push(AppState.usagePeriod); return true;};
+const defer = () => {let resolve, reject; const promise = new Promise((yes, no) => {
+    resolve = yes; reject = no;
+}); return {promise, resolve, reject};};
+const response = calls => ({ok: true, json: async () => ({success: true, data: {total_calls: calls}})});
+(async () => {
+    for (const failure of [false, true]) {
+        AppState.usagePeriod = '1d';
+        const oldResponse = defer();
+        globalThis.fetch = () => oldResponse.promise;
+        const oldRefresh = refreshUsageStats();
+        AppState.usagePeriod = '7d';
+        globalThis.fetch = async () => response(70);
+        await refreshUsageStats();
+        const detailCount = details.length, secondaryCount = secondary.length;
+        const statusCount = statuses.length, renderCount = renders.length;
+        if (failure) oldResponse.reject(new Error('outdated failure'));
+        else oldResponse.resolve(response(1));
+        await oldRefresh;
+        assert(AppState.dashboardAggregate.total_calls === 70, 'Old aggregate overwrote current period');
+        assert(document.getElementById('totalApiCalls').textContent === '70', 'Old metric was rendered');
+        assert(details.length === detailCount, 'Stale aggregate started a detail query');
+        assert(secondary.length === secondaryCount, 'Stale finally launched secondary queries');
+        assert(statuses.length === statusCount, 'Stale failure displayed an error');
+        assert(renders.length === renderCount, 'Stale refresh rendered a table');
+    }
+    // The generation guard also protects overlapping refreshes of the same period.
+    const oldDetails = defer(), detailStarted = defer(), newResponse = defer();
+    loadUsagePages = async () => {detailStarted.resolve(); return oldDetails.promise;};
+    globalThis.fetch = async () => response(70);
+    const oldRefresh = refreshUsageStats({preserveContent: false});
+    await detailStarted.promise;
+    globalThis.fetch = () => newResponse.promise;
+    const newRefresh = refreshUsageStats({preserveContent: false});
+    const secondaryCount = secondary.length, renderCount = renders.length;
+    oldDetails.resolve(true);
+    await oldRefresh;
+    assert(renders.length === renderCount, 'Old detail completion rendered after a newer refresh began');
+    assert(secondary.length === secondaryCount, 'Old detail completion started secondary refresh');
+    assert(document.getElementById('dashboardStats')['aria-busy'] === 'true', 'Old finally cleared newer busy state');
+    assert(!document.getElementById('usageLoading').hidden, 'Old finally hid newer loading indicator');
+    loadUsagePages = async () => true;
+    newResponse.resolve(response(71));
+    await newRefresh;
+    assert(AppState.dashboardAggregate.total_calls === 71, 'Latest refresh did not complete');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
     def test_zero_traffic_uses_a_guided_first_run_state(self):
         fragment = self._source(DASHBOARD_FRAGMENT)
         source = self._source(DASHBOARD_SCRIPT)
@@ -91,10 +166,14 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
 
     def test_dashboard_load_has_a_fixed_request_budget_and_bounded_lists(self):
         source = self._source(DASHBOARD_SCRIPT)
+        pagination = self._source(USAGE_PAGINATION_SCRIPT)
 
-        self.assertEqual(len(re.findall(r"\bfetch\(", source)), 4)
-        self.assertIn("./api/usage/stats/page?", source)
-        self.assertIn("page_size=100", source)
+        self.assertEqual(len(re.findall(r"\bfetch\(", source)), 3)
+        self.assertEqual(len(re.findall(r"\bfetch\(", pagination)), 1)
+        self.assertIn("['current', 'historical'].map", pagination)
+        self.assertIn("./api/usage/stats/page?", pagination)
+        self.assertIn("page_size: size || 10", pagination)
+        self.assertIn("await loadUsagePages()", source)
         self.assertIn("./api/traces?page_size=5", source)
         self.assertIn("routes.slice(0, 10)", source)
         self.assertIn("traces.slice(0, DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE)", source)
@@ -151,7 +230,7 @@ globalThis.fetch = async () => ({ok: true, json: async () => ({status: 'no_data'
         )[0]
 
         aggregate_fetch = refresh_body.index("const aggregatedResponse = await fetch")
-        detail_fetch = refresh_body.index("const statsResponse = await fetch")
+        detail_fetch = refresh_body.index("await loadUsagePages()")
         self.assertLess(aggregate_fetch, detail_fetch)
         self.assertLess(detail_fetch, refresh_body.index("void refreshOperationalHealth();"))
         self.assertLess(detail_fetch, refresh_body.index("void refreshRecentActivity();"))

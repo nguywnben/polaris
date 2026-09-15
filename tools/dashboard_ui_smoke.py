@@ -1,6 +1,8 @@
 """Isolated overview states, navigation, and responsive layout with synthetic traffic."""
 
+import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from browser_smoke import PASSWORD, disposable_runtime
 from playwright.sync_api import expect, sync_playwright
@@ -14,6 +16,19 @@ def main():
         context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1000})
         context.route("https://**", lambda route: route.abort())
         state = {"mode": "empty"}
+        usage_requests = []
+        provider_totals = [
+            {
+                "provider": "openai",
+                "credential_type": "api_key",
+                "credentials": 120,
+                "calls": 120,
+                "successful_calls": 118,
+                "failed_calls": 2,
+                "total_tokens": 12000,
+                "in_cooldown": False,
+            }
+        ]
 
         def aggregate(route):
             if state["mode"] == "error":
@@ -24,16 +39,16 @@ def main():
                 json={
                     "success": True,
                     "data": {
-                        "total_upstream_attempts": 120 if busy else 0,
-                        "successful_upstream_attempts": 118 if busy else 0,
+                        "total_upstream_attempts": 132 if busy else 0,
+                        "successful_upstream_attempts": 130 if busy else 0,
                         "failed_upstream_attempts": 2 if busy else 0,
-                        "total_files": 0 if state["mode"] == "empty" else 2,
-                        "active_files": 0 if state["mode"] == "empty" else 2,
+                        "total_files": 120 if busy else (0 if state["mode"] == "empty" else 2),
+                        "active_files": 120 if busy else (0 if state["mode"] == "empty" else 2),
                         "disabled_files": 0,
                         "total_cost_usd": 0.034 if busy else 0,
-                        "total_tokens": 34000 if busy else 0,
-                        "input_tokens": 24000 if busy else 0,
-                        "output_tokens": 10000 if busy else 0,
+                        "total_tokens": 13200 if busy else 0,
+                        "input_tokens": 7920 if busy else 0,
+                        "output_tokens": 5280 if busy else 0,
                         "timeline": [
                             {
                                 "timestamp": 1789401600 + i * 3600,
@@ -77,20 +92,41 @@ def main():
             )
 
         def stats(route):
+            query = parse_qs(urlsplit(route.request.url).query)
+            group = query.get("group", ["all"])[0]
+            offset = int(query.get("offset", ["0"])[0])
+            page_size = int(query.get("page_size", ["100"])[0])
+            busy = state["mode"] == "populated"
+            rows = {}
+            for kind, count in (("current", 120), ("historical", 12)):
+                if not busy or group not in ("all", kind):
+                    continue
+                for index in range(1, count + 1):
+                    failed = kind == "current" and index > 118
+                    rows[f"{kind}-{index:03}.json"] = {
+                        "provider": "openai",
+                        "credential_type": "api_key",
+                        "credential_label": f"{kind}-{index:03}",
+                        "is_historical": kind == "historical",
+                        "calls": 1,
+                        "successful_calls": 0 if failed else 1,
+                        "failed_calls": 1 if failed else 0,
+                        "total_tokens": 100,
+                        "input_tokens": 60,
+                        "output_tokens": 40,
+                    }
+            usage_requests.append({"group": group, "offset": offset, "page_size": page_size})
             route.fulfill(
                 json={
                     "success": True,
-                    "data": {
-                        "sample.json": {
-                            "provider": "openai",
-                            "calls": 120,
-                            "successful_calls": 118,
-                            "failed_calls": 2,
-                            "total_tokens": 34000,
-                        }
-                    }
-                    if state["mode"] == "populated"
-                    else {},
+                    "period": {"value": query.get("period", ["1d"])[0]},
+                    "data": dict(sorted(rows.items())[offset : offset + page_size]),
+                    "group": group,
+                    "offset": offset,
+                    "page_size": page_size,
+                    "total_items": len(rows),
+                    "has_more": offset + page_size < len(rows),
+                    "provider_totals": provider_totals if busy else [],
                 }
             )
 
@@ -152,6 +188,33 @@ def main():
                         page.locator("#recentActivityList .dashboard-activity-item")
                     ).to_have_count(1)
                     expect(page.locator("#trafficChartCard")).to_be_visible()
+                    expect(page.locator("#usageList tr")).to_have_count(10)
+                    expect(page.locator("#historicalUsageList tr")).to_have_count(10)
+                    summary = page.locator("#usageProviderSummary")
+                    expect(summary.locator(".usage-provider-metrics dd").first).to_have_text("120")
+                    full_summary = summary.inner_text()
+                    for page_number in range(2, 12):
+                        page.locator("#usageNextPageBtn").click()
+                        expect(
+                            page.locator("#usageList .usage-credential-name").first
+                        ).to_have_text(f"current-{(page_number - 1) * 10 + 1:03}")
+                        expect(summary).to_have_text(full_summary, use_inner_text=True)
+                    expect(page.locator("#usageList .usage-credential-name").first).to_have_text(
+                        "current-101"
+                    )
+                    page.locator("#historicalUsageNextPageBtn").click()
+                    expect(page.locator("#historicalUsageList tr")).to_have_count(2)
+                    expect(
+                        page.locator("#historicalUsageList .usage-credential-name").first
+                    ).to_have_text("historical-011")
+                    expect(page.locator("#usageList .usage-credential-name").first).to_have_text(
+                        "current-101"
+                    )
+                    expect(summary).to_have_text(full_summary, use_inner_text=True)
+                    assert any(
+                        item["group"] == "current" and item["offset"] == 100
+                        for item in usage_requests
+                    )
                 for width, theme in (
                     (320, "light"),
                     (360, "light"),
@@ -224,9 +287,29 @@ def main():
             expect(page).to_have_url(base + "/providers")
             assert not errors, errors
             assert not overflows, overflows
-            print(
-                "PASS: overview empty/populated/idle/error/recovery, period and keyboard navigation; 320–1440px, light/dark"
+            (screenshots / "result.json").write_text(
+                json.dumps(
+                    {
+                        "passed": True,
+                        "current_rows": 120,
+                        "historical_rows": 12,
+                        "visited_current_row": 101,
+                        "provider_calls_on_every_page": 120,
+                        "historical_page_independent": True,
+                        "page_errors": errors,
+                        "overflows": overflows,
+                        "usage_requests": usage_requests,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
             )
+            print(
+                "PASS: overview empty/populated/idle/error/recovery, row101 server pagination, "
+                "independent history and complete provider totals, period and keyboard navigation; "
+                "320–1440px, light/dark"
+            )
+            print(f"Evidence: {screenshots}")
         finally:
             browser.close()
 

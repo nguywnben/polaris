@@ -92,6 +92,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/ui/credential-dialogs.js",
     "js/ui/credential-cards.js",
     "js/features/authentication.js",
+    "js/features/usage-pagination.js",
     "js/features/virtual-keys.js",
     "js/features/identity.js",
     "js/features/conditional-navigation.js",
@@ -222,9 +223,9 @@ def _oauth_callback_page(
     safe_title = escape(title)
     safe_message = escape(message)
     version = _console_asset_version()
-    action_label = escape(translate(
-        "oauth.open_providers_new_tab" if manual_callback else "oauth.return_providers"
-    ))
+    action_label = escape(
+        translate("oauth.open_providers_new_tab" if manual_callback else "oauth.return_providers")
+    )
     navigation = ' target="_blank" rel="noopener noreferrer"' if manual_callback else ""
     status = "success" if success else "failure"
     status_path = '<path d="m8 12 3 3 5-6"/>' if success else '<path d="m9 9 6 6m0-6-6 6"/>'
@@ -269,6 +270,7 @@ def _oauth_callback_page(
         status_code=200 if success else 400,
         headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
     )
+
 
 @router.get("/callback", response_class=HTMLResponse, include_in_schema=False)
 async def serve_oauth_callback(request: Request):

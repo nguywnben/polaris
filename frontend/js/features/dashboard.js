@@ -1,6 +1,7 @@
 // Polaris management console: dashboard.
 
 const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 5;
+let dashboardUsageRevision = 0;
 
 function formatUsageCost(value) {
     return formatConsoleCurrency(value);
@@ -145,6 +146,10 @@ function setUsagePeriod(period) {
 }
 
 async function refreshUsageStats(options = {}) {
+    const revision = ++dashboardUsageRevision;
+    const usagePeriod = getUsagePeriodConfig().value;
+    const isCurrentRefresh = () => revision === dashboardUsageRevision
+        && usagePeriod === getUsagePeriodConfig().value;
     const loading = document.getElementById('usageLoading');
 
     const list = document.getElementById('usageList');
@@ -189,7 +194,6 @@ async function refreshUsageStats(options = {}) {
 
         }
 
-        const usagePeriod = getUsagePeriodConfig().value;
         const timezoneOffsetMinutes = new Date().getTimezoneOffset();
 
         const usagePeriodQuery = `period=${encodeURIComponent(usagePeriod)}&timezone_offset_minutes=${encodeURIComponent(timezoneOffsetMinutes)}`;
@@ -198,6 +202,7 @@ async function refreshUsageStats(options = {}) {
         // before the per-credential table so a populated ledger cannot hold the
         // whole dashboard behind its slower bounded detail query.
         const aggregatedResponse = await fetch(`./api/usage/aggregated?${usagePeriodQuery}`, { headers: getAuthHeaders() });
+        if (!isCurrentRefresh()) return;
 
         if (aggregatedResponse.status === 401) {
 
@@ -210,6 +215,7 @@ async function refreshUsageStats(options = {}) {
         }
 
         const aggregatedData = await aggregatedResponse.json();
+        if (!isCurrentRefresh()) return;
 
         if (!aggregatedResponse.ok) {
             throw new Error(aggregatedData.detail || t('failed_to_load_usage_statistics'));
@@ -251,26 +257,15 @@ async function refreshUsageStats(options = {}) {
             : t('dashboard.input_output', inputOutputValues);
         renderTokenDistribution(aggData);
 
-        const statsResponse = await fetch(`./api/usage/stats/page?${usagePeriodQuery}&page_size=100`, { headers: getAuthHeaders() });
-
-        if (statsResponse.status === 401) {
-            showStatus(t('authentication_failed_please_log_in'), 'error');
-            setTimeout(() => location.reload(), 1500);
-            return;
-        }
-
-        const statsData = await statsResponse.json();
-        if (!statsResponse.ok) {
-            throw new Error(statsData.detail || t('failed_to_load_usage_statistics'));
-        }
+        if (!await loadUsagePages() || !isCurrentRefresh()) return;
 
         clearPageState('dashboardUsageState');
-        AppState.usageStatsData = statsData.success ? statsData.data : statsData;
         AppState.usageStatsLoaded = true;
         renderProviderHealthMatrix();
         renderUsageList();
 
     } catch (error) {
+        if (!isCurrentRefresh()) return;
 
         const message = t('status_net_error', {error: error.message});
         showPageState('dashboardUsageState', {
@@ -283,18 +278,20 @@ async function refreshUsageStats(options = {}) {
         showStatus(message, 'error');
 
     } finally {
+        if (isCurrentRefresh()) {
 
-        if (loading) loading.hidden = true;
+            if (loading) loading.hidden = true;
 
-        if (statsContainer && !preserveContent) statsContainer.setAttribute('aria-busy', 'false');
+            if (statsContainer && !preserveContent) statsContainer.setAttribute('aria-busy', 'false');
 
-        if (tableWrapper && !preserveContent) tableWrapper.hidden = false;
+            if (tableWrapper && !preserveContent) tableWrapper.hidden = false;
 
-        // The primary metrics and usage summary are the dashboard's usable state.
-        // Load deeper health and activity cards afterwards so their bounded
-        // history queries cannot delay first interaction on a populated ledger.
-        void refreshOperationalHealth();
-        void refreshRecentActivity();
+            // The primary metrics and usage summary are the dashboard's usable state.
+            // Load deeper health and activity cards afterwards so their bounded
+            // history queries cannot delay first interaction on a populated ledger.
+            void refreshOperationalHealth();
+            void refreshRecentActivity();
+        }
 
     }
 
@@ -577,29 +574,11 @@ function updateUsagePagination(paginationId, prevBtnId, nextBtnId, infoId, curre
 }
 
 function changeUsagePage(delta) {
-
-    const entries = getCurrentUsageEntriesWithTraffic();
-    const totalPages = Math.max(1, Math.ceil(entries.length / (AppState.usagePageSize || 10)));
-    const nextPage = Math.min(Math.max(1, AppState.usagePage + delta), totalPages);
-
-    if (nextPage !== AppState.usagePage) {
-        AppState.usagePage = nextPage;
-        renderUsageList();
-    }
-
+    return moveUsagePage('current', delta);
 }
 
 function changeHistoricalUsagePage(delta) {
-
-    const entries = getHistoricalUsageEntriesWithTraffic();
-    const totalPages = Math.max(1, Math.ceil(entries.length / (AppState.historicalUsagePageSize || 10)));
-    const nextPage = Math.min(Math.max(1, AppState.historicalUsagePage + delta), totalPages);
-
-    if (nextPage !== AppState.historicalUsagePage) {
-        AppState.historicalUsagePage = nextPage;
-        renderHistoricalUsageList();
-    }
-
+    return moveUsagePage('historical', delta);
 }
 
 function renderHistoricalUsageList() {
@@ -610,16 +589,17 @@ function renderHistoricalUsageList() {
     if (!section || !list) return;
 
     const entries = getHistoricalUsageEntriesWithTraffic();
-    section.hidden = entries.length === 0;
+    const totalItems = UsagePages.historical?.total_items ?? entries.length;
+    section.hidden = totalItems === 0;
 
     const pageSize = AppState.historicalUsagePageSize || 10;
-    const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     if (AppState.historicalUsagePage > totalPages) {
         AppState.historicalUsagePage = totalPages;
     }
 
     const startIndex = (AppState.historicalUsagePage - 1) * pageSize;
-    const pagedEntries = entries.slice(startIndex, startIndex + pageSize);
+    const pagedEntries = UsagePages.historical ? entries : entries.slice(startIndex, startIndex + pageSize);
 
     renderUsageTableRows(list, pagedEntries);
     updateUsagePagination(
@@ -643,13 +623,13 @@ function renderUsageList() {
 
     const entries = getCurrentUsageEntriesWithTraffic();
     const pageSize = AppState.usagePageSize || 10;
-    const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil((UsagePages.current?.total_items ?? entries.length) / pageSize));
     if (AppState.usagePage > totalPages) {
         AppState.usagePage = totalPages;
     }
 
     const startIndex = (AppState.usagePage - 1) * pageSize;
-    const pagedEntries = entries.slice(startIndex, startIndex + pageSize);
+    const pagedEntries = UsagePages.current ? entries : entries.slice(startIndex, startIndex + pageSize);
 
     renderUsageTableRows(
         list,
@@ -678,7 +658,7 @@ function renderUsageProviderSummary() {
 
     const providers = new Map();
 
-    for (const [filename, stats] of getCurrentUsageEntriesWithTraffic()) {
+    for (const [filename, stats] of getProviderUsageEntries()) {
 
         if (filename === '__gateway_unassigned__.json') continue;
 
@@ -698,7 +678,7 @@ function renderUsageProviderSummary() {
             totalTokens: 0,
         };
 
-        if (!stats.is_deleted) current.credentials += 1;
+        if (!stats.is_deleted) current.credentials += stats.credentials ?? 1;
         current.calls += getUsageCallCount(stats);
         current.successfulCalls += Number(stats.successful_calls ?? stats.successful_calls_24h ?? 0);
         current.totalTokens += Number(stats.total_tokens ?? stats.total_tokens_24h ?? 0);
@@ -889,7 +869,7 @@ function renderProviderHealthMatrix() {
     if (!container) return;
 
     const trafficMap = new Map();
-    for (const [filename, stats] of getCurrentUsageEntriesWithTraffic()) {
+    for (const [filename, stats] of getProviderUsageEntries()) {
         if (filename === '__gateway_unassigned__.json') continue;
         const meta = getCredentialProviderMeta(
             { provider: stats.provider || stats.provider_name, credential_type: stats.credential_type },
