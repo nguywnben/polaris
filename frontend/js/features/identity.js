@@ -591,7 +591,6 @@ function openIdentityCreateDialog(draft = IdentityConsoleState.createDraft) {
     }
     identitySetStatus('identityCreateStatus');
     dialog.showModal();
-    form.elements.issuer.focus();
 }
 
 function closeIdentityCreateDialog({ clear = false } = {}) {

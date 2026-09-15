@@ -181,7 +181,6 @@ async function showCredentialEditModal(pathId) {
             }
         });
         await mountModal(modal);
-        form.querySelector('input')?.focus();
     } catch (error) {
         showStatus(t('status_action_failed', {error: error.message || t('unknown_error')}), 'error');
     }

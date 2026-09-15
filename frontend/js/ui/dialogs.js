@@ -180,7 +180,6 @@ function showPromptModal(message, options = {}) {
 
             inputEl.placeholder = placeholder;
 
-            inputEl.focus();
 
         }
 
@@ -259,7 +258,7 @@ function showModelTestModal(message, options = {}) {
             select?.addEventListener('change', () => {
                 if (confirm) confirm.disabled = !select.value;
             });
-            select?.focus();
+            if (modal.isConnected) focusModalSurface(modal);
         };
 
         const renderResult = (result) => {

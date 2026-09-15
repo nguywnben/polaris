@@ -860,6 +860,12 @@
     color: var(--info);
 }
 
+/* Static modal entry targets are not controls; Tab retains control focus rings. */
+.message-modal[tabindex="-1"]:focus,
+#identityCreateTitle[tabindex="-1"]:focus {
+    outline: none;
+}
+
 #statusSection {
     position: fixed;
     inset: auto;

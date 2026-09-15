@@ -19,6 +19,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Opening a modal no longer automatically focuses its first input, textarea, or select.
+  Focus starts on a non-editable surface while Tab, Shift+Tab, Escape, and return focus remain available.
 - Toasts stay above native and custom modals without moving focus into form controls;
   validation keeps field error markers and normal keyboard navigation. Identity creation
   uses its Cancel action without a duplicate close icon.

@@ -24,35 +24,49 @@ const modalFocusHandlers = new WeakMap();
 function getModalFocusableElements(modal) {
     return Array.from(modal.querySelectorAll(
         'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-    )).filter(element => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+    )).filter(element => !element.hidden && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0);
 }
+
+function trapModalFocus(modal, event) {
+    if (event.key !== 'Tab' || event.defaultPrevented) return;
+    const focusable = getModalFocusableElements(modal);
+    if (!focusable.length) {
+        event.preventDefault();
+        return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const atSurface = !focusable.includes(document.activeElement);
+    if (event.shiftKey && (document.activeElement === first || atSurface)) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || atSurface)) {
+        event.preventDefault();
+        first.focus();
+    }
+}
+
+function focusModalSurface(modal) {
+    const surface = modal.querySelector('[role="dialog"], [role="alertdialog"]') || modal;
+    surface.setAttribute('tabindex', '-1');
+    surface.focus({preventScroll: true});
+}
+
+document.addEventListener('keydown', event => {
+    const dialog = event.target.closest?.('dialog:modal');
+    if (dialog) trapModalFocus(dialog, event);
+});
 
 function mountModal(modal) {
 
     modalReturnFocus.set(modal, document.activeElement);
     document.body.appendChild(modal);
-    const focusHandler = (event) => {
-        if (event.key !== 'Tab') return;
-        const focusable = getModalFocusableElements(modal);
-        if (!focusable.length) {
-            event.preventDefault();
-            return;
-        }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-        }
-    };
+    const focusHandler = event => trapModalFocus(modal, event);
     modal.addEventListener('keydown', focusHandler);
     modalFocusHandlers.set(modal, focusHandler);
     queueMicrotask(() => {
         if (!modal.isConnected || modal.contains(document.activeElement)) return;
-        getModalFocusableElements(modal)[0]?.focus();
+        focusModalSurface(modal);
     });
     return Promise.resolve();
 

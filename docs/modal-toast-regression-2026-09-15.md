@@ -38,3 +38,24 @@ No authentication, authorization, persistence, or provider request policy change
 
 The browser evidence is for the installed Chromium runtime. Firefox, Safari, and
 older browsers without native Popover support were not certified by this run.
+
+## Follow-up: modal entry focus
+
+The owner clarified that opening a modal itself must not focus an editable field,
+not only when showing a toast. Custom dialogs now start on their non-editable
+dialog surface. Native identity creation targets its title before `showModal()`
+can focus a field; merely blurring the field afterward would be too late to prevent
+keyboard or autofill UI. Static entry targets do not display a control-like outline;
+interactive controls retain their existing keyboard focus indicators.
+
+Shared Tab containment handles the non-editable initial target in both directions,
+skips hidden controls, and avoids processing a handled keyboard event twice.
+Explicit input/select focus was removed from prompt, model test, credential edit,
+virtual-key create/edit, and one-time secret dialogs. Explicit copy, user-requested
+navigation, and close/return-focus behavior remain unchanged.
+
+`tools/modal_initial_focus_smoke.py` recorded unwanted input/select `focusin` events
+for all seven entry paths before the fix. All seven pass afterward at 1440/light
+and 360/dark, including no transient field focus, Tab/Shift+Tab containment, Escape,
+and return focus. Desktop/mobile screenshots were inspected. The original toast
+regression, 48 focused unit tests, and 9/9 critical browser journeys also pass.

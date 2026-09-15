@@ -254,7 +254,7 @@ function editVirtualKey(keyId) {
 }
 
 function trapVirtualKeyModalFocus(modal, event) {
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab' || event.defaultPrevented) return;
     const focusable = Array.from(modal.querySelectorAll(
         'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
     )).filter((element) => !element.hidden && element.getClientRects().length > 0);
@@ -330,7 +330,6 @@ function openVirtualKeyForm(record = null) {
     document.addEventListener('keydown', onEscape);
     void mountModal(modal).then(() => {
         syncVirtualKeyPricingControl(form);
-        form?.elements.namedItem('name')?.focus();
     });
 }
 
@@ -479,7 +478,7 @@ function showVirtualKeySecret(secret, titleKey) {
     });
     document.addEventListener('keydown', onEscape);
     window.addEventListener('pagehide', close, { once: true });
-    void mountModal(modal).then(() => secretInput.focus());
+    void mountModal(modal);
 }
 
 async function rotateVirtualKey(keyId) {
