@@ -26,6 +26,52 @@ IDENTITY_SCRIPT = ROOT / "frontend/js/features/identity.js"
 
 
 class SettingsConsoleContractTests(unittest.TestCase):
+    def test_settings_reset_uses_system_scope(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const calls = [];
+globalThis.showConfirmModal = async () => true;
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({{}});
+globalThis.showStatus = () => {{}};
+globalThis.setTimeout = () => {{}};
+globalThis.fetch = async (url, options) => {{
+    calls.push({{url, method: options.method}});
+    return {{ok: true, json: async () => ({{}})}};
+}};
+vm.runInThisContext({json.dumps(source)});
+(async () => {{
+    await resetConfig();
+    if (calls.length !== 1 || calls[0].url !== './api/config/reset?scope=system'
+        || calls[0].method !== 'POST') throw Error('Settings reset must preserve Models routing');
+}})().catch(error => {{console.error(error); process.exitCode = 1;}});
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_routing_is_read_only_in_settings_and_not_submitted(self) -> None:
+        fragment = SETTINGS.read_text(encoding="utf-8")
+        self.assertNotRegex(fragment, r'<select[^>]+id="(?:routingStrategy|preferredProvider)"')
+        self.assertIn('href="/models"', fragment)
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+globalThis.document = {{getElementById: () => ({{value: '', checked: false}})}};
+vm.runInThisContext({json.dumps(source)});
+const payload = collectSystemConfigForm();
+if ('routing_strategy' in payload || 'preferred_provider' in payload) throw Error('Settings overwrites routing');
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_invalid_settings_are_not_submitted(self) -> None:
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
         harness = f"""
@@ -37,7 +83,50 @@ globalThis.t = value => value;
 vm.runInThisContext({json.dumps(source)});
 saveConfig();
 """
-        result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_save_validates_form_controls_and_ignores_read_only_routing_summaries(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const calls = [], validated = [];
+const control = (tagName, id, value, disabled = false) => ({{tagName, id, value, disabled,
+    reportValidity() {{validated.push(id); return true;}}}});
+const fields = [control('INPUT', 'host', '127.0.0.1'), control('SELECT', 'runtimeLogLevel', 'info'),
+    control('TEXTAREA', 'autoBanErrorCodes', '401'), control('INPUT', 'port', '4283', true),
+    {{tagName: 'P', id: 'routingStrategy', textContent: 'Balanced'}},
+    {{tagName: 'P', id: 'preferredProvider', textContent: 'Automatic'}}];
+globalThis.document = {{
+    getElementById: id => fields.find(field => field.id === id) || {{value: '', checked: false}},
+    querySelectorAll: selector => fields.filter(field => selector.split(',').some(part => {{
+        const tag = part.trim().split(/\\s+/).at(-1).split('[')[0];
+        return !tag || tag.toUpperCase() === field.tagName;
+    }})),
+}};
+globalThis.fetch = async (url, options) => {{calls.push({{url, payload: JSON.parse(options.body)}});
+    return {{ok: true, json: async () => ({{}})}};}};
+globalThis.getAuthHeaders = () => ({{}});
+globalThis.showStatus = () => {{}};
+globalThis.setTimeout = () => {{}};
+globalThis.t = key => key;
+vm.runInThisContext({json.dumps(source)});
+(async () => {{
+    await saveConfig();
+    if (calls.length !== 1 || calls[0].url !== './api/config/save') throw Error('Valid settings were not saved');
+    if (validated.join() !== 'host,runtimeLogLevel,autoBanErrorCodes') throw Error('Form validation was skipped');
+    if ('routing_strategy' in calls[0].payload.config || 'preferred_provider' in calls[0].payload.config)
+        throw Error('Read-only routing was submitted');
+}})().catch(error => {{console.error(error); process.exitCode = 1;}});
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_every_system_control_maps_to_the_authoritative_schema(self) -> None:
@@ -128,7 +217,9 @@ if (stats.children.map(row => row.children[1].textContent).join() !== '1,0,0,1')
 renderAboutCapabilities([]);
 if (host.children[0]?.textContent !== 'about.no_capabilities') throw new Error('Empty snapshot has no explanation');
 """
-        result = subprocess.run([shutil.which('node'), '-e', harness], capture_output=True, text=True, timeout=15)
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_about_exposes_build_support_and_maintenance_entry_points(self) -> None:

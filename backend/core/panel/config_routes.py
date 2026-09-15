@@ -1,5 +1,6 @@
 import asyncio
 import os
+from typing import Annotated, Literal
 
 import config
 from core.auth import verify_password
@@ -21,7 +22,7 @@ from core.utils import (
     set_panel_session_cookie,
     verify_panel_token,
 )
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from log import configure_logging, log
 
 from .utils import get_env_locked_keys, internal_server_error
@@ -326,11 +327,16 @@ async def update_access_credentials(
 
 
 @router.post("/reset")
-async def reset_config(token: str = Depends(verify_panel_token)):
+async def reset_config(
+    token: str = Depends(verify_panel_token),
+    scope: Annotated[Literal["all", "system"], Query()] = "all",
+):
     """Reset global configuration overrides while preserving access secrets."""
     try:
         env_locked_keys = get_env_locked_keys()
         resettable_keys = RESETTABLE_CONFIG_KEYS - env_locked_keys
+        if scope == "system":
+            resettable_keys -= {"routing_strategy", "preferred_provider"}
 
         storage_adapter = await get_storage_adapter()
         deleted_keys = []

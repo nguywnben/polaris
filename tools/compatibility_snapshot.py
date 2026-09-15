@@ -21,6 +21,15 @@ NON_SEMANTIC_OPENAPI_KEYS = frozenset(
 # Adding the optional bounded timezone offset preserves every existing request shape. Keep the
 # exact before/after fingerprints explicit so unrelated changes to these operations still fail.
 COMPATIBLE_OPERATION_EVOLUTIONS = {
+    # Optional scope defaults to the original reset. Exact evolution, not a route exemption:
+    # test_config_reset proves default behavior and secret/environment preservation;
+    # docs/audits/page-completion-2026-09-15.md records the approved Settings ownership change.
+    ("POST", "/api/config/reset"): {
+        (
+            "d65b29bf9cea9ec3ea65a5946b9bbcac8f273f58af3fa5aee1d00f120dfe55cd",
+            "f487b1e95130ad2170997da96ec23e6f4c3dec11400c74582751d657a1d4f87f",
+        )
+    },
     ("GET", "/api/usage/aggregated"): {
         (
             "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871",

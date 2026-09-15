@@ -76,6 +76,7 @@ function renderSettingsMetadata(metadata) {
 globalThis.document?.addEventListener?.('polaris:locale-change', () => {
     if (AppState.settingsMetadata instanceof Map) {
         renderSettingsMetadata(AppState.settingsMetadata);
+        syncRoutingPolicyControls();
     }
 });
 
@@ -188,10 +189,6 @@ function populateConfigForm() {
 
     setConfigField('retry429Interval', c.retry_429_interval ?? 1);
 
-    setConfigField('routingStrategy', c.routing_strategy || 'balanced');
-
-    setConfigField('preferredProvider', c.preferred_provider || '');
-
     setConfigField('upstreamTimeoutSeconds', c.upstream_timeout_seconds ?? 300);
 
     setConfigField('runtimeLogLevel', c.log_level || 'info');
@@ -292,10 +289,6 @@ function collectSystemConfigForm() {
 
             retry_429_interval: getNumber('retry429Interval', 1, Number.parseFloat),
 
-            routing_strategy: getValue('routingStrategy', 'balanced'),
-
-            preferred_provider: getValue('preferredProvider'),
-
             upstream_timeout_seconds: getNumber('upstreamTimeoutSeconds', 300, Number.parseFloat),
 
             log_level: getValue('runtimeLogLevel', 'info'),
@@ -320,7 +313,7 @@ function collectSystemConfigForm() {
 
 async function saveConfig() {
 
-    for (const field of document.querySelectorAll('#configForm [data-config-key]')) {
+    for (const field of document.querySelectorAll('#configForm input[data-config-key], #configForm select[data-config-key], #configForm textarea[data-config-key]')) {
         if (!field.disabled && !field.reportValidity()) return;
     }
 
@@ -368,9 +361,12 @@ function syncRoutingPolicyControls() {
     const provider = document.getElementById('preferredProvider');
     if (!strategy || !provider) return;
 
-    const isEnvironmentLocked = AppState.envLockedFields.has('preferred_provider');
-    provider.disabled = strategy.value !== 'priority' || isEnvironmentLocked;
-    provider.classList.toggle('env-locked', isEnvironmentLocked);
+    const config = AppState.currentConfig || {};
+    const labels = {balanced: 'settings.balanced', priority: 'settings.provider_priority',
+        weighted: 'settings.weighted', least_latency: 'settings.least_latency', lowest_cost: 'settings.lowest_cost'};
+    strategy.textContent = t(labels[config.routing_strategy] || 'settings.balanced');
+    provider.textContent = config.preferred_provider
+        ? modelProviderMeta(config.preferred_provider).name : t('settings.automatic');
 }
 
 function populateAccessCredentialStatus(config) {
@@ -456,7 +452,7 @@ async function resetConfig() {
 
     try {
 
-        const response = await fetch('./api/config/reset', {
+        const response = await fetch('./api/config/reset?scope=system', {
             method: 'POST',
             headers: getAuthHeaders()
         });

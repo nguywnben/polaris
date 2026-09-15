@@ -123,6 +123,7 @@ function initControlValidationFeedback() {
 function initStaticUiBindings() {
     initControlPointerHover();
     initControlValidationFeedback();
+    initBackupBindings();
     const clickHandlers = {
         'toggle-mobile-menu': () => toggleMobileMenu(),
         'switch-tab': (element) => switchTab(element.dataset.tab),
@@ -289,7 +290,6 @@ function initStaticUiBindings() {
         'claude-platform-files': (_element, event) => handleClaudePlatformFileSelect(event),
         'ollama-files': (_element, event) => handleOllamaFileSelect(event),
         'primary-files': (_element, event) => handlePrimaryFileSelect(event),
-        'routing-strategy': () => syncRoutingPolicyControls(),
         'quality-profile': (element) => selectQualityProfile(element.value),
         'virtual-key-status': (element) => updateVirtualKeyStatus(element.value),
         'virtual-key-pricing': (element) => syncVirtualKeyPricingControl(element.form),

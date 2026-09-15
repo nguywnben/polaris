@@ -46,7 +46,7 @@ const identityLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/identi
 vm.runInContext(`${localeSource}\n${pageLocaleSource}\n${auditLocaleSource}\n${traceLocaleSource}\n${operationalLocaleSource}\n${i18nSource}\n${identityLocaleSource}\nglobalThis.__catalogs = {SUPPORTED_LOCALES, COMMON_UI_TRANSLATIONS, SETTINGS_LOCALE_TRANSLATIONS, AUTH_LOCALE_TRANSLATIONS, DIALOG_LOCALE_TRANSLATIONS, PAGE_LOCALE_TRANSLATIONS, TRANSLATIONS, LEGACY_UI_FALLBACKS, PROVIDER_COPY_FALLBACKS, PROVIDER_LABEL_TRANSLATIONS, PROVIDER_LABEL_KEYS, PRESERVED_TECHNICAL_TRANSLATION_KEYS, resolveLegacyFallback};`, context);
 
 const catalogs = context.__catalogs;
-for (const file of ['oidc-entry-locales.js']) {
+for (const file of ['oidc-entry-locales.js', 'backup-locales.js']) {
     vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core', file), 'utf8'), context);
 }
 vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-copy-locales.js'), 'utf8'), context);

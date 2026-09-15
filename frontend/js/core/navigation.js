@@ -59,6 +59,9 @@ const TAB_DATA_CACHE_MS = 30000;
 function navigate(path, pushState = true) {
 
     let targetPath = path || '/dashboard';
+    if (targetPath !== '/config' || !AppState.authenticated || AppState.setupRequired) {
+        if (typeof leaveBackupConsole === 'function') leaveBackupConsole();
+    }
 
     if (targetPath === '/' || targetPath === '') {
 
@@ -174,6 +177,9 @@ function navigate(path, pushState = true) {
 
     const shouldResetScroll = !currentContent || currentContent !== targetContent;
 
+    // Permission/secret lifecycle belongs to each visit, not the cached config request.
+    if (tabName === 'config' && typeof loadBackupConsole === 'function') void loadBackupConsole();
+
     if (!shouldResetScroll) {
 
         void triggerTabDataLoad(tabName);
@@ -282,7 +288,7 @@ async function triggerTabDataLoad(tabName, options = {}) {
 
     const isFresh = Date.now() - loadedAt < TAB_DATA_CACHE_MS;
 
-    if (!force && isFresh) return;
+    if (!force && isFresh && tabName !== 'config') return;
 
     if (AppState.tabLoadPromises[tabName]) {
 

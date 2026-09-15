@@ -104,27 +104,14 @@
                                     <h2 class="card-title" data-i18n="settings.routing_policy">Routing Policy</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.routing_policy_description">Balance healthy credentials automatically or prefer one provider while retaining fallback.</p>
                                     <div class="form-group">
-                                        <label for="routingStrategy" data-i18n="settings.credential_selection">Credential selection</label>
-                                        <select id="routingStrategy" data-config-key="routing_strategy" data-ui-change="routing-strategy">
-                                            <option value="balanced" data-i18n="settings.balanced">Balanced</option>
-                                            <option value="priority" data-i18n="settings.provider_priority">Provider priority</option>
-                                            <option value="weighted" data-i18n="settings.weighted">Weighted random</option>
-                                            <option value="least_latency" data-i18n="settings.least_latency">Least latency</option>
-                                            <option value="lowest_cost" data-i18n="settings.lowest_cost">Lowest cost</option>
-                                        </select>
+                                        <span class="card-copy" data-i18n="settings.credential_selection">Credential selection</span>
+                                        <p id="routingStrategy" data-config-key="routing_strategy"></p>
                                     </div>
                                     <div class="form-group">
-                                        <label for="preferredProvider" data-i18n="settings.preferred_provider">Preferred provider</label>
-                                        <select id="preferredProvider" data-config-key="preferred_provider">
-                                            <option value="" data-i18n="settings.automatic">Automatic</option>
-                                            <option value="google_antigravity">Google Antigravity</option>
-                                            <option value="google_ai_studio">Google AI Studio</option>
-                                            <option value="xai">Grok Build</option>
-                                            <option value="openai" data-i18n-technical>OpenAI</option>
-                                            <option value="anthropic" data-i18n-technical>Anthropic</option>
-                                            <option value="ollama">Ollama</option>
-                                        </select>
+                                        <span class="card-copy" data-i18n="settings.preferred_provider">Preferred provider</span>
+                                        <p id="preferredProvider" data-config-key="preferred_provider"></p>
                                     </div>
+                                    <a class="btn btn-secondary btn-small" href="/models" data-i18n="models_title">Routing Models</a>
                                     <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1" placeholder="300"></div>
                                 </section>
 
@@ -155,6 +142,63 @@
                                         <form id="auditRetentionForm" class="operational-retention-form"><div class="form-group"><label for="auditRetentionDays" data-i18n="audit.retention_days">Retention days</label><input type="number" id="auditRetentionDays" required placeholder="90"></div><div class="form-group"><label for="auditMaxEvents" data-i18n="audit.max_events">Maximum events</label><input type="number" id="auditMaxEvents" required placeholder="1000000"></div><div class="operational-retention-actions"><button id="auditSaveRetention" type="submit" class="btn btn-secondary" data-i18n="audit.save_retention">Save retention</button><p id="auditRetentionStatus" class="field-hint" role="status" aria-live="polite"></p></div></form>
                                     </div>
                                 </div>
+                            </section>
+                            <section id="backupControls" class="config-group settings-retention-group" aria-labelledby="backupHeading">
+                                <h2 id="backupHeading" class="card-title" data-i18n="backup.title">Backup and restore</h2>
+                                <p class="card-copy card-title-copy" data-i18n="backup.description">Encrypted system backups support SQLite only. Keep the archive and its passphrase safe; both are needed to restore.</p>
+                                <p class="card-copy" data-i18n="backup.coverage">Includes configuration, credentials, identities, routes, keys, usage ledgers, audit, and traces. Excludes raw logs, legacy usage statistics, and earlier restore snapshots.</p>
+                                <div class="operational-retention-grid">
+                                    <form id="backupCreateForm" class="operational-retention-item" novalidate autocomplete="off" aria-labelledby="backupCreateHeading">
+                                        <h3 id="backupCreateHeading" data-i18n="backup.create">Download encrypted backup</h3>
+                                        <div class="form-group">
+                                            <label for="backupCreatePassphrase" data-i18n="backup.passphrase">Backup passphrase</label>
+                                            <div class="setup-secret-field">
+                                                <input id="backupCreatePassphrase" type="password" autocomplete="new-password" data-i18n-placeholder="backup.placeholder" placeholder="Enter 12–256 characters" aria-describedby="backupStatus">
+                                                <button id="backupCreatePassphraseToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="backupCreatePassphrase" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="backupConfirmPassphrase" data-i18n="backup.confirm_passphrase">Confirm passphrase</label>
+                                            <div class="setup-secret-field">
+                                                <input id="backupConfirmPassphrase" type="password" autocomplete="new-password" data-i18n-placeholder="backup.confirm_placeholder" placeholder="Enter the same passphrase again" aria-describedby="backupStatus">
+                                                <button id="backupConfirmPassphraseToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="backupConfirmPassphrase" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button>
+                                            </div>
+                                        </div>
+                                        <button id="backupCreate" type="submit" class="btn btn-secondary" disabled data-i18n="backup.create">Download encrypted backup</button>
+                                        <p class="field-hint" data-i18n="backup.sanitized_hint">The sanitized export is for inspection and cannot be restored.</p>
+                                        <button id="backupSanitized" type="button" class="btn btn-secondary" disabled data-i18n="backup.sanitized">Download sanitized export</button>
+                                    </form>
+                                    <form id="backupImportForm" class="operational-retention-item" novalidate autocomplete="off" aria-labelledby="backupImportHeading">
+                                        <h3 id="backupImportHeading" data-i18n="backup.import">Validate and restore</h3>
+                                        <div class="form-group">
+                                            <label for="backupChooseArchive" data-i18n="backup.archive">Encrypted archive (.ogb, up to 64 MiB)</label>
+                                            <button id="backupChooseArchive" type="button" class="btn btn-secondary" disabled aria-controls="backupArchive" aria-describedby="backupSelectedArchive backupStatus" data-i18n="backup.choose_archive">Choose encrypted archive</button>
+                                            <input id="backupArchive" type="file" hidden accept=".ogb,application/vnd.polaris.backup+json" data-i18n-aria-label="backup.archive" aria-label="Encrypted archive (.ogb, up to 64 MiB)">
+                                            <p id="backupSelectedArchive" class="field-hint" role="status" aria-live="polite" data-i18n="backup.no_archive">No archive selected</p>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="backupRestorePassphrase" data-i18n="backup.passphrase">Backup passphrase</label>
+                                            <div class="setup-secret-field">
+                                                <input id="backupRestorePassphrase" type="password" autocomplete="off" data-i18n-placeholder="backup.import_placeholder" placeholder="Enter the passphrase used to encrypt this archive" aria-describedby="backupStatus">
+                                                <button id="backupRestorePassphraseToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="backupRestorePassphrase" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="backupConflictPolicy" data-i18n="backup.policy">Existing data</label>
+                                            <select id="backupConflictPolicy">
+                                                <option value="abort_if_configured" data-i18n="backup.abort">Abort if this instance contains data</option>
+                                                <option value="replace" data-i18n="backup.replace">Replace existing data</option>
+                                            </select>
+                                        </div>
+                                        <div class="page-actions">
+                                            <button id="backupValidate" type="submit" class="btn btn-secondary" disabled data-i18n="backup.validate">Validate archive</button>
+                                            <button id="backupRestore" type="button" class="btn btn-danger" disabled data-i18n="backup.restore">Restore backup</button>
+                                        </div>
+                                        <div id="backupPlan" role="status" aria-live="polite"></div>
+                                    </form>
+                                </div>
+                                <p id="backupStatus" class="field-hint" role="status" aria-live="polite"></p>
+                                <button id="backupReauthenticate" type="button" data-ui-action="logout" class="btn btn-secondary" hidden data-i18n="login_submit">Sign in</button>
                             </section>
                             <div class="settings-save-bar">
                                 <span class="card-copy" data-i18n="settings.save_scope_short">Password and retention policies use their own save buttons.</span>

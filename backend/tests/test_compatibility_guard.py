@@ -66,6 +66,16 @@ class CompatibilitySnapshotTests(unittest.TestCase):
             )
         )
 
+    def test_scoped_reset_evolution_does_not_exempt_future_contract_changes(self) -> None:
+        changed = copy.deepcopy(self.current)
+        for operation in changed["management_operations"]:
+            if operation["method"] == "POST" and operation["path"] == "/api/config/reset":
+                operation["semantic_sha256"] = "0" * 64
+        self.assertIn(
+            "changed management_operations: POST /api/config/reset",
+            compare_snapshots(self.baseline, changed),
+        )
+
     def test_console_urls_and_generated_client_examples_remain_valid(self) -> None:
         self.assertEqual(self.baseline["console_routes"]["tab_map"]["dashboard"], "/dashboard")
         self.assertIn("/code_assist", self.baseline["console_routes"]["server_paths"])
