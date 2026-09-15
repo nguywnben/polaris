@@ -6,6 +6,12 @@ sending production traffic. A model catalog may be public: successful discovery
 does not prove that the key is valid or has inference permissions. Model tests
 send a small request and may incur vendor charges.
 
+On multi-column screens, catalog cards share the measured height of the complete
+catalog, including cards on other pages or outside the current search. Headings,
+descriptions and capability rows remain aligned without truncating translations.
+The measurement updates when content, fonts or available width change; on narrow
+single-column screens each card grows naturally with its own content.
+
 | Provider | Required authentication | Credential-specific advanced settings |
 | --- | --- | --- |
 | Kimi API Platform | Moonshot API key | Official Moonshot API endpoint |

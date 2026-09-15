@@ -91,6 +91,31 @@ img[src$="/kimchi-logo.png"] { border-radius: 50%; }
     border: 0;
 }
 
+@media (min-width: 601px) {
+    .provider-catalog .provider-hero-card {
+        height: var(--provider-card-height, 100%);
+        grid-template-rows: var(--provider-card-heading-height, auto) minmax(0, 1fr) var(--provider-card-footer-height, auto);
+    }
+
+    .provider-catalog .provider-capabilities {
+        align-content: flex-start;
+    }
+
+    .provider-catalog .provider-summary p,
+    .provider-catalog .provider-capabilities {
+        align-self: start;
+    }
+
+    .provider-catalog-measuring .provider-hero-card {
+        height: auto;
+        grid-template-rows: auto auto auto;
+    }
+
+    .provider-catalog-measuring .provider-hero-card.hidden {
+        display: grid !important;
+    }
+}
+
 .provider-capability-status {
     display: flex;
     align-items: center;

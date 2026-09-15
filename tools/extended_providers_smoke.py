@@ -13,6 +13,56 @@ ROOT = Path(__file__).resolve().parents[1]
 PROVIDERS = ("kimi", "kiro", "cloudflare", "nvidia", "opencode", "poolside", "kimchi", "kilo")
 
 
+def verify_catalog_layout(page, widths=(1440, 1201, 768, 320)):
+    search = page.locator("#providerCatalogSearch")
+    for width in widths:
+        page.set_viewport_size({"width": width, "height": 1000})
+        search.fill("")
+        while page.locator("#providerCatalogPrevBtn").is_enabled():
+            page.locator("#providerCatalogPrevBtn").click()
+        page.wait_for_timeout(100)
+        dimensions = []
+        for _ in range(3):
+            dimensions.extend(
+                page.locator('#providerCatalog [role="tab"]:visible').evaluate_all(
+                    """cards => cards.map(card => {
+                    const r = card.getBoundingClientRect();
+                    const p = card.querySelector('.provider-summary p');
+                    const footer = card.querySelector('.provider-capabilities');
+                    return [r.width, r.height, p.getBoundingClientRect().top - r.top,
+                        footer.getBoundingClientRect().top - r.top,
+                        card.scrollHeight <= card.clientHeight + 1 && p.scrollHeight <= p.clientHeight + 1];
+                })"""
+                )
+            )
+            if not page.locator("#providerCatalogNextBtn").is_enabled():
+                break
+            page.locator("#providerCatalogNextBtn").click()
+        assert len(dimensions) == 17, dimensions
+        assert all(d[4] for d in dimensions), (width, dimensions)
+        if width > 600:
+            for coordinate in (0, 1, 2, 3):
+                assert (
+                    max(d[coordinate] for d in dimensions) - min(d[coordinate] for d in dimensions)
+                    <= 1
+                ), (width, dimensions)
+            search.fill("kimchi")
+            expect(page.locator('#providerCatalog [role="tab"]:visible')).to_have_count(1)
+            assert (
+                abs(
+                    page.locator("#providerSelector-kimchi").bounding_box()["height"]
+                    - dimensions[0][1]
+                )
+                <= 1
+            )
+        else:
+            assert page.locator("#providerCatalog").evaluate(
+                "catalog => [...catalog.querySelectorAll('p')].every(p => !p.clientHeight || p.scrollHeight <= p.clientHeight + 1)"
+            )
+    search.fill("")
+    page.set_viewport_size({"width": 1440, "height": 1000})
+
+
 def verify_import(page, workspace, base, provider):
     """Exercise the real multipart route and isolated storage, not a mocked POST."""
     panel = workspace.locator(".extended-provider-import")
@@ -130,6 +180,44 @@ def main():
         expect(page).to_have_url(base + "/dashboard")
         page.goto(base + "/providers", wait_until="networkidle")
         expect(page.locator('#providerCatalog [role="tab"]')).to_have_count(17)
+        verify_catalog_layout(page)
+        for locale in (
+            "en",
+            "zh-CN",
+            "zh-TW",
+            "de",
+            "es",
+            "fr",
+            "id",
+            "it",
+            "ja",
+            "ko",
+            "pt",
+            "ru",
+            "th",
+            "tr",
+        ):
+            with page.expect_navigation(wait_until="networkidle"):
+                page.evaluate("locale => changeLanguage(locale)", locale)
+            verify_catalog_layout(page, widths=(1440, 1201, 320))
+        with page.expect_navigation(wait_until="networkidle"):
+            page.evaluate("changeLanguage('vi')")
+        page.evaluate("PolarisTheme.setPreference('dark')")
+        verify_catalog_layout(page, widths=(1440, 768, 320))
+        if "--capture" in sys.argv:
+            catalog_shots = ROOT / "temp" / "provider-card-layout"
+            catalog_shots.mkdir(parents=True, exist_ok=True)
+            for width, theme in ((1440, "light"), (1440, "dark"), (320, "light"), (320, "dark")):
+                page.set_viewport_size({"width": width, "height": 1000})
+                page.evaluate("theme => PolarisTheme.setPreference(theme)", theme)
+                while page.locator("#providerCatalogPrevBtn").is_enabled():
+                    page.locator("#providerCatalogPrevBtn").click()
+                expect(page.locator("html")).not_to_have_class("theme-switching")
+                page.locator("#providerCatalog").screenshot(
+                    path=str(catalog_shots / f"{width}-{theme}.png")
+                )
+        page.set_viewport_size({"width": 1440, "height": 1000})
+        page.evaluate("PolarisTheme.setPreference('light')")
         shots = ROOT / "temp" / "extended-providers-ui"
         shots.mkdir(parents=True, exist_ok=True)
         for provider in PROVIDERS:
@@ -248,6 +336,7 @@ def main():
         context.close()
         browser.close()
     print(
+        "Provider catalog: 17 cards, 15 locales, pagination/search and responsive layout passed. "
         "Extended providers: 8 forms, 48 responsive/theme cases, 24 real JSON/ZIP/rejection imports, no page errors."
     )
 
