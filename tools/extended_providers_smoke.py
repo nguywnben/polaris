@@ -80,7 +80,12 @@ def main():
                     width,
                     theme,
                 )
-                if provider in ("kimi", "kiro", "cloudflare", "opencode"):
+                if provider == "kimchi":
+                    for logo in page.locator('img[src$="/kimchi-logo.png"]').all():
+                        expect(logo).to_have_css("border-radius", "50%")
+                    for frame in page.locator(".extended-logo-kimchi").all():
+                        expect(frame).to_have_css("background-color", "rgba(0, 0, 0, 0)")
+                if provider in ("kimi", "kiro", "cloudflare", "opencode", "kimchi"):
                     page.screenshot(
                         path=str(shots / f"{provider}-{width}-{theme}.png"), full_page=True
                     )

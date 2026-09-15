@@ -11,6 +11,9 @@
 #providersTab .provider-logo-frame.extended-logo-kimi { background: #000; border-radius: var(--radius); }
 img[src$="/kimi-api-platform.png"] { background: #000; border-radius: var(--radius); }
 img[src$="/cloudflare-logo.png"], img[src$="/kilo-logo.png"] { border-radius: var(--radius); }
+/* Kimchi's circular mark has opaque white corners in the supplied PNG. */
+img[src$="/kimchi-logo.png"] { border-radius: 50%; }
+.provider-logo-frame.extended-logo-kimchi { background: transparent; }
 @media (max-width: 640px) { .extended-provider-fields { grid-template-columns: minmax(0, 1fr); } }
 
 .provider-hero-card {
