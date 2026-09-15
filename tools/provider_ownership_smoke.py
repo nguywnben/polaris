@@ -17,7 +17,7 @@ from browser_smoke import PASSWORD, disposable_runtime
 from playwright.sync_api import Page, Route, expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-WIDTHS = (360, 768, 1024, 1440)
+WIDTHS = (320, 768, 1024, 1440)
 THEMES = ("light", "dark")
 PROVIDERS = (
     ("google_antigravity", "providerSelectorGoogleAntigravity", "providerWorkspaceGoogleAntigravity"),
@@ -109,6 +109,12 @@ def _open_providers(page: Page) -> None:
 
 
 def _select_all_providers(page: Page) -> None:
+    for scope in ("shared", "compatibility"):
+        owner = page.locator(f'[data-google-settings="{scope}"]').evaluate(
+            "section => section.closest('.provider-workspace')?.id || null"
+        )
+        if owner != "providerWorkspaceGoogleAntigravity":
+            raise AssertionError(f"Google {scope} settings have the wrong workspace: {owner!r}")
     credit_owner = page.locator("#antigravityCreditSettings").evaluate(
         "section => section.closest('.provider-workspace')?.id || null"
     )
@@ -128,6 +134,12 @@ def _select_all_providers(page: Page) -> None:
         selector.click()
         expect(selector).to_have_attribute("aria-selected", "true")
         expect(page.locator(f"#{workspace_id}")).to_be_visible()
+        for scope in ("shared", "compatibility"):
+            settings = page.locator(f'[data-google-settings="{scope}"]')
+            if _provider_id == "google_antigravity":
+                expect(settings).to_be_visible()
+            else:
+                expect(settings).to_be_hidden()
 
     page.locator("#providerCatalogPrevBtn").click()
     page.locator("#providerSelectorGoogleAntigravity").click()
@@ -152,6 +164,19 @@ def _open_google_settings(page: Page) -> None:
             .every(form => !form.inert && !form.hasAttribute('aria-busy'))""",
         timeout=10_000,
     )
+    # Switching providers hides the existing editors, rather than recreating
+    # them or reloading their data and discarding an unsaved draft.
+    endpoint = page.locator("#codeAssistEndpoint")
+    draft = "https://cloudcode-pa.googleapis.com/unsaved-draft"
+    endpoint.fill(draft)
+    page.locator("#providerSelectorCodex").click()
+    expect(shared).to_be_hidden()
+    expect(compatibility).to_be_hidden()
+    page.locator("#providerSelectorGoogleAntigravity").click()
+    expect(endpoint).to_have_value(draft)
+    expect(shared).to_have_attribute("open", "")
+    expect(compatibility).to_have_attribute("open", "")
+    endpoint.fill("https://cloudcode-pa.googleapis.com")
 
 
 def _verify_settings_ownership(page: Page) -> None:

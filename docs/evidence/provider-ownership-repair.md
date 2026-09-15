@@ -44,3 +44,17 @@ manager caller is outside the provider-wrapper NO_PROXY change.
 
 Existing configuration values and environment locks are retained. See the migration note in
 `docs/provider-capabilities.md` for previously customized Google OAuth origins.
+
+## Google settings placement follow-up
+
+The shared Google OAuth and legacy Code Assist editors now live inside the
+Google Antigravity workspace, after its provider-specific settings. They are
+not shown for any of the other eight provider variants, including Google AI Studio.
+No stored key, API, save/reset behavior, or locale copy changed.
+
+The extended browser smoke first failed because the Google editor had no owning
+workspace. After the markup correction it passed at 320, 768, 1024 and 1440 pixels
+in light and dark themes, checking all nine selectors and preservation of open
+editors and unsaved drafts across provider switches. The form-contract tests and
+all three provider-family draft contracts passed. Desktop/light and mobile/dark
+captures were visually inspected under `temp/google-settings-layout-smoke`.
