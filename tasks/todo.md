@@ -72,3 +72,12 @@ including that edit in a release candidate.
 - [x] No new Wave, phase, suffix, hidden checklist, or alternate progress denominator exists.
 - [x] Experimental HA/Kubernetes work has not blocked a core-production task.
 - [x] Post-R1 backlog work has not entered the release candidate.
+
+## Approved post-R1 repair — CR-001
+
+- [x] Claude transient failures and OAuth destination validation.
+- [x] Native provider imports and truthful validation status.
+- [x] Provider settings ownership, scoped resets, and server validation.
+- [x] Ollama explicit proxy bypass.
+- [x] Antigravity credit editor in Providers.
+- [x] Locales, documentation, focused integration tests, and isolated browser verification.

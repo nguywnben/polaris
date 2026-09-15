@@ -19,6 +19,17 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Fixed
 
+- Provider settings now have one owner: Code Assist and shared Google endpoints are in
+  Providers; routing-wide stream conversion and retry credential switching are in Settings.
+  Claude and xAI shared fields have a single editor, and Grok's OAuth inference endpoint
+  is editable independently from SpaceXAI Console. Saved values and environment locks remain intact.
+- Antigravity credit controls moved from Pool to Providers, with bounded account selection
+  and confirmation. Offline imports distinguish stored credentials from verified credentials.
+- Native Codex, Claude Code and Grok credential files are normalized with bounded,
+  provider-specific validation. Foreign OAuth tokens are not sent to Google for email discovery.
+- OAuth destination validation is consistent at save/runtime; Claude rate limits and server
+  errors remain transient. Explicit NO_PROXY rules apply to shared HTTP and streaming clients.
+
 - Global credential routing policy remains editable before any provider models exist and
   saves independently from virtual routes, with failed drafts retained for retry.
 - Activity distinguishes an empty request history from filters with no matches. Connecting

@@ -434,4 +434,31 @@ request.
 
 ## Change Request Log
 
-No change requests.
+### CR-001 — Provider ownership and authentication corrections (2026-09-15)
+
+Owner approved the provider audit corrections and parallel implementation. This is a bounded
+post-R1 repair of existing capabilities, not a new provider family or change to the completed
+36-task baseline. Existing credentials and saved configuration values must be preserved.
+
+Implementation order and contracts:
+
+1. Claude token failures retain transient/permanent classification; save and runtime validate
+   the same OAuth destinations. Verify with synthetic 429/503 and malformed-URL regressions.
+2. Recognize narrowly defined native Codex/Claude/Grok imports and report offline imports as
+   unverified. Preserve existing validation paths and bounded upload limits. Verify parser and
+   import/storage tests without real credentials or external calls.
+3. Provider settings have one truthful owner: existing Code Assist compatibility and shared
+   Google settings belong in Providers; shared streaming/retry switches belong in Settings;
+   Grok gets its existing OAuth inference endpoint; Anthropic/xAI shared settings have one editor.
+   Verify schema, allowlists, reset isolation, frontend contracts, and environment locks.
+4. Ollama honors explicit proxy bypass without globally changing other providers. Verify direct
+   and inherited proxy selection with fake transports.
+5. Move Antigravity credit editing into its provider workspace; keep pool status and generic
+   credential lifecycle actions. Verify selection, authorization, failure, and empty states.
+6. Integrate localized UI, normal-weight placeholders, documentation, and bounded isolated
+   browser checks across mobile/desktop and both themes. Review security-sensitive changes
+   independently before committing; no deployment or upstream account mutation.
+
+Checkpoint after each repair: focused unittest/Node checks and a reviewable commit. Final gate:
+combined affected tests, strict locale audit, frontend build, and real-browser ownership checks.
+Do not weaken tests, introduce a framework, or broaden OAuth trust to arbitrary hosts.

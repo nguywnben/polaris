@@ -6,6 +6,52 @@ must use this matrix instead of provider-name conditionals.
 
 ## API
 
+### Settings ownership
+
+Provider-specific configuration is edited on **Providers**, never in System Settings.
+Existing storage keys and environment overrides are preserved; moving an editor does not
+reset credentials or configuration.
+
+- Antigravity owns its OAuth client, inference endpoint, client identity headers and
+  per-account credit-use controls. Pool shows credit state but does not edit it.
+- Grok Build owns `xai_oauth_api_url` and its OAuth issuer/client. SpaceXAI Console owns
+  `xai_api_url`. Their HTTP User-Agent has one explicitly shared editor.
+- Claude Code owns its OAuth settings. Claude Code and Claude Platform share one API
+  endpoint/User-Agent editor. Reset scopes are `code` and `shared`, respectively.
+- Shared Google OAuth/user-info endpoints and the separate legacy Code Assist settings
+  live in Providers. `GET/POST /api/providers/google/config` uses the existing config
+  keys. Reset requires `?scope=shared` or `?scope=compatibility`; blank client secrets
+  preserve the configured secret. This is not a new advertised provider variant.
+- `stream_to_nonstream` and `switch_credential_enabled` affect the primary routing pool,
+  not just Antigravity, and are edited once in System Settings.
+
+Google OAuth/user-info destinations are restricted to the trusted Google origins before
+credentials can be sent; redirects are not followed. Claude authorization/token URLs use
+the same validation at save and runtime. Claude token responses preserve 429/5xx as
+transient errors instead of classifying them as invalid credentials.
+
+If an older deployment customized Google OAuth/user-info hosts, restore their official
+Google origins before authorization or refresh. Use the outbound proxy setting for network
+access instead. Existing values are not silently rewritten, but unsafe destinations are now
+rejected. This is an intentional security tightening in the pre-1.0 configuration contract.
+
+### Native imports and proxy bypass
+
+The importer recognizes native Codex `tokens`, Claude Code `claudeAiOauth`, and Grok
+account containers, as well as canonical Polaris credentials and supported CLIProxy xAI
+exports. Ambiguous provider/type declarations are rejected. JWT claims are unverified
+metadata hints only, not proof of identity. Existing size and ZIP-entry limits still apply.
+Offline Codex/Grok imports are marked as imported without provider verification; use the
+Pool's explicit verification/model test before relying on them. The provenance notice
+describes the import, not the outcome of a later test, and does not change routing eligibility.
+
+The shared HTTP client honors explicitly configured `no_proxy` (preferred) or `NO_PROXY`
+for GET, POST and streaming requests. Supported rules include comma-separated exact
+hosts/domain suffixes, optional ports, literal IP/CIDR and `*`. There is no implicit local
+network bypass or DNS lookup. For local Ollama, set a precise rule such as
+`NO_PROXY=localhost,127.0.0.1,host.docker.internal` in the runtime environment if needed.
+Direct and proxied requests keep separate connection pools.
+
 `GET /api/providers/capabilities` returns schema version 2. The authenticated response contains:
 
 - `providers`: routing-provider metadata retained from the provider catalog;
