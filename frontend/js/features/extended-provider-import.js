@@ -55,23 +55,6 @@ function buildExtendedProviderImport(provider) {
         const item = extendedElement(tag, className); item.id = manager.getElementId(suffix); resultCopy.append(item);
     }
     result.append(resultCopy); panel.append(result);
-    const template = extendedElement('button', 'btn btn-secondary btn-small', 'provider.ext.template'); template.type = 'button';
-    template.addEventListener('click', () => {
-        // Deliberately illustrative: never copy a typed key or credential into the example.
-        const example = {provider, api_key: '<YOUR_API_KEY>'};
-        if (provider === 'cloudflare') example.account_id = '<YOUR_CLOUDFLARE_ACCOUNT_ID>';
-        if (provider === 'opencode') example.plan = 'zen';
-        if (provider === 'kiro') {
-            delete example.api_key;
-            Object.assign(example, {credential_type: 'oauth', auth_method: 'social', refresh_token: '<YOUR_REFRESH_TOKEN>', region: 'us-east-1'});
-        }
-        const url = URL.createObjectURL(new Blob([JSON.stringify(example, null, 2)], {type: 'application/json'}));
-        const link = document.createElement('a'); link.href = url; link.download = `${provider}-example.json`;
-        link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
-    // Optional format help belongs with the heading, not in a second action footer.
-    const header = extendedElement('div', 'provider-import-heading');
-    header.append(panel.querySelector('.card-title'), template);
-    panel.prepend(header);
+    addProviderCredentialExample(panel, provider);
     return panel;
 }

@@ -76,7 +76,8 @@ class ProviderOnboardingContractTests(unittest.TestCase):
         source = ONBOARDING_SOURCE.read_text(encoding="utf-8")
         styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
 
-        self.assertIn("function presentProviderImportPanel(panel)", source)
+        self.assertIn("function presentProviderImportPanel(panel, providerId)", source)
+        self.assertIn("addProviderCredentialExample(panel, providerId)", source)
         self.assertIn("title.dataset.providerStaticLabel = 'import'", source)
         self.assertNotIn("createProviderDisclosure(importPanel", source)
         self.assertIn("document.createElement('details')", source)

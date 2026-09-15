@@ -9,6 +9,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- Every provider now offers a JSON credential example beside the import heading,
+  with provider-specific OAuth, API-key or Ollama connection fields and no copied secrets.
 - Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with automatic
   callback completion and a manual callback-URL fallback for remote instances.
   AWS device login and API keys remain separate secondary options.

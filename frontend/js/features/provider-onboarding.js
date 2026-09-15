@@ -136,13 +136,14 @@ async function loadProviderWorkspaceSettings(providerId) {
     return providerSettingsPromises.get(family);
 }
 
-function presentProviderImportPanel(panel) {
+function presentProviderImportPanel(panel, providerId) {
     if (!panel) return;
     panel.classList.add('provider-import-panel');
     const title = panel.querySelector(':scope > .card-title');
     if (!title) return;
     title.dataset.providerStaticLabel = 'import';
     title.textContent = t('providers.import_credentials');
+    addProviderCredentialExample(panel, providerId);
 }
 
 function createProviderDisclosure(panel, {providerId}) {
@@ -192,7 +193,7 @@ function enhanceProviderWorkspaces() {
         }
         const tools = workspace?.querySelector(':scope > .provider-tools-grid');
         const importPanel = tools?.querySelector(':scope > .tool-panel:nth-child(2)');
-        presentProviderImportPanel(importPanel);
+        presentProviderImportPanel(importPanel, providerId);
         if (tools) {
             tools.querySelectorAll('.upload-title').forEach(title => {
                 const key = ['google_ai_studio', 'xai_console', 'openai_platform', 'claude_platform'].includes(providerId)

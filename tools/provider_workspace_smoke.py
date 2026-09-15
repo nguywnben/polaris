@@ -2,6 +2,7 @@
 
 import json
 import sys
+from pathlib import Path
 
 from browser_smoke import PASSWORD, ROOT, disposable_runtime, install_fixtures
 from playwright.sync_api import expect, sync_playwright
@@ -23,6 +24,7 @@ def main():
         page.locator("#setupSubmitButton").click()
         expect(page).to_have_url(base + "/dashboard")
         page.goto(base + "/providers", wait_until="networkidle")
+        verify_examples(page)
         for provider in ("openai_platform", "xai_console", "kimi", "poolside"):
             page.locator("#providerCatalogSearch").fill(provider)
             selector = page.locator(f'#providerCatalog [data-provider="{provider}"]')
@@ -41,6 +43,71 @@ def main():
         assert not errors, errors
         browser.close()
     print("Provider workspace consistency passed.")
+
+
+def verify_examples(page):
+    providers = [
+        "google_antigravity",
+        "google_ai_studio",
+        "grok",
+        "xai_console",
+        "codex",
+        "openai_platform",
+        "claude_code",
+        "claude_platform",
+        "ollama",
+        "kimi",
+        "kiro",
+        "cloudflare",
+        "nvidia",
+        "opencode",
+        "poolside",
+        "kimchi",
+        "kilo",
+        "meta",
+        "groq",
+        "deepseek",
+        "mistral",
+        "cerebras",
+    ]
+    shots = ROOT / "temp" / "provider-examples"
+    shots.mkdir(parents=True, exist_ok=True)
+    for index, provider in enumerate(providers):
+        page.locator("#providerCatalogSearch").fill(provider)
+        selector = page.locator(f'#providerCatalog [data-provider="{provider}"]')
+        selector.click()
+        workspace = page.locator("#" + selector.get_attribute("aria-controls"))
+        button = workspace.locator(f'.provider-import-heading [data-provider-example="{provider}"]')
+        expect(button).to_have_count(1)
+        expect(button).to_have_text("Tải tệp JSON mẫu")
+        # Typed values must never appear in the downloaded example.
+        workspace.locator('input[type="password"]').evaluate_all(
+            "inputs => inputs.forEach(input => {input.value = 'FORM_SECRET_DO_NOT_EXPORT';})"
+        )
+        with page.expect_download() as downloaded:
+            button.focus()
+            button.press("Enter")
+        result = downloaded.value
+        assert result.suggested_filename == f"{provider}-example.json"
+        content = Path(result.path()).read_text(encoding="utf-8")
+        assert "FORM_SECRET_DO_NOT_EXPORT" not in content
+        assert json.loads(content)["provider"] == provider
+        workspace.locator('input[type="password"]').evaluate_all(
+            "inputs => inputs.forEach(input => {input.value = '';})"
+        )
+        page.set_viewport_size({"width": 320 if index % 2 else 1440, "height": 1000})
+        page.evaluate(
+            "theme => PolarisTheme.setPreference(theme)", "dark" if index % 2 else "light"
+        )
+        expect(page.locator("html")).not_to_have_class("theme-switching")
+        expect(button).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), provider
+        if provider in {"google_antigravity", "openai_platform"}:
+            workspace.screenshot(path=str(shots / f"{provider}.png"))
+    page.evaluate("enhanceProviderWorkspaces()")
+    expect(page.locator("[data-provider-example]")).to_have_count(22)
+    page.set_viewport_size({"width": 1440, "height": 1000})
+    page.evaluate("PolarisTheme.setPreference('light')")
 
 
 def verify_kiro_routes(page):
