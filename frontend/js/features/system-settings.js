@@ -10,8 +10,6 @@ const SYSTEM_CONFIG_FIELD_KEYS = Object.freeze({
     retry429Enabled: 'retry_429_enabled',
     retry429MaxRetries: 'retry_429_max_retries',
     retry429Interval: 'retry_429_interval',
-    routingStrategy: 'routing_strategy',
-    preferredProvider: 'preferred_provider',
     upstreamTimeoutSeconds: 'upstream_timeout_seconds',
     runtimeLogLevel: 'log_level',
     runtimeLogMaxMb: 'log_max_mb',
@@ -75,7 +73,6 @@ function renderSettingsMetadata(metadata) {
 globalThis.document?.addEventListener?.('polaris:locale-change', () => {
     if (AppState.settingsMetadata instanceof Map) {
         renderSettingsMetadata(AppState.settingsMetadata);
-        syncRoutingPolicyControls();
     }
 });
 
@@ -186,8 +183,6 @@ function populateConfigForm() {
     setConfigField('runtimeLogMaxMb', c.log_max_mb ?? 10);
 
     setConfigField('runtimeLogBackupCount', c.log_backup_count ?? 3);
-
-    syncRoutingPolicyControls();
 
     setConfigField('keepaliveUrl', c.keepalive_url || '');
 
@@ -341,19 +336,6 @@ async function saveConfig() {
 
     }
 
-}
-
-function syncRoutingPolicyControls() {
-    const strategy = document.getElementById('routingStrategy');
-    const provider = document.getElementById('preferredProvider');
-    if (!strategy || !provider) return;
-
-    const config = AppState.currentConfig || {};
-    const labels = {balanced: 'settings.balanced', priority: 'settings.provider_priority',
-        weighted: 'settings.weighted', least_latency: 'settings.least_latency', lowest_cost: 'settings.lowest_cost'};
-    strategy.textContent = t(labels[config.routing_strategy] || 'settings.balanced');
-    provider.textContent = config.preferred_provider
-        ? modelProviderMeta(config.preferred_provider).name : t('settings.automatic');
 }
 
 function populateAccessCredentialStatus(config) {

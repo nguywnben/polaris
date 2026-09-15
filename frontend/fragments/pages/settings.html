@@ -64,12 +64,6 @@
                                     <div class="form-group config-spaced-field"><label for="retry429MaxRetries" data-i18n="settings.maximum_retries">Maximum retries</label><input type="number" id="retry429MaxRetries" data-config-key="retry_429_max_retries" min="0" max="100" placeholder="5"></div>
                                     <div class="form-group"><label for="retry429Interval" data-i18n="settings.retry_interval">Retry interval in seconds</label><input type="number" id="retry429Interval" data-config-key="retry_429_interval" min="0.01" max="10" step="0.01" placeholder="1"></div>
                                 </section>
-                                <section class="config-group" data-settings-tier="compatibility">
-                                    <h2 class="card-title" data-i18n="settings.keep_alive">Hosted Keep-Alive</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</p>
-                                    <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl" data-config-key="keepalive_url" placeholder="https://polaris.example.com"><button type="button" class="btn btn-secondary btn-small config-inline-action" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
-                                    <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" data-config-key="keepalive_interval" min="5" max="86400" placeholder="60"></div>
-                                </section>
                                 </div>
 
                                 <div class="config-column">
@@ -96,30 +90,20 @@
                                     <div class="form-group"><label for="port" data-i18n="settings.port">Port</label><input type="number" id="port" data-config-key="port" min="1" max="65535" placeholder="4283"></div>
                                 </section>
                                 <section class="config-group">
-                                    <h2 class="card-title" data-i18n="settings.storage_proxy">Storage and Proxy</h2>
+                                    <h2 class="card-title" data-i18n="settings.storage_proxy">Storage and Connections</h2>
                                     <p class="card-copy card-title-copy" data-i18n="settings.storage_proxy_description">Set credential storage and outbound network routing.</p>
                                     <div class="form-group"><label for="credentialsDir" data-i18n="settings.credentials_directory">Credentials directory</label><input type="text" id="credentialsDir" data-config-key="credentials_dir" placeholder="/app/backend/data/creds" data-i18n-technical></div>
                                     <div class="form-group"><label for="proxy" data-i18n="settings.outbound_proxy">Outbound proxy</label><input type="text" id="proxy" data-config-key="proxy" placeholder="http://127.0.0.1:7890"></div>
-                                </section>
-
-                                <section class="config-group config-compact-fields">
-                                    <h2 class="card-title" data-i18n="settings.routing_policy">Routing Policy</h2>
-                                    <p class="card-copy card-title-copy" data-i18n="settings.routing_policy_description">Balance healthy credentials automatically or prefer one provider while retaining fallback.</p>
-                                    <div class="form-group">
-                                        <span class="card-copy" data-i18n="settings.credential_selection">Credential selection</span>
-                                        <p id="routingStrategy" data-config-key="routing_strategy"></p>
-                                    </div>
-                                    <div class="form-group">
-                                        <span class="card-copy" data-i18n="settings.preferred_provider">Preferred provider</span>
-                                        <p id="preferredProvider" data-config-key="preferred_provider"></p>
-                                    </div>
-                                    <a class="btn btn-secondary btn-small" href="/models" data-i18n="models_title">Routing Models</a>
                                     <div class="form-group"><label for="upstreamTimeoutSeconds" data-i18n="settings.inference_timeout">Inference timeout in seconds</label><input type="number" id="upstreamTimeoutSeconds" data-config-key="upstream_timeout_seconds" min="5" max="900" step="1" placeholder="300"></div>
                                 </section>
 
-
-
-
+                                <section class="config-group config-compact-fields" data-settings-tier="compatibility">
+                                    <h2 class="card-title" data-i18n="settings.keep_alive">Hosted Keep-Alive</h2>
+                                    <p class="card-copy card-title-copy" data-i18n="settings.keep_alive_description">Optional periodic requests for hosting platforms that suspend idle services.</p>
+                                    <div class="form-group"><label for="keepaliveUrl" data-i18n="settings.keep_alive_url">Keep-alive URL</label><input type="url" id="keepaliveUrl" data-config-key="keepalive_url" placeholder="https://polaris.example.com"></div>
+                                    <div class="form-group"><label for="keepaliveInterval" data-i18n="settings.keep_alive_interval">Keep-alive interval in seconds</label><input type="number" id="keepaliveInterval" data-config-key="keepalive_interval" min="5" max="86400" placeholder="60"></div>
+                                    <div class="page-actions"><button type="button" class="btn btn-secondary btn-small" data-ui-action="set-current-keepalive-url" data-i18n="settings.use_current_url">Use current URL</button></div>
+                                </section>
                                 </div>
                             </div>
 

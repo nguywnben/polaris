@@ -55,10 +55,13 @@ vm.runInThisContext({json.dumps(source)});
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_routing_is_read_only_in_settings_and_not_submitted(self) -> None:
+    def test_routing_is_owned_by_models_and_not_submitted_by_settings(self) -> None:
         fragment = SETTINGS.read_text(encoding="utf-8")
-        self.assertNotRegex(fragment, r'<select[^>]+id="(?:routingStrategy|preferredProvider)"')
-        self.assertIn('href="/models"', fragment)
+        self.assertNotRegex(fragment, r'id="(?:routingStrategy|preferredProvider)"')
+        self.assertNotIn('data-i18n="settings.routing_policy"', fragment)
+        models = (ROOT / "frontend/fragments/pages/models.html").read_text(encoding="utf-8")
+        for field in ("modelRoutingStrategy", "modelPreferredProvider"):
+            self.assertRegex(models, rf'<select[^>]+id="{field}"')
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
         harness = f"""
 const vm = require('vm');
@@ -137,7 +140,20 @@ vm.runInThisContext({json.dumps(source)});
             for field in CONFIGURATION_FIELDS
             if field.config_key and field.surface == "system"
         }
-        self.assertEqual(rendered, authoritative)
+        # These two server keys are edited exclusively on Models, not duplicated here.
+        self.assertEqual(rendered, authoritative - {"routing_strategy", "preferred_provider"})
+
+    def test_connection_fields_and_keepalive_share_the_right_column(self) -> None:
+        fragment = SETTINGS.read_text(encoding="utf-8")
+        columns = fragment.split('<div class="config-column">')
+        self.assertEqual(len(columns), 3)
+        self.assertNotIn('id="keepaliveUrl"', columns[1])
+        self.assertIn('id="keepaliveUrl"', columns[2])
+        sections = re.findall(r"<section\b[^>]*>.*?</section>", fragment, re.DOTALL)
+        connection = next(section for section in sections if 'id="proxy"' in section)
+        self.assertIn('id="upstreamTimeoutSeconds"', connection)
+        self.assertEqual(fragment.count('id="upstreamTimeoutSeconds"'), 1)
+        self.assertEqual(fragment.count('id="keepaliveInterval"'), 1)
 
     def test_metadata_and_secret_preservation_are_explicit(self) -> None:
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")

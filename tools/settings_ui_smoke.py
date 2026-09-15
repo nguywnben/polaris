@@ -68,18 +68,23 @@ def main():
             expect(page.locator("#configForm")).to_be_visible()
             expect(page.locator("#host")).to_be_disabled()
             expect(page.locator("#configForm details")).to_have_count(0)
-            expect(page.locator("p#routingStrategy")).not_to_be_empty()
-            expect(page.locator("p#preferredProvider")).to_contain_text("Codex")
-            expect(page.locator("select#routingStrategy, select#preferredProvider")).to_have_count(
+            expect(page.locator("#routingStrategy, #preferredProvider")).to_have_count(0)
+            expect(page.locator('#configForm [data-i18n="settings.routing_policy"]')).to_have_count(
                 0
             )
-            expect(page.locator('#configForm a[href="/models"]')).to_be_visible()
-            routing_summary = page.locator("#routingStrategy").inner_text()
+            columns = page.locator(".config-column")
+            expect(columns.nth(0).locator("#keepaliveUrl")).to_have_count(0)
+            expect(columns.nth(1).locator("#keepaliveUrl")).to_be_visible()
+            expect(
+                page.locator("section.config-group")
+                .filter(has=page.locator("#proxy"))
+                .locator("#upstreamTimeoutSeconds")
+            ).to_be_visible()
+            expect(page.locator("#configForm #codeAssistClientSecret")).to_have_count(0)
             for name in (
                 "currentConsolePassword",
                 "newPanelPassword",
                 "confirmPanelPassword",
-                "codeAssistClientSecret",
             ):
                 field = page.locator("#" + name)
                 eye = page.locator("#" + name + "Toggle")
@@ -94,6 +99,9 @@ def main():
             page.locator('[data-ui-action="save-config"]').click()
             assert state["writes"] == 0
             page.locator("#upstreamTimeoutSeconds").fill("120")
+            page.locator('[data-ui-action="set-current-keepalive-url"]').click()
+            expect(page.locator("#keepaliveUrl")).to_have_value(base)
+            page.locator("#keepaliveInterval").fill("90")
             page.locator('[data-ui-action="save-config"]').click()
             expect(page.locator("#upstreamTimeoutSeconds")).to_have_value("120")
             expect(page.get_by_text("Synthetic save failure", exact=False)).to_be_visible()
@@ -107,13 +115,15 @@ def main():
                 "host" not in state["saved"] and "code_assist_client_secret" not in state["saved"]
             )
             assert not {"routing_strategy", "preferred_provider"} & state["saved"].keys()
-            expect(page.locator("#routingStrategy")).to_have_text(routing_summary)
-            expect(page.locator("#preferredProvider")).to_contain_text("Codex")
+            assert state["saved"]["keepalive_url"] == base
+            assert state["saved"]["keepalive_interval"] == 90
+            assert page.evaluate("AppState.currentConfig.routing_strategy") == "priority"
+            assert page.evaluate("AppState.currentConfig.preferred_provider") == "codex"
             page.locator('[data-ui-action="reset-config"]').click()
             page.locator("[data-dialog-confirm]").click()
             expect(page.get_by_text("Synthetic reset rejection", exact=False)).to_be_visible()
             assert len(state["resets"]) == 1
-            expect(page.locator("#routingStrategy")).to_have_text(routing_summary)
+            assert page.evaluate("AppState.currentConfig.routing_strategy") == "priority"
             for name in ("currentConsolePassword", "newPanelPassword", "confirmPanelPassword"):
                 page.locator("#" + name).fill("Synthetic-only-value-2026")
             page.locator("#updateAccessCredentialsBtn").click()
@@ -121,6 +131,7 @@ def main():
             expect(page.locator("#newPanelPassword")).to_have_value("Synthetic-only-value-2026")
             for name in ("currentConsolePassword", "newPanelPassword", "confirmPanelPassword"):
                 page.locator("#" + name).fill("")
+            expect(page.locator("#statusSection")).to_be_hidden(timeout=10_000)
             for theme in ("light", "dark"):
                 page.locator("#themePreference").select_option(theme)
                 for width in (1440, 1024, 768, 360, 320):
@@ -131,9 +142,20 @@ def main():
                         theme,
                         width,
                     )
-                    bar = page.locator(".settings-save-bar").bounding_box()
+                    if width == 1440:
+                        heights = columns.evaluate_all(
+                            "cols => cols.map(el => el.getBoundingClientRect().height)"
+                        )
+                        assert abs(heights[0] - heights[1]) <= 160, heights
+                    # Save stays after both full-width sections, but remains reachable.
+                    save_bar = page.locator(".settings-save-bar")
+                    save_bar.scroll_into_view_if_needed()
+                    bar = save_bar.bounding_box()
                     assert 0 <= bar["y"] < 1000, (width, bar)
                     if width in (1440, 360):
+                        page.evaluate(
+                            "document.activeElement.blur(); window.scrollTo({top: 0, behavior: 'instant'})"
+                        )
                         page.screenshot(
                             path=str(output / f"settings-{width}-{theme}.png"),
                             full_page=True,
@@ -157,7 +179,7 @@ def main():
                         "passed": True,
                         "page_errors": errors,
                         "save_requests": state["writes"],
-                        "routing_read_only": True,
+                        "routing_owned_by_models": True,
                         "routing_keys_submitted": False,
                         "reset_scope": "system",
                         "reset_requests": len(state["resets"]),
@@ -167,7 +189,7 @@ def main():
                 encoding="utf-8",
             )
             print(
-                "PASS: 4 secret toggles, validation, failed/successful synthetic saves, environment locks, readonly routing, scoped reset, password draft retention, load/retry, en/vi, 5 widths light/dark"
+                "PASS: 3 password toggles, validation, failed/successful synthetic saves, timeout/keepalive preserved, environment locks, Models-owned routing, scoped reset, password draft retention, balanced columns, load/retry, en/vi, 5 widths light/dark"
             )
             print(f"Evidence: {output}")
         finally:

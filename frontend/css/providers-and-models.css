@@ -1076,7 +1076,7 @@
 }
 
 #configTab .config-compact-fields > :is(h2, p, .switch-row),
-#configTab .config-compact-fields > .form-group:has(#runtimeLogLevel, #upstreamTimeoutSeconds, #autoBanErrorCodes) {
+#configTab .config-compact-fields > .form-group:has(#runtimeLogLevel, #keepaliveUrl, #autoBanErrorCodes) {
     grid-column: 1 / -1;
 }
 
