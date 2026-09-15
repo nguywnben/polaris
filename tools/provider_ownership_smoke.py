@@ -136,47 +136,42 @@ def _select_all_providers(page: Page) -> None:
         expect(page.locator(f"#{workspace_id}")).to_be_visible()
         for scope in ("shared", "compatibility"):
             settings = page.locator(f'[data-google-settings="{scope}"]')
-            if _provider_id == "google_antigravity":
-                expect(settings).to_be_visible()
-            else:
-                expect(settings).to_be_hidden()
+            expect(settings).to_be_hidden()
+        workspace = page.locator(f"#{workspace_id}")
+        advanced = workspace.locator('details[data-disclosure-kind="settings"]:visible')
+        if advanced.count():
+            if not advanced.evaluate("details => details.open"):
+                advanced.locator("summary").click()
+            expect(advanced).to_have_attribute("open", "")
+        for shared in page.locator(
+            '[data-provider-owned-link], #xaiSharedSettingsForm, '
+            '#claudePlatformSettingsForm, [data-google-settings]'
+        ).all():
+            expect(shared).to_be_hidden()
 
     page.locator("#providerCatalogPrevBtn").click()
     page.locator("#providerSelectorGoogleAntigravity").click()
     expect(page.locator("#providerWorkspaceGoogleAntigravity")).to_be_visible()
 
 
-def _open_google_settings(page: Page) -> None:
-    shared = page.locator('[data-google-settings="shared"]')
-    compatibility = page.locator('[data-google-settings="compatibility"]')
-    if not shared.evaluate("details => details.open"):
-        shared.locator("summary").click()
-    if not compatibility.evaluate("details => details.open"):
-        compatibility.locator("summary").click()
-    expect(shared).to_have_attribute("open", "")
-    expect(compatibility).to_have_attribute("open", "")
-    expect(page.locator("#googleSharedSettingsForm")).to_be_visible()
-    expect(page.locator("#googleCompatibilitySettingsForm")).to_be_visible()
-    expect(page.locator("#googleSharedSettingsForm")).to_have_attribute("novalidate", "")
-    expect(page.locator("#googleCompatibilitySettingsForm")).to_have_attribute("novalidate", "")
-    page.wait_for_function(
-        """() => [...document.querySelectorAll('[data-google-scope]')]
-            .every(form => !form.inert && !form.hasAttribute('aria-busy'))""",
-        timeout=10_000,
-    )
+def _verify_private_settings_draft(page: Page) -> None:
+    advanced = page.locator('#providerWorkspaceGoogleAntigravity details[data-disclosure-kind="settings"]')
+    if not advanced.evaluate("details => details.open"):
+        advanced.locator("summary").click()
+    endpoint = page.locator("#antigravityApiUrl")
+    expect(endpoint).to_be_visible()
+    expect(endpoint).to_be_enabled()
     # Switching providers hides the existing editors, rather than recreating
     # them or reloading their data and discarding an unsaved draft.
-    endpoint = page.locator("#codeAssistEndpoint")
-    draft = "https://cloudcode-pa.googleapis.com/unsaved-draft"
+    original = endpoint.input_value()
+    draft = "https://daily-cloudcode-pa.googleapis.com/unsaved-draft"
     endpoint.fill(draft)
     page.locator("#providerSelectorCodex").click()
-    expect(shared).to_be_hidden()
-    expect(compatibility).to_be_hidden()
+    expect(advanced).to_be_hidden()
     page.locator("#providerSelectorGoogleAntigravity").click()
     expect(endpoint).to_have_value(draft)
-    expect(shared).to_have_attribute("open", "")
-    expect(compatibility).to_have_attribute("open", "")
-    endpoint.fill("https://cloudcode-pa.googleapis.com")
+    expect(advanced).to_have_attribute("open", "")
+    endpoint.fill(original)
 
 
 def _verify_settings_ownership(page: Page) -> None:
@@ -220,7 +215,7 @@ def _capture_matrix(page: Page, output_dir: Path) -> None:
             page.set_viewport_size({"width": width, "height": 1000})
             _open_providers(page)
             _select_all_providers(page)
-            _open_google_settings(page)
+            _verify_private_settings_draft(page)
             _assert_surface_hygiene(page, "Providers", width, theme)
             page.screenshot(
                 path=output_dir / f"providers-{theme}-{width}.png",

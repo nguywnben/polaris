@@ -58,3 +58,20 @@ in light and dark themes, checking all nine selectors and preservation of open
 editors and unsaved drafts across provider switches. The form-contract tests and
 all three provider-family draft contracts passed. Desktop/light and mobile/dark
 captures were visually inspected under `temp/google-settings-layout-smoke`.
+
+## Operator-only shared configuration follow-up
+
+Shared Google, xAI and Claude configuration editors and cross-provider links are
+now hidden and excluded from normal user interaction. Legacy Code Assist editing
+is also hidden; its runtime and authenticated API remain unchanged. Hidden panels
+are not converted into empty advanced-settings disclosures. Provider-specific
+advanced settings, stored values, environment overrides and reset scopes remain
+unchanged. See `docs/provider-capabilities.md` for operator environment settings.
+
+The updated smoke first reproduced the visible shared Google editor. The fix
+passed all nine provider selections, opening every visible advanced disclosure,
+at 320/768/1024/1440 pixels in both themes. Private Antigravity drafts survived
+switching providers. No external provider requests were made; disposable storage
+was used. Desktop/light and mobile/dark captures were inspected under
+`temp/operator-settings-hidden-smoke`. Form, onboarding and family draft tests
+passed (17 unittest cases, including the three Node family contract runs).

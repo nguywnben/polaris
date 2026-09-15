@@ -15,15 +15,43 @@ reset credentials or configuration.
 - Antigravity owns its OAuth client, inference endpoint, client identity headers and
   per-account credit-use controls. Pool shows credit state but does not edit it.
 - Grok Build owns `xai_oauth_api_url` and its OAuth issuer/client. SpaceXAI Console owns
-  `xai_api_url`. Their HTTP User-Agent has one explicitly shared editor.
+  `xai_api_url`. Their shared HTTP User-Agent is operator-only configuration.
 - Claude Code owns its OAuth settings. Claude Code and Claude Platform share one API
-  endpoint/User-Agent editor. Reset scopes are `code` and `shared`, respectively.
+  endpoint/User-Agent configuration, which is operator-only. Existing API reset scopes
+  remain `code` and `shared`, respectively.
 - Shared Google OAuth/user-info endpoints and the separate legacy Code Assist settings
-  live in Providers. `GET/POST /api/providers/google/config` uses the existing config
+  are operator-only, not visible provider settings. `GET/POST /api/providers/google/config` uses the existing config
   keys. Reset requires `?scope=shared` or `?scope=compatibility`; blank client secrets
   preserve the configured secret. This is not a new advertised provider variant.
 - `stream_to_nonstream` and `switch_credential_enabled` affect the primary routing pool,
   not just Antigravity, and are edited once in System Settings.
+
+### Operator-only settings
+
+The console hides shared Google, xAI and Claude editors and their navigation links.
+Legacy Code Assist controls are also hidden; they are not Antigravity-specific settings.
+Only provider-specific advanced controls are presented. A provider with no separate
+advanced controls has no empty advanced-settings disclosure.
+
+This is a presentation change, not deletion or a security boundary. Stored values,
+runtime defaults, environment overrides and authenticated management APIs are retained.
+Hidden editors remain inert to user interaction, even after family configuration loads.
+There is no new Code Assist enable/disable switch: `COMPATIBILITY_MODE` controls AI
+quality behavior and must not be used to expose the legacy editor.
+
+For exceptional deployments, set these variables in the application's environment
+(for Docker Compose, explicitly forward them in the app service's `environment`):
+
+| Scope | Environment variables |
+| --- | --- |
+| Shared Google OAuth/account lookup | `OAUTH_URL`, `GOOGLE_APIS_URL` |
+| Legacy Code Assist | `CODE_ASSIST_ENDPOINT`, `CODE_ASSIST_CLIENT_ID`, `CODE_ASSIST_CLIENT_SECRET`, `RESOURCE_MANAGER_URL`, `SERVICE_USAGE_URL` |
+| Grok Build / SpaceXAI Console | `XAI_USER_AGENT` |
+| Claude Code / Claude Platform | `ANTHROPIC_API_URL`, `CLAUDE_USER_AGENT` |
+
+Restart/recreate the process or container after changing its environment. Normal
+deployments should keep defaults. Existing saved values remain effective when no
+environment override is supplied; do not reset them just because the editor is hidden.
 
 Google OAuth/user-info destinations are restricted to the trusted Google origins before
 credentials can be sent; redirects are not followed. Claude authorization/token URLs use

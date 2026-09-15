@@ -146,7 +146,9 @@ function presentProviderImportPanel(panel) {
 }
 
 function createProviderDisclosure(panel, {providerId}) {
-    if (!panel || panel.matches('details')) return panel;
+    // Operator-only configuration stays out of the provider UI, including its
+    // disclosure header. Family loaders may still retain its stored settings.
+    if (!panel || panel.matches('details, [data-operator-only]')) return panel;
     const details = document.createElement('details');
     details.className = `${panel.className} provider-secondary-disclosure`;
     details.dataset.disclosureKind = 'settings';
