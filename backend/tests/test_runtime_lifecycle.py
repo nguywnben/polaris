@@ -177,10 +177,15 @@ class RuntimeLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await lifecycle.check_ready())
 
     async def test_close_restores_a_usable_process_local_response_cache(self) -> None:
-        with patch.dict(os.environ, {}, clear=True):
+        # Other test modules can initialize the process-wide credential manager.
+        # Exercise this lifecycle with its own manager, just like the injection test.
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("core.runtime_lifecycle.credential_manager", _CredentialManagerSingleton()),
+        ):
             await initialize_runtime()
 
-        await close_runtime()
+            await close_runtime()
         response_cache.clear()
         self.assertTrue(
             await response_cache_coordinator.set(
