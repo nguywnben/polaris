@@ -24,7 +24,7 @@ CONSOLE_FRAGMENT_PATHS = (
     "pages/ai-quality.html",
     "pages/access.html",
     "pages/identity.html",
-    "pages/pool.html",
+    "pages/credentials.html",
     "pages/models.html",
     "pages/playground.html",
     "pages/providers.html",
@@ -50,6 +50,7 @@ CONSOLE_STYLE_ASSETS = (
     "css/observability.css",
     "css/components.css",
     "css/dialogs.css",
+    "css/credential-management.css",
     "css/responsive.css",
     "css/oauth-callback.css",
 )
@@ -95,6 +96,8 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/ui/dialog-content.js",
     "js/ui/dialogs.js",
     "js/ui/credential-dialogs.js",
+    "js/ui/credential-management.js",
+    "js/ui/credential-management-actions.js",
     "js/ui/credential-cards.js",
     "js/features/authentication.js",
     "js/features/usage-pagination.js",
@@ -109,6 +112,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/extended-provider-import.js",
     "js/features/kiro-authentication.js",
     "js/features/kiro-browser-login.js",
+    "js/features/muse-authentication.js",
     "js/features/extended-providers.js",
     "js/features/provider-catalog-layout.js",
     "js/features/navigation.js",
@@ -116,7 +120,7 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/playground.js",
     "js/features/code-assist-authentication.js",
     "js/features/antigravity-authentication.js",
-    "js/features/credential-pool.js",
+    "js/features/credentials.js",
     "js/features/credential-diagnostics.js",
     "js/features/credential-batch-actions.js",
     "js/features/logs.js",
@@ -351,7 +355,7 @@ async def serve_oauth_callback(request: Request):
 @router.get("/access", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/identity", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/code_assist", response_class=HTMLResponse, include_in_schema=False)
-@router.get("/pool", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/credentials", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/models", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/playground", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/providers", response_class=HTMLResponse, include_in_schema=False)

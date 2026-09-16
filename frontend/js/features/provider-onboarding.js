@@ -71,8 +71,6 @@ function renderProviderCapabilityBadges() {
         if (!capability || !selector || !badges) return;
 
         const labels = [variantId === 'kiro' ? 'OAuth · API Key' : variantId === 'cloudflare' ? t('provider.auth.token_label') : getProviderCapabilityLabel(capability.credential_type)];
-        if (capability.operations.includes('test')) labels.push(t('providers.connection_test'));
-        if (capability.operations.includes('model_discovery')) labels.push(t('providers.model_discovery'));
         badges.replaceChildren(...labels.map((label) => {
             const badge = document.createElement('span');
             badge.textContent = label;
@@ -197,7 +195,7 @@ function enhanceProviderWorkspaces() {
         if (tools) {
             tools.querySelectorAll('.upload-title').forEach(title => {
                 const key = ['google_ai_studio', 'xai_console', 'openai_platform', 'claude_platform'].includes(providerId)
-                    || (providerId !== 'kiro' && typeof EXTENDED_PROVIDER_UI !== 'undefined' && EXTENDED_PROVIDER_UI[providerId])
+                    || (!['kiro', 'muse_code'].includes(providerId) && typeof EXTENDED_PROVIDER_UI !== 'undefined' && EXTENDED_PROVIDER_UI[providerId])
                     ? 'provider.copy.drop_keys' : 'provider.copy.drop_credentials';
                 title.dataset.i18n = key;
                 title.textContent = t(key);
@@ -209,6 +207,7 @@ function enhanceProviderWorkspaces() {
         );
         createProviderDisclosure(settingsPanel, {providerId});
     });
+    prepareProviderKeyEntries();
 }
 
 async function loadProviderOnboarding(options = {}) {

@@ -46,7 +46,7 @@ class NavigationConsoleContractTests(unittest.TestCase):
             [
                 "dashboard",
                 "providers",
-                "pool",
+                "credentials",
                 "models",
                 "quality",
                 "playground",

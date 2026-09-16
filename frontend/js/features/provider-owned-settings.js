@@ -11,7 +11,11 @@ async function loadGoogleProviderSettings(force = false) {
     if (googleSettingsState.loaded && !force) return;
     googleSettingsState.pending = (async () => {
         const forms = [...document.querySelectorAll('[data-google-scope]')];
-        forms.forEach(form => { form.inert = true; form.setAttribute('aria-busy', 'true'); });
+        forms.forEach(form => {
+            form.inert = true;
+            form.setAttribute('aria-busy', 'true');
+            form.classList.toggle('is-initial-loading', !googleSettingsState.loaded);
+        });
         try {
             const response = await fetch('./api/providers/google/config', {headers: getAuthHeaders()});
             const data = await response.json();

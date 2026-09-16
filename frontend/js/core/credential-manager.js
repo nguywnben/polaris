@@ -529,8 +529,8 @@ function createCredsManager(type) {
         updateFirstRunState() {
 
             if (this.type !== 'primary') return;
-            const tab = document.getElementById('poolTab');
-            const firstRun = document.getElementById('poolFirstRun');
+            const tab = document.getElementById('credentialsTab');
+            const firstRun = document.getElementById('credentialsFirstRun');
             const isEmpty = this.hasLoaded && this.totalCount === 0 && !this.hasActiveFilters();
             tab?.classList.toggle('is-pristine-empty', isEmpty);
             if (firstRun) firstRun.hidden = !isEmpty;
@@ -1071,7 +1071,7 @@ function createCredsManager(type) {
 
                 if (response.ok) {
 
-                    showStatus(data.message || t('status_action_success', {action: action}), 'success');
+                    showStatus(t('status_action_success', {action: t(`action_${action}`)}), 'success');
 
                     if (action === 'delete') {
 
@@ -1092,6 +1092,8 @@ function createCredsManager(type) {
                     await this.refresh();
 
                     if (action === 'delete') await refreshUsageStats();
+
+                    return true;
 
                 } else {
 
@@ -1147,9 +1149,15 @@ function createCredsManager(type) {
 
         },
 
-        async batchAction(action) {
+        async batchAction(action, scopedTarget = null) {
 
-            const targetCount = this.selectionScope === 'all_matching'
+            // Freeze the exact targets before preview/confirmation. Section actions
+            // must not read or replace the user's unrelated global selection.
+            const targetPayload = scopedTarget
+                ? {filenames: [...new Set(scopedTarget.filenames)]}
+                : this.getBatchTargetPayload();
+
+            const targetCount = scopedTarget ? targetPayload.filenames.length : this.selectionScope === 'all_matching'
 
                 ? Number(this.allMatchingSelection?.matching_count || 0)
 
@@ -1226,7 +1234,7 @@ function createCredsManager(type) {
 
                     headers: getAuthHeaders(),
 
-                    body: JSON.stringify({ action, ...this.getBatchTargetPayload(), preview: true })
+                    body: JSON.stringify({ action, ...targetPayload, preview: true })
 
                 });
 
@@ -1260,7 +1268,7 @@ function createCredsManager(type) {
 
                 });
 
-                const selectionQuery = this.describeSelectionQuery();
+                const selectionQuery = scopedTarget ? scopedTarget.description : this.describeSelectionQuery();
 
                 const confirmMsg = [selectionQuery, previewSummary, confirmationMessages[action] || actionLabel]
 
@@ -1282,7 +1290,7 @@ function createCredsManager(type) {
 
                         action,
 
-                        ...this.getBatchTargetPayload(),
+                        ...targetPayload,
 
                         preview_token: previewData.preview_token,
 
@@ -1334,7 +1342,7 @@ function createCredsManager(type) {
 
                     }
 
-                    this.clearSelection();
+                    if (!scopedTarget) this.clearSelection();
 
                     await this.refresh();
 

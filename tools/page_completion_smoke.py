@@ -77,7 +77,12 @@ def main():
             expect(page.locator("#backupCreate")).to_be_enabled()
             expect(page.locator("#backupRestore")).to_be_disabled()
             assert page.locator("select#routingStrategy, select#preferredProvider").count() == 0
-            expect(page.locator('#configTab a[href="/models"]')).to_be_visible()
+            # Routing has its own page, reached through the shared navigation.
+            page.locator('[data-ui-action="switch-tab"][data-tab="models"]').click()
+            expect(page).to_have_url(base + "/models")
+            expect(page.locator("#modelsTab")).to_be_visible()
+            page.locator('[data-ui-action="switch-tab"][data-tab="config"]').click()
+            expect(page).to_have_url(base + "/config")
             with page.expect_response("**/api/config/save") as saved:
                 page.locator('[data-ui-action="save-config"]').first.click()
             assert saved.value.ok

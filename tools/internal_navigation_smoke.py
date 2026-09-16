@@ -74,6 +74,14 @@ def main():
                 "/config",
                 "#configTab",
             )
+            # Settings no longer duplicates routing controls. Exercise delegated
+            # same-origin anchors with a fixture, alongside the real CTAs below.
+            page.locator("#configTab").evaluate("""panel => {
+                const link = document.createElement('a');
+                link.href = '/models';
+                link.textContent = 'Routing models (navigation fixture)';
+                panel.prepend(link);
+            }""")
             check_navigation(
                 "settings internal routing link",
                 lambda: page.locator('#configTab a[href="/models"]').click(),
@@ -105,11 +113,11 @@ def main():
             check_navigation("back to empty models", page.go_back, "/models", "#modelsTab")
             check_navigation(
                 "empty models manage credentials",
-                lambda: page.locator('#modelFirstRun [data-tab="pool"]').click(),
-                "/pool",
-                "#poolTab",
+                lambda: page.locator('#modelFirstRun [data-tab="credentials"]').click(),
+                "/credentials",
+                "#credentialsTab",
             )
-            check_navigation("back from credential pool", page.go_back, "/models", "#modelsTab")
+            check_navigation("back from credentials", page.go_back, "/models", "#modelsTab")
 
             state["configured"] = True
             page.locator("#refreshModelCatalogBtn").click()

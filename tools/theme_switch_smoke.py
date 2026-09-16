@@ -63,7 +63,7 @@ def main():
                 "access",
                 "playground",
                 "dashboard",
-                "pool",
+                "credentials",
                 "models",
                 "identity",
                 "activity",

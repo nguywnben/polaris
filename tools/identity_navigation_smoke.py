@@ -25,7 +25,7 @@ def main():
             expected_order = [
                 "dashboard",
                 "providers",
-                "pool",
+                "credentials",
                 "models",
                 "quality",
                 "playground",

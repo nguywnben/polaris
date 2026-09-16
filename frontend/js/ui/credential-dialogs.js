@@ -81,14 +81,14 @@ function credentialEditField(configuration, field) {
         && configuration.editable_fields.includes(field);
 }
 
-async function showCredentialEditModal(pathId) {
+async function showCredentialEditModal(pathId, options = {}) {
     const context = getCredentialModalContext(pathId, AppState.primaryCreds);
     if (!context.filename || context.manager?.type !== 'primary') return;
 
-    showStatus(t('status_loading_file_content'), 'info');
+    if (!options.container) showStatus(t('status_loading_file_content'), 'info');
     try {
         const endpoint = `./api/credentials/configuration/${encodeURIComponent(context.filename)}?mode=provider`;
-        const response = await fetch(endpoint, {headers: getAuthHeaders()});
+        const response = await fetch(endpoint, {headers: getAuthHeaders(), signal: options.signal});
         const configuration = await response.json().catch(() => ({}));
         if (!response.ok || !configuration.editable) {
             throw new Error(configuration.detail || configuration.error || t('unknown_error'));
@@ -128,12 +128,21 @@ async function showCredentialEditModal(pathId) {
 
         const form = modal.querySelector('[data-credential-edit-form]');
         if (typeof appendExtendedCredentialFields === 'function') appendExtendedCredentialFields(form, configuration);
-        const error = modal.querySelector('[data-credential-edit-error]');
+        if (options.container) {
+            if (options.signal?.aborted) return;
+            options.container.replaceChildren(form);
+        }
+        const error = form.querySelector('[data-credential-edit-error]');
         const submit = form.querySelector('button[type="submit"]');
         let saving = false;
         const close = () => {
-            if (!saving) void unmountModal(modal);
+            if (saving) return;
+            if (options.container) {
+                form.reset();
+                error.classList.add('hidden');
+            } else void unmountModal(modal);
         };
+        if (options.container) form.querySelector('[data-credential-edit-cancel]').addEventListener('click', close);
         modal.addEventListener('click', (event) => {
             if (event.target === modal || event.target.closest('[data-credential-edit-cancel]')) close();
         });
@@ -142,6 +151,7 @@ async function showCredentialEditModal(pathId) {
         });
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (saving || options.isBusy?.()) return;
             const values = new FormData(form);
             const payload = {};
             const label = String(values.get('credential_label') || '').trim();
@@ -159,12 +169,14 @@ async function showCredentialEditModal(pathId) {
                 }
             }
             if (!Object.keys(payload).length) {
-                void unmountModal(modal);
+                if (!options.container) void unmountModal(modal);
                 return;
             }
 
             saving = true;
-            submit.disabled = true;
+            options.onSaving?.(true);
+            const enabledControls = Array.from(form.querySelectorAll('input, select, textarea, button')).filter(control => !control.disabled);
+            enabledControls.forEach(control => { control.disabled = true; });
             form.setAttribute('aria-busy', 'true');
             error.classList.add('hidden');
             try {
@@ -176,30 +188,42 @@ async function showCredentialEditModal(pathId) {
                 const result = await saveResponse.json().catch(() => ({}));
                 if (!saveResponse.ok) throw new Error(result.detail || result.error || t('unknown_error'));
                 saving = false;
-                await unmountModal(modal);
+                if (!options.container) await unmountModal(modal);
+                else {
+                    Object.assign(configuration, payload);
+                    const keyInput = form.elements.api_key;
+                    if (keyInput) keyInput.value = '';
+                    delete configuration.api_key;
+                    form.querySelectorAll('input:not([type="password"])').forEach(input => { input.defaultValue = input.value; });
+                    form.querySelectorAll('select').forEach(select => Array.from(select.options).forEach(option => { option.defaultSelected = option.selected; }));
+                }
                 showStatus(t('status_action_success', {action: t('credential_edit_action')}), 'success');
                 await context.manager.refresh({preserveContent: true});
+                options.onSaved?.();
             } catch (saveError) {
                 saving = false;
                 submit.disabled = false;
                 form.removeAttribute('aria-busy');
                 error.textContent = saveError.message || t('unknown_error');
                 error.classList.remove('hidden');
+            } finally {
+                saving = false;
+                enabledControls.forEach(control => { control.disabled = false; });
+                form.removeAttribute('aria-busy');
+                options.onSaving?.(false);
             }
         });
-        await mountModal(modal);
+        if (!options.container) await mountModal(modal);
     } catch (error) {
+        if (options.signal?.aborted) return;
+        if (options.container) throw error;
         showStatus(t('status_action_failed', {error: error.message || t('unknown_error')}), 'error');
     }
 }
 
 function reauthenticateCredential(pathId) {
     const context = getCredentialModalContext(pathId, AppState.primaryCreds);
-    if (!context.providerVariant || context.credentialSource === 'environment') return;
-    selectProviderWorkspace(context.providerVariant);
-    navigate('/providers', true);
-    document.getElementById(PROVIDER_WORKSPACES[context.providerVariant]?.panelId)
-        ?.scrollIntoView({block: 'start'});
+    reauthenticateCredentialByContext(context);
 }
 
 async function showCredentialModels(pathId) {
@@ -409,14 +433,20 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
         .map((windowData) => Number(windowData.remaining_percentage))
         .filter(Number.isFinite);
     const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
-    const rawPlan = String(data.plan || 'unknown').trim().replace(/[_-]+/g, ' ');
+    const rawPlan = String(data.plan || '').trim().replace(/[_-]+/g, ' ');
     const plan = rawPlan.replace(/\b\w/g, (character) => character.toUpperCase());
+    const isMuseCode = data.provider === 'muse_code' || context.providerVariant === 'muse_code';
+    const providerTier = isMuseCode
+        ? normalizeCredentialSubscriptionPlan(data.subscription_tier, 'provider_tier') : null;
+    const providerPlan = isMuseCode
+        ? normalizeCredentialSubscriptionPlan(data.plan, 'provider_plan') : null;
     const availableResetCredits = Number(data.reset_credits?.available_count);
     const hasReviewWindows = windows.some((windowData) => String(windowData.id || '').startsWith('review_'));
     const rows = renderMessageResultRows([
         [t('modal.provider'), context.providerName || (isClaudeCode ? 'Claude Code' : 'Codex')],
         context.accountLabel ? [t('modal.account'), context.accountLabel] : [t('modal.credential'), filename],
-        [t('modal.plan'), plan || t('modal.unknown')],
+        providerPlan ? [t('modal.plan'), providerPlan.label] : providerTier ? [t('tier'), providerTier.label]
+            : isMuseCode ? null : [t('modal.plan'), plan || t('modal.unknown')],
         [t('modal.usage_windows'), windows.length],
         lowestRemaining !== null ? [t('modal.lowest_remaining'), `${lowestRemaining}%`] : null,
         Number.isFinite(availableResetCredits)
@@ -458,14 +488,14 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
 
     return `
         <div class="message-result-panel">
-            <div class="message-result-intro">${escapeHtml(t(isClaudeCode ? 'modal.claude_quota_intro' : 'modal.codex_quota_intro'))}</div>
+            <div class="message-result-intro">${escapeHtml(t(isMuseCode ? 'modal.quota_summary' : isClaudeCode ? 'modal.claude_quota_intro' : 'modal.codex_quota_intro'))}</div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.quota_summary'))}</div>
                 <div class="message-result-summary">${rows}</div>
             </div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.usage_windows'))}</div>
-                <div class="modal-quota-grid">${cards}</div>
+                ${windows.length ? `<div class="modal-quota-grid">${cards}</div>` : `<div class="modal-empty-state">${escapeHtml(t('status_no_quota_info'))}</div>`}
             </div>
         </div>
     `;
@@ -555,6 +585,10 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 }
 
 function summarizeCredentialQuota(data) {
+
+    if (data?.quota_status === 'unavailable') {
+        return { level: 'muted', label: t('quota_unavailable') };
+    }
 
     if (data?.quota_type === 'account_billing') {
         const periods = [data.monthly, data.weekly].filter(Boolean);
@@ -693,6 +727,13 @@ function updateCredentialSubscriptionBadge(pathId, filename) {
 
     const cached = AppState.quotaPreviewCache[filename] || {};
     const cardContext = AppState.credentialCardIndex[pathId] || {};
+    if (cardContext.providerVariant === 'muse_code') {
+        badge.outerHTML = renderCredentialSubscriptionBadge(
+            pathId, cached.data?.plan || cached.data?.subscription_tier,
+            cached.data?.plan ? 'provider_plan' : 'provider_tier'
+        );
+        return;
+    }
     const plan = cached.data?.plan || cardContext.subscriptionPlan;
     const kind = cached.data?.plan ? 'plan' : (cardContext.subscriptionKind || 'plan');
     badge.outerHTML = renderCredentialSubscriptionBadge(pathId, plan, kind);

@@ -1,5 +1,9 @@
 // Illustrative files only: never read form values, account state or saved secrets.
 function providerCredentialExample(provider) {
+    if (provider === 'muse_code') return {
+        provider, credential_type: 'oauth', access_token: '<YOUR_OAUTH_ACCESS_TOKEN>',
+        user_email: '<YOUR_ACCOUNT_EMAIL>'
+    };
     if (provider === 'google_antigravity') return {
         provider, credential_type: 'oauth', client_id: '<YOUR_CLIENT_ID>',
         client_secret: '<YOUR_CLIENT_SECRET>', refresh_token: '<YOUR_REFRESH_TOKEN>',

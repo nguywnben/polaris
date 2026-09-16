@@ -283,7 +283,7 @@ def build_snapshot() -> dict[str, object]:
             "tab_map": _javascript_map(navigation, "TAB_MAP"),
             "compatibility_aliases": {
                 "/oauth": "/providers",
-                "/provider": "/pool",
+                "/provider": "/credentials",
                 "/upload": "/providers",
             },
         },
@@ -336,7 +336,24 @@ def compare_snapshots(baseline: dict[str, object], current: dict[str, object]) -
     if baseline["database_schema_versions"] != current["database_schema_versions"]:
         differences.append("changed database_schema_versions")
 
-    expected_routes = baseline["console_routes"]
+    # User-approved page rename (2026-09-16), deliberately without a /pool alias.
+    # Keep the historical R1 fixture intact and require the entire replacement contract.
+    expected_routes = json.loads(json.dumps(baseline["console_routes"]))
+    expected_routes["server_paths"] = [
+        "/credentials" if path == "/pool" else path for path in expected_routes["server_paths"]
+    ]
+    expected_routes["route_map"] = {
+        ("/credentials" if path == "/pool" else path): ("credentials" if tab == "pool" else tab)
+        for path, tab in expected_routes["route_map"].items()
+    }
+    expected_routes["tab_map"] = {
+        ("credentials" if tab == "pool" else tab): ("/credentials" if path == "/pool" else path)
+        for tab, path in expected_routes["tab_map"].items()
+    }
+    expected_routes["compatibility_aliases"] = {
+        alias: "/credentials" if path == "/pool" else path
+        for alias, path in expected_routes["compatibility_aliases"].items()
+    }
     actual_routes = current["console_routes"]
     for name in ("server_paths", "route_map", "tab_map", "compatibility_aliases"):
         expected = expected_routes[name]

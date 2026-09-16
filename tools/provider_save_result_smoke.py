@@ -62,6 +62,10 @@ def main():
         ]
         for provider, input_id, button_id, prefix in cases:
             select(page, provider)
+            form_id = page.locator("#" + input_id).evaluate("el => el.closest('form').id")
+            opener = page.locator(f'.provider-key-entry-button[aria-controls="{form_id}"]')
+            if opener.count():
+                opener.click()
             page.locator("#" + input_id).fill("synthetic-key-only")
             page.locator("#" + button_id).click()
             verify_result(page, prefix)
@@ -82,7 +86,10 @@ def main():
             select(page, provider)
             form = page.locator(f"#extended-{provider}-credential-form")
             if provider == "kiro":
-                form.locator("..").locator("summary").click()
+                page.locator("#providerWorkspace-kiro summary", has_text="API Key").click()
+            page.locator(
+                f'.provider-key-entry-button[aria-controls="extended-{provider}-credential-form"]'
+            ).click()
             form.locator('[name="api_key"]').fill("synthetic-key-only")
             if provider == "cloudflare":
                 form.locator('[name="account_id"]').fill("a" * 32)
@@ -116,6 +123,9 @@ def main():
         # A failed retry must not leave a stale success visible.
         form = page.locator("#extended-cerebras-credential-form")
         failure["enabled"] = True
+        page.locator(
+            '.provider-key-entry-button[aria-controls="extended-cerebras-credential-form"]'
+        ).click()
         form.locator('[name="api_key"]').fill("synthetic-invalid-key")
         form.locator('[type="submit"]').click()
         expect(page.locator("#extended-cerebrasSaveResult")).to_be_hidden()
@@ -134,7 +144,7 @@ def main():
             page.evaluate("theme => PolarisTheme.setPreference(theme)", theme)
             expect(page.locator("html")).not_to_have_class("theme-switching")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            assert page.locator('#extended-cerebrasSaveResult [data-tab="pool"]').evaluate(
+            assert page.locator('#extended-cerebrasSaveResult [data-tab="credentials"]').evaluate(
                 "button => getComputedStyle(button).whiteSpace === 'nowrap'"
             )
             page.locator("#providerWorkspace-cerebras").screenshot(
@@ -147,8 +157,8 @@ def main():
                 documents.append(request.url) if request.is_navigation_request() else None
             ),
         )
-        page.locator('#extended-cerebrasSaveResult [data-tab="pool"]').click()
-        expect(page).to_have_url(base + "/pool")
+        page.locator('#extended-cerebrasSaveResult [data-tab="credentials"]').click()
+        expect(page).to_have_url(base + "/credentials")
         assert not documents, documents
         assert not errors, errors
         browser.close()
@@ -167,7 +177,7 @@ def verify_result(page, prefix):
     expect(result).to_be_visible()
     expect(result.locator("strong")).to_have_text("Đã thêm thông tin xác thực vào kho")
     expect(result.locator("p")).to_contain_text("41")
-    expect(result.locator('[data-tab="pool"]')).to_have_text("Xem")
+    expect(result.locator('[data-tab="credentials"]')).to_have_text("Xem")
     assert "ENGLISH_BACKEND_COPY" not in result.inner_text()
     assert "secret-must-not-render" not in result.inner_text()
 

@@ -56,7 +56,7 @@ class ProductRebrandContractTests(unittest.TestCase):
     def test_tracked_text_has_no_legacy_product_identifiers(self):
         tracked = (
             subprocess.run(
-                ["git", "ls-files", "-z"],
+                ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
                 cwd=ROOT,
                 check=True,
                 capture_output=True,
@@ -79,6 +79,9 @@ class ProductRebrandContractTests(unittest.TestCase):
 
         for relative_path in filter(None, tracked):
             path = ROOT / relative_path
+            # Include new files while allowing tracked files removed by an unstaged rename.
+            if not path.is_file():
+                continue
             try:
                 content = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:

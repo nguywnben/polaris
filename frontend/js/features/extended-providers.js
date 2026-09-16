@@ -8,6 +8,7 @@ const EXTENDED_PROVIDER_UI = Object.freeze({
     poolside: {name: 'Poolside Platform', logo: 'poolside-platform.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
     kimchi: {name: 'Kimchi Coding', logo: 'kimchi.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
     kilo: {name: 'Kilo', logo: 'kilo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
+    muse_code: {name: 'Muse Code', logo: 'muse-code.png', site: 'https://developer.meta.com/ai/products/muse-code'},
     meta: {name: 'Meta Model API', logo: 'meta-model-api.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'},
     groq: {name: 'GroqCloud', logo: 'groqcloud.png', site: 'https://console.groq.com/', base: 'https://api.groq.com/openai/v1'},
     deepseek: {name: 'DeepSeek Platform', logo: 'deepseek-platform.png', site: 'https://platform.deepseek.com/', base: 'https://api.deepseek.com/v1'},
@@ -118,7 +119,7 @@ function buildExtendedProviderWorkspaces() {
         const name = extendedElement('strong', 'provider-name'); name.textContent = definition.name;
         summary.append(name, extendedElement('p', '', `provider.ext.${provider}`));
         const badges = extendedElement('div', 'provider-capabilities');
-        const badge = document.createElement('span'); badge.textContent = provider === 'kiro' ? 'OAuth · API Key' : provider === 'cloudflare' ? t('provider.auth.token_label') : 'API Key'; badges.append(badge);
+        const badge = document.createElement('span'); badge.textContent = provider === 'muse_code' ? 'OAuth' : provider === 'kiro' ? 'OAuth · API Key' : provider === 'cloudflare' ? t('provider.auth.token_label') : 'API Key'; badges.append(badge);
         card.append(extendedLogo(provider, definition), summary, badges); catalog.append(card);
 
         const workspace = extendedElement('section', 'provider-workspace hidden');
@@ -133,10 +134,14 @@ function buildExtendedProviderWorkspaces() {
         website.textContent = definition.site.replace(/\/+$/, '');
         intro.append(title, extendedElement('p', '', `provider.ext.${provider}`), website);
         heading.append(extendedLogo(provider, definition, true), intro); header.append(heading); workspace.append(header);
-        if (provider === 'meta') {
-            const notice = extendedElement('p', 'card-copy provider-tool-copy', 'provider.ext.meta_contributor_notice');
-            notice.id = 'extended-meta-contributor-notice';
-            workspace.append(notice);
+        if (provider === 'muse_code') {
+            const tools = extendedElement('div', 'provider-tools-grid');
+            const advanced = extendedElement('details', 'tool-panel provider-settings-panel provider-secondary-disclosure extended-provider-advanced');
+            advanced.dataset.disclosureKind = 'settings';
+            advanced.append(extendedElement('summary', 'provider-disclosure-summary', 'providers.advanced_settings'));
+            tools.append(buildMuseOAuthPanel(advanced), buildExtendedProviderImport(provider));
+            workspace.append(tools, advanced); page.append(workspace);
+            return;
         }
 
         const tools = extendedElement('div', 'provider-tools-grid');
@@ -153,7 +158,6 @@ function buildExtendedProviderWorkspaces() {
         if (provider === 'cloudflare') {
             const label = fields.querySelector('label'); label.dataset.i18n = 'provider.auth.token_label'; label.textContent = t(label.dataset.i18n);
         }
-        if (provider === 'meta') key.setAttribute('aria-describedby', 'extended-meta-contributor-notice');
         key.placeholder = t('provider.ext.key_placeholder'); key.dataset.i18nPlaceholder = 'provider.ext.key_placeholder';
         if (provider === 'cloudflare') { key.dataset.i18nPlaceholder = 'provider.auth.token_placeholder'; key.placeholder = t(key.dataset.i18nPlaceholder); }
         if (provider === 'cloudflare') extendedField(fields, provider, 'account_id', 'provider.ext.account', '0123456789abcdef0123456789abcdef', {required: true});
@@ -241,6 +245,11 @@ function appendExtendedCredentialFields(form, configuration) {
         const input = extendedField(body, 'edit', name, key, placeholders[name] || '', {
             value: configuration[name] || '', options, required: name === 'account_id'
         });
+        // Cancel restores the saved configuration, not the first select option.
+        if (options) {
+            const savedValue = input.value;
+            Array.from(input.options).forEach(option => { option.defaultSelected = option.value === savedValue; });
+        } else input.defaultValue = input.value;
         input.classList.add('message-modal-input');
         input.parentElement.classList.add('message-modal-field');
     });

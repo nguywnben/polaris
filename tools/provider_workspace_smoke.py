@@ -30,6 +30,7 @@ def main():
             selector = page.locator(f'#providerCatalog [data-provider="{provider}"]')
             selector.click()
             workspace = page.locator("#" + selector.get_attribute("aria-controls"))
+            workspace.locator(".provider-key-entry-button").click()
             expect(workspace.get_by_role("button", name="Thêm khóa", exact=True)).to_be_visible()
             key = workspace.locator('input[data-secret-lifetime="submit"], input[name="api_key"]')
             expect(key).to_have_attribute("placeholder", "Dán khóa API của bạn")
@@ -66,6 +67,7 @@ def verify_examples(page):
         "kimchi",
         "kilo",
         "meta",
+        "muse_code",
         "groq",
         "deepseek",
         "mistral",
@@ -117,7 +119,7 @@ def verify_examples(page):
         if provider in {"google_antigravity", "openai_platform"}:
             workspace.screenshot(path=str(shots / f"{provider}.png"))
     page.evaluate("enhanceProviderWorkspaces()")
-    expect(page.locator("[data-provider-example]")).to_have_count(22)
+    expect(page.locator("[data-provider-example]")).to_have_count(23)
     page.set_viewport_size({"width": 1440, "height": 1000})
     page.evaluate("PolarisTheme.setPreference('light')")
 
@@ -229,6 +231,9 @@ def verify_kiro_api_key_layout(page):
     expect(account).to_have_attribute("href", "https://app.kiro.dev/")
     expect(account).to_have_attribute("rel", "noopener noreferrer")
     form = body.locator("form")
+    opener = body.locator(".provider-key-entry-button")
+    expect(form).to_be_hidden()
+    opener.click()
     expect(form.locator('input[name="api_key"]')).to_have_attribute("type", "password")
     shots = ROOT / "temp" / "provider-workspace-consistency"
     for width, theme in ((1440, "light"), (1024, "dark"), (768, "light"), (360, "dark")):
@@ -242,7 +247,9 @@ def verify_kiro_api_key_layout(page):
             form.bounding_box(),
         )
         assert abs(link_box["y"] - help_box["y"] - help_box["height"] - 4) < 1
-        assert abs(form_box["y"] - link_box["y"] - link_box["height"] - 16) < 1
+        opener_box = opener.bounding_box()
+        assert abs(opener_box["y"] - link_box["y"] - link_box["height"] - 16) < 1
+        assert abs(form_box["y"] - opener_box["y"] - opener_box["height"] - 16) < 1
         assert abs(form_box["x"] - help_box["x"]) < 1
         disclosure.screenshot(path=str(shots / f"kiro-api-key-{width}-{theme}.png"))
     disclosure.locator(":scope > summary").click()
@@ -438,7 +445,7 @@ def verify_kiro_browser(page):
     expect(pending).to_be_hidden(timeout=10000)
     expect(callback).to_have_value("")
     expect(workspace.locator("#kiroBrowserSaveResult")).to_be_visible()
-    expect(workspace.locator('#kiroBrowserSaveResult [data-tab="pool"]')).to_have_text("Xem")
+    expect(workspace.locator('#kiroBrowserSaveResult [data-tab="credentials"]')).to_have_text("Xem")
     assert "complete" in calls and calls.count("callback") == 2
     assert calls[before_save:] == ["complete"]
     # A callback already received by the server also needs an explicit Save.

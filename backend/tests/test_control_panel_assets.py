@@ -153,7 +153,7 @@ class ControlPanelAssetTests(unittest.TestCase):
             "dashboard",
             "quality",
             "access",
-            "pool",
+            "credentials",
             "models",
             "providers",
             "config",
@@ -587,7 +587,9 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("'google_antigravity', 'grok', 'codex'", card_script)
         self.assertIn("'google_ai_studio', 'xai_console', 'openai_platform'", card_script)
         self.assertIn("renderCredentialAuthenticationBadge", card_script)
-        self.assertIn("${authenticationType}", card_script)
+        self.assertIn("t('credentials.workspace.api_key')", card_script)
+        self.assertIn("t('pool.kind.connection')", card_script)
+        self.assertIn("${escapeHtml(label)}</span>", card_script)
 
 
 if __name__ == "__main__":

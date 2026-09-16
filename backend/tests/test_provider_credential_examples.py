@@ -53,7 +53,7 @@ console.log(JSON.stringify(examples));
             check=True,
         )
         examples = json.loads(result.stdout)
-        self.assertEqual(len(examples), 22)
+        self.assertEqual(len(examples), 23)
         for provider, sample in examples.items():
             with self.subTest(provider=provider):
                 self.assertEqual(sample["provider"], provider)
@@ -64,6 +64,8 @@ console.log(JSON.stringify(examples));
                     else value
                     for key, value in sample.items()
                 }
+                if provider == "muse_code":
+                    filled["user_email"] = "fixture@example.test"
                 payload = _parse_archive_payload(
                     json.dumps(filled).encode(), "sample.json", variant=provider
                 )
@@ -71,6 +73,10 @@ console.log(JSON.stringify(examples));
                 if provider in {"google_antigravity", "codex", "grok", "claude_code", "kiro"}:
                     self.assertNotIn("api_key", sample)
                     self.assertEqual(sample["refresh_token"], "<YOUR_REFRESH_TOKEN>")
+                elif provider == "muse_code":
+                    self.assertEqual(sample["credential_type"], "oauth")
+                    self.assertNotIn("api_key", sample)
+                    self.assertNotIn("refresh_token", sample)
                 elif provider == "ollama":
                     self.assertEqual(sample["credential_type"], "connection")
                     self.assertNotIn("api_key", sample)

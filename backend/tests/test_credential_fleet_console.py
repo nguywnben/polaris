@@ -11,17 +11,59 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANAGER_SOURCE = ROOT / "frontend/js/core/credential-manager.js"
 CARD_SOURCE = ROOT / "frontend/js/ui/credential-cards.js"
-POOL_HTML = ROOT / "frontend/fragments/pages/pool.html"
+POOL_HTML = ROOT / "frontend/fragments/pages/credentials.html"
 NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_identity_uses_labels_or_oauth_email_not_missing_email_errors(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const oauth = {{credential_type: 'oauth', filename: 'muse-code-ab12.json'}};
+const key = {{credential_type: 'api_key', filename: 'deepseek-cd34.json'}};
+assert(getCredentialAccountLabel(oauth) === 'muse-code-ab12', 'OAuth without email needs an identifier');
+assert(getCredentialAccountLabel(key) === 'deepseek-cd34', 'Keys do not need email');
+assert(getCredentialAccountLabel({{...oauth, user_email: 'person@example.test'}}) === 'person@example.test', 'Keep known OAuth email');
+assert(getCredentialAccountLabel({{...key, user_email: 'not-an-account'}}) === 'deepseek-cd34', 'API keys must not use email fallback');
+assert(getCredentialAccountLabel({{...oauth, credential_label: 'Work'}}) === 'Work', 'Explicit labels take precedence');
+assert(!getCredentialAccountLabel({{...key, api_key: 'secret-key'}}).includes('secret'), 'Never derive identity from a secret');
+""")
+
+    def test_provider_batch_snapshots_scope_and_preserves_unrelated_selection(self) -> None:
+        self._run_manager_contract("""
+(async () => {
+    manager.selectedFiles = new Set(['other.json']);
+    const targets = ['provider-a.json', 'provider-b.json'];
+    const requests = [];
+    global.AppState = {quotaPreviewCache: {}, credentialCardIndex: {}};
+    global.showStatus = () => {};
+    global.showMessageModal = () => {};
+    global.showConfirmModal = async (message) => {
+        assert(message.includes('Provider A'), 'Confirmation must name the provider scope');
+        targets.push('unrelated.json');
+        manager.selectedFiles.add('another.json');
+        return true;
+    };
+    global.fetch = async (url, options) => {
+        requests.push(JSON.parse(options.body));
+        return {ok: true, json: async () => ({total_count: 2, success_count: 2,
+            outcome_counts: {eligible: 2}, preview_token: 'snapshot', results: []})};
+    };
+    manager.refresh = async () => {};
+    await manager.batchAction('disable', {filenames: targets, description: 'Provider A — visible credentials'});
+    assert(requests.length === 2, 'Batch needs preview and commit');
+    assert(requests.every(body => JSON.stringify(body.filenames) === JSON.stringify(['provider-a.json', 'provider-b.json'])), 'Scope must stay fixed across confirmation');
+    assert(requests[1].preview_token === 'snapshot', 'Server preview token must be retained');
+    assert(manager.selectedFiles.has('other.json') && manager.selectedFiles.has('another.json'), 'Provider action must preserve global selection');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
     def test_filtered_empty_results_do_not_hide_filter_controls(self) -> None:
         self._run_manager_contract("""
 const tab = {classList: {toggle(name, value) {this[name] = value;}}};
 const firstRun = {hidden: true};
-elements.set('poolTab', tab);
-elements.set('poolFirstRun', firstRun);
+elements.set('credentialsTab', tab);
+elements.set('credentialsFirstRun', firstRun);
 manager.hasLoaded = true;
 manager.totalCount = 0;
 manager.updateFirstRunState();
@@ -29,18 +71,20 @@ assert(firstRun.hidden === false, 'An unfiltered empty pool needs onboarding');
 for (const definition of Object.values(manager.getFilterDefinitions())) {
     manager[definition.state] = 'filtered-value';
     manager.updateFirstRunState();
-    assert(firstRun.hidden === true, 'Filtered zero results are not an empty pool');
+    assert(firstRun.hidden === true, 'Filtered zero results are not an empty credential store');
     assert(tab.classList['is-pristine-empty'] === false, 'Filters must remain accessible');
     manager[definition.state] = 'all';
 }
 manager.hasLoaded = false;
 manager.updateFirstRunState();
-assert(firstRun.hidden === true, 'Loading is not an empty pool');
+assert(firstRun.hidden === true, 'Loading is not an empty credential store');
 """)
 
     def test_load_errors_are_outside_the_data_only_region(self) -> None:
         html = POOL_HTML.read_text(encoding="utf-8")
-        self.assertLess(html.index('id="primaryCredsState"'), html.index('id="poolFirstRun"'))
+        self.assertLess(
+            html.index('id="primaryCredsState"'), html.index('id="credentialsFirstRun"')
+        )
 
     def _run_manager_contract(self, assertions: str) -> None:
         node = shutil.which("node")
@@ -75,7 +119,7 @@ global.document = {{
     }}
 }};
 global.window = {{
-    location: {{href: 'http://localhost/pool', search: ''}},
+    location: {{href: 'http://localhost/credentials', search: ''}},
     history: {{state: null, replaceState() {{}}}}
 }};
 global.sessionStorage = {{getItem() {{ return null; }}, setItem() {{}}}};
@@ -139,16 +183,18 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         source = CARD_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn('class="cred-actions-primary"', source)
-        self.assertIn('class="cred-actions-secondary"', source)
+        self.assertIn('data-credential-command="manage"', source)
+        self.assertIn("showCredentialManagement(pathId, manager, credInfo", source)
         self.assertIn("supportsQuotaPreview", source)
         primary_start = source.index("const primaryActionButtons")
-        secondary_start = source.index("const secondaryActionButtons")
         test_action = source.index('data-credential-command="test"')
-        quota_action = source.index('data-credential-command="quota"')
-        self.assertLess(primary_start, secondary_start)
         self.assertGreater(test_action, primary_start)
-        self.assertLess(test_action, secondary_start)
-        self.assertGreater(quota_action, secondary_start)
+        self.assertNotIn("const secondaryActionButtons", source)
+        workspace = (ROOT / "frontend/js/ui/credential-management.js").read_text(encoding="utf-8")
+        self.assertIn("capabilities.quota ? credentialManagementSection", workspace)
+        self.assertIn("capabilities.models || capabilities.test", workspace)
+        self.assertIn("data-management-result", workspace)
+        self.assertNotIn("showMessageModal(", workspace)
         self.assertNotIn('data-credential-command="enable_credit"', source)
         self.assertNotIn('data-credential-command="disable_credit"', source)
 
@@ -159,8 +205,8 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertIn("const isManagedCredential", cards)
         self.assertIn("supportsEdit", cards)
         self.assertIn("supportsReauthenticate", cards)
-        self.assertIn('data-credential-command="edit"', cards)
-        self.assertIn('data-credential-command="reauthenticate"', cards)
+        self.assertIn("edit: supportsEdit", cards)
+        self.assertIn("reauthenticate: supportsReauthenticate", cards)
         self.assertIn("credential_badge_environment", cards)
         self.assertIn("showCredentialEditModal(pathId)", cards)
         self.assertIn("reauthenticateCredential(pathId)", cards)

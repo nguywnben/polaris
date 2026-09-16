@@ -27,7 +27,7 @@ LOCALES = (
 ROUTES = (
     "dashboard",
     "providers",
-    "pool",
+    "credentials",
     "models",
     "ai-quality",
     "playground",

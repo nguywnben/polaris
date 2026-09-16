@@ -25,7 +25,7 @@ PROVIDERS = (
     "mistral",
     "cerebras",
 )
-CATALOG_COUNT = 9 + len(PROVIDERS)
+CATALOG_COUNT = 9 + len(PROVIDERS) + 1  # Muse Code has its own OAuth-only smoke test.
 
 
 def verify_catalog_layout(page, widths=(1440, 1201, 1024, 768, 360, 320)):
@@ -282,13 +282,13 @@ def main():
                 const key = el.dataset.i18n || el.dataset.i18nPlaceholder;
                 return t(key) && t(key) !== key;
             })""")
-            # The privacy warning is part of every locale, not an English fallback.
-            meta_notice = page.locator(
-                '#providerWorkspace-meta [data-i18n="provider.ext.meta_contributor_notice"]'
-            )
-            expect(meta_notice).to_have_count(1)
-            assert "-contributor" in meta_notice.text_content().lower()
-            assert meta_notice.text_content().strip() != "provider.ext.meta_contributor_notice"
+            # The removed onboarding notice must not return on locale changes.
+            expect(
+                page.locator('[data-i18n="provider.ext.meta_contributor_notice"]')
+            ).to_have_count(0)
+            expect(
+                page.locator('[aria-describedby="extended-meta-contributor-notice"]')
+            ).to_have_count(0)
         with page.expect_navigation(wait_until="networkidle"):
             page.evaluate("changeLanguage('vi')")
         page.evaluate("PolarisTheme.setPreference('dark')")
@@ -321,6 +321,9 @@ def main():
                 expect(workspace.locator("#kiroBrowserForm")).to_be_visible()
                 verify_kiro_device_ui(page, workspace)
                 workspace.locator("summary", has_text="API Key").click()
+            expect(form).to_be_hidden()
+            workspace.locator(".provider-key-entry-button").click()
+            expect(form).to_be_visible()
             expect(workspace.locator('[data-i18n="provider.ext.open_pool"]')).to_have_count(0)
             expect(workspace.locator('input[type="file"]')).to_have_count(1)
             expect(workspace.locator(".upload-area")).to_be_visible()
@@ -347,7 +350,7 @@ def main():
                 ).to_have_count(0)
                 expect(
                     workspace.locator('[data-i18n="provider.ext.meta_contributor_notice"]')
-                ).to_be_visible()
+                ).to_have_count(0)
             if provider == "opencode":
                 workspace.locator('[name="plan"]').select_option("go")
                 expect(workspace.locator('[name="base_url"]')).to_have_attribute(
@@ -413,27 +416,32 @@ def main():
             expect(key).not_to_be_focused()
             form.locator('[type="submit"]').click()
             expect(key).to_have_value("")
+            expect(form).to_be_hidden()
+            expect(workspace.locator(f"#extended-{provider}SaveResult")).to_be_visible()
             expect(workspace.locator("[data-extended-saved]")).to_have_count(0)
             page.set_viewport_size({"width": 1440, "height": 1000})
             verify_import(page, workspace, base, provider)
         assert len(saved) == len(PROVIDERS), saved
         # Open the actual pool editor for a credential saved by the import route.
-        page.locator('#primaryNavigation [data-tab="pool"]').click()
+        page.locator('#primaryNavigation [data-tab="credentials"]').click()
         for provider in PROVIDERS:
-            name = page.evaluate("id => EXTENDED_PROVIDER_UI[id].name", provider)
-            imported = page.locator(".cred-card").filter(
-                has=page.locator(".cred-provider-name", has_text=name)
+            imported = (
+                page.locator(".credential-provider-group")
+                .filter(has=page.locator(f"#credentialProviderGroup-{provider}"))
+                .locator(".cred-card")
             )
             expect(imported).to_have_count(1)
-            expect(imported.locator(".status-badge", has_text="API key")).to_have_count(1)
+            key_label = page.evaluate("t('credentials.workspace.api_key')")
+            expect(imported.locator(".status-badge", has_text=key_label)).to_have_count(1)
         card = (
-            page.locator(".cred-card")
-            .filter(has=page.locator(".cred-provider-name", has_text="OpenCode"))
+            page.locator(".credential-provider-group")
+            .filter(has=page.locator("#credentialProviderGroup-opencode"))
+            .locator(".cred-card")
             .first
         )
         expect(card).to_be_visible()
-        card.locator(".cred-actions-secondary > summary").click()
-        card.locator('[data-credential-command="edit"]').click()
+        card.locator('[data-credential-command="manage"]').click()
+        expect(page.locator('[role="dialog"]')).to_have_count(1)
         editor = page.locator("[data-credential-edit-form]")
         expect(editor).to_be_visible()
         expect(editor.locator('[name="plan"]')).to_have_value("go")
@@ -443,14 +451,19 @@ def main():
         expect(editor.locator('[name="base_url"]')).to_have_value("https://opencode.ai/zen/v1")
         editor.locator('[name="plan"]').select_option("go")
         expect(editor.locator('[name="base_url"]')).to_have_value("https://opencode.ai/zen/go/v1")
+        editor.locator('[name="plan"]').select_option("zen")
         editor.locator("[data-credential-edit-cancel]").click()
+        expect(editor.locator('[name="plan"]')).to_have_value("go")
+        expect(editor.locator('[name="base_url"]')).to_have_value("https://opencode.ai/zen/go/v1")
+        expect(editor).to_be_visible()
+        page.locator('[role="dialog"] [data-dialog-close]').click()
         expect(editor).to_have_count(0)
-        meta_card = page.locator(".cred-card").filter(
-            has=page.locator(".cred-provider-name", has_text="Meta Model API")
+        meta_group = page.locator(".credential-provider-group").filter(
+            has=page.locator("#credentialProviderGroup-meta")
         )
-        expect(meta_card.locator('img[src$="/meta-model-api.png"]')).to_have_count(1)
-        meta_card.locator(".cred-actions-secondary > summary").click()
-        meta_card.locator('[data-credential-command="edit"]').click()
+        expect(meta_group.locator('img[src$="/meta-model-api.png"]')).to_have_count(1)
+        meta_group.locator('[data-credential-command="manage"]').click()
+        expect(page.locator('[role="dialog"]')).to_have_count(1)
         meta_editor = page.locator("[data-credential-edit-form]")
         expect(meta_editor).to_be_visible()
         expect(meta_editor.locator('[name="base_url"]')).to_have_value("https://api.meta.ai/v1")
@@ -462,6 +475,8 @@ def main():
             )
         ).to_have_count(0)
         meta_editor.locator("[data-credential-edit-cancel]").click()
+        expect(meta_editor).to_be_visible()
+        page.locator('[role="dialog"] [data-dialog-close]').click()
         expect(meta_editor).to_have_count(0)
         assert not errors, errors
         context.close()

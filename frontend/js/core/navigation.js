@@ -12,13 +12,13 @@ const ROUTE_MAP = {
 
     '/identity': 'identity',
 
-    '/pool': 'pool',
+    '/credentials': 'credentials',
 
     '/models': 'models',
 
     '/playground': 'playground',
 
-    '/provider': 'pool',
+    '/provider': 'credentials',
 
     '/providers': 'providers',
 
@@ -43,7 +43,7 @@ const TAB_MAP = {
     quality: '/ai-quality',
     access: '/access',
     identity: '/identity',
-    pool: '/pool',
+    credentials: '/credentials',
     models: '/models',
     playground: '/playground',
     providers: '/providers',
@@ -268,7 +268,7 @@ function getTabDataLoader(tabName) {
 
         identity: () => loadIdentityConsole(),
 
-        pool: () => AppState.primaryCreds.refresh(),
+        credentials: () => AppState.primaryCreds.refresh(),
 
         models: () => loadModelCatalog(),
 

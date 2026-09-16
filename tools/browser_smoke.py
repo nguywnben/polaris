@@ -398,7 +398,7 @@ def _verify_responsive_routes(page: Page) -> None:
         ("/dashboard", "#dashboardTab"),
         ("/playground", "#playgroundTab"),
         ("/providers", "#providersTab"),
-        ("/pool", "#poolTab"),
+        ("/credentials", "#credentialsTab"),
         ("/models", "#modelsTab"),
         ("/ai-quality", "#qualityTab"),
         ("/access", "#accessTab"),

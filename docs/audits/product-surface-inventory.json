@@ -37,7 +37,7 @@
     {"id": "identity", "fragment": "identity.html", "tab": "identity", "tier": "advanced", "journey": "team_access", "r1_disposition": "conditional_in_p3_1"},
     {"id": "logs", "fragment": "logs.html", "tab": "activity", "tier": "core", "journey": "activity", "r1_disposition": "merged_in_p3_1"},
     {"id": "models", "fragment": "models.html", "tab": "models", "tier": "core", "journey": "model_routing", "r1_disposition": "keep"},
-    {"id": "pool", "fragment": "pool.html", "tab": "pool", "tier": "core", "journey": "credential_operations", "r1_disposition": "keep"},
+    {"id": "credentials", "fragment": "credentials.html", "tab": "credentials", "tier": "core", "journey": "credential_operations", "r1_disposition": "renamed_from_pool_2026_09_16"},
     {"id": "playground", "fragment": "playground.html", "tab": "playground", "tier": "core", "journey": "inference", "r1_disposition": "add_in_p4_3"},
     {"id": "providers", "fragment": "providers.html", "tab": "providers", "tier": "core", "journey": "provider_onboarding", "r1_disposition": "keep"},
     {"id": "settings", "fragment": "settings.html", "tab": "config", "tier": "core", "journey": "install_configure", "r1_disposition": "keep"}
