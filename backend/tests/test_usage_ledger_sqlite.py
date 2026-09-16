@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import hashlib
+import json
 import sqlite3
 import sys
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -92,6 +95,88 @@ class SQLiteUsageLedgerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.repository.close()
         self.temp_dir.__exit__(None, None, None)
+
+    async def _seed_pre_r2_import(self, *, include_attribution=False):
+        source = Path(self.database_path).with_name("usage_stats.db")
+        with closing(sqlite3.connect(source)) as db, db:
+            db.execute(
+                "CREATE TABLE usage_logs (id INTEGER PRIMARY KEY, filename TEXT, "
+                "timestamp REAL, total_tokens INTEGER)"
+            )
+            db.execute("INSERT INTO usage_logs VALUES (1, 'legacy.json', ?, 42)", (NOW,))
+        await self.repository.import_legacy_usage(str(source))
+        # Reproduce the persisted payload and checkpoint written before R2.
+        with closing(sqlite3.connect(self.database_path)) as db, db:
+            record = json.loads(
+                db.execute("SELECT payload FROM durable_usage_ledger").fetchone()[0]
+            )
+            record.pop("cache_creation_tokens")
+            record.pop("usage_reported")
+            payload = json.dumps(record, ensure_ascii=False, allow_nan=False, sort_keys=True)
+            db.execute("UPDATE durable_usage_ledger SET payload = ?", (payload,))
+            if not include_attribution:
+                record.pop("credential_ref")
+                record.pop("provider")
+            checksum = hashlib.sha256(
+                (
+                    json.dumps(record, ensure_ascii=False, allow_nan=False, sort_keys=True) + "\n"
+                ).encode()
+            ).hexdigest()
+            db.execute("UPDATE durable_usage_migrations SET source_checksum = ?", (checksum,))
+        return source, payload, checksum
+
+    async def test_pre_r2_import_replays_without_rewriting_usage(self):
+        source, payload, old_checksum = await self._seed_pre_r2_import()
+        source_before = source.read_bytes()
+        result = await self.repository.import_legacy_usage(str(source))
+        self.assertTrue(result.verified)
+        self.assertEqual(result.imported_count, 0)
+        self.assertNotEqual(result.source_checksum, old_checksum)
+        self.assertEqual(source.read_bytes(), source_before)
+        with closing(sqlite3.connect(self.database_path)) as db, db:
+            self.assertEqual(
+                db.execute("SELECT payload FROM durable_usage_ledger").fetchone()[0], payload
+            )
+        self.assertTrue((await self.repository.import_legacy_usage(str(source))).verified)
+        with closing(sqlite3.connect(source)) as db, db:
+            db.execute("INSERT INTO usage_logs VALUES (2, 'second.json', ?, 7)", (NOW + 1,))
+        appended = await self.repository.import_legacy_usage(str(source))
+        self.assertEqual((appended.source_count, appended.imported_count), (2, 1))
+        self.assertEqual((await self.repository.get_spend(since=0)).calls, 2)
+
+    async def test_pre_r2_full_checksum_replays_after_credential_retirement(self):
+        source, _, _ = await self._seed_pre_r2_import(include_attribution=True)
+        await self.repository.retire_credential(
+            "legacy.json", "__deleted_credential__unknown.json", provider="", limit=100
+        )
+        self.assertTrue((await self.repository.import_legacy_usage(str(source))).verified)
+
+    async def test_pre_r2_import_still_rejects_changed_source_and_target(self):
+        source, original_payload, checksum = await self._seed_pre_r2_import()
+        with closing(sqlite3.connect(source)) as db, db:
+            db.execute("UPDATE usage_logs SET total_tokens = 43")
+        with self.assertRaises(UsageLedgerConflict):
+            await self.repository.import_legacy_usage(str(source))
+        with closing(sqlite3.connect(source)) as db, db:
+            db.execute("UPDATE usage_logs SET total_tokens = 42")
+        for field, value in (
+            ("request_id", "changed"),
+            ("cache_creation_tokens", 5),
+        ):
+            with self.subTest(field=field):
+                record = json.loads(original_payload)
+                record[field] = value
+                with closing(sqlite3.connect(self.database_path)) as db, db:
+                    db.execute("UPDATE durable_usage_ledger SET payload = ?", (json.dumps(record),))
+                with self.assertRaises(UsageLedgerConflict):
+                    await self.repository.import_legacy_usage(str(source))
+                with closing(sqlite3.connect(self.database_path)) as db, db:
+                    self.assertEqual(
+                        db.execute(
+                            "SELECT source_checksum FROM durable_usage_migrations"
+                        ).fetchone()[0],
+                        checksum,
+                    )
 
     async def test_runtime_operations_reuse_one_bounded_connection(self):
         self.assertIsNotNone(self.repository._database)

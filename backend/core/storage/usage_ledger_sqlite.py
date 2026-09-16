@@ -600,6 +600,7 @@ class SQLiteUsageLedgerRepository:
                     if len(entries) < previous_count or previous_checksum not in {
                         current_prefix_checksum,
                         legacy_prefix_checksum,
+                        *self._pre_r2_migration_checksums(entries[:previous_count]),
                     }:
                         raise UsageLedgerConflict("Legacy usage source changed after verification.")
 
@@ -1018,10 +1019,36 @@ class SQLiteUsageLedgerRepository:
         return entries
 
     @staticmethod
+    def _pre_r2_migration_checksums(entries: list[UsageLedgerEntry]) -> set[str]:
+        """Reproduce both historical checkpoints before R2 added usage fields."""
+        full = hashlib.sha256()
+        unattributed = hashlib.sha256()
+        for entry in entries:
+            record = entry.to_record()
+            record.pop("cache_creation_tokens")
+            record.pop("usage_reported")
+            for hasher in (full, unattributed):
+                if hasher is unattributed:
+                    record.pop("credential_ref")
+                    record.pop("provider")
+                hasher.update(
+                    json.dumps(record, ensure_ascii=False, allow_nan=False, sort_keys=True).encode(
+                        "utf-8"
+                    )
+                )
+                hasher.update(b"\n")
+        return {full.hexdigest(), unattributed.hexdigest()}
+
+    @staticmethod
     def _migration_record(entry: UsageLedgerEntry) -> dict[str, object]:
         record = entry.to_record()
         record.pop("credential_ref")
         record.pop("provider")
+        # Legacy usage has no reporting flag. R2 may infer it on decode and
+        # persist that inference during credential retirement. Keep the original
+        # migration representation; all historical usage and cost fields remain
+        # verified, and the stored reporting flag is never rewritten here.
+        record["usage_reported"] = False
         return record
 
     @classmethod
