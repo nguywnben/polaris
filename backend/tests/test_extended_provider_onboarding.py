@@ -59,6 +59,12 @@ class ExtendedProviderOnboardingTests(unittest.IsolatedAsyncioTestCase):
                 ) as store,
             ):
                 extra = {"account_id": "a" * 32} if provider == "cloudflare" else {}
+                if provider == "muse_code":
+                    with self.assertRaises(HTTPException) as rejected:
+                        await extended.add_extended_credential(provider, request(), token="session")
+                    self.assertEqual(rejected.exception.status_code, 404)
+                    store.assert_not_awaited()
+                    continue
                 response = await extended.add_extended_credential(
                     provider, request(**extra), token="session"
                 )

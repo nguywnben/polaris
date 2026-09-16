@@ -108,6 +108,12 @@ class ScopedProviderImportTests(unittest.IsolatedAsyncioTestCase):
                         }
                         if provider == "cloudflare":
                             data["account_id"] = "a" * 32
+                        if provider == "muse_code":
+                            data.update(
+                                credential_type="oauth",
+                                access_token="synthetic-oauth",
+                                account_id="a" * 64,
+                            )
                         file = archive([("key.json", data)]) if zipped else upload(data)
                         report = await import_files(provider, [file])
                         self.assertEqual(report["uploaded_count"], 1)

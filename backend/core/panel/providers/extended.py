@@ -50,7 +50,7 @@ async def add_extended_credential(
     request: ExtendedCredentialRequest,
     token: str = Depends(verify_panel_token),
 ):
-    if provider_id not in EXTENDED_PROVIDERS:
+    if provider_id not in EXTENDED_PROVIDERS or provider_id == "muse_code":
         raise HTTPException(
             status_code=404,
             detail="This operation is not supported for the selected provider or credential type.",

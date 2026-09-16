@@ -26,6 +26,7 @@ EXTENDED_PROVIDERS = {
     "mistral": "Mistral AI Studio",
     "cerebras": "Cerebras Cloud",
     "meta": "Meta Model API",
+    "muse_code": "Muse Code",
     "kimi": "Kimi API Platform",
     "cloudflare": "Cloudflare Workers AI",
     "nvidia": "NVIDIA NIM",
@@ -49,6 +50,7 @@ EXTENDED_PROVIDER_CONNECTION_FIELDS = {
     "mistral": ("base_url",),
     "cerebras": ("base_url",),
     "meta": ("base_url",),
+    "muse_code": (),
     "kimi": ("base_url",),
     "cloudflare": ("base_url", "account_id"),
     "nvidia": ("base_url",),
@@ -65,6 +67,7 @@ EXTENDED_PROVIDER_DEFAULT_BASE_URLS = {
     "mistral": "https://api.mistral.ai/v1",
     "cerebras": "https://api.cerebras.ai/v1",
     "meta": "https://api.meta.ai/v1",
+    "muse_code": "https://api.meta.ai/v1",
     "kimi": "https://api.moonshot.ai/v1",
     "cloudflare": "https://api.cloudflare.com/client/v4",
     "nvidia": "https://integrate.api.nvidia.com/v1",
@@ -369,15 +372,20 @@ for _provider_id, _provider_name in EXTENDED_PROVIDERS.items():
     _PROVIDER_CAPABILITIES[_provider_id] = ProviderCapabilities(
         provider_id=_provider_id,
         display_name=_provider_name,
-        credential_types=("oauth", "api_key") if _provider_id == "kiro" else ("api_key",),
+        credential_types=("oauth",)
+        if _provider_id == "muse_code"
+        else ("oauth", "api_key")
+        if _provider_id == "kiro"
+        else ("api_key",),
         model_prefixes=(),
     )
     _CREDENTIAL_VARIANT_CAPABILITIES[_provider_id] = CredentialVariantCapabilities(
         variant_id=_provider_id,
         provider_id=_provider_id,
         display_name=_provider_name,
-        credential_type="oauth" if _provider_id == "kiro" else "api_key",
-        operations=_COMMON_CREDENTIAL_OPERATIONS,
+        credential_type="oauth" if _provider_id in {"kiro", "muse_code"} else "api_key",
+        operations=_COMMON_CREDENTIAL_OPERATIONS
+        + (("refresh", "reauthenticate", "quota") if _provider_id == "muse_code" else ()),
     )
 
 
@@ -609,6 +617,10 @@ def api_key_fingerprint(api_key: str) -> str:
 def get_static_credential_identity(credential_data: Dict[str, Any]) -> str:
     """Return a deduplication identity that does not require a network lookup."""
     provider_id = get_credential_provider(credential_data)
+    if provider_id == "muse_code":
+        from core.muse_code import normalize_credential
+
+        return f"muse_code:{normalize_credential(credential_data)['account_id']}"
     if provider_id == "kiro" and credential_data.get("credential_type") == "oauth":
         from core.kiro_credentials import normalize_oauth
 
@@ -725,6 +737,11 @@ def credential_model_support_level(
     """Return the strength of the evidence that a credential supports a model."""
     provider_id = get_credential_provider(credential_data)
     if required_provider and provider_id != normalize_provider_id(required_provider):
+        return MODEL_SUPPORT_UNSUPPORTED
+    if model_name and (
+        str(model_name).removeprefix("models/").startswith("muse-code/")
+        != (provider_id == "muse_code")
+    ):
         return MODEL_SUPPORT_UNSUPPORTED
     capabilities = get_provider_capabilities(provider_id)
     if not capabilities or not capabilities.supports_model(model_name):

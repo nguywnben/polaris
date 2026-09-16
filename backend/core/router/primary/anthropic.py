@@ -56,7 +56,7 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
 
     from core.converter.anthropic_to_gemini import anthropic_to_gemini_request
 
-    if real_model.startswith("muse-spark-"):
+    if real_model.startswith(("muse-spark-", "muse-code/")):
         from core.meta_model_api import MetaModelAPIError, anthropic_request_to_meta_canonical
 
         try:

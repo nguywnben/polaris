@@ -225,6 +225,12 @@ MANAGEMENT_AUDIT_EXCLUSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/providers/xai/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/providers/openai/codex/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/providers/kiro/oauth/start"): "Ephemeral OAuth device handshake only.",
+    ("POST", "/api/providers/muse-code/oauth/start"): "Ephemeral OAuth device handshake only.",
+    ("POST", "/api/providers/muse-code/oauth/cancel"): "Cancels an ephemeral device grant only.",
+    (
+        "POST",
+        "/api/providers/muse-code/oauth/complete",
+    ): "The route records successful credential saving explicitly; pending checks make no durable change.",
     ("POST", "/api/providers/kiro/browser/start"): "Ephemeral PKCE handshake only.",
     (
         "POST",

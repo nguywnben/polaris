@@ -22,7 +22,7 @@ from core.coordination import (
 )
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-_FLOW_PATTERN = re.compile(r"^(?:codex|kiro)_[A-Za-z0-9_-]{43}$")
+_FLOW_PATTERN = re.compile(r"^(?:codex|kiro|muse_code)_[A-Za-z0-9_-]{43}$")
 _LEASE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22}$")
 _HMAC_DOMAIN = b"polaris:device-authorization:v1\0"
 _PAYLOAD_KEY_DOMAIN = b"polaris:device-authorization-payload-key:v1\0"
@@ -216,13 +216,18 @@ class DeviceAuthorizationService:
         result = await self._coordination.read_coordination_time(epoch=self._fencing_epoch)
         return result.milliseconds
 
+    async def lease_remaining_seconds(self, claim: DeviceAuthorizationClaim) -> float:
+        """Use the store's time domain, which need not be a wall-clock epoch."""
+        deadline = min(claim.lease_until_ms, claim.expires_at_ms)
+        return max(0.0, (deadline - await self._now_ms()) / 1000)
+
     async def create(
         self, payload: bytes, *, ttl_seconds: int | float, provider: str = "codex"
     ) -> str:
         """Create an encrypted flow with an immutable absolute expiry."""
         try:
             if (
-                provider not in {"codex", "kiro"}
+                provider not in {"codex", "kiro", "muse_code"}
                 or type(payload) is not bytes
                 or not 1 <= len(payload) <= _MAX_PAYLOAD_BYTES
                 or isinstance(ttl_seconds, bool)
@@ -273,7 +278,9 @@ class DeviceAuthorizationService:
         """Atomically lease one flow for a bounded provider poll."""
         try:
             flow_id = _flow_id(flow_id)
-            if provider not in {"codex", "kiro"} or not flow_id.startswith(f"{provider}_"):
+            if provider not in {"codex", "kiro", "muse_code"} or not flow_id.startswith(
+                f"{provider}_"
+            ):
                 raise DeviceAuthorizationError
             if (
                 isinstance(lease_seconds, bool)

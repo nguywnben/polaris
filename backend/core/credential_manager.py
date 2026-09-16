@@ -471,6 +471,10 @@ class CredentialManager:
 
     async def _should_refresh_token(self, credential_data: Dict[str, Any]) -> bool:
         try:
+            if get_credential_provider(credential_data) == "muse_code":
+                # Re-mint/check eligibility, not an invented OAuth refresh grant.
+                # Imported account/key pairs must be checked before dispatch.
+                return True
             if is_api_key_credential(credential_data):
                 return False
             if get_credential_provider(credential_data) == OLLAMA:
@@ -538,6 +542,16 @@ class CredentialManager:
         await self._ensure_initialized()
         try:
             provider_id = get_credential_provider(credential_data)
+            if provider_id == "muse_code":
+                from core.muse_code import refresh_credential
+                from core.muse_oauth import MuseOAuthError
+
+                refreshed_data = await refresh_credential(credential_data)
+                if not await self._storage_adapter.store_credential(
+                    filename, refreshed_data, mode=mode
+                ):
+                    raise MuseOAuthError("Unable to save Muse Code credentials.", 503)
+                return refreshed_data
             if provider_id == "kiro" and credential_data.get("credential_type") == "oauth":
                 from core.kiro_oauth import refresh_credential
 

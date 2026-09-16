@@ -242,6 +242,7 @@ async def create_meta_response(request: MetaResponsesRequest, token: str, *, res
     from core.api.primary import stream_request
     from core.meta_model_api import MetaModelAPIError, protocol_for_model
     from core.meta_native_boundary import seal_native_request
+    from core.muse_code import MODEL_PREFIX, upstream_model
 
     if resolution is None:
         try:
@@ -251,21 +252,27 @@ async def create_meta_response(request: MetaResponsesRequest, token: str, *, res
     candidates = list(resolution.candidates)
     if not candidates:
         return _failure(503)
+    provider = "muse_code" if candidates[0].startswith(MODEL_PREFIX) else "meta"
     try:
         for candidate in candidates:
-            protocol_for_model({}, candidate)
+            if candidate.startswith(MODEL_PREFIX) != (provider == "muse_code"):
+                return _failure(400)
+            upstream = upstream_model(candidate) if provider == "muse_code" else candidate
+            protocol_for_model({}, upstream)
             if (
                 request.reasoning
                 and request.reasoning.get("effort") == "max"
-                and candidate != "muse-spark-1.3"
+                and upstream != "muse-spark-1.3"
             ):
                 return _failure(400)
-    except MetaModelAPIError:
+    except (MetaModelAPIError, ValueError):
+        return _failure(400)
+    if provider == "muse_code" and request.tool_choice not in (None, "auto"):
         return _failure(400)
     mirror = await native_request_to_gemini(request)
     native = request.model_dump(exclude_none=True)
     native["model"] = candidates[0]
-    mirror = seal_native_request(mirror, native)
+    mirror = seal_native_request(mirror, native, provider=provider)
     events = _native_events(
         stream_request(
             body={"model": candidates[0], "request": mirror},

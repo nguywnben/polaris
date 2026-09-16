@@ -390,11 +390,11 @@ async def anthropic_request_to_meta_canonical(payload: dict) -> dict:
 
 
 def prepare_request(
-    data: dict, gemini_request: dict, model: str, streaming: bool
+    data: dict, gemini_request: dict, model: str, streaming: bool, *, native_provider: str = "meta"
 ) -> tuple[str, dict, dict]:
     normalized = normalize_credential(data)
     protocol_for_model(normalized, model)
-    validate_native_request(gemini_request, "meta")
+    validate_native_request(gemini_request, native_provider)
     source = copy.deepcopy(_object(gemini_request, "request"))
     if source.get("_polaris_meta_responses") is not None:
         # Recheck at the transport boundary, even when ingress already validated.

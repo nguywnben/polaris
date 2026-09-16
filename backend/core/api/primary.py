@@ -76,6 +76,7 @@ from core.google_ai_studio import (
 )
 from core.httpx_client import get_async, post_async, stream_post_async
 from core.model_blacklist import record_model_not_found
+from core.muse_quota import subscription_observer
 from core.ollama import (
     build_ollama_headers,
     fetch_ollama_model_ids,
@@ -760,6 +761,7 @@ async def _stream_request_upstream(
                     body=final_payload,
                     headers=auth_headers,
                     timeout=await get_upstream_timeout_seconds(),
+                    subscription_observer=subscription_observer(current_file, credential_data),
                     **(
                         {"native_responses": True}
                         if "_polaris_meta_responses" in body.get("request", body)
@@ -947,7 +949,7 @@ async def _stream_request_upstream(
                     stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
 
                     # Native reasoning and prompt-bearing Meta items stay out of logs.
-                    if provider_id != "meta":
+                    if provider_id not in {"meta", "muse_code"}:
                         if isinstance(chunk, bytes):
                             log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
                         else:
@@ -1400,6 +1402,7 @@ async def _non_stream_request_upstream(
                     body=stream_context.payload,
                     headers=stream_context.headers,
                     timeout=await get_upstream_timeout_seconds(),
+                    subscription_observer=subscription_observer(current_file, credential_data),
                 )
                 async with aclosing(upstream):
                     collected = await collect_streaming_response(upstream)

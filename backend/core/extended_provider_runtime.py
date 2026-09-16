@@ -10,11 +10,13 @@ import asyncio
 import copy
 import importlib
 import json
+from collections.abc import Awaitable, Callable
 from contextlib import aclosing
 
 from core.httpx_client import http_client
 from core.provider_registry import EXTENDED_PROVIDERS, get_credential_provider
 from fastapi import Response
+from log import log
 
 
 def transport(credential: dict):
@@ -25,7 +27,7 @@ def transport(credential: dict):
         "meta_model_api"
         if provider == "meta"
         else provider
-        if provider in {"kiro", "opencode"}
+        if provider in {"kiro", "opencode", "muse_code"}
         else "hosted_providers"
     )
     return importlib.import_module(f"core.{module}")
@@ -434,14 +436,15 @@ async def stream_extended_request(
     headers: dict,
     timeout: float,
     native_responses: bool = False,
+    subscription_observer: Callable[[dict], Awaitable[None]] | None = None,
 ):
     """Yield canonical SSE or a safe HTTP failure, closing HTTP on cancellation."""
     provider = get_credential_provider(credential)
-    if native_responses and provider != "meta":
+    if native_responses and provider not in {"meta", "muse_code"}:
         raise ProviderStreamError("Native Meta history cannot use another provider.")
     protocol = (
         transport(credential).protocol_for_model(credential, model)
-        if provider in {"opencode", "meta"}
+        if provider in {"opencode", "meta", "muse_code"}
         else "openai"
     )
     async with http_client.get_streaming_client(
@@ -467,12 +470,28 @@ async def stream_extended_request(
                 return
             decoder = _StreamDecoder(protocol, provider)
             completed_event = None
+            subscription_observation = None
             async for event in _json_events(response):
+                # Muse's private quota event is not a Responses output event.
+                # It can arrive AFTER response.completed. Validate it separately,
+                # retain only the latest valid observation, and never forward it.
+                if (
+                    provider == "muse_code"
+                    and isinstance(event, dict)
+                    and event.get("type") == "response.subscription_usage"
+                ):
+                    from core.muse_oauth import subscription_usage
+
+                    observation = subscription_usage(event.get("subscription"))
+                    if observation is not None:
+                        subscription_observation = observation
+                    continue
                 try:
                     native_event = _meta_event(event) if native_responses else None
                     decode_event = _platform_stream_event(provider, event)
                     output_limited = (
-                        provider == "meta" and event.get("type") == "response.incomplete"
+                        provider in {"meta", "muse_code"}
+                        and event.get("type") == "response.incomplete"
                     )
                     if output_limited:
                         response_body = event.get("response") or {}
@@ -501,6 +520,13 @@ async def stream_extended_request(
             terminal = decoder.complete()
             if native_responses and completed_event is None:
                 raise ProviderStreamError("Provider stream ended before completion.")
+            if subscription_observer is not None and subscription_observation is not None:
+                try:
+                    # Quota telemetry must not turn a completed generation into a
+                    # retry, hang it, or expose upstream/credential data in logs.
+                    await asyncio.wait_for(subscription_observer(subscription_observation), 2.0)
+                except Exception:
+                    log.warning("Muse Code quota observation could not be saved.")
             yield _attach_meta_event(terminal, completed_event) if completed_event else terminal
 
 
@@ -581,7 +607,12 @@ def _meta_event(event):
     return result
 
 
-async def test_extended_credential(credential: dict, model: str) -> Response:
+async def test_extended_credential(
+    credential: dict,
+    model: str,
+    *,
+    subscription_observer: Callable[[dict], Awaitable[None]] | None = None,
+) -> Response:
     """Explicit model test, never invoked as a side effect of catalog discovery."""
     from core.api.utils import collect_streaming_response
 
@@ -591,7 +622,13 @@ async def test_extended_credential(credential: dict, model: str) -> Response:
     }
     url, headers, payload = prepare_extended_request(credential, request, model, True)
     stream = stream_extended_request(
-        credential, model, url=url, headers=headers, body=payload, timeout=30
+        credential,
+        model,
+        url=url,
+        headers=headers,
+        body=payload,
+        timeout=30,
+        subscription_observer=subscription_observer,
     )
     async with aclosing(stream):
         return await collect_streaming_response(stream)

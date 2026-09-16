@@ -25,6 +25,8 @@ def credential(provider, **extra):
     result = {"provider": provider, "api_key": "test-key-never-live", **extra}
     if provider == "cloudflare":
         result.setdefault("account_id", "a" * 32)
+    if provider == "muse_code":
+        result.update(credential_type="oauth", access_token="synthetic-oauth", account_id="a" * 64)
     return result
 
 
@@ -43,7 +45,9 @@ class ExtendedImportNormalizationTests(unittest.TestCase):
             with self.subTest(provider=provider):
                 result = normalize_provider_import(credential(provider))
                 self.assertEqual(result["provider"], provider)
-                self.assertEqual(result["credential_type"], "api_key")
+                self.assertEqual(
+                    result["credential_type"], "oauth" if provider == "muse_code" else "api_key"
+                )
                 self.assertEqual(classify_pool_credential(result), provider)
 
     def test_constrained_import_and_provider_id_alias(self):
@@ -111,10 +115,10 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
             report = await restore_pool_archive(
                 archive([credential(p) for p in EXTENDED_PROVIDERS])
             )
-        self.assertEqual(report["uploaded_count"], 13)
+        self.assertEqual(report["uploaded_count"], 14)
         self.assertEqual(report["error_count"], 0)
         discover.assert_not_awaited()
-        self.assertEqual(store.await_count, 13)
+        self.assertEqual(store.await_count, 14)
         self.assertEqual(
             {call.args[0]["provider"] for call in store.await_args_list},
             {
@@ -127,6 +131,7 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
                 "kimchi",
                 "kilo",
                 "meta",
+                "muse_code",
                 "groq",
                 "deepseek",
                 "mistral",
@@ -201,6 +206,8 @@ class ExtendedPoolImportTests(unittest.IsolatedAsyncioTestCase):
                 with self.subTest(provider=provider):
                     data = normalize_provider_import(credential(provider, credential_label="Work"))
                     models = ["muse-spark-1.3"] if provider == "meta" else ["gpt-5"]
+                    if provider == "muse_code":
+                        models = ["muse-code/muse-spark-1.3"]
                     await store_extended_credential(data, models, file_import=True)
                     stored = persist.await_args.args[1]
                     self.assertEqual(stored["validation_status"], "unverified")

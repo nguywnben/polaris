@@ -96,7 +96,17 @@ class CompatibilitySnapshotTests(unittest.TestCase):
 
         route_map = self.current["console_routes"]["route_map"]
         for alias, canonical in self.baseline["console_routes"]["compatibility_aliases"].items():
+            if canonical == "/pool":
+                canonical = "/credentials"
             self.assertEqual(route_map[alias], route_map[canonical])
+
+    def test_credentials_rename_does_not_exempt_future_route_removal(self):
+        changed = copy.deepcopy(self.current)
+        changed["console_routes"]["server_paths"].remove("/credentials")
+        self.assertIn(
+            "removed console_routes.server_paths: ['/credentials']",
+            compare_snapshots(self.baseline, changed),
+        )
 
     def test_meta_responses_addition_does_not_exempt_future_contract_changes(self):
         changed = copy.deepcopy(self.current)

@@ -29,6 +29,7 @@ class _ReplaySeal:
 
 
 _SEAL = _ReplaySeal()
+_PROVIDER_SEALS = {"meta": _SEAL, "muse_code": _ReplaySeal()}
 
 
 def _reserved(request):
@@ -52,15 +53,20 @@ def _fingerprint(request, native):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def seal_native_request(canonical: dict, native: dict) -> dict:
+def seal_native_request(canonical: dict, native: dict, *, provider: str = "meta") -> dict:
     """Called only by trusted ingress after validating and constructing its mirror."""
-    if not isinstance(canonical, dict) or not isinstance(native, dict) or _reserved(canonical):
+    if (
+        provider not in _PROVIDER_SEALS
+        or not isinstance(canonical, dict)
+        or not isinstance(native, dict)
+        or _reserved(canonical)
+    ):
         raise MetaNativeBoundaryError("Invalid native Meta request boundary.")
     result = copy.deepcopy(canonical)
     payload = copy.deepcopy(native)
     result["_polaris_meta_fingerprint"] = _fingerprint(result, payload)
     result["_polaris_meta_responses"] = payload
-    result["_polaris_meta_seal"] = _SEAL
+    result["_polaris_meta_seal"] = _PROVIDER_SEALS[provider]
     return result
 
 
@@ -75,14 +81,13 @@ def validate_native_request(request: dict, provider: str) -> dict | None:
     fingerprint = request.get("_polaris_meta_fingerprint")
     if (
         fields != _FIELDS
-        or request.get("_polaris_meta_seal") is not _SEAL
+        or provider not in _PROVIDER_SEALS
+        or request.get("_polaris_meta_seal") is not _PROVIDER_SEALS.get(provider)
         or not isinstance(native, dict)
         or not isinstance(fingerprint, str)
         or len(fingerprint) != 64
     ):
         raise MetaNativeBoundaryError("Untrusted native Meta request boundary.")
-    if provider != "meta":
-        raise MetaNativeBoundaryError("Native Meta replay cannot be routed to another provider.")
     if not hmac.compare_digest(fingerprint, _fingerprint(request, native)):
         raise MetaNativeBoundaryError(
             "Native Meta replay was changed by request policy processing."

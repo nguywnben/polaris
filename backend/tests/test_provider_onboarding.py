@@ -32,6 +32,21 @@ VARIANTS = {
 
 
 class ProviderOnboardingContractTests(unittest.TestCase):
+    def test_onboarding_completion_clears_transient_ui_without_rendering_payloads(self):
+        source = (ROOT / "frontend/js/features/antigravity-authentication.js").read_text(
+            encoding="utf-8"
+        )
+        completion = source.split("async function completePrimaryCredentialSave", 1)[1].split(
+            "async function getPrimaryCredentials", 1
+        )[0]
+        self.assertNotIn("JSON.stringify(data.credentials", completion)
+        self.assertNotIn('id="primaryCredsContent"', PROVIDER_HTML)
+        results = (ROOT / "frontend/js/features/provider-save-results.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("completeProviderEntry", results)
+        self.assertIn("prepareProviderKeyEntries", ONBOARDING_SOURCE.read_text(encoding="utf-8"))
+
     def test_every_advertised_variant_maps_to_one_selector_and_workspace(self) -> None:
         source = (ROOT / "frontend/js/features/navigation.js").read_text(
             encoding="utf-8"

@@ -954,7 +954,13 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
         from core.extended_provider_runtime import discover_extended_models
 
         try:
-            models = await discover_extended_models(credential_data)
+            if provider_id == "muse_code":
+                from core.muse_code import discover_minted_models, refresh_credential
+
+                credential_data = await refresh_credential(credential_data)
+                models = await discover_minted_models(credential_data)
+            else:
+                models = await discover_extended_models(credential_data)
         except ValueError as exc:
             return JSONResponse(
                 status_code=getattr(exc, "status_code", 400),
@@ -966,7 +972,17 @@ async def verify_credential_common(filename: str, mode: str = "code_assist") -> 
                 },
             )
         credential_data["model_ids"] = models
-        await storage_adapter.store_credential(filename, credential_data, mode=mode)
+        stored = await storage_adapter.store_credential(filename, credential_data, mode=mode)
+        if provider_id == "muse_code" and not stored:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "success": False,
+                    "filename": filename,
+                    "provider": provider_id,
+                    "message": "Unable to save Muse Code credentials.",
+                },
+            )
         # Do not clear prior inference errors based on a possibly public catalog.
         return JSONResponse(
             content={

@@ -105,6 +105,14 @@ def _claims(token: str) -> dict:
 
 def _native_source(data: dict) -> tuple[str | None, dict]:
     markers: list[tuple[str, Any]] = []
+    if "providers" in data:
+        providers = data["providers"]
+        if not isinstance(providers, dict) or set(providers) != {"meta"}:
+            raise ValueError("Import one unambiguous provider account at a time.")
+        account = providers["meta"]
+        if not isinstance(account, dict) or account.get("mechanism") != "oauth":
+            raise ValueError("Import a Muse Code OAuth credential.")
+        markers.append(("muse_code", account))
     if "kiro_auth_token_raw" in data:
         # Cockpit exports intentionally repeat tokens at the account level.
         # The Kiro normalizer below verifies both containers and their aliases.
@@ -187,6 +195,43 @@ def normalize_provider_import(data: Any, variant: str | None = None) -> dict:
         raise ValueError("Native OAuth data conflicts with the declared credential type.")
     if family in EXTENDED_PROVIDERS:
         from core.extended_provider_runtime import normalize_extended_credential
+
+        if family == "muse_code":
+            if credential_type not in ("", "oauth") or source.get("mechanism", "oauth") != "oauth":
+                raise ValueError("Import a Muse Code OAuth credential.")
+            if (
+                source.get("base_url")
+                and source.get("api_base_url")
+                and source["base_url"] != source["api_base_url"]
+            ):
+                raise ValueError("Credential contains conflicting values for the same field.")
+            clean = {
+                key: source[key]
+                for key in (
+                    "access_token",
+                    "api_key",
+                    "account_id",
+                    "user_email",
+                    "oauth_expires_at",
+                )
+                if key in source
+            }
+            clean.update(
+                provider="muse_code",
+                credential_type="oauth",
+                base_url=source.get(
+                    "base_url", source.get("api_base_url", "https://api.meta.ai/v1")
+                ),
+            )
+            result = normalize_extended_credential(clean)
+            result.pop("model_ids", None)
+            label = data.get("credential_label", "")
+            if label:
+                label = _text(label)
+                if len(label) > 128:
+                    raise ValueError("Credential label is too long.")
+                result["credential_label"] = label
+            return result
 
         if family == "kiro" and (
             credential_type == "oauth"

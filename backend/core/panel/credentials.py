@@ -61,6 +61,8 @@ from core.models import (
     CredFileActionRequest,
     CredFileBatchActionRequest,
 )
+from core.muse_oauth import MuseOAuthError
+from core.muse_quota import subscription_observer
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
 from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
 from core.pool_import import PoolImportError, restore_pool_archive
@@ -120,6 +122,8 @@ router = APIRouter(tags=["credentials"])
 
 
 def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
+    if provider == "muse_code":
+        return ()
     if provider == "kiro":
         return ("region", "profile_arn")
     if provider not in EXTENDED_PROVIDERS:
@@ -128,7 +132,15 @@ def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
     return ("base_url", extra[provider]) if provider in extra else ("base_url",)
 
 
-async def _prepare_kiro_oauth(filename: str, data: dict, mode: str) -> dict:
+async def _prepare_extended_oauth(filename: str, data: dict, mode: str) -> dict:
+    if get_credential_provider(data) == "muse_code":
+        from core.muse_code import refresh_credential
+
+        fresh = await refresh_credential(data)
+        storage = await get_storage_adapter()
+        if not await storage.store_credential(filename, fresh, mode=mode):
+            raise MuseOAuthError("Unable to save Muse Code credentials.", 503)
+        return fresh
     if get_credential_provider(data) != "kiro" or data.get("credential_type") != "oauth":
         return data
     prepared = await credential_manager.prepare_credential(filename, data, mode=mode)
@@ -297,7 +309,13 @@ async def update_credential_configuration(
             detail=f"Unsupported credential field(s): {', '.join(unsupported)}.",
         )
 
-    credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
+    try:
+        credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
+    except MuseOAuthError as exc:
+        # Invalid provider credentials must not look like an expired console login.
+        raise HTTPException(
+            status_code=502 if exc.status_code >= 500 else 400, detail=str(exc)
+        ) from None
     candidate = dict(credential_data)
     if "credential_label" in changed_fields:
         candidate["credential_label"] = str(request.credential_label or "").strip()
@@ -476,11 +494,16 @@ async def get_credential_models(
             return rejection
 
         if mode == "primary" and get_credential_provider(credential_data) in EXTENDED_PROVIDERS:
-            credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
+            credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
             candidate = dict(credential_data)
             candidate["model_ids"] = []
             candidate.update(normalize_extended_credential(candidate))
-            model_ids = await discover_extended_models(candidate)
+            if get_credential_provider(candidate) == "muse_code":
+                from core.muse_code import discover_minted_models
+
+                model_ids = await discover_minted_models(candidate)
+            else:
+                model_ids = await discover_extended_models(candidate)
             candidate["model_ids"] = model_ids
             if not await storage_adapter.store_credential(filename, candidate, mode=mode):
                 raise HTTPException(
@@ -1266,6 +1289,19 @@ async def get_credential_quota(
             return rejection
 
         provider_id = get_credential_provider(credential_data)
+        if provider_id == "muse_code":
+            from core.muse_code import quota_view
+
+            fresh = await _prepare_extended_oauth(filename, credential_data, mode)
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "filename": filename,
+                    "provider": provider_id,
+                    **quota_view(fresh),
+                },
+                headers={"Cache-Control": "no-store"},
+            )
         if provider_id == GOOGLE_AI_STUDIO:
             return JSONResponse(
                 content={
@@ -1476,7 +1512,7 @@ async def get_credential_quota(
                 },
             )
 
-    except (AnthropicError, CodexError, OllamaError, XaiError) as e:
+    except (AnthropicError, CodexError, OllamaError, XaiError, MuseOAuthError) as e:
         return JSONResponse(
             status_code=502 if e.status_code >= 500 else 400,
             content={"success": False, "filename": filename, "error": str(e)},
@@ -1768,8 +1804,13 @@ async def _test_credential_unbounded(
             )
 
         if mode == "primary" and provider_id in EXTENDED_PROVIDERS:
-            credential_data = await _prepare_kiro_oauth(filename, credential_data, mode)
-            response = await test_extended_credential(credential_data, test_model)
+            credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
+            quota_observer = subscription_observer(filename, credential_data)
+            response = await test_extended_credential(
+                credential_data,
+                test_model,
+                **({"subscription_observer": quota_observer} if quota_observer is not None else {}),
+            )
             status_code = response.status_code
             if status_code == 200:
                 await storage_adapter.update_credential_state(

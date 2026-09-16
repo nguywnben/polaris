@@ -244,6 +244,18 @@
       "retryable": false
     },
     {
+      "variant_id": "muse_code",
+      "status_code": 401,
+      "body": {
+        "error": {
+          "message": "Provider request failed."
+        }
+      },
+      "category": "credential",
+      "provider_code": null,
+      "retryable": false
+    },
+    {
       "variant_id": "kilo",
       "status_code": 401,
       "body": {
