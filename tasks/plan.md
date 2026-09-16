@@ -1,4 +1,45 @@
-# Current work — Provider conformance audit (2026-09-16)
+# Completed implementation — credentials workspace (2026-09-16)
+
+Spec: `docs/specs/credentials-workspace.md`. User confirmed four credentials per row
+inside each full-width provider section. Work is sequential, without subagents.
+Order: identity regression → scoped section actions/layout → management modal →
+15-locale and synthetic browser/core verification. Existing pagination and batch
+preview tokens remain authoritative; no real credentials are changed by testing.
+Verification: core suite 2,200 tests, no failures, 22 existing optional skips;
+workspace and existing credentials browser checks passed; extended provider
+onboarding/import/edit smoke passed. See the spec for the verification record.
+
+# Completed implementation — Muse Code direct integration (2026-09-16)
+
+The user approved direct integration rather than a CLI bridge. Specification:
+`docs/specs/muse-code.md`; evidence: `docs/providers/muse-code-research-2026-09-16.md`.
+This adds a separately approved provider and preserves the completed plans below.
+
+Dependency order: verified OAuth transport → owner-bound onboarding/storage →
+runtime routing → provider UI/imports → integrated verification. Work is sequential,
+without subagents. Start with protocol uncertainty, not a nonfunctional UI card.
+
+1. Verify and test fixed-origin device authorization and key minting, including a
+   Windows HTTP probe. Keep unknown expiry/refresh behavior explicit.
+2. Add encrypted owner-bound start/check/cancel and account-isolated persistence.
+3. Integrate registry, credential import/refresh/discovery and sanitized diagnostics.
+4. Add runtime transport and subscription observations without implicit billing
+   fallback; preserve native replay/tool/cancellation semantics.
+5. Add the provider workspace and translations using existing components; test the
+   entire add/import/re-auth journey before activating its card.
+6. Run focused/core/quality/browser gates and report live limitations. No deployment
+   or push; new inference tests require a separate allowance.
+
+Risk gates: stop on an unverified required protocol, fail closed on subscription
+eligibility, and do not substitute a CLI bridge or an API-key provider. Each slice
+gets focused tests before advancing; full-provider readiness is not inferred from
+individual successful requests.
+
+Results and operational limits: `docs/providers/muse-code-verification-2026-09-16.md`.
+
+---
+
+# Completed work — Provider conformance audit (2026-09-16)
 
 User-authorized comparison of the existing 22 provider workspaces against the
 repositories in `C:/Users/nben6/Downloads/repo`, with evidence-backed repairs.

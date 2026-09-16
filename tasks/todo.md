@@ -1,5 +1,37 @@
 # Polaris Production Self-Hosted R1 — Fixed Checklist
 
+## Credentials workspace (2026-09-16)
+
+- [x] CRED-1: Identity fallback distinguishes OAuth/API keys without missing-email errors; regression tests.
+- [x] CRED-2: Full-width provider sections, four-column responsive cards, explicitly scoped batch actions.
+- [x] CRED-3: Capability-aware management modal and compact quick actions; no automatic secret fetch.
+- [x] CRED-4: Fifteen-locale checks, synthetic browser tests, core suite and final review.
+
+## Approved Muse Code direct integration (2026-09-16)
+
+Spec: `docs/specs/muse-code.md`. These tasks do not change completed R1/R2 counts.
+
+- [x] MUSE-1: Verified OAuth boundary and Windows login; synthetic security tests
+  in `test_muse_oauth.py`, no real credential persisted by the probe.
+- [x] MUSE-2: Owner-bound explicit start/check/cancel, expiry/race protection and
+  encrypted account storage; coordinator and route integration tests.
+- [x] MUSE-3: Registry/discovery/import/refresh and management operations; identity,
+  malformed imports, reauthorization and model-filtering regression tests.
+- [x] MUSE-4: Runtime request/stream/cancellation and quota integration; native
+  tool/reasoning replay and no implicit pay-as-you-go fallback tests.
+- [x] MUSE-5: Provider workspace and 15-locale copy; responsive/theme, manual save,
+  import and failure-state browser checks.
+- [x] MUSE-6: Core suite, fast quality gate, locale audits and integrated browser
+  smoke; report separately verified live behavior and remaining limitations.
+
+Checkpoint after MUSE-1: verify the actual token/key lifecycle before wiring login.
+Checkpoint after MUSE-3: validate credential isolation before runtime/UI activation.
+No request in this checklist authorizes additional paid inference or deployment.
+
+Verification: `docs/providers/muse-code-verification-2026-09-16.md`. Implementation
+is complete; live inference through the finished gateway, deployment and long-term
+upstream session behavior are not claimed by these checkmarks.
+
 ## Current provider conformance audit (2026-09-16)
 
 - [x] Map all 22 providers to local reference implementations and protocol evidence.
