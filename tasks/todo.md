@@ -1,5 +1,13 @@
 # Polaris Production Self-Hosted R1 — Fixed Checklist
 
+## Current provider conformance audit (2026-09-16)
+
+- [x] Map all 22 providers to local reference implementations and protocol evidence.
+- [x] Audit account/OAuth providers and repair confirmed defects with regression tests.
+- [x] Audit API-key/local providers and repair confirmed defects with regression tests.
+- [x] Verify shared runtime, import and advanced-settings contracts across providers.
+- [x] Run integrated checks and publish results with explicit live-test limitations.
+
 ## Approved provider authentication repair (2026-09-15)
 
 Spec: `docs/specs/provider-auth-consistency.md`. Existing completed R1 checklist remains unchanged.

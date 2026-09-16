@@ -1,3 +1,32 @@
+# Current work — Provider conformance audit (2026-09-16)
+
+User-authorized comparison of the existing 22 provider workspaces against the
+repositories in `C:/Users/nben6/Downloads/repo`, with evidence-backed repairs.
+This does not reopen or renumber the completed R1 plan below.
+
+1. Inventory every provider's authentication, upstream protocol, discovery,
+   import schema, advanced settings and runtime integration. Record reference
+   implementation paths and official protocol sources in
+   `docs/providers/conformance-audit-2026-09-16.md`.
+2. Review OAuth/account adapters, then API-key/local adapters, then the shared
+   routing/streaming boundary. For each confirmed defect, add a failing test
+   before the smallest focused repair. Do not copy reference-repo code blindly.
+3. Check onboarding/import/settings parity and run focused provider tests, the
+   core suite and isolated browser smoke. Clearly distinguish deterministic
+   checks from live provider verification, which requires authorized accounts.
+
+Acceptance: all 22 providers have an evidence entry; confirmed defects have
+regression coverage; unsupported/unverified capabilities are stated accurately;
+secrets and existing credential data remain untouched. No new provider, dependency,
+automatic OAuth completion, Docker deployment or GitHub push is authorized here.
+Work is sequential without subagents. Existing uncommitted work is preserved.
+
+Completed: evidence and verification results are recorded in
+`docs/providers/conformance-audit-2026-09-16.md`. Live upstream certification
+remains outside this source-and-contract audit.
+
+---
+
 # Polaris — Fixed Production Self-Hosted Plan R1
 
 ## Control Record

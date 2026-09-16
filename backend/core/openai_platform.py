@@ -57,7 +57,8 @@ def parse_openai_model_ids(payload: Any) -> List[str]:
         raise OpenAIPlatformError("OpenAI Platform returned an invalid model response.", 502)
     model_ids: List[str] = []
     for item in payload["data"]:
-        model_id = str(item.get("id") if isinstance(item, dict) else "").strip()
+        raw_id = item.get("id") if isinstance(item, dict) else None
+        model_id = raw_id.strip() if isinstance(raw_id, str) else ""
         if model_id and model_id.isprintable() and model_id not in model_ids:
             model_ids.append(model_id)
     return model_ids[:500]

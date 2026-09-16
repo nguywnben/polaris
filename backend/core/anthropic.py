@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -128,7 +129,8 @@ def parse_anthropic_model_ids(payload: Any) -> List[str]:
         raise AnthropicError("Anthropic returned an invalid model response.", 502)
     models: List[str] = []
     for item in payload["data"]:
-        model_id = str(item.get("id") if isinstance(item, dict) else "").strip()
+        raw_id = item.get("id") if isinstance(item, dict) else None
+        model_id = raw_id.strip() if isinstance(raw_id, str) else ""
         if (
             model_id
             and len(model_id) <= MAX_MODEL_ID_LENGTH
@@ -153,17 +155,9 @@ async def get_anthropic_connection(credential_data: Dict[str, Any]) -> tuple[str
     )
 
 
-async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str]:
-    base_url, user_agent = await get_anthropic_connection(credential_data)
+async def _fetch_model_page(url: str, headers: Dict[str, str]) -> Any:
     try:
-        response = await get_async(
-            f"{base_url}/models",
-            headers=build_anthropic_headers(
-                credential_data,
-                user_agent=user_agent,
-            ),
-            timeout=30.0,
-        )
+        response = await get_async(url, headers=headers, timeout=30.0)
     except (httpx.HTTPError, OSError) as exc:
         raise AnthropicError(
             "Unable to reach Anthropic. Check outbound network and proxy settings.", 502
@@ -178,9 +172,45 @@ async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str
             502 if response.status_code >= 500 else 400,
         )
     try:
-        model_ids = parse_anthropic_model_ids(response.json())
+        return response.json()
     except ValueError as exc:
         raise AnthropicError("Anthropic returned invalid JSON.", 502) from exc
+
+
+async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str]:
+    base_url, user_agent = await get_anthropic_connection(credential_data)
+    url = f"{base_url}/models"
+    headers = build_anthropic_headers(credential_data, user_agent=user_agent)
+    model_ids: List[str] = []
+    cursors: set[str] = set()
+    cursor = ""
+    try:
+        async with asyncio.timeout(30.0):
+            # https://platform.claude.com/docs/en/api/models/list
+            for _ in range(20):
+                page_url = f"{url}?{urlencode({'after_id': cursor})}" if cursor else url
+                payload = await _fetch_model_page(page_url, headers)
+                model_ids = list(dict.fromkeys([*model_ids, *parse_anthropic_model_ids(payload)]))
+                if len(model_ids) > MAX_DECLARED_MODELS:
+                    raise AnthropicError("Anthropic model catalog is too large.", 502)
+                has_more = payload.get("has_more", False)
+                if not isinstance(has_more, bool):
+                    raise AnthropicError("Anthropic returned invalid pagination.", 502)
+                if not has_more:
+                    break
+                cursor = payload.get("last_id")
+                if (
+                    not isinstance(cursor, str)
+                    or not cursor
+                    or len(cursor) > 4096
+                    or cursor in cursors
+                ):
+                    raise AnthropicError("Anthropic returned invalid pagination.", 502)
+                cursors.add(cursor)
+            else:
+                raise AnthropicError("Anthropic model catalog exceeds the page limit.", 502)
+    except TimeoutError as exc:
+        raise AnthropicError("Anthropic model discovery timed out.", 504) from exc
     if not model_ids:
         raise AnthropicError("The credential is valid, but no Claude models are available.")
     return model_ids
@@ -473,6 +503,9 @@ def _merge_message(
 def gemini_request_to_anthropic(
     payload: Dict[str, Any], model: str, streaming: bool
 ) -> Dict[str, Any]:
+    from core.tool_history import link_tool_history
+
+    payload = link_tool_history(payload)
     messages: List[Dict[str, Any]] = []
     for item in payload.get("contents") or []:
         if not isinstance(item, dict):

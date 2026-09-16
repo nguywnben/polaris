@@ -469,6 +469,9 @@ async def fetch_codex_model_ids(access_token: str, account_id: str = "") -> List
 
 def gemini_request_to_codex(payload: Dict[str, Any], model: str, streaming: bool) -> Dict[str, Any]:
     """Translate the internal Gemini request into the Codex Responses shape."""
+    from core.tool_history import link_tool_history
+
+    payload = link_tool_history(payload)
     del streaming  # The Codex backend requires SSE, even for downstream non-stream clients.
     instructions = ""
     response_input: List[Dict[str, Any]] = []

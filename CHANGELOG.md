@@ -7,6 +7,16 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ## [Unreleased]
 
+### Provider conformance fixes
+
+- Follow bounded Google AI Studio and Claude model-catalog pagination instead
+  of reporting success with only the first page; reject cyclic pagination.
+- Ignore missing/non-string model IDs in Claude and OpenAI Platform catalogs.
+- Correlate canonical tool calls and results across the legacy Chat, Codex
+  Responses and Claude Messages adapters, independent of content-part order.
+- Reject unrepresented generation options consistently across all hosted Chat
+  adapters instead of silently discarding them for six providers.
+
 ### Added
 
 - New providers show the same persistent credential-save result and pool shortcut

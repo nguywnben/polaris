@@ -9,6 +9,7 @@ import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
+from urllib.parse import parse_qs, urlparse
 
 from fastapi import UploadFile
 
@@ -198,6 +199,58 @@ class ProviderRegistryTests(unittest.TestCase):
 
 
 class GoogleAIStudioTests(unittest.IsolatedAsyncioTestCase):
+    async def test_discovery_reads_next_page_after_filtered_empty_page(self):
+        pages = [
+            FakeResponse(200, {"models": [], "nextPageToken": "next+/="}),
+            FakeResponse(
+                200,
+                {
+                    "models": [
+                        {
+                            "name": "models/gemini-test",
+                            "supportedGenerationMethods": ["generateContent"],
+                        }
+                    ]
+                },
+            ),
+        ]
+        with (
+            patch(
+                "core.google_ai_studio.get_google_ai_studio_api_url",
+                AsyncMock(return_value="https://generativelanguage.googleapis.com"),
+            ),
+            patch("core.google_ai_studio.get_async", AsyncMock(side_effect=pages)) as request,
+        ):
+            result = await validate_api_key("example-google-key-value")
+        self.assertEqual(result.model_ids, ["gemini-test"])
+        self.assertEqual(
+            parse_qs(urlparse(request.call_args.args[0]).query)["pageToken"], ["next+/="]
+        )
+
+    async def test_discovery_rejects_repeated_cursor_instead_of_partial_success(self):
+        page = FakeResponse(
+            200,
+            {
+                "models": [
+                    {
+                        "name": "models/gemini-test",
+                        "supportedGenerationMethods": ["generateContent"],
+                    }
+                ],
+                "nextPageToken": "repeat",
+            },
+        )
+        with (
+            patch(
+                "core.google_ai_studio.get_google_ai_studio_api_url",
+                AsyncMock(return_value="https://generativelanguage.googleapis.com"),
+            ),
+            patch("core.google_ai_studio.get_async", AsyncMock(return_value=page)),
+        ):
+            with self.assertRaises(GoogleAIStudioError) as caught:
+                await validate_api_key("example-google-key-value")
+        self.assertEqual(caught.exception.status_code, 502)
+
     def test_generation_url_encodes_untrusted_model_path(self):
         url = build_generation_url(
             "https://generativelanguage.googleapis.com",

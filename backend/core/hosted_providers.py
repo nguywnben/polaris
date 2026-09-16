@@ -7,7 +7,6 @@ proxy hosts require a separately reviewed allowlist rather than implicit SSRF ac
 
 from __future__ import annotations
 
-import copy
 import json
 import re
 from typing import Any
@@ -149,50 +148,12 @@ def _valid_model_id(value: Any) -> bool:
 
 
 def _link_tool_history(request: dict) -> dict:
-    """Assign IDs by conversation history, not independent content-part indexes."""
-    request = copy.deepcopy(request)
-    parts = [
-        part
-        for content in request.get("contents") or []
-        if isinstance(content, dict)
-        for part in content.get("parts") or []
-        if isinstance(part, dict)
-    ]
-    used_ids = {
-        str(call["id"])
-        for part in parts
-        if isinstance(call := part.get("functionCall") or part.get("function_call"), dict)
-        and call.get("id")
-    }
-    pending = {}
-    counter = 0
-    for part in parts:
-        call = part.get("functionCall") or part.get("function_call")
-        if isinstance(call, dict):
-            if not call.get("id"):
-                counter += 1
-                while f"polaris_call_{counter}" in used_ids:
-                    counter += 1
-                call["id"] = f"polaris_call_{counter}"
-                used_ids.add(call["id"])
-            call_id = str(call["id"])
-            if call_id in pending:
-                raise HostedProviderError("Invalid tool call history.")
-            pending[call_id] = call.get("name")
-        result = part.get("functionResponse") or part.get("function_response")
-        if isinstance(result, dict):
-            if result.get("id"):
-                call_id = str(result["id"])
-                if call_id not in pending:
-                    raise HostedProviderError("Invalid tool call history.")
-            else:
-                matches = [key for key, name in pending.items() if name == result.get("name")]
-                if len(matches) != 1:
-                    raise HostedProviderError("Invalid tool call history.")
-                call_id = matches[0]
-                result["id"] = call_id
-            del pending[call_id]
-    return request
+    from core.tool_history import link_tool_history
+
+    try:
+        return link_tool_history(request)
+    except ValueError as exc:
+        raise HostedProviderError(str(exc)) from None
 
 
 def _restrict_tools(request: dict) -> None:
@@ -238,65 +199,45 @@ def prepare_request(
     if not _valid_model_id(model):
         raise HostedProviderError("Invalid model ID.")
     base = data["base_url"]
-    if data["provider"] in {"groq", "deepseek", "mistral", "cerebras"}:
-        config = gemini_request.get("generationConfig") or {}
-        allowed = {
-            "temperature",
-            "topP",
-            "maxOutputTokens",
-            "stopSequences",
-            "candidateCount",
-            "seed",
-            "frequencyPenalty",
-            "presencePenalty",
-            "responseMimeType",
-            "responseSchema",
-        }
-        if data["provider"] == "deepseek":
-            allowed.remove("seed")
-        if (
-            not isinstance(config, dict)
-            or any(value is not None and key not in allowed for key, value in config.items())
-            or config.get("responseMimeType") not in (None, "text/plain", "application/json")
-            or (
-                config.get("responseSchema") is not None
-                and config.get("responseMimeType") != "application/json"
-            )
-        ):
-            raise HostedProviderError(
-                "This provider does not support the requested generation options."
-            )
+    # Guard every hosted adapter, not only the four most recently added ones.
+    # These are the options our converter can represent, not a promise that each
+    # upstream model accepts every option (that remains provider/model-specific).
+    config = gemini_request.get("generationConfig") or {}
+    allowed = {
+        "temperature",
+        "topP",
+        "maxOutputTokens",
+        "stopSequences",
+        "candidateCount",
+        "seed",
+        "frequencyPenalty",
+        "presencePenalty",
+        "responseMimeType",
+        "responseSchema",
+    }
+    if data["provider"] == "deepseek":
+        allowed.remove("seed")
+    if (
+        not isinstance(config, dict)
+        or any(value is not None and key not in allowed for key, value in config.items())
+        or config.get("responseMimeType") not in (None, "text/plain", "application/json")
+        or (
+            config.get("responseSchema") is not None
+            and config.get("responseMimeType") != "application/json"
+        )
+    ):
+        raise HostedProviderError(
+            "This provider does not support the requested generation options."
+        )
     if data["provider"] == "cloudflare":
         base += f"/accounts/{data['account_id']}/ai/v1"
     gemini_request = _link_tool_history(gemini_request)
     _restrict_tools(gemini_request)
-    payload = gemini_request_to_openai(gemini_request, model, streaming)
+    payload = gemini_request_to_openai(gemini_request, model, streaming, preserve_reasoning=True)
     if streaming and data["provider"] in STREAM_USAGE_PROVIDERS:
         payload["stream_options"] = {"include_usage": True}
-    # Reuse the existing converter per content to retain exact tool-result placement.
-    # Its generic adapter intentionally drops thoughts; hosted Kimi/Poolside need them.
-    messages = [message for message in payload["messages"] if message["role"] == "system"]
-    for content in gemini_request.get("contents") or []:
-        if not isinstance(content, dict):
-            continue
-        converted = gemini_request_to_openai({"contents": [content]}, model, streaming)["messages"]
-        reasoning = "".join(
-            part["text"]
-            for part in content.get("parts") or []
-            if isinstance(part, dict)
-            and part.get("thought") is True
-            and isinstance(part.get("text"), str)
-        )
-        if content.get("role") == "model" and reasoning:
-            assistant = next(
-                (message for message in converted if message["role"] == "assistant"), None
-            )
-            if assistant is None:
-                assistant = {"role": "assistant", "content": None}
-                converted.insert(0, assistant)
-            assistant["reasoning_content"] = reasoning
-        messages.extend(converted)
-    payload["messages"] = messages
+    # Convert the whole history once; Kimi/Poolside also require thought replay.
+    messages = payload["messages"]
     # Polaris Chat rejects reasoning_content history at its public boundary.
     # Default to replay-safe chat; canonical callers that retain thoughts can
     # continue reasoning histories without dropping the provider's state.

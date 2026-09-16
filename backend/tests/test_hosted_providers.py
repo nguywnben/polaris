@@ -14,6 +14,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from core.anthropic import gemini_request_to_anthropic
+from core.codex import gemini_request_to_codex
 from core.hosted_providers import (
     HOSTED_PROVIDERS,
     MAX_CATALOG_BYTES,
@@ -22,6 +24,7 @@ from core.hosted_providers import (
     normalize_credential,
     prepare_request,
 )
+from core.xai import gemini_request_to_xai
 
 
 def credential(provider="kimi", **extra):
@@ -29,6 +32,84 @@ def credential(provider="kimi", **extra):
 
 
 class HostedProviderTests(unittest.IsolatedAsyncioTestCase):
+    def test_all_hosted_transports_reject_unrepresented_generation_options(self):
+        for provider in HOSTED_PROVIDERS:
+            for config in (
+                {"thinkingConfig": {"thinkingBudget": 100}},
+                {"responseMimeType": "audio/wav"},
+            ):
+                with (
+                    self.subTest(provider=provider, config=config),
+                    self.assertRaises(HostedProviderError),
+                ):
+                    prepare_request(
+                        credential(provider, account_id="a" * 32),
+                        {"generationConfig": config},
+                        "test-model",
+                        True,
+                    )
+
+    def test_legacy_transports_link_tool_results_by_history_not_part_position(self):
+        request = {
+            "contents": [
+                {
+                    "role": "model",
+                    "parts": [
+                        {"text": "Checking"},
+                        {"functionCall": {"name": "alpha", "args": {}}},
+                        {"functionCall": {"name": "beta", "args": {}}},
+                    ],
+                },
+                {
+                    "role": "user",
+                    "parts": [
+                        {"functionResponse": {"name": "beta", "response": {}}},
+                        {"functionResponse": {"name": "alpha", "response": {}}},
+                    ],
+                },
+            ]
+        }
+        original = copy.deepcopy(request)
+        for convert in (
+            gemini_request_to_xai,
+            gemini_request_to_codex,
+            gemini_request_to_anthropic,
+        ):
+            with self.subTest(transport=convert.__name__):
+                result = convert(request, "test-model", True)
+                if "input" in result:
+                    calls = {
+                        item["name"]: item["call_id"]
+                        for item in result["input"]
+                        if item.get("type") == "function_call"
+                    }
+                    outputs = [
+                        item["call_id"]
+                        for item in result["input"]
+                        if item.get("type") == "function_call_output"
+                    ]
+                elif "max_tokens" in result:
+                    blocks = [block for item in result["messages"] for block in item["content"]]
+                    calls = {
+                        item["name"]: item["id"] for item in blocks if item["type"] == "tool_use"
+                    }
+                    outputs = [
+                        item["tool_use_id"] for item in blocks if item["type"] == "tool_result"
+                    ]
+                else:
+                    calls = {
+                        call["function"]["name"]: call["id"]
+                        for item in result["messages"]
+                        for call in item.get("tool_calls", [])
+                    }
+                    outputs = [
+                        item["tool_call_id"]
+                        for item in result["messages"]
+                        if item["role"] == "tool"
+                    ]
+                self.assertEqual(outputs, [calls["beta"], calls["alpha"]])
+                self.assertEqual(request, original)
+
     @asynccontextmanager
     async def transport(self, handler):
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:

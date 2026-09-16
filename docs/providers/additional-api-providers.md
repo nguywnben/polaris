@@ -61,8 +61,10 @@ Exported credential archives contain secrets and must be protected accordingly.
 
 ## Scope and limitations
 
-- These integrations use API keys only: no vendor OAuth, CLI execution, token
-  scraping, automatic refresh, or invented quota displays.
+- Kiro supports the browser/AWS OAuth methods listed above and token renewal;
+  completing a new login still requires an explicit user action. The other
+  integrations in this table use API keys. None executes vendor CLIs, scrapes
+  account tokens, or invents quota displays.
 - Text, supported image inputs and function tools pass through the existing
   gateway routing and streaming pipeline. Unsupported request semantics fail
   explicitly instead of silently changing the request. Only one response
