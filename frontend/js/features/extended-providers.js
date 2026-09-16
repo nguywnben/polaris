@@ -130,7 +130,7 @@ function buildExtendedProviderWorkspaces() {
         const title = document.createElement('h2'); title.textContent = definition.name;
         const website = extendedElement('a', 'provider-site-link');
         website.href = definition.site; website.target = '_blank'; website.rel = 'noopener noreferrer';
-        website.textContent = definition.site;
+        website.textContent = definition.site.replace(/\/+$/, '');
         intro.append(title, extendedElement('p', '', `provider.ext.${provider}`), website);
         heading.append(extendedLogo(provider, definition, true), intro); header.append(heading); workspace.append(header);
         if (provider === 'meta') {
@@ -201,7 +201,10 @@ function buildExtendedProviderWorkspaces() {
             const summary = extendedElement('summary', 'provider-disclosure-summary'); summary.textContent = 'API Key';
             const help = extendedElement('p', 'card-copy provider-tool-copy', 'provider.auth.key_help');
             const account = extendedElement('a', 'provider-site-link'); account.href = 'https://app.kiro.dev/'; account.target = '_blank'; account.rel = 'noopener noreferrer'; account.textContent = 'app.kiro.dev';
-            alternative.append(summary, help, account, form);
+            const body = extendedElement('div', 'provider-api-key-body');
+            const intro = extendedElement('div', 'provider-api-key-intro');
+            intro.append(help, account); body.append(intro, form);
+            alternative.append(summary, body);
             // OAuth and API-key settings share placement, never values or form ownership.
             const keySettings = extendedElement('fieldset', 'provider-auth-settings');
             const keyLegend = extendedElement('legend'); keyLegend.textContent = 'API Key';

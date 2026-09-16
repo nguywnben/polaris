@@ -24,8 +24,13 @@ changes are permitted throughout the Polaris `0.x` beta series.
   mixing raw English server messages with translated labels.
 - Every provider now offers a JSON credential example beside the import heading,
   with provider-specific OAuth, API-key or Ollama connection fields and no copied secrets.
-- Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with automatic
-  callback completion and a manual callback-URL fallback for remote instances.
+- Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with explicit
+  credential saving and a manual callback-URL fallback for remote instances.
+  All five provider OAuth workspaces require an explicit save or authorization
+  check; Kiro no longer polls or saves automatically after receiving a callback.
+  The public Claude Code callback page no longer exchanges tokens or saves an account;
+  it directs the user back to the original console tab for an explicit save.
+  Saved-account token refresh remains unchanged.
   Generate the sign-in link first, then open or copy it without an automatic popup;
   the callback textarea stays visible while authorization is pending. The link button
   remains available to cancel the previous pending flow and generate a new link.
@@ -46,6 +51,10 @@ changes are permitted throughout the Polaris `0.x` beta series.
   without imposing composition rules.
 
 ### Fixed
+
+- Provider website labels omit trailing slashes without changing link targets.
+  Removed the Antigravity credits management panel from provider onboarding;
+  stored credit preferences, credential status badges and backend credit APIs are unchanged.
 
 - Provider workspaces use consistent API-key actions, concise placeholders and
   import wording across old and new integrations. JSON examples sit beside the

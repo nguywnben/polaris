@@ -27,12 +27,16 @@
 .provider-auth-settings .provider-settings-header { padding: 0; margin-bottom: 16px; }
 .provider-import-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
 .provider-import-heading .card-title { margin: 0; }
-.provider-import-heading .btn { min-height: 32px; padding: 4px 0; border: 0; border-radius: 0; background: transparent; color: var(--text-muted); font-weight: 400; text-decoration: underline; text-underline-offset: 3px; }
-.provider-import-heading .btn:hover { color: var(--text); }
+.provider-import-heading .btn { min-height: 32px; padding: 4px 0; border: 0; border-radius: 0; background: transparent; color: var(--text-muted); font-weight: 400; text-decoration: none; text-underline-offset: 3px; }
+.provider-import-heading .btn:not(:disabled):is(:hover, :focus-visible) { background: transparent; color: var(--text); text-decoration: underline; }
 #providersTab .provider-tools-grid .page-actions { gap: 8px; }
 #providersTab .provider-tools-grid .btn:not(.setup-secret-toggle) { white-space: normal; overflow-wrap: anywhere; }
 #providersTab .provider-tools-grid .provider-save-result > .btn { white-space: nowrap; overflow-wrap: normal; }
 .provider-tools-column > .provider-secondary-disclosure > :is(form, p, a) { margin: 16px 20px; }
+.provider-secondary-disclosure > .provider-api-key-body { display: grid; gap: 16px; margin: 16px; min-width: 0; }
+.provider-api-key-intro { display: grid; gap: 4px; min-width: 0; }
+.provider-api-key-body .provider-api-key-intro > :is(p, a) { margin: 0; }
+.provider-api-key-intro .provider-site-link { justify-self: start; text-decoration: underline; text-underline-offset: 3px; }
 .extended-provider-advanced > p, .extended-provider-advanced > .extended-provider-fields { margin: 16px; }
 .extended-provider-import .provider-upload-section { margin-top: 16px; }
 .extended-provider-import .page-actions { margin-top: 12px; }
@@ -1175,7 +1179,6 @@ img[src$="/kimchi.png"] { border-radius: 50%; }
     background: var(--bg);
 }
 
-#antigravityCreditSettings { grid-column: 1 / -1; }
 [data-google-settings] { margin-top: 16px; }
 [data-google-scope] {
     display: grid;

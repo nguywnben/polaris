@@ -5,7 +5,7 @@ import re
 from functools import lru_cache
 from html import escape
 
-from core.anthropic import AnthropicError, complete_claude_oauth, is_claude_oauth_state
+from core.anthropic import is_claude_oauth_state
 from core.auth import accept_oauth_callback
 from core.i18n import get_locale, translate
 from fastapi import APIRouter, HTTPException, Request
@@ -129,7 +129,6 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/anthropic-settings.js",
     "js/features/ollama-settings.js",
     "js/features/antigravity-settings.js",
-    "js/features/provider-credit-settings.js",
     "js/features/provider-owned-settings.js",
     "js/features/system-settings.js",
     "js/features/backups.js",
@@ -313,30 +312,19 @@ async def serve_oauth_callback(request: Request):
         )
 
     if is_claude_callback:
-        try:
-            result = await complete_claude_oauth(code or "", state or "")
-        except AnthropicError as exc:
-            log.warning(f"Claude Code OAuth callback was rejected: {exc}")
+        # A public GET must not exchange tokens, consume the flow, or save credentials.
+        # Keep the code in this URL for an explicit save in the original console tab.
+        if not code or not code.strip():
             return _oauth_callback_page(
                 False,
                 translate("oauth.failed_title", provider="Claude Code"),
                 translate("oauth.retry", provider="Claude Code"),
             )
-        except Exception as exc:
-            log.error(f"Failed to complete the Claude Code OAuth callback: {exc}")
-            return _oauth_callback_page(
-                False,
-                translate("oauth.failed_title", provider="Claude Code"),
-                translate("oauth.internal_error", provider="Claude Code"),
-            )
         return _oauth_callback_page(
             True,
-            translate("oauth.success_title", provider="Claude Code"),
-            translate(
-                "oauth.credential_saved",
-                provider="Claude Code",
-                account=result.get("account_label") or result.get("label") or "account",
-            ),
+            "Claude Code",
+            translate("oauth.copy_authorization_code"),
+            manual_callback=True,
         )
 
     accepted, _message = accept_oauth_callback(code, state)

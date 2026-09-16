@@ -45,7 +45,8 @@ button.endpoint-code-card:hover {
     margin-bottom: 8px;
 }
 
-.auth-link-header label {
+.auth-link-header label,
+.auth-link-header .auth-link-label {
     margin-bottom: 0;
 }
 
@@ -900,7 +901,8 @@ button.endpoint-code-card:hover {
     line-height: 1.35;
 }
 
-label {
+label,
+.auth-link-label {
     display: block;
     color: var(--text-muted);
     font-size: 12px;

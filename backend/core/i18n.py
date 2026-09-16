@@ -501,6 +501,24 @@ _OAUTH_CREDENTIAL_SAVED_ROWS = {
     "vi": "Đã lưu thông tin xác thực {provider} của {account} vào kho nhà cung cấp. Bạn có thể đóng thẻ này và quay lại Polaris.",
 }
 
+MESSAGES["oauth.copy_authorization_code"] = {
+    "en": "Copy the authorization code from the code parameter in this URL. Return to the Polaris tab where you started signing in, paste it into the Claude Code authorization code field, and save the credential. Nothing has been saved yet.",
+    "vi": "Sao chép mã cấp quyền ở tham số code trong URL này. Quay lại tab Polaris đã dùng để bắt đầu đăng nhập, dán vào trường mã cấp quyền của Claude Code rồi lưu thông tin xác thực. Hiện chưa có thông tin xác thực nào được lưu.",
+    "zh-CN": "复制此 URL 中 code 参数的授权码。返回发起登录的 Polaris 标签页，将其粘贴到 Claude Code 的授权码字段中，然后保存凭据。目前尚未保存任何凭据。",
+    "zh-TW": "複製此 URL 中 code 參數的授權碼。返回發起登入的 Polaris 分頁，將其貼到 Claude Code 的授權碼欄位，再儲存憑證。目前尚未儲存任何憑證。",
+    "de": "Kopieren Sie den Autorisierungscode aus dem Parameter code dieser URL. Kehren Sie zum Polaris-Tab zurück, in dem Sie die Anmeldung gestartet haben, fügen Sie ihn in das Autorisierungscode-Feld von Claude Code ein und speichern Sie die Zugangsdaten. Es wurde noch nichts gespeichert.",
+    "es": "Copia el código de autorización del parámetro code de esta URL. Vuelve a la pestaña de Polaris donde iniciaste el acceso, pégalo en el campo de código de autorización de Claude Code y guarda la credencial. Aún no se ha guardado nada.",
+    "fr": "Copiez le code d’autorisation du paramètre code de cette URL. Revenez à l’onglet Polaris où vous avez lancé la connexion, collez-le dans le champ du code d’autorisation de Claude Code, puis enregistrez les identifiants. Rien n’a encore été enregistré.",
+    "id": "Salin kode otorisasi dari parameter code pada URL ini. Kembali ke tab Polaris tempat Anda memulai login, tempelkan ke kolom kode otorisasi Claude Code, lalu simpan kredensial. Belum ada kredensial yang disimpan.",
+    "it": "Copia il codice di autorizzazione dal parametro code di questo URL. Torna alla scheda Polaris in cui hai avviato l’accesso, incollalo nel campo del codice di autorizzazione di Claude Code e salva le credenziali. Non è stato ancora salvato nulla.",
+    "ja": "この URL の code パラメーターから認可コードをコピーしてください。ログインを開始した Polaris のタブに戻り、Claude Code の認可コード欄に貼り付けて認証情報を保存してください。まだ何も保存されていません。",
+    "ko": "이 URL의 code 매개변수에서 인증 코드를 복사하세요. 로그인을 시작한 Polaris 탭으로 돌아가 Claude Code의 인증 코드 필드에 붙여넣고 자격 증명을 저장하세요. 아직 저장된 자격 증명은 없습니다.",
+    "pt": "Copie o código de autorização do parâmetro code desta URL. Volte à aba do Polaris em que iniciou o login, cole-o no campo de código de autorização do Claude Code e salve a credencial. Nada foi salvo ainda.",
+    "ru": "Скопируйте код авторизации из параметра code в этом URL. Вернитесь во вкладку Polaris, где вы начали вход, вставьте его в поле кода авторизации Claude Code и сохраните учётные данные. Пока ничего не сохранено.",
+    "th": "คัดลอกรหัสอนุญาตจากพารามิเตอร์ code ใน URL นี้ กลับไปที่แท็บ Polaris ที่เริ่มเข้าสู่ระบบ วางรหัสในช่องรหัสอนุญาตของ Claude Code แล้วบันทึกข้อมูลรับรอง ขณะนี้ยังไม่มีการบันทึกข้อมูลรับรอง",
+    "tr": "Bu URL’deki code parametresinden yetkilendirme kodunu kopyalayın. Girişi başlattığınız Polaris sekmesine dönün, kodu Claude Code yetkilendirme kodu alanına yapıştırın ve kimlik bilgilerini kaydedin. Henüz hiçbir şey kaydedilmedi.",
+}
+
 MESSAGES["oauth.callback_received"] = {
     "en": "Kiro returned its callback. Close this tab and return to the Polaris tab where you started signing in to complete the connection.",
     "vi": "Đã nhận callback từ Kiro. Đóng tab này và quay lại tab Polaris đã dùng để bắt đầu đăng nhập để hoàn tất kết nối.",

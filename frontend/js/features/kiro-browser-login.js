@@ -1,4 +1,4 @@
-// Portal-style login: PKCE and tokens stay on the server; callback capture is automatic.
+// PKCE and tokens stay on the server; only an explicit Save completes sign-in.
 function buildKiroOAuthPanel(advanced) {
     const panel = extendedElement('section', 'tool-panel');
     const title = extendedElement('h3', 'card-title'); title.textContent = 'Kiro OAuth';
@@ -18,7 +18,7 @@ function buildKiroOAuthPanel(advanced) {
     const pending = extendedElement('section', 'provider-browser-pending hidden');
     pending.tabIndex = -1;
     const linkHeader = extendedElement('div', 'auth-link-header');
-    const linkLabel = extendedElement('span', '', 'provider.portal.link_label');
+    const linkLabel = extendedElement('span', 'auth-link-label', 'provider.portal.link_label');
     linkLabel.id = 'kiroBrowserLinkLabel'; pending.setAttribute('aria-labelledby', linkLabel.id);
     const copy = extendedElement('button', 'btn btn-secondary', 'provider.portal.copy');
     copy.id = 'kiroBrowserCopyLink'; copy.type = 'button';
@@ -32,12 +32,15 @@ function buildKiroOAuthPanel(advanced) {
     const manualForm = extendedElement('form', 'extended-provider-form oauth-completion-panel'); manualForm.noValidate = true;
     const callbackGroup = extendedElement('div', 'form-group');
     const callbackLabel = extendedElement('label', '', 'provider.portal.manual');
+    const callbackHelp = extendedElement('p', 'card-copy provider-tool-copy', 'provider.portal.manual_help');
+    callbackHelp.id = 'kiroBrowserCallbackHelp';
     const input = extendedElement('textarea');
     input.id = 'extended-kiro-browser-callback_url'; input.name = 'callback_url';
-    input.rows = 3; input.required = true; callbackLabel.htmlFor = input.id;
+    input.rows = 3; callbackLabel.htmlFor = input.id;
     input.placeholder = 'http://localhost:4283/oauth/callback?code=…&state=…';
     input.maxLength = 6144; input.autocomplete = 'off'; input.autocapitalize = 'none'; input.spellcheck = false;
-    callbackGroup.append(callbackLabel, input); manualForm.append(callbackGroup);
+    input.setAttribute('aria-describedby', callbackHelp.id);
+    callbackGroup.append(callbackLabel, callbackHelp, input); manualForm.append(callbackGroup);
     const submit = extendedElement('button', 'btn', 'runtime.save_credential'); submit.type = 'submit';
     actions.append(submit); manualForm.append(actions);
     pending.append(linkHeader, linkCard, manualForm); panel.append(pending);
@@ -45,14 +48,13 @@ function buildKiroOAuthPanel(advanced) {
     const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
     const callbackOrigin = remote ? 'http://localhost:4283' : location.origin;
     if (remote) panel.append(extendedElement('p', 'card-copy', 'provider.portal.remote'));
-    let flow = null, timer = null, busy = false, expiresAt = 0;
+    let flow = null, busy = false, expiresAt = 0;
     const setBusy = value => {
         busy = value;
         [start, submit].forEach(button => { button.disabled = value; });
     };
-    const stopTimer = () => { clearTimeout(timer); timer = null; };
     const reset = () => {
-        stopTimer(); flow = null; input.value = ''; link.removeAttribute('href'); link.textContent = '';
+        flow = null; input.value = ''; link.removeAttribute('href'); link.textContent = '';
         pending.classList.add('hidden'); region.disabled = false;
     };
     async function request(action, payload) {
@@ -63,13 +65,15 @@ function buildKiroOAuthPanel(advanced) {
         if (!response.ok) { const error = new Error('kiro-login'); error.terminal = [401, 403, 404, 409].includes(response.status); throw error; }
         return data;
     }
-    function schedule() { stopTimer(); if (flow) timer = setTimeout(poll, 2000); }
-    async function poll() {
-        if (!flow) return;
+    manualForm.addEventListener('submit', async event => {
+        event.preventDefault(); if (!flow || busy || !manualForm.reportValidity()) return;
         if (Date.now() >= expiresAt) { reset(); showStatus(t('provider.auth.error'), 'error'); return; }
-        if (busy || document.hidden) { schedule(); return; }
         setBusy(true);
         try {
+            if (input.value.trim()) {
+                await request('callback', {flow_id: flow, callback_url: input.value.trim()});
+                input.value = '';
+            }
             const result = await request('complete', {flow_id: flow});
             if (result.credential_saved) {
                 reset(); showProviderCredentialSaveResult('kiroBrowser', result);
@@ -77,15 +81,18 @@ function buildKiroOAuthPanel(advanced) {
                 await AppState.primaryCreds.refresh();
             } else if (result.status === 'error') {
                 reset(); showStatus(t(result.reason === 'unsupported_method' ? 'provider.portal.unsupported' : 'provider.auth.error'), 'error');
+            } else {
+                showStatus(t('provider.authorization_pending', {provider: 'Kiro'}), 'info');
             }
         } catch (error) {
-            if (error.terminal) { reset(); showStatus(t('provider.auth.error'), 'error'); }
-        } finally { setBusy(false); schedule(); }
-    }
+            if (error.terminal) reset();
+            showStatus(t('provider.auth.error'), 'error');
+        } finally { setBusy(false); }
+    });
     form.addEventListener('submit', async event => {
         event.preventDefault(); if (busy) return;
         saveResult.classList.add('hidden');
-        stopTimer(); setBusy(true); copy.disabled = true; region.disabled = true;
+        setBusy(true); copy.disabled = true; region.disabled = true;
         try {
             if (flow) {
                 await request('cancel', {flow_id: flow});
@@ -101,16 +108,7 @@ function buildKiroOAuthPanel(advanced) {
             if (!flow || error.terminal) reset();
             showStatus(t('provider.auth.error'), 'error');
         }
-        finally { setBusy(false); copy.disabled = false; region.disabled = Boolean(flow); schedule(); }
+        finally { setBusy(false); copy.disabled = false; region.disabled = Boolean(flow); }
     });
-    manualForm.addEventListener('submit', async event => {
-        event.preventDefault(); if (!flow || busy || !manualForm.reportValidity()) return;
-        setBusy(true);
-        try { await request('callback', {flow_id: flow, callback_url: input.value.trim()}); input.value = ''; }
-        catch { showStatus(t('provider.auth.error'), 'error'); }
-        finally { setBusy(false); schedule(); }
-    });
-    window.addEventListener('pagehide', stopTimer);
-    window.addEventListener('pageshow', schedule);
     return panel;
 }

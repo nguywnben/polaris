@@ -38,6 +38,7 @@ def main():
         if "--quick" not in sys.argv:
             verify_kiro_browser(page)
             verify_kiro(page)
+            verify_kiro_api_key_layout(page)
             verify_layout(page)
         verify_kiro_routes(page)
         assert not errors, errors
@@ -77,9 +78,20 @@ def verify_examples(page):
         selector = page.locator(f'#providerCatalog [data-provider="{provider}"]')
         selector.click()
         workspace = page.locator("#" + selector.get_attribute("aria-controls"))
+        expect(workspace.locator("#antigravityCreditSettings")).to_have_count(0)
+        website = workspace.locator(".provider-workspace-heading .provider-site-link")
+        expect(website).to_have_text(website.get_attribute("href").rstrip("/"))
         button = workspace.locator(f'.provider-import-heading [data-provider-example="{provider}"]')
         expect(button).to_have_count(1)
         expect(button).to_have_text("Tải tệp JSON mẫu")
+        page.mouse.move(0, 0)
+        expect(button).to_have_css("text-decoration-line", "none")
+        expect(button).to_have_css("font-weight", "400")
+        button.hover()
+        expect(button).to_have_css("text-decoration-line", "underline")
+        expect(button).to_have_css("background-color", "rgba(0, 0, 0, 0)")
+        page.mouse.move(0, 0)
+        expect(button).to_have_css("text-decoration-line", "none")
         # Typed values must never appear in the downloaded example.
         workspace.locator('input[type="password"]').evaluate_all(
             "inputs => inputs.forEach(input => {input.value = 'FORM_SECRET_DO_NOT_EXPORT';})"
@@ -203,9 +215,48 @@ def verify_kiro(page):
     workspace.locator("#kiroAwsLogin > summary").click()
 
 
+def verify_kiro_api_key_layout(page):
+    workspace = page.locator("#providerWorkspace-kiro")
+    disclosure = workspace.locator("details").filter(
+        has=page.locator("#extended-kiro-credential-form")
+    )
+    disclosure.locator(":scope > summary").click()
+    body = disclosure.locator(".provider-api-key-body")
+    expect(body).to_be_visible()
+    intro = body.locator(".provider-api-key-intro")
+    help_text = intro.locator("p")
+    account = intro.locator("a")
+    expect(account).to_have_attribute("href", "https://app.kiro.dev/")
+    expect(account).to_have_attribute("rel", "noopener noreferrer")
+    form = body.locator("form")
+    expect(form.locator('input[name="api_key"]')).to_have_attribute("type", "password")
+    shots = ROOT / "temp" / "provider-workspace-consistency"
+    for width, theme in ((1440, "light"), (1024, "dark"), (768, "light"), (360, "dark")):
+        page.set_viewport_size({"width": width, "height": 1000})
+        page.evaluate("theme => PolarisTheme.setPreference(theme)", theme)
+        expect(page.locator("html")).not_to_have_class("theme-switching")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        help_box, link_box, form_box = (
+            help_text.bounding_box(),
+            account.bounding_box(),
+            form.bounding_box(),
+        )
+        assert abs(link_box["y"] - help_box["y"] - help_box["height"] - 4) < 1
+        assert abs(form_box["y"] - link_box["y"] - link_box["height"] - 16) < 1
+        assert abs(form_box["x"] - help_box["x"]) < 1
+        disclosure.screenshot(path=str(shots / f"kiro-api-key-{width}-{theme}.png"))
+    disclosure.locator(":scope > summary").click()
+
+
 def verify_kiro_browser(page):
     calls = []
-    state = {"accepted": False, "invalid": True, "unsafe_link": False, "cancel_error": False}
+    state = {
+        "accepted": False,
+        "invalid": True,
+        "unsafe_link": False,
+        "cancel_error": False,
+        "complete_error": False,
+    }
 
     def respond(route):
         action = route.request.url.rsplit("/", 1)[-1]
@@ -221,6 +272,8 @@ def verify_kiro_browser(page):
             if state["unsafe_link"]:
                 payload["authorization_url"] = "https://example.invalid/signin"
         elif action == "complete":
+            if state["complete_error"]:
+                status = 503
             payload = (
                 {"status": "complete", "credential_saved": True}
                 if state["accepted"]
@@ -252,6 +305,22 @@ def verify_kiro_browser(page):
     expect(form.locator("button")).to_be_visible()
     expect(form.locator("button")).to_be_enabled()
     expect(pending).to_be_focused()
+    # A captured callback must never trigger completion or button flicker by itself.
+    state["accepted"] = True
+    before_idle = list(calls)
+    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true}))")
+    page.evaluate("""() => {
+        window.kiroBusyChanges = 0;
+        const observer = new MutationObserver(records => { window.kiroBusyChanges += records.length; });
+        for (const button of document.querySelectorAll('#kiroBrowserForm button, .provider-browser-pending button[type="submit"]')) {
+            observer.observe(button, {attributes: true, attributeFilter: ['disabled']});
+        }
+    }""")
+    page.wait_for_timeout(2300)
+    assert calls == before_idle, "Kiro must not check or save authorization automatically"
+    assert page.evaluate("window.kiroBusyChanges") == 0
+    expect(pending).to_be_visible()
+    state["accepted"] = False
     expect(pending.locator('[data-i18n="provider.portal.pending"]')).to_have_count(0)
     expect(pending.locator(":scope > p")).to_have_count(0)
     expect(pending.locator(".page-actions button")).to_have_count(1)
@@ -283,6 +352,23 @@ def verify_kiro_browser(page):
     callback = pending.locator('textarea[name="callback_url"]')
     expect(callback).to_be_visible()
     expect(callback).not_to_be_focused()
+    expect(pending.locator('label[for="extended-kiro-browser-callback_url"]')).to_have_text(
+        "Dán URL callback"
+    )
+    expect(callback).to_have_attribute("aria-describedby", "kiroBrowserCallbackHelp")
+    expect(pending.locator("#kiroBrowserCallbackHelp")).to_be_visible()
+    for property_name in ("font-size", "font-weight", "color", "margin-bottom"):
+        reference = page.locator("#primaryAuthUrlSection .auth-link-header label").evaluate(
+            "(element, property) => getComputedStyle(element).getPropertyValue(property)",
+            property_name,
+        )
+        expect(pending.locator("#kiroBrowserLinkLabel")).to_have_css(property_name, reference)
+    # Empty callback checks the server only when Save is explicitly clicked.
+    before_check = len(calls)
+    pending.locator('button[type="submit"]').click()
+    expect(pending.locator('button[type="submit"]')).to_be_enabled()
+    assert calls[before_check:] == ["complete"]
+    expect(pending).to_be_visible()
     callback.fill("http://localhost:4283/oauth/callback?code=old&state=synthetic")
     state["cancel_error"] = True
     before_failure = len(calls)
@@ -290,13 +376,13 @@ def verify_kiro_browser(page):
     expect(form.locator("button")).to_be_enabled()
     expect(pending).to_be_visible()
     expect(callback).to_have_value("http://localhost:4283/oauth/callback?code=old&state=synthetic")
-    assert [action for action in calls[before_failure:] if action != "complete"] == ["cancel"]
+    assert calls[before_failure:] == ["cancel"]
     state["cancel_error"] = False
     before_restart = len(calls)
     form.locator("button").click()
     expect(callback).to_have_value("")
     expect(form.locator("button")).to_be_enabled()
-    assert [action for action in calls[before_restart:] if action != "complete"] == [
+    assert calls[before_restart:] == [
         "cancel",
         "start",
     ]
@@ -309,6 +395,9 @@ def verify_kiro_browser(page):
             page.evaluate("t('provider.portal.link_label')")
         )
         expect(callback).to_have_css("font-weight", "400")
+        expect(pending.locator("#kiroBrowserCallbackHelp")).to_have_text(
+            page.evaluate("t('provider.portal.manual_help')")
+        )
     page.evaluate("setLanguage('vi', true); applyLanguage()")
     callback.fill("http://localhost:4283/oauth/callback?code=test&state=synthetic")
     pending.locator('button[type="submit"]').click()
@@ -332,12 +421,33 @@ def verify_kiro_browser(page):
         assert abs(link_box["y"] - header_box["y"] - header_box["height"] - 8) < 1
         workspace.screenshot(path=str(shots / f"kiro-browser-{width}-{theme}.png"))
     state["invalid"] = False
+    state["complete_error"] = True
+    before_save = len(calls)
+    pending.locator('button[type="submit"]').click()
+    expect(pending.locator('button[type="submit"]')).to_be_enabled()
+    expect(pending).to_be_visible()
+    expect(callback).to_have_value("")
+    assert calls[before_save:] == ["callback", "complete"]
+    # A retryable completion failure must wait for another Save, not poll or repost the code.
+    before_retry = list(calls)
+    page.wait_for_timeout(2300)
+    assert calls == before_retry
+    state["complete_error"] = False
+    before_save = len(calls)
     pending.locator('button[type="submit"]').click()
     expect(pending).to_be_hidden(timeout=10000)
     expect(callback).to_have_value("")
     expect(workspace.locator("#kiroBrowserSaveResult")).to_be_visible()
     expect(workspace.locator('#kiroBrowserSaveResult [data-tab="pool"]')).to_have_text("Xem")
     assert "complete" in calls and calls.count("callback") == 2
+    assert calls[before_save:] == ["complete"]
+    # A callback already received by the server also needs an explicit Save.
+    form.locator("button").click()
+    expect(pending).to_be_visible()
+    before_save = len(calls)
+    pending.locator('button[type="submit"]').click()
+    expect(pending).to_be_hidden()
+    assert calls[before_save:] == ["complete"]
     state["accepted"] = False
     form.locator("button").click()
     expect(pending).to_be_visible()

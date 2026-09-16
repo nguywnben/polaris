@@ -119,14 +119,7 @@ def _select_all_providers(page: Page, output_dir: Path) -> None:
         )
         if owner != "providerWorkspaceGoogleAntigravity":
             raise AssertionError(f"Google {scope} settings have the wrong workspace: {owner!r}")
-    credit_owner = page.locator("#antigravityCreditSettings").evaluate(
-        "section => section.closest('.provider-workspace')?.id || null"
-    )
-    if credit_owner != "providerWorkspaceGoogleAntigravity":
-        raise AssertionError(
-            "Antigravity credit controls belong inside the Antigravity workspace; "
-            f"actual owner: {credit_owner!r}."
-        )
+    expect(page.locator("#providersTab #antigravityCreditSettings")).to_have_count(0)
     for _provider_id, selector_id, workspace_id in PROVIDERS:
         selector = page.locator(f"#{selector_id}")
         if not selector.is_visible():
