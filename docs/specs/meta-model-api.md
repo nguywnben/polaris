@@ -12,7 +12,7 @@ credential, routing, diagnostics, import/export and console workflows.
 
 - Provider ID `meta`, display name `Meta Model API`, homepage https://dev.meta.ai.
 - Rename the supplied `frontend/assets/providers/meta-color.png` to
-  `meta-model-api-logo.png`; preserve the supplied artwork.
+  `meta-model-api.png`; preserve the supplied artwork.
 - Authenticate against https://api.meta.ai/v1 using an API key. Discover hosted
   models using authenticated model-list requests, without generating paid content.
 - Expose supported Muse Spark models, including explicit Contributor variants;

@@ -656,50 +656,50 @@ const MODEL_PROVIDER_META = {
     }])),
     google_antigravity: {
         name: 'Google Antigravity',
-        logo: '/frontend/assets/providers/google-antigravity-logo.png'
+        logo: '/frontend/assets/providers/google-antigravity.png'
     },
     google_ai_studio: {
         name: 'Google AI Studio',
-        logo: '/frontend/assets/providers/google-ai-studio-logo.png'
+        logo: '/frontend/assets/providers/google-ai-studio.png'
     },
     grok: {
         name: 'Grok Build',
-        logo: '/frontend/assets/providers/grok-build-logo.png'
+        logo: '/frontend/assets/providers/grok-build.png'
     },
     xai_console: {
         name: 'SpaceXAI Console',
-        logo: '/frontend/assets/providers/spacexai-console-logo.png'
+        logo: '/frontend/assets/providers/spacexai-console.png'
     },
     codex: {
         name: 'Codex',
-        logo: '/frontend/assets/providers/codex-logo.png'
+        logo: '/frontend/assets/providers/codex.png'
     },
     openai_platform: {
         name: 'OpenAI Platform',
-        logo: '/frontend/assets/providers/openai-platform-logo.png'
+        logo: '/frontend/assets/providers/openai-platform.png'
     },
     claude_code: {
         name: 'Claude Code',
-        logo: '/frontend/assets/providers/claude-code-logo.png'
+        logo: '/frontend/assets/providers/claude-code.png'
     },
     claude_platform: {
         name: 'Claude Platform',
-        logo: '/frontend/assets/providers/claude-platform-logo.png'
+        logo: '/frontend/assets/providers/claude-platform.png'
     },
     anthropic: {
         name: 'Anthropic',
-        logo: '/frontend/assets/providers/claude-platform-logo.png'
+        logo: '/frontend/assets/providers/claude-platform.png'
     },
     ollama: {
         name: 'Ollama',
-        logo: '/frontend/assets/providers/ollama-logo.png'
+        logo: '/frontend/assets/providers/ollama.png'
     },
     xai: {
         name: 'Grok Build',
-        logo: '/frontend/assets/providers/grok-build-logo.png'
+        logo: '/frontend/assets/providers/grok-build.png'
     },
     openai: {
         name: 'OpenAI Platform',
-        logo: '/frontend/assets/providers/openai-platform-logo.png'
+        logo: '/frontend/assets/providers/openai-platform.png'
     }
 };

@@ -1,18 +1,18 @@
 // Provider-specific connection metadata stays with each key, never in System Settings.
 const EXTENDED_PROVIDER_UI = Object.freeze({
     kimi: {name: 'Kimi API Platform', logo: 'kimi-api-platform.png', site: 'https://platform.kimi.ai/', base: 'https://api.moonshot.ai/v1'},
-    kiro: {name: 'Kiro', logo: 'kiro-logo.png', site: 'https://kiro.dev/'},
-    cloudflare: {name: 'Cloudflare Workers AI', logo: 'cloudflare-logo.png', site: 'https://www.cloudflare.com/products/workers-ai/', base: 'https://api.cloudflare.com/client/v4'},
-    nvidia: {name: 'NVIDIA NIM', logo: 'nvidia-logo.png', site: 'https://developer.nvidia.com/nim', base: 'https://integrate.api.nvidia.com/v1'},
-    opencode: {name: 'OpenCode', logo: 'opencode-logo.png', site: 'https://opencode.ai/', base: 'https://opencode.ai/zen/v1'},
-    poolside: {name: 'Poolside Platform', logo: 'poolside-platform-logo.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
-    kimchi: {name: 'Kimchi Coding', logo: 'kimchi-logo.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
-    kilo: {name: 'Kilo', logo: 'kilo-logo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
-    meta: {name: 'Meta Model API', logo: 'meta-model-api-logo.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'},
-    groq: {name: 'GroqCloud', logo: 'groqcloud-logo.png', site: 'https://console.groq.com/', base: 'https://api.groq.com/openai/v1'},
-    deepseek: {name: 'DeepSeek Platform', logo: 'deepseek-platform-logo.png', site: 'https://platform.deepseek.com/', base: 'https://api.deepseek.com/v1'},
-    mistral: {name: 'Mistral AI Studio', logo: 'mistral-ai-studio-logo.png', site: 'https://console.mistral.ai/', base: 'https://api.mistral.ai/v1'},
-    cerebras: {name: 'Cerebras Cloud', logo: 'cerebras-cloud-logo.png', site: 'https://cloud.cerebras.ai/', base: 'https://api.cerebras.ai/v1'}
+    kiro: {name: 'Kiro', logo: 'kiro.png', site: 'https://kiro.dev/'},
+    cloudflare: {name: 'Cloudflare Workers AI', logo: 'cloudflare.png', site: 'https://www.cloudflare.com/products/workers-ai/', base: 'https://api.cloudflare.com/client/v4'},
+    nvidia: {name: 'NVIDIA NIM', logo: 'nvidia.png', site: 'https://developer.nvidia.com/nim', base: 'https://integrate.api.nvidia.com/v1'},
+    opencode: {name: 'OpenCode', logo: 'opencode.png', site: 'https://opencode.ai/', base: 'https://opencode.ai/zen/v1'},
+    poolside: {name: 'Poolside Platform', logo: 'poolside-platform.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
+    kimchi: {name: 'Kimchi Coding', logo: 'kimchi.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
+    kilo: {name: 'Kilo', logo: 'kilo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
+    meta: {name: 'Meta Model API', logo: 'meta-model-api.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'},
+    groq: {name: 'GroqCloud', logo: 'groqcloud.png', site: 'https://console.groq.com/', base: 'https://api.groq.com/openai/v1'},
+    deepseek: {name: 'DeepSeek Platform', logo: 'deepseek-platform.png', site: 'https://platform.deepseek.com/', base: 'https://api.deepseek.com/v1'},
+    mistral: {name: 'Mistral AI Studio', logo: 'mistral-ai-studio.png', site: 'https://console.mistral.ai/', base: 'https://api.mistral.ai/v1'},
+    cerebras: {name: 'Cerebras Cloud', logo: 'cerebras-cloud.png', site: 'https://cloud.cerebras.ai/', base: 'https://api.cerebras.ai/v1'}
 });
 
 function extendedElement(tag, className = '', key = '') {

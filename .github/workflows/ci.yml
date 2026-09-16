@@ -137,12 +137,12 @@ jobs:
             sleep 1
           done
           python backend/tests/runtime_smoke.py --expect-fresh-setup
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-antigravity-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-ai-studio-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/grok-build-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/spacexai-console-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/codex-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/openai-platform-logo.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-antigravity.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-ai-studio.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/grok-build.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/spacexai-console.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/codex.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/openai-platform.png >/dev/null
 
       - name: "Required: generated artifact audit"
         if: matrix.python-version == '3.12'
@@ -193,12 +193,12 @@ jobs:
           python backend/tests/runtime_smoke.py \
             --expect-fresh-setup \
             --setup-token container-smoke-token-2026-secure
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-antigravity-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-ai-studio-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/grok-build-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/spacexai-console-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/codex-logo.png >/dev/null
-          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/openai-platform-logo.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-antigravity.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/google-ai-studio.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/grok-build.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/spacexai-console.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/codex.png >/dev/null
+          curl --fail --silent http://127.0.0.1:4283/frontend/assets/providers/openai-platform.png >/dev/null
 
       - name: Recreate and verify durable state
         run: |

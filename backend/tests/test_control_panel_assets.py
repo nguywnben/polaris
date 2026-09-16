@@ -362,8 +362,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         )
         upload_script = read_scripts("core/upload-manager.js", "core/state.js")
         provider_assets = BACKEND_DIR.parent / "frontend" / "assets" / "providers"
-        self.assertTrue((provider_assets / "grok-build-logo.png").is_file())
-        self.assertTrue((provider_assets / "spacexai-console-logo.png").is_file())
+        self.assertTrue((provider_assets / "grok-build.png").is_file())
+        self.assertTrue((provider_assets / "spacexai-console.png").is_file())
         for element_id in (
             "providerSelectorGrok",
             "providerWorkspaceGrok",
@@ -375,8 +375,8 @@ class ControlPanelAssetTests(unittest.TestCase):
             "xaiConsoleFileInput",
         ):
             self.assertIn(f'id="{element_id}"', body)
-        self.assertIn("/frontend/assets/providers/grok-build-logo.png", body)
-        self.assertIn("/frontend/assets/providers/spacexai-console-logo.png", body)
+        self.assertIn("/frontend/assets/providers/grok-build.png", body)
+        self.assertIn("/frontend/assets/providers/spacexai-console.png", body)
         self.assertIn('<strong class="provider-name">Grok Build</strong>', body)
         self.assertIn('<strong class="provider-name">SpaceXAI Console</strong>', body)
         self.assertIn(
@@ -416,8 +416,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         settings_script = read_scripts("features/openai-settings.js")
         upload_script = read_scripts("core/upload-manager.js", "core/state.js")
         provider_assets = BACKEND_DIR.parent / "frontend" / "assets" / "providers"
-        self.assertTrue((provider_assets / "codex-logo.png").is_file())
-        self.assertTrue((provider_assets / "openai-platform-logo.png").is_file())
+        self.assertTrue((provider_assets / "codex.png").is_file())
+        self.assertTrue((provider_assets / "openai-platform.png").is_file())
         for element_id in (
             "providerCatalogSearch",
             "providerSelectorCodex",
@@ -428,8 +428,8 @@ class ControlPanelAssetTests(unittest.TestCase):
             "openaiPlatformUploadArea",
         ):
             self.assertIn(f'id="{element_id}"', body)
-        self.assertIn("/frontend/assets/providers/codex-logo.png", body)
-        self.assertIn("/frontend/assets/providers/openai-platform-logo.png", body)
+        self.assertIn("/frontend/assets/providers/codex.png", body)
+        self.assertIn("/frontend/assets/providers/openai-platform.png", body)
         self.assertIn('<strong class="provider-name">Codex</strong>', body)
         self.assertIn('<strong class="provider-name">OpenAI Platform</strong>', body)
         self.assertIn(

@@ -54,7 +54,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: 'google_ai_studio',
             name: t('provider_google_ai_studio'),
-            logo: '/frontend/assets/providers/google-ai-studio-logo.png'
+            logo: '/frontend/assets/providers/google-ai-studio.png'
         };
 
     }
@@ -64,7 +64,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: 'google_antigravity',
             name: t('provider_antigravity'),
-            logo: '/frontend/assets/providers/google-antigravity-logo.png'
+            logo: '/frontend/assets/providers/google-antigravity.png'
         };
 
     }
@@ -79,7 +79,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'grok',
                 name: t('provider_grok'),
-                logo: '/frontend/assets/providers/grok-build-logo.png'
+                logo: '/frontend/assets/providers/grok-build.png'
             };
         }
 
@@ -87,14 +87,14 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'xai_console',
                 name: 'SpaceXAI Console',
-                logo: '/frontend/assets/providers/spacexai-console-logo.png'
+                logo: '/frontend/assets/providers/spacexai-console.png'
             };
         }
 
         return {
             id: 'grok',
             name: t('provider_grok'),
-            logo: '/frontend/assets/providers/grok-build-logo.png'
+            logo: '/frontend/assets/providers/grok-build.png'
         };
 
     }
@@ -108,14 +108,14 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'codex',
                 name: 'Codex',
-                logo: '/frontend/assets/providers/codex-logo.png'
+                logo: '/frontend/assets/providers/codex.png'
             };
         }
 
         return {
             id: 'openai_platform',
             name: 'OpenAI Platform',
-            logo: '/frontend/assets/providers/openai-platform-logo.png'
+            logo: '/frontend/assets/providers/openai-platform.png'
         };
 
     }
@@ -128,7 +128,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: isClaudeCode ? 'claude_code' : 'claude_platform',
             name: isClaudeCode ? 'Claude Code' : 'Claude Platform',
-            logo: isClaudeCode ? '/frontend/assets/providers/claude-code-logo.png' : '/frontend/assets/providers/claude-platform-logo.png'
+            logo: isClaudeCode ? '/frontend/assets/providers/claude-code.png' : '/frontend/assets/providers/claude-platform.png'
         };
 
     }
@@ -138,7 +138,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: 'ollama',
             name: 'Ollama',
-            logo: '/frontend/assets/providers/ollama-logo.png'
+            logo: '/frontend/assets/providers/ollama.png'
         };
 
     }
@@ -146,7 +146,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
     return {
         id: 'google_antigravity',
         name: 'Google Antigravity',
-        logo: '/frontend/assets/providers/google-antigravity-logo.png'
+        logo: '/frontend/assets/providers/google-antigravity.png'
     };
 
 }

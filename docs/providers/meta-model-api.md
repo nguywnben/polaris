@@ -7,7 +7,7 @@ authenticated model discovery; discovery does not generate a paid completion.
 
 JSON/ZIP import, credential editing, export and explicit connection tests use the
 same workflows as other API-key providers. Model tests can incur vendor charges.
-The supplied logo is stored as `meta-model-api-logo.png`.
+The supplied logo is stored as `meta-model-api.png`.
 
 ## Models and privacy
 

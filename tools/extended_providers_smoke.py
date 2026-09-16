@@ -385,7 +385,7 @@ def main():
                     theme,
                 )
                 if provider == "kimchi":
-                    for logo in page.locator('img[src$="/kimchi-logo.png"]').all():
+                    for logo in page.locator('img[src$="/kimchi.png"]').all():
                         expect(logo).to_have_css("border-radius", "50%")
                     for frame in page.locator(".extended-logo-kimchi").all():
                         expect(frame).to_have_css("background-color", "rgba(0, 0, 0, 0)")
@@ -448,7 +448,7 @@ def main():
         meta_card = page.locator(".cred-card").filter(
             has=page.locator(".cred-provider-name", has_text="Meta Model API")
         )
-        expect(meta_card.locator('img[src$="/meta-model-api-logo.png"]')).to_have_count(1)
+        expect(meta_card.locator('img[src$="/meta-model-api.png"]')).to_have_count(1)
         meta_card.locator(".cred-actions-secondary > summary").click()
         meta_card.locator('[data-credential-command="edit"]').click()
         meta_editor = page.locator("[data-credential-edit-form]")

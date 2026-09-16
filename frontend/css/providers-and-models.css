@@ -38,9 +38,9 @@
 .extended-provider-import .page-actions { margin-top: 12px; }
 #providersTab .provider-logo-frame.extended-logo-kimi { background: #000; border-radius: var(--radius); }
 img[src$="/kimi-api-platform.png"] { background: #000; border-radius: var(--radius); }
-img[src$="/cloudflare-logo.png"], img[src$="/kilo-logo.png"] { border-radius: var(--radius); }
+img[src$="/cloudflare.png"], img[src$="/kilo.png"] { border-radius: var(--radius); }
 /* Kimchi's circular mark has opaque white corners in the supplied PNG. */
-img[src$="/kimchi-logo.png"] { border-radius: 50%; }
+img[src$="/kimchi.png"] { border-radius: 50%; }
 .extended-logo-kimchi { background: transparent; }
 .extended-logo-groq img, .extended-logo-mistral img { border-radius: var(--radius); }
 [data-theme="dark"] .extended-logo-deepseek img { filter: invert(1); }
@@ -241,9 +241,9 @@ img[src$="/kimchi-logo.png"] { border-radius: 50%; }
 }
 
 [data-theme="dark"] #providersTab img:is(
-    [src$="/codex-logo.png"],
-    [src$="/spacexai-console-logo.png"],
-    [src$="/ollama-logo.png"]
+    [src$="/codex.png"],
+    [src$="/spacexai-console.png"],
+    [src$="/ollama.png"]
 ) {
     filter: invert(1);
 }

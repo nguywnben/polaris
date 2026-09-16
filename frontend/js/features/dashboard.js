@@ -902,15 +902,15 @@ function renderProviderHealthMatrix() {
     const providerOrder = ['google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'xai', 'openai', 'anthropic', 'code_assist'];
 
     const providerCatalog = [
-        { id: 'google_antigravity', name: 'Google Antigravity', logo: '/frontend/assets/providers/google-antigravity-logo.png' },
-        { id: 'google_ai_studio', name: 'Google AI Studio', logo: '/frontend/assets/providers/google-ai-studio-logo.png' },
-        { id: 'claude_code', name: 'Claude Code', logo: '/frontend/assets/providers/claude-code-logo.png' },
-        { id: 'claude_platform', name: 'Claude Platform', logo: '/frontend/assets/providers/claude-platform-logo.png' },
-        { id: 'openai_platform', name: 'OpenAI Platform', logo: '/frontend/assets/providers/openai-platform-logo.png' },
-        { id: 'codex', name: 'Codex / ChatGPT', logo: '/frontend/assets/providers/codex-logo.png' },
-        { id: 'grok', name: 'Grok / xAI Build', logo: '/frontend/assets/providers/grok-build-logo.png' },
-        { id: 'xai_console', name: 'SpaceXAI Console', logo: '/frontend/assets/providers/grok-build-logo.png' },
-        { id: 'ollama', name: 'Ollama', logo: '/frontend/assets/providers/ollama-logo.png' }
+        { id: 'google_antigravity', name: 'Google Antigravity', logo: '/frontend/assets/providers/google-antigravity.png' },
+        { id: 'google_ai_studio', name: 'Google AI Studio', logo: '/frontend/assets/providers/google-ai-studio.png' },
+        { id: 'claude_code', name: 'Claude Code', logo: '/frontend/assets/providers/claude-code.png' },
+        { id: 'claude_platform', name: 'Claude Platform', logo: '/frontend/assets/providers/claude-platform.png' },
+        { id: 'openai_platform', name: 'OpenAI Platform', logo: '/frontend/assets/providers/openai-platform.png' },
+        { id: 'codex', name: 'Codex / ChatGPT', logo: '/frontend/assets/providers/codex.png' },
+        { id: 'grok', name: 'Grok / xAI Build', logo: '/frontend/assets/providers/grok-build.png' },
+        { id: 'xai_console', name: 'SpaceXAI Console', logo: '/frontend/assets/providers/grok-build.png' },
+        { id: 'ollama', name: 'Ollama', logo: '/frontend/assets/providers/ollama.png' }
     ];
 
     for (const p of providerCatalog) {
