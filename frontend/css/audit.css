@@ -1,7 +1,7 @@
 .sidebar-section-label {
     padding: 14px 14px 5px;
     color: var(--text-soft);
-    font-size: 11px;
+    font-size: var(--type-meta);
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -70,7 +70,7 @@
 
 .audit-status {
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
 }
 
 .audit-event-list {
@@ -108,13 +108,13 @@
 
 .audit-event-action {
     color: var(--text);
-    font: 600 14px/1.35 var(--font-sans);
+    font: 600 var(--type-body)/1.35 var(--font-sans);
 }
 
 .audit-event-time,
 .audit-event-meta {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .audit-outcome {
@@ -125,7 +125,7 @@
     border-radius: 999px;
     background: var(--surface);
     color: var(--text-muted);
-    font: 600 11px/1.2 ui-monospace, monospace;
+    font: 600 var(--type-meta)/1.2 ui-monospace, monospace;
 }
 
 .audit-outcome-succeeded { color: var(--success); }
@@ -196,13 +196,13 @@
 
 .audit-detail-grid dt {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .audit-detail-grid dd {
     margin: 4px 0 0;
     overflow-wrap: anywhere;
-    font: 500 13px/1.5 ui-monospace, monospace;
+    font: 500 var(--type-label)/1.5 ui-monospace, monospace;
 }
 
 .audit-detail-actions {

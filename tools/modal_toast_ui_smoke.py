@@ -24,6 +24,11 @@ def main():
             page.locator("#setupSubmitButton").click()
             expect(page).to_have_url(base + "/dashboard")
             page.goto(base + "/identity", wait_until="networkidle")
+            page.evaluate("showStatus('Dismissible synthetic notice', 'info')")
+            dismiss = page.locator("#statusSection button[aria-label]")
+            expect(dismiss).to_be_visible()
+            dismiss.click()
+            expect(page.locator("#statusSection .status")).to_have_count(0)
             duplicate_close = page.locator("#identityCreateDialog .icon-button").count()
             if duplicate_close:
                 failures.append("Create Identity has both Cancel and an X button")
@@ -112,6 +117,10 @@ def main():
             if page.locator(".message-modal-overlay").count():
                 failures.append("Missing host created a message modal instead of a toast")
             expect(page.locator("#statusSection .success")).to_be_visible()
+            page.locator("#statusSection .status").hover()
+            page.wait_for_timeout(5100)
+            expect(page.locator("#statusSection .status")).to_be_visible()
+            page.mouse.move(0, 0)
             expect(page.locator("#statusSection .status")).to_have_count(0, timeout=6500)
             assert not page.evaluate(
                 "document.getElementById('statusSection').matches(':popover-open')"

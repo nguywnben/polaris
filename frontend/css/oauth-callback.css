@@ -46,7 +46,7 @@
 }
 
 .oauth-callback-return {
-    min-height: 44px;
+    min-height: var(--control-height);
     width: 100%;
     white-space: normal;
     text-align: center;

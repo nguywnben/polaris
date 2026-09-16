@@ -11,7 +11,7 @@ HEADER_BUTTONS = (
     ".page-actions .btn:visible"
 )
 ROUTES = {
-    "pool": "poolTab",
+    "credentials": "credentialsTab",
     "models": "modelsTab",
     "ai-quality": "qualityTab",
     "access": "accessTab",
@@ -19,6 +19,15 @@ ROUTES = {
     "activity": "activityTab",
     "about": "aboutTab",
 }
+
+
+def measure_header_buttons(page):
+    # Read one DOM snapshot: loading actions can disappear after navigation.
+    return page.locator(HEADER_BUTTONS).evaluate_all("""buttons => buttons.map(button => ({
+        height: button.getBoundingClientRect().height,
+        text: button.textContent,
+        fits: button.scrollWidth <= button.clientWidth + 1
+    }))""")
 
 
 def main():
@@ -51,20 +60,20 @@ def main():
                             page.evaluate(
                                 "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
                             )
-                            buttons = page.locator(HEADER_BUTTONS)
-                            assert buttons.count(), f"No header actions: {route}/{view}"
-                            for button in buttons.all():
-                                height = button.bounding_box()["height"]
-                                expected = 44 if width <= 960 else 34
+                            buttons = measure_header_buttons(page)
+                            assert buttons, f"No header actions: {route}/{view}"
+                            for button in buttons:
+                                height = button["height"]
+                                expected = 32
                                 assert abs(height - expected) < 1, (
                                     route,
                                     view,
                                     theme,
                                     width,
-                                    button.inner_text(),
+                                    button["text"],
                                     height,
                                 )
-                                assert button.evaluate("el => el.scrollWidth <= el.clientWidth + 1")
+                                assert button["fits"]
                                 checked += 1
                             assert page.evaluate(
                                 "document.documentElement.scrollWidth <= innerWidth"
@@ -94,9 +103,11 @@ def main():
                         page.evaluate(
                             "locale => { setLanguage(locale, false); applyLanguage(); }", locale
                         )
-                        for button in page.locator(HEADER_BUTTONS).all():
-                            assert abs(button.bounding_box()["height"] - 44) < 1, (route, locale)
-                            assert button.evaluate("el => el.scrollWidth <= el.clientWidth + 1"), (
+                        buttons = measure_header_buttons(page)
+                        assert buttons, (route, locale)
+                        for button in buttons:
+                            assert abs(button["height"] - 32) < 1, (route, locale)
+                            assert button["fits"], (
                                 route,
                                 locale,
                             )

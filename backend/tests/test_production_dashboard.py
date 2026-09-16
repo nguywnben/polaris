@@ -200,7 +200,7 @@ assert(elements.get('dashboardFirstRun').hidden, 'Populated traffic hides guidan
         self._run_state_contract("""
 const elements = new Map();
 globalThis.document = {getElementById: id => {
-    if (!elements.has(id)) elements.set(id, {hidden: false, textContent: '', dataset: {}, setAttribute() {},
+    if (!elements.has(id)) elements.set(id, {hidden: false, textContent: '', dataset: {}, setAttribute() {}, classList: {toggle() {}},
         querySelector() { return {textContent: ''}; }, replaceChildren() {},
         insertRow() { return {insertCell() {return {};}, dataset: {}}; }});
     return elements.get(id);

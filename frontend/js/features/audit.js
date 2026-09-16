@@ -306,9 +306,9 @@ async function loadAuditEvents() {
     AuditConsoleState.loading = true;
     AuditConsoleState.loadError = false;
     const list = auditElement('auditEventList');
-    if (list) list.setAttribute('aria-busy', 'true');
     setAuditStatus('audit.loading');
     renderAuditEvents();
+    setRegionBusy(list, true);
     try {
         const params = buildAuditParams(AuditConsoleState.filters);
         const response = await fetch(`./api/audit/events?${params.toString()}`, {
@@ -333,7 +333,7 @@ async function loadAuditEvents() {
         if (requestId !== AuditConsoleState.eventRequestId) return;
         AuditConsoleState.loading = false;
         AuditConsoleState.eventAbortController = null;
-        if (list) list.setAttribute('aria-busy', 'false');
+        setRegionBusy(list, false);
         renderAuditEvents();
     }
 }

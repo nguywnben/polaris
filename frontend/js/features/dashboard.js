@@ -309,6 +309,7 @@ function setOperationalHealthStatus(status) {
 async function refreshOperationalHealth() {
     const card = document.getElementById('operationalHealthCard');
     if (!card) return;
+    card.classList.toggle('is-initial-loading', !AppState.operationalHealth);
     card.setAttribute('aria-busy', 'true');
     try {
         const response = await fetch('./api/observability/health?window_seconds=900', {headers: getAuthHeaders()});
@@ -362,6 +363,7 @@ async function refreshRecentActivity() {
     const card = document.getElementById('recentActivityCard');
     if (!card) return;
     card.setAttribute('aria-busy', 'true');
+    setRegionBusy('recentActivityList', true);
     try {
         const response = await fetch('./api/traces?page_size=5', {headers: getAuthHeaders()});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -372,6 +374,7 @@ async function refreshRecentActivity() {
         if (list) list.innerHTML = `<li class="dashboard-activity-empty">${escapeHtml(t('dashboard.recent_failed'))}</li>`;
     } finally {
         card.setAttribute('aria-busy', 'false');
+        setRegionBusy('recentActivityList', false);
     }
 }
 
@@ -893,7 +896,7 @@ function renderProviderHealthMatrix() {
     const activeProviderIds = new Set();
     const primaryCreds = AppState.primaryCreds?.items || [];
     for (const cred of primaryCreds) {
-        const meta = getCredentialProviderMeta(cred, 'pool');
+        const meta = getCredentialProviderMeta(cred, 'credentials');
         if (meta && meta.id) activeProviderIds.add(meta.id);
     }
 

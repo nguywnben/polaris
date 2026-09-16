@@ -264,7 +264,7 @@ def main():
                 )
                 assert not overflow, f"Overflow at {width}px"
                 check_button = page.locator("#setupPreflightButton").bounding_box()
-                expected_height = 44 if width <= 600 else 30
+                expected_height = 32  # Owner-approved compact control size at every breakpoint.
                 assert abs(check_button["height"] - expected_height) <= 1, (
                     "Use shared button sizing, including mobile touch targets"
                 )

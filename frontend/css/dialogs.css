@@ -1,3 +1,31 @@
+body.has-custom-modal,
+body:has(dialog:modal) {
+    overflow: hidden;
+}
+
+.audit-detail-header h2,
+.trace-detail-header h2 {
+    font-size: var(--type-workspace);
+    font-weight: 650;
+    line-height: var(--leading-heading);
+}
+
+.audit-detail-dialog,
+.trace-detail-dialog,
+.identity-dialog {
+    max-height: calc(100dvh - 32px);
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.audit-detail-header,
+.trace-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+}
+
 .message-modal-overlay {
     position: fixed;
     inset: 0;
@@ -5,15 +33,16 @@
     display: grid;
     place-items: center;
     padding: 24px;
-    background: rgba(17, 17, 17, 0.32);
+    background: var(--overlay);
 }
 
 .message-modal {
     width: min(100%, 600px);
-    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
@@ -60,17 +89,20 @@
     min-width: 0;
     margin: 0;
     color: var(--text);
-    font-size: 17px;
-    font-weight: 720;
-    line-height: 1.25;
+    font-size: var(--type-workspace);
+    font-weight: 650;
+    line-height: var(--leading-heading);
     overflow-wrap: anywhere;
 }
 
 .message-modal-body {
     flex: 1 1 auto;
     min-width: 0;
-    max-height: min(68vh, 680px);
+    min-height: 0;
+    max-height: min(68dvh, 680px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     overflow-x: hidden;
     padding: 18px 20px;
     color: var(--text-muted);
@@ -95,14 +127,14 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text);
-    font-size: 14px;
+    font-size: var(--type-body);
     line-height: 1.55;
 }
 
 .message-modal.confirm .message-modal-body {
-    padding: 24px 28px 28px;
+    padding: 20px;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: var(--type-body);
     line-height: 1.5;
     text-align: left;
     white-space: normal;
@@ -125,13 +157,13 @@
 
 .message-result-intro {
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: var(--type-body);
     line-height: 1.55;
 }
 
 .message-result-heading {
     color: var(--text);
-    font-size: 15px;
+    font-size: var(--type-section);
     font-weight: 720;
     line-height: 1.35;
 }
@@ -144,7 +176,7 @@
 
 .message-result-section-title {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 720;
     line-height: 1.3;
 }
@@ -169,7 +201,7 @@
 
 .message-result-label {
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 680;
     line-height: 1.3;
 }
@@ -177,7 +209,7 @@
 .message-result-value {
     min-width: 0;
     color: var(--text);
-    font-size: 14px;
+    font-size: var(--type-body);
     line-height: 1.45;
     overflow-wrap: anywhere;
 }
@@ -188,13 +220,13 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.5;
 }
 
 .credential-model-search {
     width: 100%;
-    min-height: 40px;
+    min-height: var(--control-height);
 }
 
 .credential-model-list {
@@ -206,14 +238,14 @@
 
 .credential-model-item {
     min-width: 0;
-    min-height: 40px;
+    min-height: var(--control-height);
     padding: 9px 11px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-subtle);
     color: var(--text);
     font: inherit;
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.4;
     text-align: left;
     overflow-wrap: anywhere;
@@ -241,7 +273,7 @@
 .message-result-details summary {
     color: var(--text);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
 }
 
@@ -256,7 +288,7 @@
     border-radius: var(--radius);
     color: var(--text);
     font-family: "Google Sans", sans-serif;
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.55;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -273,7 +305,7 @@
     border-radius: var(--radius);
     color: var(--text);
     font-family: "Google Sans", sans-serif;
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.55;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -294,13 +326,13 @@
 
 .modal-empty-state.success {
     background: var(--success-bg);
-    border-color: #c8e6cf;
+    border-color: var(--success-border);
     color: var(--success);
 }
 
 .modal-empty-state span {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .modal-quota-grid {
@@ -332,7 +364,7 @@
     min-width: 0;
     overflow: hidden;
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 680;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -340,7 +372,7 @@
 
 .modal-quota-percent {
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 720;
     white-space: nowrap;
 }
@@ -378,7 +410,7 @@
     min-width: 0;
     min-height: 14px;
     color: var(--text-soft);
-    font-size: 11px;
+    font-size: var(--type-meta);
     line-height: 1.35;
 }
 
@@ -404,19 +436,19 @@
     min-width: 0;
     padding: 14px;
     background: var(--danger-bg);
-    border: 1px solid #f2c9c6;
+    border: 1px solid var(--danger-border);
     border-radius: var(--radius);
 }
 
 .message-error-title {
     color: var(--danger);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
 }
 
 .message-error-copy {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.55;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -442,7 +474,7 @@
 .message-modal-prompt-copy {
     margin-bottom: 14px;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: var(--type-body);
     line-height: 1.5;
 }
 
@@ -458,7 +490,7 @@
 
 .message-modal-field-label {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.3;
 }
@@ -474,9 +506,11 @@
 
 .credential-edit-error {
     padding: 10px 12px;
-    border-left: 2px solid var(--danger);
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius);
+    background: var(--danger-bg);
     color: var(--danger);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.45;
 }
 
@@ -487,7 +521,7 @@
     border-radius: var(--radius);
     background: var(--bg-subtle);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.45;
 }
 

@@ -63,4 +63,30 @@ function setRegionBusy(target, busy) {
     const region = typeof target === 'string' ? document.getElementById(target) : target;
     if (!region) return;
     region.setAttribute('aria-busy', busy ? 'true' : 'false');
+    if (!busy) {
+        region.querySelectorAll(':scope > .region-skeleton').forEach(node => node.remove());
+        return;
+    }
+    // Refresh keeps useful content in place. Only an empty region needs a scaffold.
+    if (region.childElementCount) return;
+    const skeleton = document.createElement(region.matches('ol, ul') ? 'li' : 'div');
+    skeleton.className = 'region-skeleton';
+    skeleton.setAttribute('role', region.matches('ol, ul') || region.getAttribute('role') === 'list' ? 'listitem' : 'status');
+    skeleton.setAttribute('aria-label', t('loading'));
+    const body = document.createElement(region.matches('dl') ? 'dd' : 'div');
+    body.className = 'region-skeleton-lines';
+    body.setAttribute('aria-hidden', 'true');
+    if (region.matches('dl')) {
+        const term = document.createElement('dt');
+        term.className = 'visually-hidden';
+        term.textContent = t('loading');
+        skeleton.append(term);
+    }
+    for (let index = 0; index < 3; index++) {
+        const line = document.createElement('span');
+        line.className = 'skeleton-line';
+        body.append(line);
+    }
+    skeleton.append(body);
+    region.append(skeleton);
 }

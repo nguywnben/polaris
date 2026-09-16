@@ -2,7 +2,7 @@
 .identity-section-status {
     margin: 0 0 12px;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
 }
 
 .identity-page-status:empty,
@@ -36,6 +36,14 @@
     cursor: pointer;
     font-weight: 600;
     padding-block: 6px;
+}
+
+.identity-summary-action > summary {
+    min-height: var(--control-height);
+    padding-block: 6px;
+    font-size: var(--type-label);
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .identity-pagination[hidden] {
@@ -114,7 +122,7 @@
 .identity-fact-list dt,
 .identity-record-facts dt {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .identity-fact-list dd,
@@ -122,7 +130,7 @@
     margin: 4px 0 0;
     overflow-wrap: anywhere;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.5;
     font-variant-numeric: tabular-nums;
 }
@@ -166,7 +174,7 @@
 .identity-record-title code {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .identity-record-actions {
@@ -183,7 +191,7 @@
     margin-top: 0;
     padding-top: 16px;
     border-top: 1px solid var(--border);
-    font-size: 13px;
+    font-size: var(--type-label);
     color: var(--text-muted);
 }
 
@@ -221,6 +229,12 @@
     margin: 0;
 }
 
+.identity-dialog-header h2 {
+    font-size: var(--type-workspace);
+    line-height: var(--leading-heading);
+    font-weight: 650;
+}
+
 .identity-dialog-header p {
     margin-top: 6px;
     color: var(--text-muted);
@@ -253,7 +267,7 @@
     border-radius: var(--radius);
     background: var(--bg-subtle);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.5;
 }
 
@@ -306,7 +320,7 @@
 
     #identityTab .btn,
     .identity-dialog .icon-button {
-        min-height: 44px;
+        min-height: var(--control-height);
     }
 }
 

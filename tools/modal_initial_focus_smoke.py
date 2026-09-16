@@ -42,7 +42,12 @@ def main():
                 "showVirtualKeySecret('synthetic-test-value', 'access.create_key_title')",
                 ".message-modal",
             ),
-            ("credential", "/pool", "void showCredentialEditModal('focus-test')", ".message-modal"),
+            (
+                "credential",
+                "/credentials",
+                "void showCredentialEditModal('focus-test')",
+                ".message-modal",
+            ),
         ]
         for width, theme in ((1440, "light"), (360, "dark")):
             page.set_viewport_size({"width": width, "height": 900})

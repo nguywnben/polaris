@@ -15,7 +15,7 @@ function identitySetStatus(elementId, message = '', type = '') {
 }
 
 function identitySetBusy(elementId, busy) {
-    document.getElementById(elementId)?.setAttribute('aria-busy', String(Boolean(busy)));
+    setRegionBusy(elementId, Boolean(busy));
 }
 
 function identitySetRefreshBusy(busy) {
@@ -538,6 +538,9 @@ async function loadIdentityConsole({ announce = false } = {}) {
     const controller = IdentityConsoleState.controller;
     const generation = ++IdentityConsoleState.generation;
     identitySetRefreshBusy(true);
+    for (const id of ['identityPrincipalSummary', 'identityOidcSummary', 'identityRecoverySummary', 'identityList', 'identitySessionList']) {
+        identitySetBusy(id, true);
+    }
     identitySetStatus('identityPageStatus', announce ? '' : t('identity.loading'));
     try {
         const current = await identityApi('/session', {

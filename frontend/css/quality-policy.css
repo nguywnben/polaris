@@ -26,14 +26,14 @@
 .quality-warning-panel h2 {
     margin: 0 0 8px;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
 }
 
 .quality-explanation-card p,
 .quality-precedence-list,
 .quality-warning-panel ul {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.55;
 }
 
@@ -84,12 +84,12 @@
 .quality-runtime-bar span {
     margin-bottom: 5px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--type-meta);
 }
 
 .quality-runtime-bar strong {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     overflow-wrap: anywhere;
 }
@@ -104,7 +104,7 @@
 .quality-profile-section legend {
     margin-bottom: 10px;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
 }
 
@@ -160,12 +160,12 @@
 .quality-profile-card strong {
     margin-bottom: 8px;
     color: var(--text);
-    font-size: 14px;
+    font-size: var(--type-body);
 }
 
 .quality-profile-card small {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 400;
     line-height: 1.5;
 }
@@ -213,7 +213,7 @@
 
 .quality-policy-grid .switch-row small {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--type-meta);
     font-weight: 400;
     line-height: 1.45;
 }
@@ -290,12 +290,12 @@
 .quality-preview-result > div span {
     margin-bottom: 5px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--type-meta);
 }
 
 .quality-preview-result > div strong {
     color: var(--text);
-    font-size: 15px;
+    font-size: var(--type-section);
 }
 
 .quality-preview-result p {
@@ -303,7 +303,7 @@
     padding-top: 12px;
     border-top: 1px solid var(--border);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.5;
 }
 

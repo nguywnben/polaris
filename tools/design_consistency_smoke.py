@@ -12,7 +12,7 @@ SIZES = ((360, 800), (768, 1024), (844, 390), (1024, 768), (1440, 900), (1920, 1
 ROUTES = (
     "dashboard",
     "providers",
-    "pool",
+    "credentials",
     "models",
     "ai-quality",
     "playground",
@@ -32,7 +32,7 @@ AUDIT = """() => {
         .filter(visible).filter(el => {
             const r=el.getBoundingClientRect(); return r.width && (r.right > innerWidth+1 || r.left < -1);
         }).slice(0,15).map(label);
-    const tiny = controls.filter(el => !el.disabled && !el.matches('input[type=checkbox],input[type=radio],a') && el.getBoundingClientRect().height < 43)
+    const tiny = controls.filter(el => !el.disabled && !el.matches('input[type=checkbox],input[type=radio],a') && el.getBoundingClientRect().height < 31.5)
         .map(el => ({el:label(el), height:Math.round(el.getBoundingClientRect().height)}));
     const missingNames = controls.filter(el => el.matches('input,select,textarea') &&
         !el.labels?.length && !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')).map(label);

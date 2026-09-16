@@ -38,6 +38,7 @@ class IdentityConsoleContractTests(unittest.TestCase):
         source_paths = [str(IDENTITY_CONTRACT)]
         feature_exports = ""
         if include_feature:
+            source_paths.append(str(FRONTEND / "js/ui/page-states.js"))
             source_paths.append(str(IDENTITY_SCRIPT))
             feature_exports = """
     reset: resetIdentityConsoleState,
@@ -91,6 +92,14 @@ class TestElement {{
         this.listeners.get(type).push(listener);
     }}
     append(...children) {{ children.forEach(child => this.appendChild(child)); }}
+    get childElementCount() {{ return this.children.length; }}
+    querySelectorAll(selector) {{
+        return selector === ':scope > .region-skeleton'
+            ? this.children.filter(child => child.className === 'region-skeleton') : [];
+    }}
+    remove() {{
+        if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(child => child !== this);
+    }}
     appendChild(child) {{ child.parentElement = this; this.children.push(child); return child; }}
     closest(selector) {{
         if (selector.startsWith('.') && (this.className || '').split(' ').includes(selector.slice(1))) return this;

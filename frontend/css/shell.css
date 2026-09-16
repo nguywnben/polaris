@@ -31,7 +31,7 @@
 }
 
 .login-title {
-    font-size: 28px;
+    font-size: var(--type-page);
     line-height: 1.1;
     font-weight: 700;
     letter-spacing: 0;
@@ -106,7 +106,7 @@
 
 .login-card .setup-secret-field input {
     width: 100%;
-    min-height: 44px;
+    min-height: var(--control-height);
     padding-inline-end: 48px;
     caret-color: var(--text);
 }
@@ -130,7 +130,7 @@
 }
 
 .signin-card .login-form > .btn {
-    min-height: 44px;
+    min-height: var(--control-height);
     margin-top: 4px;
 }
 
@@ -156,8 +156,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: var(--control-height);
+    height: var(--control-height);
     padding: 0;
     border: 0;
     border-radius: var(--radius);
@@ -212,7 +212,7 @@
 .setup-owner-fields legend {
     margin: 0 0 6px;
     color: var(--text);
-    font-size: 15px;
+    font-size: var(--type-section);
     font-weight: 700;
     line-height: 1.4;
 }
@@ -221,7 +221,7 @@
 .setup-next-action {
     margin: 0;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.5;
 }
 
@@ -254,13 +254,13 @@
 
 .setup-runtime-details dt {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .setup-runtime-details dd {
     margin: 4px 0 0;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .setup-check-list {
@@ -279,7 +279,7 @@
     min-height: 36px;
     padding: 8px 0;
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.45;
 }
 
@@ -332,7 +332,7 @@
 }
 
 .setup-owner-fields .btn {
-    min-height: 44px;
+    min-height: var(--control-height);
     margin-top: 12px;
 }
 
@@ -349,7 +349,7 @@
     align-items: flex-start;
     gap: 8px;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1.5;
 }
 
@@ -408,7 +408,7 @@
     justify-content: center;
     gap: 8px;
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.4;
     text-align: center;
 }
@@ -483,9 +483,10 @@
     gap: 3px;
 }
 
-.tab {
+.sidebar-menu .tab {
     width: 100%;
-    min-height: 38px;
+    min-height: var(--navigation-height);
+    height: auto;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -495,9 +496,14 @@
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 520;
     text-align: left;
+}
+
+.sidebar-menu .tab span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .tab:hover:not(.active) {
@@ -540,7 +546,7 @@
     align-items: center;
     justify-content: space-between;
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .dashboard-main {
@@ -570,7 +576,7 @@
     padding-top: 18px;
     border-top: 1px solid var(--border);
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.4;
     text-align: center;
 }
@@ -603,8 +609,8 @@
 }
 
 .mobile-menu-btn {
-    width: 36px;
-    height: 36px;
+    width: var(--control-height);
+    height: var(--control-height);
     display: inline-grid;
     place-items: center;
     border: 1px solid var(--border);
@@ -660,7 +666,7 @@
 
 .page-kicker {
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 650;
     letter-spacing: 0;
     text-transform: uppercase;
@@ -668,18 +674,18 @@
 }
 
 .page-title {
-    font-size: 30px;
-    line-height: 1.15;
-    font-weight: 720;
+    font-size: var(--type-page);
+    line-height: 1.25;
+    font-weight: 700;
     letter-spacing: 0;
 }
 
 .page-description {
-    max-width: 720px;
+    max-width: 72ch;
     color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.65;
-    margin-top: 10px;
+    font-size: var(--type-body);
+    line-height: var(--leading-body);
+    margin-top: 8px;
 }
 
 .page-actions,
@@ -701,7 +707,7 @@
 :is(.page-header, .activity-view-header, .virtual-key-header) .page-actions .btn {
     min-height: var(--page-action-height);
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: var(--type-label);
     line-height: 1;
     white-space: nowrap;
 }
@@ -713,7 +719,7 @@
 
 .update-guide-link {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.45;
     text-align: right;
 }
@@ -723,7 +729,7 @@
 }
 
 @media (min-width: 1024px) {
-    #poolTab .page-actions {
+    #credentialsTab .page-actions {
         flex-wrap: nowrap;
     }
 }
@@ -733,7 +739,7 @@
     align-items: center;
     gap: 8px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 650;
 }
 

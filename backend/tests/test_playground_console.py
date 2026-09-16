@@ -312,17 +312,19 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
             (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8"),
         )
 
-    def test_client_example_format_matches_the_compact_action_height(self) -> None:
+    def test_client_example_format_matches_the_shared_control_height(self) -> None:
         styles = STYLES.read_text(encoding="utf-8")
 
         self.assertRegex(
             styles,
-            r"(?s)\.playground-example-toolbar select\s*\{.*?min-height: 30px.*?height: 30px",
+            r"(?s)\.playground-example-toolbar select\s*\{[^}]*min-height: var\(--control-height\);[^}]*height: var\(--control-height\);",
         )
         self.assertRegex(
             styles,
-            r"(?s)\.playground-example\s*\{[^}]*font-size: 12px",
+            r"(?s)\.playground-example\s*\{[^}]*font-size: var\(--type-meta\)",
         )
+        foundation = (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8")
+        self.assertIn("--type-meta: .857143rem;", foundation)
 
     def test_message_editor_prioritizes_full_width_content(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -342,7 +344,7 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
         self.assertIn("width: 100%", styles)
         self.assertRegex(
             styles,
-            r"(?s)\.playground-message \.playground-message-role select\s*\{.*?width: 122px.*?height: 30px",
+            r"(?s)\.playground-message \.playground-message-role select\s*\{[^}]*width: 122px;[^}]*height: var\(--control-height\);",
         )
         self.assertRegex(
             styles,

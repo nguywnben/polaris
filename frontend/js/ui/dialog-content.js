@@ -68,7 +68,7 @@ function showMessageModal(title, message, type = 'info', options = {}) {
 
         closed = true;
 
-        document.removeEventListener('keydown', escHandler);
+        modal.removeEventListener('keydown', escHandler);
 
         void unmountModal(modal);
 
@@ -86,7 +86,7 @@ function showMessageModal(title, message, type = 'info', options = {}) {
 
     };
 
-    document.addEventListener('keydown', escHandler);
+    modal.addEventListener('keydown', escHandler);
 
     void mountModal(modal);
 

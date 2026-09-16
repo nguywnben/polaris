@@ -114,7 +114,7 @@ async function loadVirtualKeys({ announce = false } = {}) {
     const preserveContent = VirtualKeyAccessState.loaded;
     VirtualKeyAccessState.loading = true;
     clearPageState('virtualKeyState');
-    if (list) list.setAttribute('aria-busy', 'true');
+    setRegionBusy(list, true);
     try {
         const payload = await virtualKeyApi('', { headers: getAuthHeaders(false) });
         VirtualKeyAccessState.records = Array.isArray(payload.data) ? payload.data : [];
@@ -138,7 +138,7 @@ async function loadVirtualKeys({ announce = false } = {}) {
         showStatus(message, 'error');
     } finally {
         VirtualKeyAccessState.loading = false;
-        if (list) list.setAttribute('aria-busy', 'false');
+        setRegionBusy(list, false);
     }
 }
 
@@ -316,7 +316,7 @@ function openVirtualKeyForm(record = null) {
     `;
     const form = modal.querySelector('#virtualKeyForm');
     const close = () => {
-        document.removeEventListener('keydown', onEscape);
+        modal.removeEventListener('keydown', onEscape);
         void unmountModal(modal);
     };
     const onEscape = (event) => {
@@ -327,7 +327,7 @@ function openVirtualKeyForm(record = null) {
         if (event.target === modal || event.target.closest('[data-virtual-key-cancel]')) close();
     });
     form?.addEventListener('submit', (event) => submitVirtualKeyForm(event, record, close));
-    document.addEventListener('keydown', onEscape);
+    modal.addEventListener('keydown', onEscape);
     void mountModal(modal).then(() => {
         syncVirtualKeyPricingControl(form);
     });
@@ -462,7 +462,7 @@ function showVirtualKeySecret(secret, titleKey) {
         if (closed) return;
         closed = true;
         clearVirtualKeySecret();
-        document.removeEventListener('keydown', onEscape);
+        modal.removeEventListener('keydown', onEscape);
         window.removeEventListener('pagehide', close);
         void unmountModal(modal).then(() => modal.replaceChildren());
     };
@@ -476,7 +476,7 @@ function showVirtualKeySecret(secret, titleKey) {
         }
         if (event.target === modal || event.target.closest('[data-virtual-key-secret-close]')) close();
     });
-    document.addEventListener('keydown', onEscape);
+    modal.addEventListener('keydown', onEscape);
     window.addEventListener('pagehide', close, { once: true });
     void mountModal(modal);
 }
@@ -543,13 +543,13 @@ async function showVirtualKeyUsage(keyId) {
             trapVirtualKeyModalFocus(modal, event);
         };
         close = () => {
-            document.removeEventListener('keydown', onKeydown);
+            modal.removeEventListener('keydown', onKeydown);
             void unmountModal(modal);
         };
         modal.addEventListener('click', (event) => {
             if (event.target === modal || event.target.closest('[data-virtual-key-usage-close]')) close();
         });
-        document.addEventListener('keydown', onKeydown);
+        modal.addEventListener('keydown', onKeydown);
         void mountModal(modal).then(() => modal.querySelector('[data-virtual-key-usage-close]')?.focus());
     } catch (error) {
         showStatus(t('access.usage_load_failed', { error: error.message }), 'error');

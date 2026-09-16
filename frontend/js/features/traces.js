@@ -194,7 +194,8 @@ async function loadTraces() {
     const controller = new AbortController();
     TraceConsoleState.abortController = controller; TraceConsoleState.loading = true;
     TraceConsoleState.loadError = false;
-    traceElement('traceList')?.setAttribute('aria-busy', 'true'); setTraceStatus('trace.loading'); renderTraces();
+    setTraceStatus('trace.loading'); renderTraces();
+    setRegionBusy('traceList', true);
     try {
         const response = await fetch(`./api/traces?${buildTraceParams(TraceConsoleState.filters)}`, { signal: controller.signal });
         if (!response.ok) throw new Error('trace-request');
@@ -208,7 +209,7 @@ async function loadTraces() {
         TraceConsoleState.traces = []; TraceConsoleState.nextCursor = null; TraceConsoleState.loaded = true; setTraceStatus('trace.load_failed');
     } finally {
         if (requestId !== TraceConsoleState.requestId) return;
-        TraceConsoleState.loading = false; TraceConsoleState.abortController = null; traceElement('traceList')?.setAttribute('aria-busy', 'false'); renderTraces();
+        TraceConsoleState.loading = false; TraceConsoleState.abortController = null; setRegionBusy('traceList', false); renderTraces();
     }
 }
 
@@ -302,6 +303,8 @@ async function openTraceDetail(element) {
     TraceConsoleState.detailAbortController = controller;
     TraceConsoleState.selectedTrace = null;
     clearTraceDetail();
+    dialog.setAttribute('aria-busy', 'true');
+    setRegionBusy('traceDecisionList', true);
     TraceConsoleState.detailReturnFocus = element; if (traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.loading'); dialog.showModal();
     try {
         const response = await fetch(`./api/traces/${encodeURIComponent(traceId)}`, { signal: controller.signal }); if (!response.ok) throw new Error('trace-detail');
@@ -311,7 +314,11 @@ async function openTraceDetail(element) {
     } catch (_error) {
         if (detailRequestId === TraceConsoleState.detailRequestId && !controller.signal.aborted && traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.detail_failed');
     } finally {
-        if (detailRequestId === TraceConsoleState.detailRequestId) TraceConsoleState.detailAbortController = null;
+        if (detailRequestId === TraceConsoleState.detailRequestId) {
+            TraceConsoleState.detailAbortController = null;
+            dialog.setAttribute('aria-busy', 'false');
+            setRegionBusy('traceDecisionList', false);
+        }
     }
 }
 

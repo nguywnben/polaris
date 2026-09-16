@@ -119,7 +119,7 @@ function renderAboutCapabilities(capabilities) {
 async function loadAboutPage(options = {}) {
     const preserveContent = options.preserveContent ?? Boolean(AppState.aboutLoaded);
     const busyHosts = ['aboutBuildFacts', 'aboutSupportTiers'];
-    busyHosts.forEach((id) => document.getElementById(id)?.setAttribute('aria-busy', 'true'));
+    busyHosts.forEach((id) => setRegionBusy(id, true));
     clearPageState('aboutState');
     try {
         const [versionResponse, capabilityResponse] = await Promise.all([
@@ -145,7 +145,7 @@ async function loadAboutPage(options = {}) {
             onAction: () => loadAboutPage({preserveContent: Boolean(AppState.aboutLoaded)})
         });
     } finally {
-        busyHosts.forEach((id) => document.getElementById(id)?.setAttribute('aria-busy', 'false'));
+        busyHosts.forEach((id) => setRegionBusy(id, false));
     }
 }
 
