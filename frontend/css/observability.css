@@ -166,6 +166,18 @@
 #dashboardTab .provider-health-grid > .dashboard-empty-note { grid-column: 1 / -1; margin-top: 0; }
 #dashboardTab .health-matrix-legend { background: transparent; border: 0; padding: 0; }
 #dashboardTab .provider-health-item { border: 0; border-radius: 0; border-top: 1px solid var(--border); background: transparent; padding: 12px 0; }
+
+/* Keep the long provider matrix compact on wide screens so it does not leave a
+   tall, uneven column beside the shorter recent-activity list. */
+@media (min-width: 1200px) {
+    #dashboardTab .provider-health-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 16px;
+    }
+
+    #dashboardTab .provider-health-item { padding-block: 10px; }
+}
+
 #dashboardTab #trafficChartCard { order: -1; }
 #dashboardTab #usageBreakdownCard { order: 1; }
 #dashboardTab #historicalUsageSection { order: 1; }
