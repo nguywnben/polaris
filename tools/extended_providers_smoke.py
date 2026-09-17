@@ -351,12 +351,12 @@ def main():
                 workspace.locator('[name="account_id"]').fill("a" * 32)
             workspace.locator(".extended-provider-advanced > summary").click()
             for advanced_input in workspace.locator(".extended-provider-advanced input").all():
-                expect(advanced_input).not_to_have_attribute("placeholder")
+                expect(advanced_input).to_have_attribute("placeholder")
             if provider == "meta":
                 expect(workspace.locator('[name="base_url"]')).to_have_value(
                     "https://api.meta.ai/v1"
                 )
-                expect(workspace.locator('[name="base_url"]')).not_to_have_attribute("placeholder")
+                expect(workspace.locator('[name="base_url"]')).to_have_attribute("placeholder")
                 expect(
                     workspace.locator(
                         '[name="account_id"], [name="organization_id"], [name="plan"], [name="region"]'
@@ -370,7 +370,7 @@ def main():
                 expect(workspace.locator('[name="base_url"]')).to_have_value(
                     "https://opencode.ai/zen/go/v1"
                 )
-                expect(workspace.locator('[name="base_url"]')).not_to_have_attribute("placeholder")
+                expect(workspace.locator('[name="base_url"]')).to_have_attribute("placeholder")
             # External advanced fields remain associated with the add form.
             values = form.evaluate("(form) => Object.fromEntries(new FormData(form))")
             assert ("region" if provider == "kiro" else "base_url") in values

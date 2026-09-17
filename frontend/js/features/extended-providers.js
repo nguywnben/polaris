@@ -42,9 +42,8 @@ function extendedField(form, provider, name, key, placeholder = '', {type = 'tex
     if (options) options.forEach(item => input.add(new Option({zen: 'Zen', go: 'Go'}[item] || item, item)));
     else {
         input.type = type;
-        // Configuration fields show their effective value. Keep placeholders
-        // only for secrets and other fields where an example is genuinely
-        // useful; advanced settings pass a concrete default instead.
+        // Keep the effective configuration value visible while retaining a
+        // format/example hint for empty and reset states.
         if (placeholder) input.placeholder = placeholder;
         input.autocomplete = type === 'password' ? 'one-time-code' : 'off';
         input.autocapitalize = 'none';
@@ -176,7 +175,7 @@ function buildExtendedProviderWorkspaces() {
         settingsHeader.append(reset); advanced.append(settingsHeader);
         const settings = extendedElement('div', 'extended-provider-fields');
         if (definition.base) {
-            const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', '', {type: 'url', value: definition.base});
+            const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', definition.base, {type: 'url', value: definition.base});
             if (provider === 'meta') {
                 endpoint.readOnly = true;
                 reset.remove();
@@ -185,11 +184,11 @@ function buildExtendedProviderWorkspaces() {
                 endpoint.value = event.target.value === 'go' ? 'https://opencode.ai/zen/go/v1' : definition.base;
             });
         }
-        if (provider === 'kilo') extendedField(settings, provider, 'organization_id', 'provider.ext.organization');
+        if (provider === 'kilo') extendedField(settings, provider, 'organization_id', 'provider.ext.organization', '00000000-0000-0000-0000-000000000000');
         if (provider === 'kiro') {
             advanced.append(extendedElement('p', 'card-copy', 'provider.ext.kiro_notice'));
             extendedField(settings, provider, 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
-            extendedField(settings, provider, 'profile_arn', 'provider.ext.profile');
+            extendedField(settings, provider, 'profile_arn', 'provider.ext.profile', 'arn:aws:codewhisperer:us-east-1:123456789012:profile/example');
         }
         settings.querySelectorAll('input, select').forEach(input => input.setAttribute('form', form.id));
         reset.addEventListener('click', () => {

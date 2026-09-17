@@ -36,7 +36,7 @@ AUDIT = """() => {
         .map(el => ({el:label(el), height:Math.round(el.getBoundingClientRect().height)}));
     const missingNames = controls.filter(el => el.matches('input,select,textarea') &&
         !el.labels?.length && !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')).map(label);
-    const placeholder = controls.filter(el => el.matches('textarea,input:is([type=text],[type=password],[type=search],[type=url],[type=number],[type=email])'))
+    const placeholder = controls.filter(el => el.matches('textarea,input:is([type=text],[type=password],[type=search],[type=url],[type=number],[type=email],[type=datetime-local])'))
         .filter(el => !el.placeholder.trim() || getComputedStyle(el,'::placeholder').fontWeight !== '400').map(label);
     const rgb = value => (value.match(/[\\d.]+/g)||[]).map(Number);
     const blend = (fg,bg) => fg.slice(0,3).map((v,i)=>v*(fg[3]??1)+bg[i]*(1-(fg[3]??1)));

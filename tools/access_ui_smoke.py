@@ -112,6 +112,9 @@ def main():
             page.set_viewport_size({"width": 1440, "height": 1000})
             page.locator('[data-ui-action="virtual-key-create"]').click()
             expect(page.locator("#virtualKeyForm")).to_be_visible()
+            expect(page.locator('#virtualKeyForm [name="expires_at"]')).to_have_attribute(
+                "placeholder"
+            )
             read = page.locator('[name="scopes"][value="management:read"]')
             write = page.locator('[name="scopes"][value="management:write"]')
             write.check()

@@ -9,8 +9,8 @@
                     <section class="activity-filter-panel" aria-labelledby="activityFilterHeading">
                         <h2 id="activityFilterHeading" class="card-title" data-i18n="activity.shared_filters">Shared investigation filters</h2>
                         <form id="activityFilterForm" class="activity-filter-grid" aria-describedby="activityFilterHint">
-                            <div class="form-group activity-filter-time"><label for="activityStartedAfter" data-i18n="activity.from_time">From</label><input type="datetime-local" id="activityStartedAfter" name="started_after"></div>
-                            <div class="form-group activity-filter-time"><label for="activityStartedBefore" data-i18n="activity.to_time">To</label><input type="datetime-local" id="activityStartedBefore" name="started_before"></div>
+                            <div class="form-group activity-filter-time"><label for="activityStartedAfter" data-i18n="activity.from_time">From</label><input type="datetime-local" id="activityStartedAfter" name="started_after" placeholder="YYYY-MM-DDTHH:MM"></div>
+                            <div class="form-group activity-filter-time"><label for="activityStartedBefore" data-i18n="activity.to_time">To</label><input type="datetime-local" id="activityStartedBefore" name="started_before" placeholder="YYYY-MM-DDTHH:MM"></div>
                             <div class="form-group activity-filter-outcome">
                                 <label for="activityOutcome" data-i18n="trace.outcome">Outcome</label>
                                 <select id="activityOutcome" name="outcome"><option value="" data-i18n="trace.all">All</option><option value="succeeded" data-i18n="activity.outcome_succeeded">Succeeded</option><option value="failed" data-i18n="activity.outcome_failed">Failed</option><option value="denied" data-i18n="activity.outcome_denied">Denied or rate limited</option><option value="cancelled" data-i18n="activity.outcome_cancelled">Cancelled</option></select>
