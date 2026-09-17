@@ -301,7 +301,7 @@ const response = calls => ({ok: true, json: async () => ({success: true, data: {
         self.assertIn("./api/usage/stats/page?", pagination)
         self.assertIn("page_size: size || 10", pagination)
         self.assertIn("await loadUsagePages()", source)
-        self.assertIn("./api/traces?page_size=5", source)
+        self.assertIn("./api/traces?page_size=6", source)
         self.assertIn("routes.slice(0, 10)", source)
         self.assertIn("traces.slice(0, DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE)", source)
 

@@ -201,7 +201,7 @@ def main(base, directory, data_only=False):
                 "/api/quality-policy",
                 "/api/identity/identities",
                 "/api/identity/sessions",
-                "/api/traces?page_size=5",
+                "/api/traces?page_size=6",
                 "/api/audit/events?page_size=5",
                 "/api/observability/health?window_seconds=900",
                 "/api/observability/routing",

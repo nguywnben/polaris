@@ -1,6 +1,6 @@
 // Polaris management console: dashboard.
 
-const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 5;
+const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 6;
 let dashboardUsageRevision = 0;
 
 function formatUsageCost(value) {
@@ -368,7 +368,7 @@ async function refreshRecentActivity() {
     card.setAttribute('aria-busy', 'true');
     setRegionBusy('recentActivityList', true);
     try {
-        const response = await fetch('./api/traces?page_size=5', {headers: getAuthHeaders()});
+        const response = await fetch('./api/traces?page_size=6', {headers: getAuthHeaders()});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         renderRecentActivity(Array.isArray(payload.traces) ? payload.traces : []);
