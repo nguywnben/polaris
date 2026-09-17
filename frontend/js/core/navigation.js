@@ -314,9 +314,22 @@ async function triggerTabDataLoad(tabName, options = {}) {
 
     }
 
-    const loadPromise = Promise.resolve()
-
-        .then(loader)
+    // Let the newly selected tab paint before a loader starts DOM-heavy work.
+    // This keeps navigation responsive while the page refreshes data in the background.
+    const loadPromise = new Promise((resolve, reject) => {
+        const start = () => Promise.resolve()
+            .then(loader)
+            .then(resolve, reject);
+        const afterPaint = () => {
+            if (typeof setTimeout === 'function') setTimeout(start, 0);
+            else start();
+        };
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(afterPaint);
+        } else {
+            afterPaint();
+        }
+    })
 
         .then(() => {
 

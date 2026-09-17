@@ -31,8 +31,21 @@ def main() -> None:
             page.locator("#setupSubmitButton").click()
             expect(page).to_have_url(base + "/dashboard")
             page.goto(base + "/config", wait_until="networkidle")
-            page.locator('#configTab a[href="/models"]').click()
+            page.locator('#primaryNavigation [data-tab="models"]').click()
             expect(page.locator("#modelFirstRun")).to_be_visible()
+            expect(page.locator("#modelRoutingPolicyPanel")).to_be_hidden()
+
+            # First-run onboarding deliberately hides route controls. Preserve the
+            # independent policy-save regression with a configured (empty) route
+            # projection, without adding credentials or writing a real route.
+            def configured_route(route):
+                response = route.fetch()
+                payload = response.json()
+                payload["pool"]["configured"] = True
+                route.fulfill(response=response, json=payload)
+
+            context.route("**/api/model-catalog*", configured_route)
+            page.reload(wait_until="networkidle")
             expect(page.locator("#modelRoutingStrategy")).to_be_visible()
             page.locator("#modelRoutingStrategy").select_option("weighted")
             context.route(
@@ -58,6 +71,8 @@ def main() -> None:
             expect(page.locator("#saveModelRoutingPolicyBtn")).to_be_disabled()
             page.reload(wait_until="networkidle")
             expect(page.locator("#modelRoutingStrategy")).to_have_value("weighted")
+            context.unroute("**/api/model-catalog*", configured_route)
+            page.reload(wait_until="networkidle")
             expect(page.locator("#modelFirstRun")).to_be_visible()
             assert not route_writes, route_writes
 
@@ -98,7 +113,7 @@ def main() -> None:
                         if route_name == "identity":
                             expect(page.locator(".identity-permission-list")).to_be_hidden()
                         if route_name == "models":
-                            expect(page.locator("#modelRoutingPolicyPanel")).to_be_visible()
+                            expect(page.locator("#modelRoutingPolicyPanel")).to_be_hidden()
                         page.screenshot(
                             path=str(output / f"{route_name}-{width}-{theme}.png"), full_page=True
                         )

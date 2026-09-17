@@ -198,6 +198,13 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn("focusActivePage", navigation)
         self.assertIn("heading.focus", navigation)
 
+    def test_tab_navigation_yields_a_paint_before_running_heavy_loaders(self) -> None:
+        navigation = (FRONTEND / "js/core/navigation.js").read_text(encoding="utf-8")
+
+        self.assertIn("requestAnimationFrame", navigation)
+        self.assertIn("setTimeout(start, 0)", navigation)
+        self.assertIn("AppState.tabLoadPromises[tabName] = loadPromise", navigation)
+
     def test_mobile_drawer_preserves_the_original_return_focus_across_resize_sync(self) -> None:
         mobile = (FRONTEND / "js/features/mobile-navigation.js").read_text(encoding="utf-8")
         harness = f"""
