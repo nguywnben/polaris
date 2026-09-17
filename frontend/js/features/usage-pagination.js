@@ -6,7 +6,12 @@ async function loadUsagePages(requested = {}) {
     const period = getUsagePeriodConfig().value;
     UsagePages.busy = true;
     try {
-        const pages = await Promise.all(['current', 'historical'].map(async group => {
+        const periodChanged = UsagePages.period !== period;
+        const requestedGroups = Object.keys(requested).filter(group => group === 'current' || group === 'historical');
+        const groups = periodChanged || !UsagePages.current || !UsagePages.historical
+            ? ['current', 'historical']
+            : (requestedGroups.length ? requestedGroups : ['current', 'historical']);
+        const pages = await Promise.all(groups.map(async group => {
             const size = group === 'current' ? AppState.usagePageSize : AppState.historicalUsagePageSize;
             const oldPage = group === 'current' ? AppState.usagePage : AppState.historicalUsagePage;
             const page = UsagePages.period === period ? (requested[group] || oldPage || 1) : 1;
@@ -30,11 +35,13 @@ async function loadUsagePages(requested = {}) {
             return payload;
         }));
         if (revision !== UsagePages.revision || period !== getUsagePeriodConfig().value) return false;
-        [UsagePages.current, UsagePages.historical] = pages;
+        const loadedPages = Object.fromEntries(groups.map((group, index) => [group, pages[index]]));
+        if (loadedPages.current) UsagePages.current = loadedPages.current;
+        if (loadedPages.historical) UsagePages.historical = loadedPages.historical;
         UsagePages.period = period;
-        AppState.usagePage = Math.floor(pages[0].offset / pages[0].page_size) + 1;
-        AppState.historicalUsagePage = Math.floor(pages[1].offset / pages[1].page_size) + 1;
-        AppState.usageStatsData = {...pages[0].data, ...pages[1].data};
+        AppState.usagePage = Math.floor(UsagePages.current.offset / UsagePages.current.page_size) + 1;
+        AppState.historicalUsagePage = Math.floor(UsagePages.historical.offset / UsagePages.historical.page_size) + 1;
+        AppState.usageStatsData = {...UsagePages.current.data, ...UsagePages.historical.data};
         return true;
     } finally {
         if (revision === UsagePages.revision) UsagePages.busy = false;
@@ -53,8 +60,7 @@ async function moveUsagePage(group, delta) {
     section?.setAttribute('aria-busy', 'true');
     try {
         if (await loadUsagePages({[group]: next})) {
-            renderUsageList();
-            renderProviderHealthMatrix();
+            renderUsageList(group);
         }
     } catch (_error) {
         showStatus(t('failed_to_load_usage_statistics'), 'error');

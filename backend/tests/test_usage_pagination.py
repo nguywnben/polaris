@@ -179,6 +179,27 @@ class UsagePaginationTests(unittest.IsolatedAsyncioTestCase):
                 response = await self.client.get("/api/usage/stats/page", params=params)
                 self.assertEqual(response.status_code, 422, response.text)
 
+    async def test_provider_inventory_retains_idle_credentials_independently_of_usage_pages(self):
+        self.stats = {
+            "oauth-a.json": {"provider": "openai", "credential_type": "oauth", "calls": 0},
+            "oauth-b.json": {"provider": "openai", "credential_type": "oauth", "calls": 0},
+            "key.json": {"provider": "openai", "credential_type": "api_key", "calls": 0},
+            "muse.json": {"provider": "muse_code", "credential_type": "oauth", "calls": 0},
+            "deleted.json": {"provider": "kiro", "calls": 4, "is_deleted": True},
+            "historical.json": {"provider": "grok", "calls": 2, "is_historical": True},
+            UNASSIGNED_USAGE_FILENAME: {"provider": "unknown", "calls": 1},
+        }
+        expected = [
+            {"provider": "openai", "credential_type": "oauth", "credentials": 2},
+            {"provider": "openai", "credential_type": "api_key", "credentials": 1},
+            {"provider": "muse_code", "credential_type": "oauth", "credentials": 1},
+        ]
+        for group, offset in (("current", 0), ("current", 100), ("historical", 1)):
+            with self.subTest(group=group, offset=offset):
+                result = await self.page(group=group, offset=offset, page_size=1)
+                self.assertEqual(result.get("provider_inventory"), expected)
+                self.assertEqual(result["provider_totals"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

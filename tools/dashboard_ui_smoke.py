@@ -10,6 +10,42 @@ from playwright.sync_api import expect, sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def verify_health_status_hint(page):
+    indicator = page.locator("#providerHealthGrid .health-status").first
+    trigger = indicator.locator("button")
+    hint = indicator.locator('[role="tooltip"]')
+    expect(page.locator("#providerHealthGrid .health-badge")).to_have_count(0)
+    expect(trigger).to_have_accessible_name("OpenAI Platform")
+    expect(trigger).to_have_accessible_description("Hoạt động tốt")
+    expect(hint).to_be_hidden()
+    trigger.hover()
+    expect(hint).to_be_visible()
+    box = hint.bounding_box()
+    assert box["x"] >= 0 and box["x"] + box["width"] <= page.viewport_size["width"]
+    hint.hover()
+    expect(hint).to_be_visible()
+    # Escape must dismiss even when the hint was opened only by a pointer.
+    page.keyboard.press("Escape")
+    expect(hint).to_be_hidden()
+    page.mouse.move(0, 0)
+    trigger.focus()
+    expect(hint).to_be_visible()
+    assert trigger.evaluate("el => getComputedStyle(el).outlineStyle") != "none"
+    trigger.press("Escape")
+    expect(hint).to_be_hidden()
+    expect(trigger).to_be_focused()
+    trigger.press("Space")
+    expect(hint).to_be_visible()
+    trigger.press("Tab")
+    expect(hint).to_be_hidden()
+    dot = indicator.locator(".health-status-dot")
+    bounds = dot.bounding_box()
+    assert bounds["width"] == bounds["height"] == 8, bounds
+    assert dot.evaluate("el => getComputedStyle(el).backgroundColor") == page.locator(
+        ".health-pill.healthy .status-dot"
+    ).evaluate("el => getComputedStyle(el).backgroundColor")
+
+
 def main():
     with disposable_runtime() as base, sync_playwright() as p:
         browser = p.chromium.launch()
@@ -127,6 +163,12 @@ def main():
                     "total_items": len(rows),
                     "has_more": offset + page_size < len(rows),
                     "provider_totals": provider_totals if busy else [],
+                    "provider_inventory": [
+                        {"provider": "openai", "credential_type": "api_key", "credentials": 1},
+                        {"provider": "muse_code", "credential_type": "oauth", "credentials": 1},
+                    ]
+                    if state["mode"] == "idle"
+                    else [],
                 }
             )
 
@@ -190,6 +232,11 @@ def main():
                     expect(page.locator("#trafficChartCard")).to_be_visible()
                     expect(page.locator("#usageList tr")).to_have_count(10)
                     expect(page.locator("#historicalUsageList tr")).to_have_count(10)
+                    details = page.locator("#usageBreakdownDetails")
+                    expect(details).to_be_visible()
+                    expect(details).not_to_have_attribute("open", "")
+                    details.locator("summary").click()
+                    expect(details).to_have_attribute("open", "")
                     summary = page.locator("#usageProviderSummary")
                     expect(summary.locator(".usage-provider-metrics dd").first).to_have_text("120")
                     full_summary = summary.inner_text()
@@ -255,6 +302,7 @@ def main():
                         animations="disabled",
                     )
                     if mode == "populated":
+                        verify_health_status_hint(page)
                         for index in (0, 11, 23):
                             bar = page.locator(".timeline-bar-col").nth(index)
                             page.keyboard.press("Tab")
@@ -267,6 +315,28 @@ def main():
                             assert not page.locator("#dashboardTab").evaluate(
                                 "el => el.scrollWidth > el.clientWidth"
                             ), (width, index)
+            touch_context = browser.new_context(
+                locale="vi-VN",
+                viewport={"width": 360, "height": 800},
+                has_touch=True,
+                is_mobile=True,
+            )
+            touch_context.route("https://**", lambda route: route.abort())
+            touch_context.route("**/api/usage/aggregated?*", aggregate)
+            touch_context.route("**/api/usage/stats/page?*", stats)
+            touch_context.route("**/api/observability/health?*", health)
+            touch_context.route("**/api/traces?*", traces)
+            touch_page = touch_context.new_page()
+            touch_page.on("pageerror", lambda error: errors.append(str(error)))
+            touch_page.goto(base + "/login", wait_until="networkidle")
+            touch_page.locator("#loginPassword").fill(PASSWORD)
+            touch_page.locator("#loginSubmitButton").click()
+            touch_indicator = touch_page.locator("#providerHealthGrid .health-status").first
+            touch_indicator.locator("button").tap()
+            expect(touch_indicator.locator('[role="tooltip"]')).to_be_visible()
+            touch_page.locator("#providerHealthCard h2").tap()
+            expect(touch_indicator.locator('[role="tooltip"]')).to_be_hidden()
+            touch_context.close()
             state["mode"] = "idle"
             page.locator("#usagePeriodSelect").select_option("7d")
             expect(page.locator("#dashboardFirstRun")).to_be_visible()
@@ -274,6 +344,19 @@ def main():
                 "data-tab", "playground"
             )
             expect(page.locator("#totalApiCallsLabel")).to_contain_text("7")
+            expect(page.locator("#providerHealthGrid .provider-health-item")).to_have_count(2)
+            expect(page.locator("#providerHealthGrid .status-idle")).to_have_count(2)
+            expect(page.locator("#providerHealthGrid")).to_contain_text("Muse Code")
+            expect(page.locator("#providerHealthGrid")).not_to_contain_text("0%")
+            idle_indicator = page.locator("#providerHealthGrid .health-status").first
+            expect(idle_indicator.locator("button")).to_have_accessible_description(
+                "Sẵn sàng / Chờ"
+            )
+            assert idle_indicator.locator(".health-status-dot").evaluate(
+                "el => getComputedStyle(el).backgroundColor"
+            ) == page.locator(".health-pill.warning .status-dot").evaluate(
+                "el => getComputedStyle(el).backgroundColor"
+            )
             state["mode"] = "error"
             page.locator("#usagePeriodSelect").select_option("30d")
             expect(page.locator("#dashboardUsageState")).to_be_visible()
@@ -283,6 +366,7 @@ def main():
             state["mode"] = "empty"
             page.locator("#usagePeriodSelect").select_option("1d")
             expect(page.locator("#dashboardUsageState")).to_be_hidden()
+            expect(page.locator("#providerHealthGrid .provider-health-item")).to_have_count(0)
             page.locator("#dashboardStartAction").press("Enter")
             expect(page).to_have_url(base + "/providers")
             assert not errors, errors
@@ -298,6 +382,7 @@ def main():
                         "historical_page_independent": True,
                         "page_errors": errors,
                         "overflows": overflows,
+                        "health_status_hints": "hover, keyboard, Escape, touch, described status",
                         "usage_requests": usage_requests,
                     },
                     indent=2,
@@ -307,7 +392,7 @@ def main():
             print(
                 "PASS: overview empty/populated/idle/error/recovery, row101 server pagination, "
                 "independent history and complete provider totals, period and keyboard navigation; "
-                "320–1440px, light/dark"
+                "health dots and hover/keyboard/Escape/touch hints; 320–1440px, light/dark"
             )
             print(f"Evidence: {screenshots}")
         finally:

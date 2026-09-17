@@ -166,10 +166,30 @@
 #dashboardTab .provider-health-grid > .dashboard-empty-note { grid-column: 1 / -1; margin-top: 0; }
 #dashboardTab .health-matrix-legend { background: transparent; border: 0; padding: 0; }
 #dashboardTab .provider-health-item { border: 0; border-radius: 0; border-top: 1px solid var(--border); background: transparent; padding: 12px 0; }
+#dashboardTab #trafficChartCard { order: -1; }
+#dashboardTab #usageBreakdownCard { order: 1; }
+#dashboardTab #historicalUsageSection { order: 1; }
+#dashboardTab #recentActivityCard,
+#dashboardTab #providerHealthCard { order: 2; }
+#dashboardTab .token-distribution-container { display: flex; flex-direction: column; gap: 14px; }
+#dashboardTab .traffic-timeline-chart { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+#dashboardTab .usage-provider-summary { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-bottom: 16px; }
+#dashboardTab .usage-provider-item { gap: 10px; padding: 10px 12px; }
+#dashboardTab .usage-provider-metrics { gap: 8px; }
+#dashboardTab .usage-provider-metrics dd { font-size: var(--type-meta); }
+#dashboardTab .credential-usage-section { margin-top: 16px; }
+#dashboardTab .dashboard-detail-disclosure { margin-top: 16px; border-top: 1px solid var(--border); }
+#dashboardTab .dashboard-detail-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--control-height); padding: 10px 0; color: var(--text); cursor: pointer; font-size: var(--type-label); font-weight: 680; }
+#dashboardTab .dashboard-detail-disclosure > summary::marker { color: var(--text-muted); }
+#dashboardTab .dashboard-detail-summary-hint { color: var(--text-muted); font-size: var(--type-meta); font-weight: 500; }
+#dashboardTab .dashboard-detail-disclosure[open] > summary { border-bottom: 1px solid var(--border); }
+#dashboardTab .dashboard-detail-disclosure > :not(summary) { margin-top: 12px; }
 #dashboardTab .health-pill.neutral .status-dot { background: var(--text-muted); }
 #dashboardTab [hidden] { display: none !important; }
-#dashboardTab .timeline-bar-col .timeline-tooltip { display: none; left: 0; right: auto; transform: translateY(-6px); width: min(240px, 45vw); white-space: normal; overflow-wrap: anywhere; box-shadow: none; }
-#dashboardTab .timeline-bar-col.timeline-bar-end .timeline-tooltip { left: auto; right: 0; }
+#dashboardTab .timeline-bar-col .timeline-tooltip { display: none; left: 50%; right: auto; transform: translateX(-50%) translateY(-6px); width: min(240px, 45vw); white-space: normal; overflow-wrap: anywhere; box-shadow: none; }
+#dashboardTab .timeline-bar-col:first-child .timeline-tooltip { left: 0; transform: translateY(-6px); }
+#dashboardTab .timeline-bar-col:last-child .timeline-tooltip,
+#dashboardTab .timeline-bar-col.timeline-bar-end .timeline-tooltip { left: auto; right: 0; transform: translateY(-6px); }
 #dashboardTab .timeline-bar-col:is(:hover, :focus-visible) .timeline-tooltip { display: block; visibility: visible; opacity: 1; }
 #dashboardTab .timeline-bar-col:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 #dashboardTab .timeline-bar-col:is(:hover, :focus-visible) .timeline-bar-fill { background: var(--accent); filter: none; }

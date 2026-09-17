@@ -26,6 +26,89 @@ NUMBER_FORMAT_SCRIPT = ROOT / "frontend/js/core/number-format.js"
 
 
 class ProductionDashboardContractTests(unittest.TestCase):
+    def test_health_inventory_survives_a_new_day_without_visiting_credentials(self):
+        self._run_state_contract("""
+const grid = {innerHTML: '', dataset: {}, querySelectorAll: () => []}, legend = {hidden: true};
+globalThis.document = {getElementById: () => grid, querySelector: () => legend, addEventListener() {}};
+globalThis.AppState = {primaryCreds: {data: {}, hasLoaded: false}};
+globalThis.t = key => key;
+globalThis.escapeHtml = globalThis.escapeAttribute = String;
+globalThis.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+globalThis.getUsageCallCount = stats => Number(stats.calls || 0);
+getDashboardSummaryMetric = count => ({text: String(count), attributes: ''});
+UsagePages.current = {provider_totals: [], provider_inventory: [
+    {provider: 'openai_platform', credential_type: 'api_key', credentials: 1},
+    {provider: 'muse_code', credential_type: 'oauth', credentials: 4},
+    {provider: 'cloudflare', credential_type: 'api_key', credentials: 3},
+]};
+renderProviderHealthMatrix();
+assert((grid.innerHTML.match(/class="provider-health-item status-idle"/g) || []).length === 3,
+    'Connected providers disappeared when the selected period had no calls');
+assert(grid.innerHTML.includes('muse_code') && grid.innerHTML.includes('cloudflare'),
+    'New provider variants must also remain visible without traffic');
+assert(!grid.innerHTML.includes('0%'), 'An idle provider must not claim a measured success rate');
+assert(!legend.hidden, 'Connected providers must retain the shared legend');
+UsagePages.current = {provider_totals: [], provider_inventory: []};
+renderProviderHealthMatrix();
+assert(grid.innerHTML.includes('dashboard.provider_status_empty') && legend.hidden,
+    'A genuinely empty installation must retain the connection guidance');
+""")
+
+    def test_provider_health_uses_accessible_dots_without_changing_status_rules(self):
+        self._run_state_contract("""
+const grid = {innerHTML: '', dataset: {}, querySelectorAll: () => []}, legend = {hidden: true};
+globalThis.document = {
+    getElementById: () => grid,
+    querySelector: () => legend,
+    addEventListener: () => {},
+};
+globalThis.AppState = {primaryCreds: {data: {}, hasLoaded: false}};
+UsagePages.current = {provider_inventory: [{provider: 'ollama', credentials: 1}]};
+globalThis.t = key => key;
+globalThis.escapeHtml = globalThis.escapeAttribute = text => String(text)
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+globalThis.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+globalThis.getProviderUsageEntries = () => [
+    ['healthy.json', {provider: 'openai_platform', calls: 10, successful_calls: 6}],
+    ['degraded.json', {provider: 'claude_code', calls: 10, successful_calls: 5}],
+    ['cooldown.json', {provider: 'codex', calls: 10, successful_calls: 10, in_cooldown: true}],
+];
+globalThis.getUsageCallCount = stats => stats.calls;
+getDashboardSummaryMetric = count => ({text: String(count), attributes: ''});
+renderProviderHealthMatrix();
+const rows = grid.innerHTML.split('<div class="provider-health-item ').slice(1);
+assert(rows.length === 4, 'Missing traffic or idle providers');
+for (const [provider, status, text] of [
+    ['OpenAI Platform', 'healthy', 'healthy'],
+    ['Claude Code', 'error', 'degraded'],
+    ['Codex / ChatGPT', 'error', 'cooldown'],
+    ['Ollama', 'idle', 'idle'],
+]) {
+    const row = rows.find(html => html.includes(provider));
+    assert(row.startsWith(`status-${status}`), `Status calculation changed for ${provider}`);
+    assert(row.includes('class="health-status-trigger"'), 'Missing keyboard/touch trigger');
+    assert(row.includes(`aria-label="${provider}"`), 'Missing provider name for assistive technology');
+    const tooltipId = row.match(/aria-describedby="([^"]+)"/)?.[1];
+    assert(tooltipId && row.includes(`id="${tooltipId}"`), 'Status description is not linked');
+    assert(row.includes(`role="tooltip" hidden>dashboard.status_${text}</span>`), 'Missing status hint');
+    assert(row.includes('class="health-status-dot" aria-hidden="true"'), 'Missing decorative dot');
+    assert(!row.includes('health-badge'), 'Repeated text badge remains');
+}
+assert(!legend.hidden, 'Shared legend was hidden');
+assert(grid.innerHTML.includes('60%') && grid.innerHTML.includes('50%'), 'Actual success rates lost');
+""")
+
+    def test_degraded_badge_uses_only_the_threshold_in_every_locale(self):
+        locales = ROOT / "frontend/js/core/page-locales.js"
+        self._run_state_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(locales))}, 'utf8'));
+assert(Object.keys(PAGE_LOCALE_TRANSLATIONS).length === 15, 'Missing interface locales');
+for (const [locale, messages] of Object.entries(PAGE_LOCALE_TRANSLATIONS)) {{
+    const expected = locale === 'tr' ? '<%60' : '<60%';
+    assert(messages['dashboard.status_degraded'] === expected, `Verbose threshold in ${{locale}}`);
+}}
+""")
+
     def _source(self, path: Path) -> str:
         self.assertTrue(path.is_file(), f"Missing dashboard asset: {path}")
         return path.read_text(encoding="utf-8")
@@ -82,6 +165,49 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertLess(
             fragment.index('id="operationalHealthCard"'), fragment.index('id="providerHealthCard"')
         )
+
+    def test_dashboard_separates_always_visible_credential_details(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+
+        self.assertIn('id="tokenDistributionContainer"', fragment)
+        self.assertIn('id="trafficTimelineChart"', fragment)
+        self.assertIn('id="credentialUsageSection"', fragment)
+        self.assertIn('id="credentialUsageDescription"', fragment)
+        self.assertIn('id="usageList"', fragment)
+        self.assertNotIn('id="usageBreakdownDetails"', fragment)
+        self.assertNotIn(
+            'data-i18n="all"', fragment[fragment.index('id="credentialUsageSection"') :]
+        )
+        self.assertLess(
+            fragment.index('id="usageProviderSummary"'),
+            fragment.index('id="credentialUsageSection"'),
+        )
+
+    def test_dashboard_places_usage_trend_before_request_health(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+        styles = self._source(DASHBOARD_STYLES)
+
+        self.assertIn('id="trafficChartCard"', fragment)
+        self.assertRegex(styles, r"#dashboardTab #trafficChartCard\s*\{[^}]*order:\s*-1;")
+        self.assertNotIn('class="dashboard-token-summary"', fragment)
+
+    def test_dashboard_places_usage_breakdown_below_request_health(self):
+        styles = self._source(DASHBOARD_STYLES)
+
+        self.assertRegex(styles, r"#dashboardTab #usageBreakdownCard\s*\{[^}]*order:\s*1;")
+        self.assertRegex(styles, r"#dashboardTab #historicalUsageSection\s*\{[^}]*order:\s*1;")
+        self.assertRegex(
+            styles,
+            r"#dashboardTab #recentActivityCard\s*,\s*#dashboardTab #providerHealthCard\s*\{[^}]*order:\s*2;",
+        )
+
+    def test_dashboard_pagination_keeps_provider_summary_mounted(self):
+        source = self._source(DASHBOARD_SCRIPT)
+        body = source.split("function renderUsageList", 1)[1].split(
+            "function renderUsageProviderSummary", 1
+        )[0]
+
+        self.assertRegex(body, r"if \(group === 'all'\)\s+renderUsageProviderSummary\(\);")
 
     def test_stale_dashboard_refresh_cannot_replace_metrics_or_finish_newer_refresh(self):
         self._run_state_contract("""
@@ -170,7 +296,8 @@ const response = calls => ({ok: true, json: async () => ({success: true, data: {
 
         self.assertEqual(len(re.findall(r"\bfetch\(", source)), 3)
         self.assertEqual(len(re.findall(r"\bfetch\(", pagination)), 1)
-        self.assertIn("['current', 'historical'].map", pagination)
+        self.assertIn("groups.map", pagination)
+        self.assertIn("requestedGroups", pagination)
         self.assertIn("./api/usage/stats/page?", pagination)
         self.assertIn("page_size: size || 10", pagination)
         self.assertIn("await loadUsagePages()", source)
@@ -296,10 +423,13 @@ assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textC
     def test_usage_summary_labels_provider_attempts_separately_from_logical_requests(self):
         fragment = self._source(DASHBOARD_FRAGMENT)
         source = self._source(DASHBOARD_SCRIPT)
+        locales = self._source(ROOT / "frontend/js/core/page-locales.js")
 
         self.assertIn('data-i18n="dashboard.attempt_success_rate"', fragment)
         self.assertIn("dashboard.provider_attempts_period", source)
         self.assertIn("aggData.total_upstream_attempts", source)
+        self.assertIn("'dashboard.provider_attempts': 'Lần gọi',", locales)
+        self.assertIn("'dashboard.attempts_count': '{count} lần gọi',", locales)
 
     def test_timeline_uses_browser_timezone_and_fixed_axis_boundaries(self):
         fragment = self._source(DASHBOARD_FRAGMENT)

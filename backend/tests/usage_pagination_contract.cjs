@@ -5,12 +5,13 @@ const source = fs.readFileSync('frontend/js/features/usage-pagination.js', 'utf8
 
 function setup() {
     const requests = [], statuses = [], sections = new Map();
-    let period = '1d', renders = 0;
+    let period = '1d', renders = 0, healthRenders = 0, lastRenderGroup = null;
     const context = vm.createContext({
         URLSearchParams, Date,
         AppState: {usagePageSize: 10, historicalUsagePageSize: 10, usagePage: 1, historicalUsagePage: 1},
         getUsagePeriodConfig: () => ({value: period}), getAuthHeaders: () => ({}), t: key => key,
-        renderUsageList: () => { renders++; }, renderProviderHealthMatrix() {},
+        renderUsageList: group => { renders++; lastRenderGroup = group; },
+        renderProviderHealthMatrix: () => { healthRenders++; },
         showStatus: (...args) => statuses.push(args),
         document: {getElementById: id => {
             if (!sections.has(id)) sections.set(id, {
@@ -28,7 +29,8 @@ function setup() {
     context.respond = query => response(query);
     vm.runInContext(source + '\n;globalThis.pages = UsagePages;', context);
     return {context, requests, statuses, sections, setPeriod: value => { period = value; },
-        get renders() { return renders; }};
+        get renders() { return renders; }, get lastRenderGroup() { return lastRenderGroup; },
+        get healthRenders() { return healthRenders; }};
 }
 
 function response(query, {total = 205, empty = false, marker = ''} = {}) {
@@ -58,7 +60,8 @@ async function pagesBeyond100AndIndependentGroups() {
     assert.equal(c.AppState.historicalUsagePage, 2);
     assert.equal(c.pages.historical.offset, 10);
     assert.equal(c.pages.current.offset, 100, 'moving historical must retain the current page');
-    assert.deepEqual(test.requests.slice(-2).map(query => query.get('group')), ['current', 'historical']);
+    assert.equal(test.requests.at(-1).get('group'), 'historical',
+        'changing a page only fetches the requested usage group');
     assert(test.requests.every(query => query.get('order') === 'name' && query.get('page_size') === '10'));
 }
 
@@ -66,7 +69,7 @@ async function failedFetchRetainsBothPages() {
     const test = setup(), c = test.context;
     await c.loadUsagePages();
     const oldCurrent = c.pages.current, oldHistorical = c.pages.historical, oldData = c.AppState.usageStatsData;
-    c.respond = query => query.get('group') === 'historical' ? {ok: false} : response(query);
+    c.respond = query => query.get('group') === 'current' ? {ok: false} : response(query);
     await c.moveUsagePage('current', 1);
     assert.equal(c.pages.current, oldCurrent);
     assert.equal(c.pages.historical, oldHistorical);
@@ -123,11 +126,13 @@ async function busyDoubleDispatchDoesNotAdvanceTwice() {
     const move = c.moveUsagePage('current', 1);
     assert.equal(test.sections.get('usageList')['aria-busy'], 'true');
     await c.moveUsagePage('current', 1);
-    assert.equal(test.requests.length, 2, 'busy navigation permits only one request per group');
+    assert.equal(test.requests.length, 1, 'busy navigation permits only one request for the requested group');
     for (const item of pending) item.resolve(response(item.query));
     await move;
     assert.equal(c.AppState.usagePage, 2);
     assert.equal(test.renders, 1);
+    assert.equal(test.lastRenderGroup, 'current', 'page changes render only the requested usage table');
+    assert.equal(test.healthRenders, 0, 'changing a page does not rebuild the provider health matrix');
     assert.equal(c.pages.busy, false);
 }
 

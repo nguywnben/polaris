@@ -106,7 +106,10 @@ function updateUsagePeriodLabels() {
 
     const breakdownDescription = document.getElementById('usageBreakdownDescription');
 
-    if (breakdownDescription) breakdownDescription.textContent = t('dashboard.attempt_breakdown_description', {period: periodConfig.metricLabel});
+    const credentialUsageDescription = document.getElementById('credentialUsageDescription');
+    const description = t('dashboard.attempt_breakdown_description', {period: periodConfig.metricLabel});
+    if (breakdownDescription) breakdownDescription.textContent = description;
+    if (credentialUsageDescription) credentialUsageDescription.textContent = description;
 
 }
 
@@ -616,40 +619,46 @@ function renderHistoricalUsageList() {
 
 }
 
-function renderUsageList() {
+function renderUsageList(group = 'all') {
 
-    const list = document.getElementById('usageList');
+    if (group !== 'historical') {
+        const list = document.getElementById('usageList');
 
-    if (!list) return;
+        if (list) {
+            // The provider summary is derived from the same aggregate payload
+            // and does not change when only the credential page changes. Keep
+            // it mounted during pagination so the dashboard does not repaint
+            // the whole breakdown (and move the user's scroll position).
+            if (group === 'all') renderUsageProviderSummary();
 
-    renderUsageProviderSummary();
+            const entries = getCurrentUsageEntriesWithTraffic();
+            const pageSize = AppState.usagePageSize || 10;
+            const totalPages = Math.max(1, Math.ceil((UsagePages.current?.total_items ?? entries.length) / pageSize));
+            if (AppState.usagePage > totalPages) {
+                AppState.usagePage = totalPages;
+            }
 
-    const entries = getCurrentUsageEntriesWithTraffic();
-    const pageSize = AppState.usagePageSize || 10;
-    const totalPages = Math.max(1, Math.ceil((UsagePages.current?.total_items ?? entries.length) / pageSize));
-    if (AppState.usagePage > totalPages) {
-        AppState.usagePage = totalPages;
+            const startIndex = (AppState.usagePage - 1) * pageSize;
+            const pagedEntries = UsagePages.current ? entries : entries.slice(startIndex, startIndex + pageSize);
+
+            renderUsageTableRows(
+                list,
+                pagedEntries,
+                t('status_no_filter_data')
+            );
+
+            updateUsagePagination(
+                'usagePaginationContainer',
+                'usagePrevPageBtn',
+                'usageNextPageBtn',
+                'usagePaginationInfo',
+                AppState.usagePage,
+                totalPages
+            );
+        }
     }
 
-    const startIndex = (AppState.usagePage - 1) * pageSize;
-    const pagedEntries = UsagePages.current ? entries : entries.slice(startIndex, startIndex + pageSize);
-
-    renderUsageTableRows(
-        list,
-        pagedEntries,
-        t('status_no_filter_data')
-    );
-
-    updateUsagePagination(
-        'usagePaginationContainer',
-        'usagePrevPageBtn',
-        'usageNextPageBtn',
-        'usagePaginationInfo',
-        AppState.usagePage,
-        totalPages
-    );
-
-    renderHistoricalUsageList();
+    if (group !== 'current') renderHistoricalUsageList();
 
 }
 
@@ -700,6 +709,7 @@ function renderUsageProviderSummary() {
     container.hidden = false;
     const providerOrder = ['google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'xai', 'openai', 'anthropic', 'code_assist'];
     const providerItems = Array.from(providers.values()).sort((left, right) => {
+        if (right.calls !== left.calls) return right.calls - left.calls;
         const leftIndex = providerOrder.indexOf(left.meta.id);
         const rightIndex = providerOrder.indexOf(right.meta.id);
         return (leftIndex === -1 ? providerOrder.length : leftIndex)
@@ -892,15 +902,13 @@ function renderProviderHealthMatrix() {
         trafficMap.set(meta.id, cur);
     }
 
-    // Lấy các provider đang có credentials trong pool
-    const activeProviderIds = new Set();
-    const primaryCreds = AppState.primaryCreds?.items || [];
-    for (const cred of primaryCreds) {
-        const meta = getCredentialProviderMeta(cred, 'credentials');
-        if (meta && meta.id) activeProviderIds.add(meta.id);
-    }
+    // Inventory is independent of the usage period and the credentials page's filters/load state.
+    const connectedProviders = (UsagePages.current?.provider_inventory || [])
+        .filter(stats => stats.credentials > 0)
+        .map(stats => getCredentialProviderMeta(stats, 'usage'));
+    const activeProviderIds = new Set(connectedProviders.map(meta => meta.id));
 
-    // Chỉ giữ các provider đang có credentials trong pool HOẶC đã có traffic phát sinh
+    // Keep connected providers visible even when a new period has no calls yet.
     const relevantProviders = [];
     const providerOrder = ['google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'xai', 'openai', 'anthropic', 'code_assist'];
 
@@ -915,6 +923,9 @@ function renderProviderHealthMatrix() {
         { id: 'xai_console', name: 'SpaceXAI Console', logo: '/frontend/assets/providers/grok-build.png' },
         { id: 'ollama', name: 'Ollama', logo: '/frontend/assets/providers/ollama.png' }
     ];
+    for (const provider of connectedProviders) {
+        if (!providerCatalog.some(item => item.id === provider.id)) providerCatalog.push(provider);
+    }
 
     for (const p of providerCatalog) {
         const hasTraffic = trafficMap.has(p.id) && trafficMap.get(p.id).calls > 0;
@@ -949,21 +960,18 @@ function renderProviderHealthMatrix() {
         return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
     });
 
-    container.innerHTML = relevantProviders.map(p => {
+    container.innerHTML = relevantProviders.map((p, index) => {
         const traffic = trafficMap.get(p.id) || { calls: 0, successful: 0, failed: 0, hasCooldown: false };
         const callMetric = getDashboardSummaryMetric(traffic.calls);
         let status = 'idle';
         let statusText = t('dashboard.status_idle');
-        let badgeClass = 'badge-idle';
 
         if (traffic.hasCooldown || (traffic.calls > 0 && (traffic.successful / traffic.calls) < 0.6)) {
             status = 'error';
             statusText = traffic.hasCooldown ? t('dashboard.status_cooldown') : t('dashboard.status_degraded');
-            badgeClass = 'badge-error';
         } else if (traffic.calls > 0) {
             status = 'healthy';
             statusText = t('dashboard.status_healthy');
-            badgeClass = 'badge-healthy';
         }
 
         return `
@@ -975,7 +983,12 @@ function renderProviderHealthMatrix() {
                         </div>
                         <span class="health-item-name">${escapeHtml(p.name)}</span>
                     </div>
-                    <span class="health-badge ${badgeClass}">${escapeHtml(statusText)}</span>
+                    <div class="health-status">
+                        <button type="button" class="health-status-trigger" aria-label="${escapeAttribute(p.name)}" aria-describedby="provider-health-status-${index}">
+                            <span class="health-status-dot" aria-hidden="true"></span>
+                        </button>
+                        <span class="health-status-tooltip" id="provider-health-status-${index}" role="tooltip" hidden>${escapeHtml(statusText)}</span>
+                    </div>
                 </div>
                 <div class="health-item-stats">
                     <span>${escapeHtml(t('requests'))}: <strong${callMetric.attributes}>${callMetric.text}</strong></span>
@@ -985,6 +998,30 @@ function renderProviderHealthMatrix() {
         `;
     }).join('');
 
+    bindProviderHealthStatusHints(container);
+}
+
+function bindProviderHealthStatusHints(container) {
+    if (!container.dataset.healthHintsBound) {
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                container.querySelectorAll('.health-status-tooltip').forEach(hint => { hint.hidden = true; });
+            }
+        });
+        container.dataset.healthHintsBound = 'true';
+    }
+    container.querySelectorAll('.health-status').forEach(indicator => {
+        const trigger = indicator.querySelector('.health-status-trigger');
+        const hint = indicator.querySelector('.health-status-tooltip');
+        const show = () => { hint.hidden = false; };
+        indicator.addEventListener('pointerenter', show);
+        indicator.addEventListener('pointerleave', () => {
+            if (!indicator.contains(document.activeElement)) hint.hidden = true;
+        });
+        trigger.addEventListener('focus', show);
+        trigger.addEventListener('blur', () => { hint.hidden = true; });
+        trigger.addEventListener('click', show);
+    });
 }
 
 // =====================================================================

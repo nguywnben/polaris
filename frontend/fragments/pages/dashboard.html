@@ -79,7 +79,7 @@
                             </div>
                         </section>
 
-                        <section class="card span-6 recent-activity-card" id="recentActivityCard" aria-busy="true">
+                        <section class="card span-5 recent-activity-card" id="recentActivityCard" aria-busy="true">
                             <div class="recent-activity-header">
                                 <h2 class="card-title" data-i18n="dashboard.recent_title">Recent activity</h2>
                                 <button type="button" class="btn btn-secondary btn-small" data-ui-action="switch-tab" data-tab="activity" data-i18n="dashboard.view_all_activity">View all</button>
@@ -88,7 +88,7 @@
                             <ol class="dashboard-activity-list" id="recentActivityList" aria-live="polite" aria-busy="true"></ol>
                         </section>
 
-                        <section class="card span-6 health-matrix-card" id="providerHealthCard">
+                        <section class="card span-7 health-matrix-card" id="providerHealthCard">
                             <div class="health-matrix-header">
                                 <div>
                                     <h2 class="card-title" data-i18n="dashboard.health_matrix_title">Provider and credential status</h2>
@@ -120,13 +120,10 @@
                             </div>
                         </section>
 
-                        <section class="card span-12 dashboard-traffic-only">
+                        <section class="card span-12 dashboard-traffic-only" id="usageBreakdownCard">
                             <h2 class="card-title" id="usageBreakdownTitle" data-i18n-runtime>Provider attempt breakdown for the last 24 hours</h2>
                             <p class="card-copy card-title-copy" id="usageBreakdownDescription" data-i18n-runtime>Review provider attempts by provider and credential for the last 24 hours.</p>
                             <div class="usage-provider-summary" id="usageProviderSummary" data-i18n-aria-label="provider_activity" aria-label="Provider activity"></div>
-                            <div id="usageLoading" class="skeleton-table" role="status" data-i18n-aria-label="loading_request_breakdown" aria-label="Loading request breakdown" aria-busy="true"><div class="skeleton-row header"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div><div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div></div>
-                            <div class="usage-table-wrapper"><table class="usage-table"><thead><tr><th scope="col" data-i18n="credential">Credential</th><th scope="col" data-i18n="dashboard.provider_attempts">Provider attempts</th><th scope="col" data-i18n="success">Success</th><th scope="col" data-i18n="tokens">Tokens</th></tr></thead><tbody id="usageList"></tbody></table></div>
-                            <div class="pagination-container" id="usagePaginationContainer" role="navigation" aria-labelledby="usageBreakdownTitle" style="display: none;"><button type="button" class="pagination-btn" id="usagePrevPageBtn" data-ui-action="change-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button><div class="pagination-info" id="usagePaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div><button type="button" class="pagination-btn" id="usageNextPageBtn" data-ui-action="change-usage-page" data-page-delta="1" data-i18n="next">Next</button></div>
                         </section>
 
                         <section class="card span-12" id="historicalUsageSection" hidden>
@@ -136,4 +133,12 @@
                             <div class="pagination-container" id="historicalUsagePaginationContainer" role="navigation" aria-labelledby="historicalUsageTitle" style="display: none;"><button type="button" class="pagination-btn" id="historicalUsagePrevPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button><div class="pagination-info" id="historicalUsagePaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div><button type="button" class="pagination-btn" id="historicalUsageNextPageBtn" data-ui-action="change-historical-usage-page" data-page-delta="1" data-i18n="next">Next</button></div>
                         </section>
                     </div>
+
+                    <section class="card span-12 dashboard-traffic-only credential-usage-section" id="credentialUsageSection" aria-labelledby="credentialUsageTitle">
+                        <h2 class="card-title" id="credentialUsageTitle" data-i18n="credential">Credential details</h2>
+                        <p class="card-copy card-title-copy" id="credentialUsageDescription" data-i18n-runtime>Review provider attempts by provider and credential for the last 24 hours.</p>
+                        <div id="usageLoading" class="skeleton-table" role="status" data-i18n-aria-label="loading_request_breakdown" aria-label="Loading request breakdown" aria-busy="true"><div class="skeleton-row header"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div><div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div></div>
+                        <div class="usage-table-wrapper"><table class="usage-table"><thead><tr><th scope="col" data-i18n="credential">Credential</th><th scope="col" data-i18n="dashboard.provider_attempts">Provider attempts</th><th scope="col" data-i18n="success">Success</th><th scope="col" data-i18n="tokens">Tokens</th></tr></thead><tbody id="usageList"></tbody></table></div>
+                        <div class="pagination-container" id="usagePaginationContainer" role="navigation" aria-labelledby="credentialUsageTitle" style="display: none;"><button type="button" class="pagination-btn" id="usagePrevPageBtn" data-ui-action="change-usage-page" data-page-delta="-1" data-i18n="previous">Previous</button><div class="pagination-info" id="usagePaginationInfo" role="status" aria-live="polite" data-i18n-runtime>Page 1 of 1</div><button type="button" class="pagination-btn" id="usageNextPageBtn" data-ui-action="change-usage-page" data-page-delta="1" data-i18n="next">Next</button></div>
+                    </section>
                 </div>

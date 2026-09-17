@@ -317,6 +317,7 @@ button.endpoint-code-card:hover {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .health-item-logo {
@@ -329,6 +330,7 @@ button.endpoint-code-card:hover {
     background: var(--surface);
     border: 1px solid var(--border);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .health-item-logo img {
@@ -341,29 +343,56 @@ button.endpoint-code-card:hover {
     font-weight: 600;
     font-size: var(--type-label);
     color: var(--text);
+    overflow-wrap: anywhere;
 }
 
-.health-badge {
+.health-status {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.health-status-trigger {
+    display: grid;
+    place-items: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: help;
+}
+
+.health-status-trigger:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.health-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-healthy .health-status-dot { background: var(--success); }
+.status-idle .health-status-dot { background: var(--warning); }
+.status-error .health-status-dot { background: var(--danger); }
+
+.health-status-tooltip {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 100%;
+    z-index: 10;
+    width: max-content;
+    max-width: min(220px, calc(100vw - 64px));
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
     font-size: var(--type-meta);
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 12px;
-    line-height: 1.3;
-}
-
-.health-badge.badge-healthy {
-    background: var(--success-bg);
-    color: var(--success);
-}
-
-.health-badge.badge-idle {
-    background: var(--control-hover);
-    color: var(--text-muted);
-}
-
-.health-badge.badge-error {
-    background: var(--danger-bg);
-    color: var(--danger);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 .health-item-stats {
@@ -742,7 +771,7 @@ button.endpoint-code-card:hover {
 
 .usage-provider-item {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: 16px;
     padding: 12px 14px;
@@ -788,7 +817,7 @@ button.endpoint-code-card:hover {
 
 .usage-provider-metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(64px, auto));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     margin: 0;
 }

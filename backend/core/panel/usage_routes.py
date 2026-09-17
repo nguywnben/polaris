@@ -67,15 +67,19 @@ async def get_usage_stats_page(
 
     entries = list(result["data"].items())
     providers = {}
+    inventory = {}
     for filename, stats in entries:
-        if (
-            filename == UNASSIGNED_USAGE_FILENAME
-            or historical(filename, stats)
-            or not stats.get("calls", 0)
-        ):
+        if filename == UNASSIGNED_USAGE_FILENAME or historical(filename, stats):
             continue
         provider = stats.get("provider") or stats.get("provider_name") or ""
         credential_type = stats.get("credential_type") or ""
+        connected = inventory.setdefault(
+            (provider, credential_type),
+            dict(provider=provider, credential_type=credential_type, credentials=0),
+        )
+        connected["credentials"] += 1
+        if not stats.get("calls", 0):
+            continue
         totals = providers.setdefault(
             (provider, credential_type),
             dict(
@@ -116,6 +120,7 @@ async def get_usage_stats_page(
         "total_items": len(ordered),
         "has_more": len(ordered) > offset + page_size,
         "provider_totals": list(providers.values()),
+        "provider_inventory": list(inventory.values()),
     }
 
 

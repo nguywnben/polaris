@@ -267,8 +267,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("function getCurrentUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("function getHistoricalUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("Boolean(stats.is_historical || stats.is_deleted)", dashboard_script)
-        usage_renderer = dashboard_script.split("function renderUsageList()", 1)[1].split(
-            "function renderUsageProviderSummary()", 1
+        usage_renderer = dashboard_script.split("function renderUsageList", 1)[1].split(
+            "function renderUsageProviderSummary", 1
         )[0]
         self.assertIn("const entries = getCurrentUsageEntriesWithTraffic();", usage_renderer)
         self.assertIn(
