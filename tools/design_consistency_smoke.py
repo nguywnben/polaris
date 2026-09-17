@@ -54,9 +54,18 @@ AUDIT = """() => {
     }
     const logo = [...document.querySelectorAll('.app-mark-image')].filter(visible)
         .map(el => ({el:label(el),filter:getComputedStyle(el).filter}));
+    const healthIconProbe = document.createElement('div');
+    healthIconProbe.className = 'health-item-logo';
+    healthIconProbe.setAttribute('aria-hidden', 'true');
+    document.body.append(healthIconProbe);
+    const healthIconChrome = {
+        background: getComputedStyle(healthIconProbe).backgroundColor,
+        borderWidth: getComputedStyle(healthIconProbe).borderWidth
+    };
+    healthIconProbe.remove();
     const overlaps = [...document.querySelectorAll('.recent-activity-header + .card-title-copy')].filter(visible)
         .filter(el=>el.getBoundingClientRect().top < el.previousElementSibling.getBoundingClientRect().bottom).map(label);
-    return {overflow,tiny,missingNames,placeholder,contrast,logo,overlaps,theme:document.documentElement.dataset.theme,
+    return {overflow,tiny,missingNames,placeholder,contrast,logo,healthIconChrome,overlaps,theme:document.documentElement.dataset.theme,
         heading:[...document.querySelectorAll('.page-title,.login-title')].filter(visible).map(el=>({text:el.textContent,size:getComputedStyle(el).fontSize}))};
 }"""
 
@@ -181,6 +190,11 @@ def main(stage, strict, only):
         assert all(not r["overlaps"] for r in results), (
             "Recent activity header overlaps its description"
         )
+        assert all(
+            r["healthIconChrome"]["background"] in ("rgba(0, 0, 0, 0)", "transparent")
+            and r["healthIconChrome"]["borderWidth"] == "0px"
+            for r in results
+        ), "Provider health icons should not have a background or border"
         assert all(
             all(
                 logo["filter"] == ("invert(1)" if r["theme"] == "dark" else "none")

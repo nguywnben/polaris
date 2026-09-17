@@ -326,9 +326,8 @@ button.endpoint-code-card:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: 0;
     overflow: hidden;
     flex-shrink: 0;
 }
