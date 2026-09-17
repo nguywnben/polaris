@@ -183,9 +183,15 @@
 #dashboardTab #historicalUsageSection { order: 1; }
 #dashboardTab #recentActivityCard,
 #dashboardTab #providerHealthCard { order: 2; }
+@media (min-width: 961px) {
+    #dashboardTab #recentActivityCard,
+    #dashboardTab #providerHealthCard { align-self: stretch; }
+    #dashboardTab #recentActivityCard { display: flex; flex-direction: column; }
+    #dashboardTab .dashboard-activity-list { flex: 1; }
+}
 #dashboardTab .token-distribution-container { display: flex; flex-direction: column; gap: 14px; }
 #dashboardTab .traffic-timeline-chart { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-#dashboardTab .usage-provider-summary { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-bottom: 16px; }
+#dashboardTab .usage-provider-summary { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; margin-bottom: 0; }
 #dashboardTab .usage-provider-item { gap: 10px; padding: 10px 12px; }
 #dashboardTab .usage-provider-metrics { gap: 8px; }
 #dashboardTab .usage-provider-metrics dd { font-size: var(--type-meta); }

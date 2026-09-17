@@ -71,9 +71,13 @@ AUDIT = """() => {
         healthGridColumns = getComputedStyle(healthGrid).gridTemplateColumns.trim().split(' ').length;
         healthGrid.innerHTML = originalHealthGrid;
     }
+    const usageSummary = document.querySelector('#usageProviderSummary');
+    const usageSummaryMarginBottom = usageSummary
+        ? getComputedStyle(usageSummary).marginBottom
+        : null;
     const overlaps = [...document.querySelectorAll('.recent-activity-header + .card-title-copy')].filter(visible)
         .filter(el=>el.getBoundingClientRect().top < el.previousElementSibling.getBoundingClientRect().bottom).map(label);
-    return {overflow,tiny,missingNames,placeholder,contrast,logo,healthIconChrome,healthGridColumns,overlaps,theme:document.documentElement.dataset.theme,
+    return {overflow,tiny,missingNames,placeholder,contrast,logo,healthIconChrome,healthGridColumns,usageSummaryMarginBottom,overlaps,theme:document.documentElement.dataset.theme,
         heading:[...document.querySelectorAll('.page-title,.login-title')].filter(visible).map(el=>({text:el.textContent,size:getComputedStyle(el).fontSize}))};
 }"""
 
@@ -203,6 +207,10 @@ def main(stage, strict, only):
             and r["healthIconChrome"]["borderWidth"] == "0px"
             for r in results
         ), "Provider health icons should not have a background or border"
+        assert all(
+            r["usageSummaryMarginBottom"] in (None, "0px")
+            for r in results
+        ), "Provider analysis should not reserve trailing bottom space"
         assert all(r["width"] < 1200 or r["healthGridColumns"] >= 3 for r in results), (
             "Provider health matrix should use at least three columns on wide screens"
         )
