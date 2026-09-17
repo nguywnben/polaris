@@ -32,6 +32,38 @@ class FakeResponse:
 
 
 class AnthropicUsageTests(unittest.IsolatedAsyncioTestCase):
+    def test_extra_usage_does_not_disappear_when_subscription_windows_are_missing(self):
+        usage = parse_anthropic_oauth_usage(
+            {"extra_usage": {"is_enabled": True, "used_credits": 125}}
+        )
+        self.assertEqual(usage["extra_usage"]["used_credits"], 125)
+        self.assertEqual(usage["quota_status"], "unavailable")
+        self.assertEqual(usage["windows"], [])
+
+    def test_preserves_extra_usage_without_inventing_a_subscription(self):
+        usage = parse_anthropic_oauth_usage(
+            {
+                "five_hour": {"utilization": 10},
+                "extra_usage": {
+                    "is_enabled": True,
+                    "used_credits": 123,
+                    "monthly_limit": 1000,
+                    "utilization": 12.3,
+                    "secret": "hidden",
+                },
+            }
+        )
+        self.assertNotIn("plan", usage)
+        self.assertEqual(
+            usage["extra_usage"],
+            {
+                "is_enabled": True,
+                "used_credits": 123,
+                "monthly_limit": 1000,
+                "utilization": 12.3,
+            },
+        )
+
     def setUp(self) -> None:
         _reset_anthropic_usage_cache_for_testing()
 

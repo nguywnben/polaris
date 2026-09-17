@@ -27,6 +27,52 @@ class FakeResponse:
 
 
 class CodexUsageTests(unittest.IsolatedAsyncioTestCase):
+    def test_credits_and_plan_remain_visible_without_rate_windows(self):
+        usage = parse_codex_usage({"plan_type": "pro", "credits": {"balance": 5}})
+        self.assertEqual(usage["plan"], "pro")
+        self.assertEqual(usage["credits"]["balance"], 5)
+        self.assertEqual(usage["quota_status"], "unavailable")
+        self.assertEqual(usage["windows"], [])
+
+    def test_missing_usage_is_not_an_unused_window(self):
+        for value in (None, True, "", "bad", float("nan")):
+            with self.subTest(value=value), self.assertRaises(CodexError):
+                parse_codex_usage({"rate_limit": {"primary_window": {"used_percent": value}}})
+
+    def test_optional_account_facts_are_not_invented(self):
+        usage = parse_codex_usage({"rate_limit": {"primary_window": {"used_percent": 0}}})
+        self.assertNotIn("reset_credits", usage)
+        self.assertNotIn("limit_reached", usage)
+        self.assertNotIn("review_limit_reached", usage)
+        self.assertNotIn("plan", usage)
+        self.assertEqual(usage["windows"][0]["remaining_percentage"], 100)
+
+    def test_preserves_additional_model_windows_and_credit_balance(self):
+        usage = parse_codex_usage(
+            {
+                "rate_limit": {"primary_window": {"used_percent": 10}},
+                "additional_rate_limits": [
+                    {
+                        "limit_name": "codex_other",
+                        "metered_feature": "other",
+                        "rate_limit": {"primary_window": {"used_percent": 40}},
+                    }
+                ],
+                "credits": {
+                    "has_credits": True,
+                    "unlimited": False,
+                    "balance": "12.5",
+                    "secret": "hidden",
+                },
+            }
+        )
+        self.assertEqual(len(usage["windows"]), 2)
+        self.assertEqual(usage["windows"][1]["remaining_percentage"], 60)
+        self.assertIn("codex_other", usage["windows"][1]["label"])
+        self.assertEqual(
+            usage["credits"], {"has_credits": True, "unlimited": False, "balance": 12.5}
+        )
+
     def test_parser_normalizes_standard_and_review_windows(self):
         usage = parse_codex_usage(
             {
@@ -80,9 +126,9 @@ class CodexUsageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(usage["windows"][2]["remaining_percentage"], 0)
         self.assertTrue(usage["windows"][0]["reset_time"].endswith("+00:00"))
 
-    def test_parser_rejects_payload_without_usage_windows(self):
+    def test_parser_rejects_payload_without_any_account_facts(self):
         with self.assertRaisesRegex(CodexError, "valid rate-limit windows"):
-            parse_codex_usage({"plan_type": "plus", "rate_limit": {}})
+            parse_codex_usage({"rate_limit": {}})
 
     async def test_fetch_uses_configured_endpoint_and_account_header(self):
         request = AsyncMock(

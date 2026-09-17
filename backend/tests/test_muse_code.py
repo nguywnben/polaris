@@ -44,6 +44,7 @@ class MuseCredentialTests(unittest.IsolatedAsyncioTestCase):
         }
         view = muse.quota_view(credential(subscription_usage=usage))
         self.assertEqual(view["windows"][0]["remaining_percentage"], 65)
+        self.assertEqual(view["windows"][0]["window_duration_mins"], 300)
         self.assertEqual(view["windows"][1]["remaining_percentage"], 0)
         self.assertEqual(view["observed_at"], 1789534990)
         self.assertEqual(view["subscription_tier"], "opaque-tier")

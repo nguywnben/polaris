@@ -150,18 +150,35 @@ def parse_anthropic_oauth_usage(payload: Any) -> Dict[str, Any]:
             windows.append(normalized)
             seen.add(window_id)
 
-    if not windows:
-        raise AnthropicError("Claude Code usage did not contain valid usage windows.", 502)
-
     plan = _safe_label(
         payload.get("tier") or payload.get("plan") or payload.get("subscription_type"),
-        "Claude Code",
+        "",
     )
-    return {
+    result = {
         "quota_type": "account_rate_limits",
-        "plan": plan,
         "windows": windows,
     }
+    if plan:
+        result["plan"] = plan
+    extra = payload.get("extra_usage")
+    if isinstance(extra, dict):
+        safe = {}
+        if isinstance(extra.get("is_enabled"), bool):
+            safe["is_enabled"] = extra["is_enabled"]
+        for key in ("used_credits", "monthly_limit", "utilization"):
+            value = _finite_number(extra.get(key))
+            if value is not None and value >= 0:
+                safe[key] = value
+        reset = _reset_time(extra.get("resets_at"))
+        if reset:
+            safe["reset_time"] = reset
+        if safe:
+            result["extra_usage"] = safe
+    if not windows:
+        if len(result) == 2:
+            raise AnthropicError("Claude Code usage did not contain valid usage windows.", 502)
+        result["quota_status"] = "unavailable"
+    return result
 
 
 def _prune_cache(now: float) -> None:

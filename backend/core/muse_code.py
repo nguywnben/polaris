@@ -159,6 +159,11 @@ def quota_view(data: dict) -> dict:
                 "used_percentage": source["used_percent"],
                 "remaining_percentage": max(0, 100 - source["used_percent"]),
                 "reset_time": datetime.fromtimestamp(source["resets_at"], timezone.utc).isoformat(),
+                **(
+                    {"window_duration_mins": source["window_duration_mins"]}
+                    if name == "window"
+                    else {}
+                ),
             }
         )
     return {
