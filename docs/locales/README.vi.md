@@ -10,7 +10,7 @@
     <a href="https://github.com/nguywnben/polaris/actions"><img src="https://img.shields.io/github/actions/workflow/status/nguywnben/polaris/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status"></a>
     <a href="https://hub.docker.com/r/nguywnben/polaris"><img src="https://img.shields.io/docker/pulls/nguywnben/polaris?style=flat-square&logo=docker" alt="Docker Pulls"></a>
     <img src="https://img.shields.io/badge/python-3.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12 | 3.14">
-    <img src="https://img.shields.io/badge/i18n-15%20languages-orange?style=flat-square" alt="15 Languages">
+    <img src="https://img.shields.io/badge/console-15%20languages-orange?style=flat-square" alt="Giao diện: 15 ngôn ngữ">
   </p>
 
   <p>
@@ -22,8 +22,8 @@
   </p>
 
   <p>
-    <b>Tài liệu được duy trì:</b><br>
-    <a href="../../README.md">English</a> • <b>Tiếng Việt</b>
+    <b>README · 15 ngôn ngữ:</b><br>
+    <a href="../../README.md">English</a> • <b>Tiếng Việt</b> • <a href="README.zh-CN.md">中文（简体）</a> • <a href="README.zh-TW.md">中文（繁體）</a> • <a href="README.ja.md">日本語</a> • <a href="README.ko.md">한국어</a> • <a href="README.es.md">Español</a> • <a href="README.fr.md">Français</a> • <a href="README.de.md">Deutsch</a> • <a href="README.it.md">Italiano</a> • <a href="README.pt.md">Português</a> • <a href="README.ru.md">Русский</a> • <a href="README.id.md">Bahasa Indonesia</a> • <a href="README.th.md">ภาษาไทย</a> • <a href="README.tr.md">Türkçe</a>
   </p>
 </div>
 
@@ -32,10 +32,12 @@
 Console hỗ trợ 15 ngôn ngữ. Tiếng Anh và tiếng Việt được rà soát ngữ nghĩa; 13 ngôn ngữ cộng đồng
 còn lại thuộc lớp tương thích và sẽ dùng nội dung tiếng Anh khi thiếu thông điệp.
 
+README có đủ **15 ngôn ngữ** với cùng phạm vi nội dung. Các hướng dẫn kỹ thuật được liên kết vẫn dùng ngôn ngữ gốc của từng tài liệu. Bản dịch README độc lập với chính sách hỗ trợ ngôn ngữ của giao diện.
+
 Một router AI vạn năng dành cho các công cụ lập trình (coding tools). Polaris cung cấp khả năng tự động chuyển đổi dự phòng thông minh (smart auto-fallback), dọn dẹp ngữ cảnh nhận biết token, minh bạch hóa mức độ sử dụng và chuyển đổi định dạng liền mạch để các agent cục bộ, trợ lý IDE và script tự động hóa có thể tận dụng dung lượng LLM miễn phí lẫn trả phí thông qua một giao diện API ổn định duy nhất.
 
-> **Phạm vi sản phẩm:** Polaris đang được hoàn thiện cho mô hình tự triển khai production bởi
-> một cá nhân hoặc một nhóm tin cậy. Topology production được hỗ trợ gồm một worker và một replica;
+> **Phạm vi sản phẩm:** Polaris hỗ trợ tự triển khai production bởi một cá nhân hoặc một nhóm
+> tin cậy trong phạm vi được mô tả ở đây. Topology production được hỗ trợ gồm một worker và một replica;
 > Docker Compose, quyền chủ sở hữu cục bộ, SQLite, định tuyến nhà cung cấp và các tuyến SDK đã ghi tài
 > liệu thuộc tier Core. PostgreSQL, truy cập nhóm qua OIDC, reverse proxy và telemetry bên ngoài là
 > các tùy chọn Advanced. MongoDB và các ngôn ngữ không được duy trì trực tiếp thuộc tier
@@ -48,29 +50,58 @@ Quy trình lập trình hiện đại thường kết hợp nhiều client và p
 
 ## <a id="tinh-nang-cot-loi"></a>Tính năng cốt lõi
 
-Polaris ghi lại số lần gọi nhà cung cấp, tỷ lệ thành công, thông tin xác thực được sử dụng, số token do nhà cung cấp báo cáo, lượng token ước tính tiết kiệm nhờ nén ngữ cảnh và chi phí USD ước tính cho mỗi lượt gọi theo bảng giá mô hình được duy trì. Dashboard phân biệt dữ liệu usage thật sự bằng 0 với usage không được nhà cung cấp báo cáo. Có thể ghi đè hoặc bổ sung giá bằng tệp `model_pricing.json` trong thư mục thông tin xác thực; giá được tính bằng USD trên một triệu token. Dữ liệu tổng hợp có trên dashboard, theo từng khóa ảo qua API quản trị `/api/virtual-keys` và qua endpoint Prometheus `/metrics`. Mức tiết kiệm và chi phí luôn được ghi là ước tính vì tokenizer và quy tắc tính phí của nhà cung cấp mới là căn cứ cuối cùng.
-
-Khóa API ảo cho phép một gateway phục vụ nhiều client với giới hạn riêng. Mỗi khóa có thể đặt ngân sách USD theo ngày và tháng, giới hạn số yêu cầu và token mỗi phút, thời điểm hết hạn và danh sách mô hình cho phép theo mẫu glob. Khóa được lưu dưới dạng băm SHA-256; bí mật dạng văn bản thuần chỉ hiển thị một lần khi tạo.
+- Chuyển tuyến dự phòng thông minh: giữ chỗ credential cho từng yêu cầu, phân bổ lưu lượng đồng thời, theo dõi từng lần gọi để luân phiên công bằng và tránh lỗi, thời gian tạm nghỉ hoặc hạn mức đã cạn.
+- Dọn dẹp ngữ cảnh theo token: chuẩn hóa payload và chỉ cắt phần đầu hội thoại quá dài tại ranh giới lượt trao đổi, giữ chỉ dẫn hệ thống, định nghĩa công cụ và ngữ cảnh gần nhất.
+- Chuyển đổi định dạng: tiếp nhận OpenAI Chat Completions và Responses, Gemini native và Anthropic Messages; chuyển đổi yêu cầu và phản hồi streaming giữa các định dạng.
+- Quản lý thông tin xác thực: quản lý tài khoản OAuth và khóa API, trạng thái hoạt động, thời gian tạm nghỉ, kiểm tra kết nối và chống trùng lặp theo provider.
+- Định tuyến theo từng credential: lưu danh mục mô hình riêng để quyền truy cập của một tài khoản không bị áp dụng nhầm sang tài khoản khác.
+- Ghi nhớ tuyến lỗi: ghi nhận mô hình không khả dụng theo credential và cho phép xử lý từ trang Mô hình và định tuyến.
+- Streaming: hỗ trợ SSE, giả lập streaming và thử tiếp tục phản hồi dài bị ngắt.
+- Chiến lược định tuyến: cân bằng, ưu tiên provider, ngẫu nhiên theo trọng số, độ trễ thấp nhất và chi phí thấp nhất.
+- Khóa API ảo: giới hạn ngân sách USD theo ngày/tháng, số yêu cầu và token mỗi phút, thời hạn và danh sách mô hình được phép.
+- Sổ chi phí: ước tính chi phí USD từng lần gọi theo bảng giá mô hình, tổng hợp trên Dashboard và số liệu Prometheus.
+- Kiểm soát nội dung: tùy chọn chặn prompt injection, lọc từ khóa và che thông tin định danh trước khi gửi yêu cầu.
+- Bộ nhớ đệm phản hồi: tùy chọn lưu kết quả yêu cầu tất định khớp chính xác để giảm độ trễ và chi phí.
+- Quan sát vận hành: endpoint Prometheus `/metrics` và tùy chọn xuất trace Langfuse cùng Dashboard tích hợp.
+- Bảng điều khiển: quản lý thông tin xác thực, nhật ký, cấu hình, mức sử dụng và phiên bản.
 
 ## Giao diện Console
 
-![Polaris credential pool](../assets/screenshots/credential-pool.png)
+![Trang thông tin xác thực Polaris](../assets/screenshots/credential-pool.png)
 
 ## <a id="nha-cung-cap-duoc-ho-tro"></a>Nhà cung cấp được hỗ trợ
 
-Polaris chuyển đổi các yêu cầu một cách liền mạch giữa các nhà cung cấp AI hàng đầu, runtime cục bộ và các endpoint OAuth:
+Polaris hiện có **23 provider** trong danh mục. Bảng dưới mô tả phương thức kết nối và dịch vụ tương ứng; mô hình khả dụng phụ thuộc vào từng thông tin xác thực.
 
-| Nhà cung cấp | Loại xác thực | Giao thức hỗ trợ | Tự động Failover | Hỗ trợ Streaming |
-| :--- | :---: | :---: | :---: | :---: |
-| <img src="../../frontend/assets/providers/google-antigravity.png" width="18" height="18" valign="middle" /> **Google Antigravity** | OAuth (Google) | Gemini Native, OpenAI, Anthropic | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/google-ai-studio.png" width="18" height="18" valign="middle" /> **Google AI Studio** | API Key | Gemini Native, OpenAI, Anthropic | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/claude-code.png" width="18" height="18" valign="middle" /> **Claude Code** | OAuth (Anthropic) | Anthropic Messages, OpenAI, Gemini | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/claude-platform.png" width="18" height="18" valign="middle" /> **Claude Platform** | API Key | Anthropic Messages, OpenAI, Gemini | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/codex.png" width="18" height="18" valign="middle" /> **Codex** | OAuth (OpenAI) | OpenAI Completions & Responses | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/openai-platform.png" width="18" height="18" valign="middle" /> **OpenAI Platform** | API Key | OpenAI Completions & Responses | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/grok-build.png" width="18" height="18" valign="middle" /> **Grok Build** | API Key | OpenAI Tương thích, Anthropic, Gemini | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/spacexai-console.png" width="18" height="18" valign="middle" /> **SpaceXAI Console** | API Key | OpenAI Tương thích | ✅ | ✅ |
-| <img src="../../frontend/assets/providers/ollama.png" width="18" height="18" valign="middle" /> **Ollama (Cục bộ / Tự lưu trữ)** | Cục bộ / Base URL | OpenAI Tương thích | ✅ | ✅ |
+| Nhà cung cấp | Phương thức kết nối | Dịch vụ / phạm vi |
+| :--- | :--- | :--- |
+| <img src="../../frontend/assets/providers/google-antigravity.png" width="18" height="18" valign="middle" /> **Google Antigravity** | OAuth (Google) | Google Code Assist |
+| <img src="../../frontend/assets/providers/google-ai-studio.png" width="18" height="18" valign="middle" /> **Google AI Studio** | Khóa API | Gemini / Gemma |
+| <img src="../../frontend/assets/providers/grok-build.png" width="18" height="18" valign="middle" /> **Grok Build** | OAuth (PKCE) | Grok Build |
+| <img src="../../frontend/assets/providers/spacexai-console.png" width="18" height="18" valign="middle" /> **SpaceXAI Console** | Khóa API | xAI API |
+| <img src="../../frontend/assets/providers/codex.png" width="18" height="18" valign="middle" /> **Codex / ChatGPT** | OAuth (mã thiết bị) | Codex Responses |
+| <img src="../../frontend/assets/providers/openai-platform.png" width="18" height="18" valign="middle" /> **OpenAI Platform** | Khóa API | OpenAI API |
+| <img src="../../frontend/assets/providers/claude-code.png" width="18" height="18" valign="middle" /> **Claude Code** | OAuth (PKCE) | Anthropic Messages |
+| <img src="../../frontend/assets/providers/claude-platform.png" width="18" height="18" valign="middle" /> **Claude Platform** | Khóa API | Anthropic API |
+| <img src="../../frontend/assets/providers/ollama.png" width="18" height="18" valign="middle" /> **Ollama** | Endpoint; khóa API tùy chọn | Cục bộ / tự triển khai |
+| <img src="../../frontend/assets/providers/cerebras-cloud.png" width="18" height="18" valign="middle" /> **Cerebras Cloud** | Khóa API | Cerebras API |
+| <img src="../../frontend/assets/providers/cloudflare.png" width="18" height="18" valign="middle" /> **Cloudflare Workers AI** | API token + mã tài khoản | Workers AI |
+| <img src="../../frontend/assets/providers/deepseek-platform.png" width="18" height="18" valign="middle" /> **DeepSeek Platform** | Khóa API | DeepSeek API |
+| <img src="../../frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | Khóa API | Groq API |
+| <img src="../../frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | Khóa API; mã tổ chức tùy chọn | Kilo Gateway |
+| <img src="../../frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | Khóa API / dịch vụ | Kimchi Coding API |
+| <img src="../../frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | Khóa API | Moonshot API |
+| <img src="../../frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | OAuth trình duyệt / mã thiết bị AWS / khóa API | Kiro |
+| <img src="../../frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (mã thiết bị Meta) | `muse-code/` |
+| <img src="../../frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | Khóa API | Meta API |
+| <img src="../../frontend/assets/providers/mistral-ai-studio.png" width="18" height="18" valign="middle" /> **Mistral AI Studio** | Khóa API | Mistral API |
+| <img src="../../frontend/assets/providers/nvidia.png" width="18" height="18" valign="middle" /> **NVIDIA NIM** | Khóa API | Dịch vụ suy luận NVIDIA |
+| <img src="../../frontend/assets/providers/opencode.png" width="18" height="18" valign="middle" /> **OpenCode** | Khóa API + gói Zen/Go | OpenCode Zen / Go |
+| <img src="../../frontend/assets/providers/poolside-platform.png" width="18" height="18" valign="middle" /> **Poolside Platform** | Khóa API | Poolside API |
+
+Các client dùng [giao diện SDK](#khoi-dong-nhanh-tich-hop-sdk) chung của Polaris. Adapter xử lý chuyển đổi giao thức, streaming và định tuyến dự phòng trong phạm vi mô hình hỗ trợ; những tính năng không tương thích được báo lỗi rõ ràng.
+
+Cài đặt kết nối thuộc từng provider hoặc credential trên trang **Nhà cung cấp**, không nằm trong Cài đặt hệ thống. Xem [hướng dẫn kết nối và giới hạn](../providers/additional-api-providers.md), [hướng dẫn bốn nền tảng API](../providers/api-platforms.md) và [hướng dẫn Meta Model API](../providers/meta-model-api.md). Muse Code và Meta Model API là hai provider riêng, sử dụng thông tin xác thực và phạm vi mô hình riêng.
 
 ## Kiến trúc
 
@@ -84,7 +115,7 @@ Polaris
         |
         v
 provider adapters
-  Google Antigravity | Google AI Studio | Grok Build | SpaceXAI Console | Codex | OpenAI Platform | Claude Code | Claude Platform | Ollama
+  Google | xAI | OpenAI | Anthropic | Kiro | Muse Code | Meta | Ollama | các nền tảng API khác
 ```
 
 API công khai luôn duy trì tính ổn định trong khi các adapter đặc thù của từng nhà cung cấp liên tục phát triển bên dưới Polaris.
@@ -116,6 +147,10 @@ Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanc
 
 [Hợp đồng định danh Polaris](../migrations/polaris.md) liệt kê tên chuẩn dùng cho client, vận hành,
 lưu trữ, telemetry và automation. Các bản pre-release không được hỗ trợ qua alias tương thích.
+
+Để chẩn đoán và khôi phục, xem [hướng dẫn xử lý sự cố production](../troubleshooting.md).
+Hướng dẫn bắt đầu bằng kiểm tra sức khỏe và mức sẵn sàng, bảo toàn volume dữ liệu và liệt kê
+thông tin cần thu thập sau khi loại bỏ dữ liệu nhạy cảm.
 
 Các script Python native trong `deploy/scripts`, `docker run` trực tiếp, Render và Zeabur chỉ thuộc
 tầng tương thích, không có đầy đủ bằng chứng cài đặt/cập nhật/rollback của đường chuẩn. Image
@@ -156,14 +191,20 @@ Môi trường phát triển cục bộ sử dụng cùng một màn hình thi�
 
 ## Cấu hình
 
-Polaris đọc cấu hình ưu tiên từ các biến môi trường trước, sau đó đến cấu hình đã lưu, cuối cùng là các giá trị mặc định.
+Polaris ưu tiên biến môi trường, sau đó đến cấu hình đã lưu, cuối cùng là giá trị mặc định.
+[Tài liệu cấu hình được sinh từ mã nguồn](../reference/configuration.md) liệt kê đầy đủ kiểu dữ liệu,
+nhóm Basic/Advanced/Experimental, nơi quản lý và việc áp dụng trực tiếp, cần khởi động lại hay chỉ
+cho phép qua môi trường. Giá trị không hợp lệ sẽ chặn khởi động và nêu rõ tên biến; biến
+`POLARIS_*` có khả năng gõ sai sẽ được cảnh báo.
 
 | Biến môi trường | Mặc định | Mục đích |
 | --- | --- | --- |
 | `HOST` | `0.0.0.0` | Địa chỉ lắng nghe (bind address). |
 | `PORT` | `4283` | Cổng HTTP. |
 | `HOST_PORT` | `4283` | Cổng phía máy chủ host chỉ được dùng bởi Docker Compose. |
-| `WORKERS` | `1` | Số lượng worker được hỗ trợ cho chuỗi phiên bản 1.x. Các giá trị khác sẽ bị từ chối cho đến khi cơ chế đặt chỗ, cooldown, phiên làm việc và tổng hợp sử dụng được phối hợp đa tiến trình. |
+| `WORKERS` | `1` | Số lượng worker. Bản phát hành này chỉ chấp nhận một worker. |
+| `POLARIS_RUNTIME_MODE` | `standalone` | Chế độ runtime. Bản phát hành này chỉ hỗ trợ `standalone`. |
+| `POLARIS_REPLICA_COUNT` | `1` | Số replica ứng dụng được khai báo. Bản phát hành này chỉ chấp nhận một replica. |
 | `CORS_ORIGINS` | trống | Danh sách origin trình duyệt phân tách bằng dấu phẩy được phép gọi API cross-origin. Để trống cho việc sử dụng console cùng origin. |
 | `CORS_ORIGIN_REGEX` | trống | Biểu thức chính quy tùy chọn cho các origin trình duyệt động được quản lý. |
 | `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-polaris-`. |
@@ -185,9 +226,11 @@ Polaris đọc cấu hình ưu tiên từ các biến môi trường trước, s
 | `RETRY_429_INTERVAL` | `1` | Độ trễ cơ sở giữa các lần thử lại tạm thời tính bằng giây. |
 | `AUTO_DISABLE` | `false` | Vô hiệu hóa thông tin xác thực sau khi gặp các lỗi nghiêm trọng đã được cấu hình. |
 | `AUTO_DISABLE_ERROR_CODES` | `403` | Danh sách mã trạng thái lỗi nghiêm trọng phân tách bằng dấu phẩy. |
-| `ROUTING_STRATEGY` | `balanced` | Credential selection policy: `balanced`, `priority`, `weighted`, `least_latency`, or `lowest_cost`. |
+| `ROUTING_STRATEGY` | `balanced` | Chiến lược chọn credential: `balanced`, `priority`, `weighted`, `least_latency` hoặc `lowest_cost`. |
 | `PREFERRED_PROVIDER` | trống | Nhà cung cấp được ưu tiên theo chiến lược `priority`, ví dụ `google_antigravity` hoặc `google_ai_studio`. |
 | `UPSTREAM_TIMEOUT_SECONDS` | `300` | Thời gian chờ phản hồi suy luận từ provider, giới hạn từ 5 đến 900 giây. |
+| `PRICING_SYNC_ENABLED` | `true` | Làm mới catalog giá mô hình LiteLLM công khai trong nền; snapshot hợp lệ gần nhất vẫn dùng được khi ngoại tuyến. |
+| `PRICING_SYNC_INTERVAL_HOURS` | `24` | Chu kỳ làm mới catalog giá, giới hạn từ 1 đến 168 giờ. |
 | `RESPONSE_CACHE_ENABLED` | `false` | Lưu đệm trong bộ nhớ các phản hồi non-streaming tất định (temperature 0). |
 | `RESPONSE_CACHE_TTL_SECONDS` | `300` | Thời gian sống của mỗi mục trong bộ nhớ đệm phản hồi tính bằng giây. |
 | `RESPONSE_CACHE_MAX_ENTRIES` | `1000` | Số lượng phản hồi tối đa được giữ trong bộ nhớ đệm trong bộ nhớ. |
@@ -378,9 +421,9 @@ Khóa API ảo (Virtual API Keys) cho phép một gateway phục vụ nhiều cl
 
 1. Khởi động Polaris.
 2. Mở `http://IP_SERVER_CUA_BAN:4283` trên VPS, hoặc `http://127.0.0.1:4283` khi phát triển cục bộ.
-3. Tạo mật khẩu bảng điều khiển trên màn hình thiết lập lần đầu. Đối với thiết lập từ xa, nhập bootstrap token từ log ứng dụng; hoặc cấu hình sẵn `PANEL_PASSWORD`.
+3. Hoàn tất các kiểm tra thiết lập lần đầu và tạo mật khẩu chủ sở hữu. Nếu thiết lập từ xa, hãy cấu hình `SETUP_TOKEN` riêng dài ít nhất 24 ký tự trước khi khởi động rồi nhập mã đó trên màn hình thiết lập; hoặc cấu hình sẵn `PANEL_PASSWORD`. Ứng dụng không tự sinh hay ghi mã thiết lập vào log.
 4. Thêm tài khoản, API key hoặc kết nối Ollama từ trang Providers.
-5. Xác minh thông tin xác thực và theo dõi trạng thái cooldown/lỗi trong bảng điều khiển.
+5. Mở trang **Thông tin xác thực** (`/credentials`) để kiểm tra credential và theo dõi trạng thái tạm nghỉ/lỗi.
 6. Trỏ công cụ lập trình của bạn đến một trong các giao diện API nêu trên.
 
 Khi thêm thông tin xác thực Google Antigravity, Google sẽ chuyển hướng trình duyệt về `http://localhost:4283/callback` sau khi đăng nhập. Trên máy cục bộ, Polaris sẽ hiển thị trang thành công OAuth. Trên VPS, địa chỉ `localhost` đó thuộc về máy của trình duyệt người dùng nên trang có thể không tải được; hãy sao chép toàn bộ URL từ thanh địa chỉ trình duyệt, quay lại trang Providers, dán vào ô `Callback URL` và nhấn `Save credential`.
@@ -401,17 +444,25 @@ Nhập hàng loạt Google AI Studio chấp nhận các file JSON và file nén 
 
 Mỗi key được nhập đều được xác thực trước khi lưu trữ. Các key trùng lặp trong cùng một lần nhập sẽ bị bỏ qua, các key đã tồn tại được xác thực lại và cập nhật, và các mục không hợp lệ được báo cáo mà không để lộ giá trị key.
 
-Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình Grok Build trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình Grok Build được khai báo bởi danh mục hiện tại của chúng. Trang Pool có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
+Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình Grok Build trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình Grok Build được khai báo bởi danh mục hiện tại của chúng. Trang Thông tin xác thực có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
 
 Codex sử dụng quy trình ủy quyền thiết bị của OpenAI. Tạo một mã thiết bị từ trang Providers, mở URL xác minh được hiển thị, nhập mã, hoàn tất đăng nhập và quay lại để kiểm tra ủy quyền. Polaris lưu trữ danh mục mô hình theo phạm vi tài khoản do Codex trả về, làm mới token truy cập OAuth khi cần và gửi các request tương thích qua giao vận Codex Responses. OpenAI Platform sử dụng xác thực API key; các key được xác thực thông qua danh mục mô hình tài khoản trước khi đưa vào nhóm. Cả hai sản phẩm đều hỗ trợ nhập JSON và ZIP với khả năng xác thực và chống trùng lặp theo từng nhà cung cấp.
 
 Claude Code sử dụng quy trình OAuth PKCE của Anthropic. Tạo liên kết ủy quyền, hoàn tất ủy quyền, sau đó dán mã ủy quyền nhận được vào trang Providers. Claude Platform chấp nhận Anthropic API key. Cả hai sản phẩm đều khám phá các mô hình hiển thị cho từng credential, sử dụng giao vận Anthropic Messages, làm mới token truy cập Claude Code khi có thể và hỗ trợ nhập JSON hoặc ZIP đã qua xác thực.
 
+Muse Code sử dụng quy trình ủy quyền thiết bị của Meta. Tại **Nhà cung cấp → Muse Code**, lấy liên kết đăng nhập, xác nhận mã thiết bị trên Meta, rồi quay lại chọn **Lưu thông tin xác thực**. Polaris kết nối trực tiếp, không yêu cầu Muse CLI, Linux hay VPS. Mã mô hình có tiền tố `muse-code/`. Cài đặt nâng cao cho phép đặt tên hiển thị tùy chọn. Trang Thông tin xác thực hiển thị gói đăng ký, hạn mức phiên/tuần, thời điểm đặt lại và thời điểm cập nhật nếu provider trả về. Dữ liệu thiếu được ghi là không khả dụng, không mặc định là còn 100%. Làm mới sẽ kiểm tra lại quyền thuê bao và lấy khóa suy luận bằng phiên OAuth hiện có; nếu phiên hết hiệu lực, cần đăng nhập lại.
+
+Kiro hỗ trợ OAuth trình duyệt qua Google/GitHub, ủy quyền thiết bị AWS và tùy chọn khóa API. Trường nâng cao phụ thuộc phương thức được chọn: vùng runtime, vùng token/start URL của AWS hoặc profile ARN của khóa API. Xem [hướng dẫn kết nối](../providers/additional-api-providers.md) để biết cài đặt riêng của từng provider.
+
 Các kết nối Ollama được cấu hình theo từng endpoint và có thể bao gồm một bearer API key tùy chọn cho các máy chủ bảo mật hoặc đám mây. Polaris khám phá các mô hình qua `/api/tags` và định tuyến suy luận qua `/api/chat`. Khi Polaris chạy trong Docker, `localhost` trỏ đến chính container đó; hãy sử dụng địa chỉ host-gateway hoặc một endpoint Ollama có thể truy cập qua mạng.
 
-Nhập Pool và nhập hàng loạt Google Antigravity chấp nhận các file lưu trữ lên đến 10 MB, tối đa 500 file, mỗi file credential riêng lẻ tối đa 2 MB và tổng dữ liệu chưa nén tối đa 25 MB. Việc nhập nhà cung cấp Google AI Studio, OpenAI, Anthropic và Ollama sử dụng các giới hạn chặt chẽ hơn: 2 MB cho mỗi file được nhập, 200 mục JSON và 5 MB dữ liệu chưa nén.
+Nhập thông tin xác thực và nhập hàng loạt Google Antigravity chấp nhận các file lưu trữ lên đến 10 MB, tối đa 500 file, mỗi file credential riêng lẻ tối đa 2 MB và tổng dữ liệu chưa nén tối đa 25 MB. Việc nhập nhà cung cấp Google AI Studio, OpenAI, Anthropic và Ollama sử dụng các giới hạn chặt chẽ hơn: 2 MB cho mỗi file được nhập, 200 mục JSON và 5 MB dữ liệu chưa nén.
 
-Trang Pool cũng cung cấp quy trình sao lưu độc lập với nhà cung cấp. `Download ZIP` xuất toàn bộ nhóm credential đang hoạt động, và `Import ZIP` khôi phục file nén đó bằng cách tự động nhận diện từng credential là Google Antigravity, Google AI Studio, Grok Build, SpaceXAI Console, Codex, OpenAI Platform, Claude Code, Claude Platform hoặc Ollama. Các tài khoản OAuth giữ nguyên cơ chế chống trùng lặp danh tính theo phạm vi nhà cung cấp, trong khi các API key được xác thực và chống trùng lặp bằng mã băm fingerprint không thể đảo ngược trong phạm vi nhà cung cấp. Các mục không được hỗ trợ hoặc bị lỗi định dạng được báo cáo riêng lẻ mà không làm gián đoạn các credential hợp lệ khác trong cùng một file nén.
+Trang **Thông tin xác thực** (`/credentials`) nhóm các tài khoản và khóa API theo provider. Modal quản lý từng credential hiển thị danh tính, mô hình, trạng thái và các thao tác mà provider hỗ trợ. Các provider OAuth có thể cung cấp hạn mức theo khoảng thời gian, theo mô hình, gói đăng ký hoặc chế độ tín dụng khác nhau; thông tin thiếu được hiển thị là không khả dụng. Khóa API không mặc nhiên cung cấp email tài khoản, gói đăng ký hay dữ liệu thanh toán.
+
+**Tải ZIP** xuất thông tin xác thực; **Nhập ZIP** nhập tệp chứa nhiều provider thông qua cơ chế nhận diện và kiểm tra riêng của từng provider. Danh tính OAuth và fingerprint khóa API được chống trùng lặp trong phạm vi provider và ngữ cảnh kết nối. Mục không được hỗ trợ hoặc sai định dạng được báo riêng. Việc kiểm tra và khám phá mô hình tùy thuộc provider; nhập thành công hoặc nhìn thấy danh mục mô hình chưa chứng minh quyền gọi suy luận. Dùng **Thử model** để kiểm tra bằng một yêu cầu thực tế, có thể tiêu tốn hạn mức hoặc phát sinh phí.
+
+Tệp xuất credential chứa bí mật. ZIP thông tin xác thực không phải bản sao lưu toàn ứng dụng: dùng quy trình sao lưu/khôi phục SQLite có mã hóa trong **Cài đặt** để chuyển dữ liệu và cấu hình ứng dụng được hỗ trợ.
 
 Thông tin xác thực Google Antigravity sử dụng định dạng `google-antigravity-{account_fingerprint}.json`, trong đó fingerprint được lấy từ email tài khoản đã chuẩn hóa mà không để lộ email đó. Thông tin xác thực Google AI Studio sử dụng `google-ai-studio-{key_fingerprint}.json`, Grok Build OAuth sử dụng `grok-{account_fingerprint}.json`, SpaceXAI Console sử dụng `xai-console-{key_fingerprint}.json`, Codex sử dụng `openai-codex-{account_fingerprint}.json`, OpenAI Platform sử dụng `openai-platform-{key_fingerprint}.json`, Claude Code sử dụng `claude-code-{account_fingerprint}.json`, Claude Platform sử dụng `claude-platform-{key_fingerprint}.json` và kết nối Ollama sử dụng `ollama-{connection_fingerprint}.json`. Các credential cũ theo chuẩn `provider_*.json` và `xai-grok-*.json` vẫn tương thích và được xuất ra với tên chuẩn hóa.
 
@@ -463,14 +514,13 @@ Phần này dành cho người đóng góp và gỡ lỗi cục bộ. Triển kh
 ```bash
 python -m pip install --require-hashes -r requirements.lock
 python -m pip install -r requirements-dev.txt
-ruff check backend
-ruff format --check backend
-python -m compileall -q backend
-python -m backend.tests
-for script in frontend/js/*.js; do node --check "$script"; done
-yamllint --strict .github deploy .yamllint.yml
-python -m pip_audit --local --progress-spinner off
+python tools/quality_gate.py fast
+python tools/quality_gate.py task --test-module backend.tests.test_config_security
 ```
+
+Xem [các cổng kiểm tra chất lượng](../quality-gates.md) để chọn phạm vi tác vụ, giai đoạn hoặc phát hành. `python tools/quality_gate.py --list-suites` liệt kê riêng các kiểm tra trực tiếp với dịch vụ ngoài; chúng không thay đổi kết quả kiểm tra production.
+
+[Hợp đồng tương thích](../compatibility.md) bảo vệ các tuyến SDK và quản lý, URL tương thích, chuyển đổi cấu hình, phiên bản schema lưu trữ và ví dụ tích hợp.
 
 Khởi chạy dịch vụ sau khi toàn bộ kiểm tra vượt qua:
 
@@ -494,8 +544,7 @@ Nền tảng tiêu chuẩn cho môi trường sản xuất là Python 3.12, và 
   [tài liệu quan sát vận hành](../observability.md). Nội dung prompt và phản hồi không bao giờ được xuất.
 - Docker image chỉ chạy với quyền root trong khoảng thời gian đủ ngắn để sửa chữa quyền sở hữu thư mục dữ liệu được gắn kết, sau đó chạy dịch vụ dưới người dùng không có đặc quyền `gateway`.
 - Đặt `CORS_ORIGINS` thành các origin đáng tin cậy rõ ràng khi các client trên trình duyệt cần quyền truy cập cross-origin.
-- Luôn sao lưu volume Compose `polaris-data`, hoặc `/opt/polaris` khi chạy Docker trực
-  tiếp, trước khi nâng cấp hoặc chuyển máy chủ.
+- Dùng [quy trình sao lưu và khôi phục có xác thực, mã hóa](../backup-and-restore.md) trước khi nâng cấp hoặc chuyển bản cài SQLite độc lập. Giữ tệp sao lưu và mật khẩu giải mã bên ngoài volume `polaris-data`.
 - Quy trình xuất bản Docker image sử dụng secret kho lưu trữ `DOCKERHUB_USERNAME` và `DOCKERHUB_TOKEN` cho Docker Hub, và `GITHUB_TOKEN` tích hợp sẵn cho GitHub Packages tại `ghcr.io/nguywnben/polaris`. Chỉ đặt biến kho lưu trữ `IMAGE_NAME` tùy chọn khi xuất bản sang một tên image Docker Hub tùy chỉnh.
 - Duy trì `WORKERS=1` và một replica ứng dụng duy nhất cho toàn bộ chuỗi phiên bản 1.x; bộ lưu trữ bên ngoài không thể thay thế cho việc điều phối phân tán.
 - Sử dụng các route quản lý chuẩn tắc `/api/credentials`. Các route bí danh `/api/creds` trong giai đoạn beta đã bị loại bỏ từ bản 1.0.0.

@@ -10,20 +10,20 @@
     <a href="https://github.com/nguywnben/polaris/actions"><img src="https://img.shields.io/github/actions/workflow/status/nguywnben/polaris/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status"></a>
     <a href="https://hub.docker.com/r/nguywnben/polaris"><img src="https://img.shields.io/docker/pulls/nguywnben/polaris?style=flat-square&logo=docker" alt="Docker Pulls"></a>
     <img src="https://img.shields.io/badge/python-3.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12 | 3.14">
-    <img src="https://img.shields.io/badge/i18n-15%20languages-orange?style=flat-square" alt="15 Languages">
+    <img src="https://img.shields.io/badge/console-15%20languages-orange?style=flat-square" alt="Console: 15 languages">
   </p>
 
   <p>
     <a href="#supported-providers"><b>🌐 Supported Providers</b></a> •
     <a href="#core-capabilities"><b>⚡ Capabilities</b></a> •
     <a href="#deployment"><b>🐳 Docker Deployment</b></a> •
-    <a href="#quick-start-sdk-integration"><b>🔌 SDK Setup</b></a> •
+    <a href="#sdk-surfaces"><b>🔌 SDK Setup</b></a> •
     <a href="docs/architecture.md"><b>📖 Architecture</b></a>
   </p>
 
   <p>
-    <b>Maintained Documentation:</b><br>
-    <b>English</b> • <a href="docs/locales/README.vi.md">Tiếng Việt</a>
+    <b>README · 15 languages:</b><br>
+    <b>English</b> • <a href="docs/locales/README.vi.md">Tiếng Việt</a> • <a href="docs/locales/README.zh-CN.md">中文（简体）</a> • <a href="docs/locales/README.zh-TW.md">中文（繁體）</a> • <a href="docs/locales/README.ja.md">日本語</a> • <a href="docs/locales/README.ko.md">한국어</a> • <a href="docs/locales/README.es.md">Español</a> • <a href="docs/locales/README.fr.md">Français</a> • <a href="docs/locales/README.de.md">Deutsch</a> • <a href="docs/locales/README.it.md">Italiano</a> • <a href="docs/locales/README.pt.md">Português</a> • <a href="docs/locales/README.ru.md">Русский</a> • <a href="docs/locales/README.id.md">Bahasa Indonesia</a> • <a href="docs/locales/README.th.md">ภาษาไทย</a> • <a href="docs/locales/README.tr.md">Türkçe</a>
   </p>
 </div>
 
@@ -31,6 +31,8 @@
 
 The console supports 15 languages. English and Vietnamese receive semantic review; the other 13
 community locales are compatibility translations and fall back to English when a message is absent.
+
+This README is available in **15 languages** with the same functional scope. Linked technical guides retain their original document language. README translations are separate from the console's localization support policy.
 
 A universal AI router for coding tools. Polaris provides smart auto-fallback, token-aware request cleanup, usage visibility, and seamless format translation so local agents, IDE assistants, and automation scripts can use free and premium LLM capacity through one stable API surface.
 
@@ -65,31 +67,41 @@ Modern coding workflows often mix clients and providers: OpenAI-compatible tools
 
 ## Console Preview
 
-![Polaris credential pool](docs/assets/screenshots/credential-pool.png)
+![Polaris credentials](docs/assets/screenshots/credential-pool.png)
 
 ## Supported Providers
 
-Polaris adapts requests seamlessly across leading AI providers, local runtime engines, and OAuth endpoints:
+Polaris currently exposes **23 providers** in the catalog. The table describes each connection method and service; available models depend on the individual credential.
 
-| Provider | Auth Type | Supported Protocols | Auto-Failover | Streaming |
-| :--- | :---: | :---: | :---: | :---: |
-| <img src="frontend/assets/providers/google-antigravity.png" width="18" height="18" valign="middle" /> **Google Antigravity** | OAuth (Google) | Gemini Native, OpenAI, Anthropic | ✅ | ✅ |
-| <img src="frontend/assets/providers/google-ai-studio.png" width="18" height="18" valign="middle" /> **Google AI Studio** | API Key | Gemini Native, OpenAI, Anthropic | ✅ | ✅ |
-| <img src="frontend/assets/providers/claude-code.png" width="18" height="18" valign="middle" /> **Claude Code** | OAuth (Anthropic) | Anthropic Messages, OpenAI, Gemini | ✅ | ✅ |
-| <img src="frontend/assets/providers/claude-platform.png" width="18" height="18" valign="middle" /> **Claude Platform** | API Key | Anthropic Messages, OpenAI, Gemini | ✅ | ✅ |
-| <img src="frontend/assets/providers/codex.png" width="18" height="18" valign="middle" /> **Codex** | OAuth (OpenAI) | OpenAI Completions & Responses | ✅ | ✅ |
-| <img src="frontend/assets/providers/openai-platform.png" width="18" height="18" valign="middle" /> **OpenAI Platform** | API Key | OpenAI Completions & Responses | ✅ | ✅ |
-| <img src="frontend/assets/providers/grok-build.png" width="18" height="18" valign="middle" /> **Grok Build** | API Key | OpenAI Compatible, Anthropic, Gemini | ✅ | ✅ |
-| <img src="frontend/assets/providers/spacexai-console.png" width="18" height="18" valign="middle" /> **SpaceXAI Console** | API Key | OpenAI Compatible | ✅ | ✅ |
-| <img src="frontend/assets/providers/ollama.png" width="18" height="18" valign="middle" /> **Ollama (Local / Self-hosted)** | Local / Base URL | OpenAI Compatible | ✅ | ✅ |
+| Provider | Connection method | Service / scope |
+| :--- | :--- | :--- |
+| <img src="frontend/assets/providers/google-antigravity.png" width="18" height="18" valign="middle" /> **Google Antigravity** | OAuth (Google) | Google Code Assist |
+| <img src="frontend/assets/providers/google-ai-studio.png" width="18" height="18" valign="middle" /> **Google AI Studio** | API key | Gemini / Gemma |
+| <img src="frontend/assets/providers/grok-build.png" width="18" height="18" valign="middle" /> **Grok Build** | OAuth (PKCE) | Grok Build |
+| <img src="frontend/assets/providers/spacexai-console.png" width="18" height="18" valign="middle" /> **SpaceXAI Console** | API key | xAI API |
+| <img src="frontend/assets/providers/codex.png" width="18" height="18" valign="middle" /> **Codex / ChatGPT** | OAuth (device code) | Codex Responses |
+| <img src="frontend/assets/providers/openai-platform.png" width="18" height="18" valign="middle" /> **OpenAI Platform** | API key | OpenAI API |
+| <img src="frontend/assets/providers/claude-code.png" width="18" height="18" valign="middle" /> **Claude Code** | OAuth (PKCE) | Anthropic Messages |
+| <img src="frontend/assets/providers/claude-platform.png" width="18" height="18" valign="middle" /> **Claude Platform** | API key | Anthropic API |
+| <img src="frontend/assets/providers/ollama.png" width="18" height="18" valign="middle" /> **Ollama** | Endpoint; optional API key | Local / self-hosted |
+| <img src="frontend/assets/providers/cerebras-cloud.png" width="18" height="18" valign="middle" /> **Cerebras Cloud** | API key | Cerebras API |
+| <img src="frontend/assets/providers/cloudflare.png" width="18" height="18" valign="middle" /> **Cloudflare Workers AI** | API token + Account ID | Workers AI |
+| <img src="frontend/assets/providers/deepseek-platform.png" width="18" height="18" valign="middle" /> **DeepSeek Platform** | API key | DeepSeek API |
+| <img src="frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | API key | Groq API |
+| <img src="frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | API key; optional organization ID | Kilo Gateway |
+| <img src="frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | API / service key | Kimchi Coding API |
+| <img src="frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | API key | Moonshot API |
+| <img src="frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | Browser OAuth / AWS device login / API key | Kiro |
+| <img src="frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (Meta device code) | `muse-code/` |
+| <img src="frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | API key | Meta API |
+| <img src="frontend/assets/providers/mistral-ai-studio.png" width="18" height="18" valign="middle" /> **Mistral AI Studio** | API key | Mistral API |
+| <img src="frontend/assets/providers/nvidia.png" width="18" height="18" valign="middle" /> **NVIDIA NIM** | API key | Hosted NVIDIA inference |
+| <img src="frontend/assets/providers/opencode.png" width="18" height="18" valign="middle" /> **OpenCode** | API key + Zen/Go plan | OpenCode Zen / Go |
+| <img src="frontend/assets/providers/poolside-platform.png" width="18" height="18" valign="middle" /> **Poolside Platform** | API key | Poolside API |
 
-Additional API-key integrations are available for **Meta Model API, Kimi API Platform, Kiro,
-Cloudflare Workers AI, NVIDIA NIM, OpenCode Zen/Go, Poolside Platform, Kimchi
-Coding, Kilo, GroqCloud, DeepSeek Platform, Mistral AI Studio, and Cerebras Cloud**. Their connection settings belong to each credential on the
-Providers page, not to System Settings. See the [connection guide and current
-limitations](docs/providers/additional-api-providers.md) before onboarding.
-Meta's stateless Responses replay and Contributor privacy considerations are
-described in the [Meta guide](docs/providers/meta-model-api.md).
+Clients use Polaris's shared [SDK surfaces](#sdk-surfaces). Adapters handle protocol translation, streaming and fallback within each model's supported capabilities; unsupported request semantics produce explicit errors.
+
+Connection settings belong to the provider or credential on **Providers**, not System Settings. See the [connection guide and limitations](docs/providers/additional-api-providers.md), [four API-platform guide](docs/providers/api-platforms.md), and [Meta Model API guide](docs/providers/meta-model-api.md). Muse Code and Meta Model API are separate providers with distinct credentials and model namespaces.
 
 ## Architecture
 
@@ -103,7 +115,7 @@ Polaris
         |
         v
 provider adapters
-  Google Antigravity | Google AI Studio | Grok Build | SpaceXAI Console | Codex | OpenAI Platform | Claude Code | Claude Platform | Ollama
+  Google | xAI | OpenAI | Anthropic | Kiro | Muse Code | Meta | Ollama | other API platforms
 ```
 
 The public API stays stable while provider-specific adapters evolve behind Polaris.
@@ -253,11 +265,13 @@ name; likely misspelled `POLARIS_*` variables produce a warning.
 | `CODEX_AUTH_BASE` | `https://auth.openai.com` | Optional Codex device-authorization service override. |
 | `CODEX_CLIENT_ID` | bundled public client | Optional override for the Codex device OAuth client ID. |
 | `CODEX_USER_AGENT` | Codex CLI-compatible value | Optional User-Agent override for Codex requests. |
-| `ANTHROPIC_API_URL` | `https://api.anthropic.com/v1` | Optional Claude Platform and Claude Code Messages API endpoint override. It can also be managed from the Providers page. |
+| `ANTHROPIC_API_URL` | `https://api.anthropic.com/v1` | Operator-level Messages API endpoint override for Claude Code. |
 | `CLAUDE_OAUTH_AUTHORIZE_URL` | `https://claude.ai/oauth/authorize` | Optional Claude Code PKCE authorization endpoint override. Only Anthropic and Claude hosts are accepted by the console. |
 | `CLAUDE_OAUTH_TOKEN_URL` | `https://api.anthropic.com/v1/oauth/token` | Optional Claude Code token endpoint override. Only Anthropic and Claude hosts are accepted by the console. |
 | `CLAUDE_CLIENT_ID` | bundled public client | Optional override for the Claude Code PKCE OAuth client ID. |
-| `CLAUDE_USER_AGENT` | `claude-cli/polaris` | Optional User-Agent override for Claude Code and Claude Platform requests. |
+| `CLAUDE_USER_AGENT` | `claude-cli/polaris` | Operator-level User-Agent override for Claude Code requests. |
+| `CLAUDE_PLATFORM_API_URL` | `https://api.anthropic.com/v1` | Separate Claude Platform endpoint, configurable from Providers. |
+| `CLAUDE_PLATFORM_USER_AGENT` | `polaris/claude-platform` | Separate Claude Platform User-Agent, independent of Claude Code. |
 | `ANTIGRAVITY_USER_AGENT` | `antigravity/cli/1.0.1 windows/amd64` | Optional Google Antigravity protocol User-Agent override. |
 | `ANTIGRAVITY_PAYLOAD_USER_AGENT` | `antigravity` | Optional payload-level Google Antigravity userAgent override. |
 | `PROMETHEUS_EXPORT_ENABLED` | `false` | Explicitly enables authenticated `GET /metrics` export. |
@@ -410,7 +424,7 @@ Virtual API keys let one gateway serve multiple clients under separate limits. E
 2. Open `http://YOUR_SERVER_IP:4283` on a VPS, or `http://127.0.0.1:4283` for local development.
 3. Complete the first-run checks and create the console owner password. For remote setup, configure a unique `SETUP_TOKEN` of at least 24 characters before startup and enter it on the setup screen; alternatively preconfigure `PANEL_PASSWORD`.
 4. Add an account, API key, or Ollama connection from the Providers page.
-5. Verify credentials and watch cooldown/error state in the panel.
+5. Open **Credentials** (`/credentials`) to verify credentials and monitor cooldown/error state.
 6. Point your coding tool to one of the API surfaces above.
 
 When adding a Google Antigravity credential, Google redirects the browser to `http://localhost:4283/callback` after sign-in. On a local machine, Polaris shows an OAuth success page. On a VPS, that `localhost` address belongs to the user's browser machine, so the page may not load; copy the full URL from the browser address bar, return to the Providers page, paste it into `Callback URL`, and click `Save credential`.
@@ -431,24 +445,32 @@ Google AI Studio batch import accepts JSON files and ZIP archives containing JSO
 
 Every imported key is validated before storage. Duplicate keys within the same import are skipped, existing keys are revalidated and updated, and invalid entries are reported without exposing the key value.
 
-Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Pool page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
+Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Credentials page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
 
-Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Polaris stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before entering the pool. Both products support JSON and ZIP import with provider-specific validation and deduplication.
+Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Polaris stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before being saved to Credentials. Both products support JSON and ZIP import with provider-specific validation and deduplication.
 
 Claude Code uses Anthropic's PKCE OAuth flow. Generate an authorization link, finish authorization, then paste the returned authorization code into the Providers page. Claude Platform accepts Anthropic API keys. Both products discover the models exposed to each credential, use the Anthropic Messages transport, refresh Claude Code access tokens when possible, and support validated JSON or ZIP import.
 
+Muse Code uses Meta device authorization. In **Providers → Muse Code**, get the sign-in link, approve the displayed device code with Meta, then return and choose **Save credential**. Polaris connects directly; it does not require the Muse CLI, Linux, or a VPS. Models use the `muse-code/` prefix. Advanced settings allow an optional credential display name. Credentials can show the provider-reported plan, session and weekly usage windows, reset times, and observation time. Missing usage is unavailable, not an assumed 100% remaining. Refresh rechecks subscription eligibility and obtains an inference key with the existing OAuth session; if that session is no longer valid, sign in again.
+
+Kiro supports Google/GitHub browser OAuth, AWS device authorization, and an optional API-key path. Advanced fields depend on the selected method: runtime region, AWS token region/start URL, or API-key profile ARN. See the [connection guide](docs/providers/additional-api-providers.md) for provider-specific settings.
+
 Ollama connections are configured per endpoint and may include an optional bearer API key for protected or cloud servers. Polaris discovers models through `/api/tags` and routes inference through `/api/chat`. When Polaris runs in Docker, `localhost` refers to the container itself; use a host-gateway address or another network-reachable Ollama endpoint.
 
-Pool imports and Google Antigravity batch imports accept archives up to 10 MB, at most 500 files, individual credential files up to 2 MB, and at most 25 MB of uncompressed data. Google AI Studio, OpenAI, Anthropic, and Ollama provider imports use stricter limits of 2 MB per imported file, 200 JSON entries, and 5 MB of uncompressed data.
+Credential imports and Google Antigravity batch imports accept archives up to 10 MB, at most 500 files, individual credential files up to 2 MB, and at most 25 MB of uncompressed data. Google AI Studio, OpenAI, Anthropic, and Ollama provider imports use stricter limits of 2 MB per imported file, 200 JSON entries, and 5 MB of uncompressed data.
 
-The Pool page also provides a provider-independent backup workflow. `Download ZIP` exports the active credential pool, and `Import ZIP` restores that archive by identifying each credential as Google Antigravity, Google AI Studio, Grok Build, SpaceXAI Console, Codex, OpenAI Platform, Claude Code, Claude Platform, or Ollama. OAuth accounts retain provider-scoped identity deduplication, while API keys are validated and deduplicated by a provider-scoped, non-reversible key fingerprint. Unsupported or malformed entries are reported individually without blocking valid credentials in the same archive.
+The **Credentials** page (`/credentials`) groups connected accounts and API keys by provider. Each credential's management dialog shows its identity, models, status, and provider-supported actions. OAuth providers can report different quota windows, per-model limits, plans, or credit controls; unavailable information is shown as unavailable. API keys do not imply access to account email, subscription, or billing data.
+
+`Download ZIP` exports credentials, and `Import ZIP` imports mixed-provider archives using provider-specific identification and validation. OAuth identity and API-key fingerprints are deduplicated within their provider and connection context. Unsupported or malformed entries are reported individually. Validation and discovery depend on the provider; an imported credential or visible model catalog does not by itself prove inference access. Use **Test model** for an explicit inference check, which may consume allowance or incur charges.
+
+Credential archives contain secrets. A credential ZIP is not a full application backup: use the encrypted SQLite backup/restore workflow in **Settings** to transfer supported application data and configuration.
 
 Google Antigravity credentials use `google-antigravity-{account_fingerprint}.json`, where the fingerprint is derived from the normalized account email without exposing it. Google AI Studio credentials use `google-ai-studio-{key_fingerprint}.json`, Grok Build OAuth credentials use `grok-{account_fingerprint}.json`, SpaceXAI Console credentials use `xai-console-{key_fingerprint}.json`, Codex credentials use `openai-codex-{account_fingerprint}.json`, OpenAI Platform credentials use `openai-platform-{key_fingerprint}.json`, Claude Code credentials use `claude-code-{account_fingerprint}.json`, Claude Platform credentials use `claude-platform-{key_fingerprint}.json`, and Ollama connections use `ollama-{connection_fingerprint}.json`. Legacy `provider_*.json` and `xai-grok-*.json` credentials remain compatible and are exported with canonical names.
 
 Credential mode names:
 
-- `code_assist`: standard Code Assist credential pool.
-- `provider`: provider backend credential pool.
+- `code_assist`: standard Code Assist credentials.
+- `provider`: provider backend credentials.
 
 ## Storage
 

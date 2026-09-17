@@ -47,7 +47,7 @@ configuration, recovery, browser verification, and day-to-day workflows.
 | Configuration | One schema covers a bounded default and opt-in controls | Basic/Advanced/Compatibility grouping with validation and generated examples |
 | Frontend | Eleven destinations, Playground, shared components, and maintained browser evidence | Keep the no-build architecture and one common interface contract |
 | Localization | Fifteen complete catalogs are expensive to curate equally | English/Vietnamese production; other locales community compatibility |
-| Documentation | English/Vietnamese guides match the shipped standalone product | Keep curated docs current; community locales remain console compatibility catalogs |
+| Documentation | README covers fifteen languages; linked guides retain their document language | Keep provider/configuration coverage and examples aligned across READMEs; console locale policy is separate |
 
 ## Capability Map
 

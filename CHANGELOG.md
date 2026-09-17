@@ -19,6 +19,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- Repository README translations in all 15 supported languages, with language navigation,
+  the current 23-provider catalog, configuration reference, and credential/deployment workflows.
 - New providers show the same persistent credential-save result and pool shortcut
   as legacy providers. Result summaries use the selected UI language instead of
   mixing raw English server messages with translated labels.

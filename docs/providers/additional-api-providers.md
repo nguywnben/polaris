@@ -1,7 +1,8 @@
-# Additional API-key providers
+# Additional providers and connection settings
 
 Open **Providers**, select a provider, enter its key and required connection
-fields, then save. Browse the credential pool and explicitly test a model before
+fields, then save. Kiro also offers the OAuth methods listed below. Open
+**Credentials** and explicitly test a model before
 sending production traffic. A model catalog may be public: successful discovery
 does not prove that the key is valid or has inference permissions. Model tests
 send a small request and may incur vendor charges.
@@ -47,7 +48,7 @@ Use the downloadable examples or exported Polaris credentials.
 These imports validate file structure and connection fields offline, save no
 archive-supplied model catalog, and remain marked as imported without verification.
 Open **Credentials** in the sidebar to discover models and explicitly test inference. Mixed-provider
-archives still belong in the pool's import workflow and require explicit identifiers.
+archives belong in the **Credentials** import workflow and require explicit identifiers.
 Reimporting the same key and connection context skips it atomically: the existing
 model catalog, label and operational state stay unchanged. Failed files remain
 selected for correction and retry; each entry reports its own result.
@@ -55,7 +56,7 @@ selected for correction and retry; each entry reports its own result.
 Advanced fields belong to the API-key form above them; they are saved with that
 key, not as global provider defaults. Reset only clears the connection draft,
 without clearing the entered key or altering any stored credential. Existing
-credentials are edited in the pool. Switching OpenCode plans selects the
+credentials are edited in **Credentials**. Switching OpenCode plans selects the
 corresponding endpoint, including in the existing-credential editor.
 Exported credential archives contain secrets and must be protected accordingly.
 
