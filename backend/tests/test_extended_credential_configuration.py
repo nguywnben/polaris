@@ -49,6 +49,11 @@ class ExtendedCredentialConfigurationTests(unittest.IsolatedAsyncioTestCase):
             "kilo": {"base_url", "organization_id"},
             "opencode": {"base_url", "plan"},
             "kiro": {"region", "profile_arn"},
+            "meta": set(),
+            "groq": {"base_url"},
+            "deepseek": {"base_url"},
+            "mistral": {"base_url"},
+            "cerebras": {"base_url"},
         }
         for provider, fields in cases.items():
             with self.subTest(provider=provider):

@@ -33,7 +33,12 @@ class ProviderExpansionRegistryTests(unittest.TestCase):
                 )
                 self.assertIn("test", contract.operations)
                 self.assertNotIn("refresh", contract.operations)
-                self.assertNotIn("quota", contract.operations)
+                if provider == "kiro":
+                    self.assertIn("quota", contract.operations)
+                    self.assertIn("reauthenticate", contract.operations)
+                else:
+                    self.assertNotIn("quota", contract.operations)
+                    self.assertNotIn("reauthenticate", contract.operations)
 
     def test_undiscovered_credentials_do_not_claim_arbitrary_models(self):
         self.assertFalse(credential_supports_model({"provider": "kilo"}, "unknown-model"))

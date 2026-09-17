@@ -385,7 +385,13 @@ for _provider_id, _provider_name in EXTENDED_PROVIDERS.items():
         display_name=_provider_name,
         credential_type="oauth" if _provider_id in {"kiro", "muse_code"} else "api_key",
         operations=_COMMON_CREDENTIAL_OPERATIONS
-        + (("refresh", "reauthenticate", "quota") if _provider_id == "muse_code" else ()),
+        + (
+            ("refresh", "reauthenticate", "quota")
+            if _provider_id == "muse_code"
+            else ("reauthenticate", "quota")
+            if _provider_id == "kiro"
+            else ()
+        ),
     )
 
 
@@ -603,6 +609,8 @@ def credential_supports_operation(
     credential_data: Optional[Dict[str, Any]], operation: Any
 ) -> bool:
     """Fail closed unless the inferred credential variant declares the operation."""
+    if get_credential_provider(credential_data) == "kiro" and operation == "reauthenticate":
+        return (credential_data or {}).get("credential_type") == "oauth"
     capabilities = get_credential_variant_capabilities(
         get_credential_provider_variant(credential_data)
     )

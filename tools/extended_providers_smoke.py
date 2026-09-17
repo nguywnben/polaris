@@ -214,6 +214,17 @@ def main():
         browser = playwright.chromium.launch()
         context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1000})
         context.route("https://**", lambda route: route.abort())
+        context.route(
+            "**/api/credentials/quota/**",
+            lambda route: route.fulfill(
+                json={
+                    "success": True,
+                    "quota_type": "account_rate_limits",
+                    "quota_status": "unavailable",
+                    "windows": [],
+                }
+            ),
+        )
         page = context.new_page()
         install_fixtures(page)
         errors = []
@@ -363,7 +374,16 @@ def main():
                 workspace.locator('[name="organization_id"]').fill(
                     "00000000-0000-0000-0000-000000000001"
                 )
-            workspace.locator('[data-i18n="provider.ext.reset_connection"]').click()
+            if provider == "meta":
+                expect(workspace.locator('[name="base_url"]')).to_have_attribute("readonly", "")
+                expect(workspace.locator('[name="base_url"]')).to_have_value(
+                    "https://api.meta.ai/v1"
+                )
+                expect(
+                    workspace.locator('[data-i18n="provider.ext.reset_connection"]')
+                ).to_have_count(0)
+            else:
+                workspace.locator('[data-i18n="provider.ext.reset_connection"]').click()
             if provider == "kilo":
                 expect(workspace.locator('[name="organization_id"]')).to_have_value("")
             expect(key).to_have_value("fixture-key-not-a-real-secret")
@@ -466,7 +486,7 @@ def main():
         expect(page.locator('[role="dialog"]')).to_have_count(1)
         meta_editor = page.locator("[data-credential-edit-form]")
         expect(meta_editor).to_be_visible()
-        expect(meta_editor.locator('[name="base_url"]')).to_have_value("https://api.meta.ai/v1")
+        expect(meta_editor.locator('[name="base_url"]')).to_have_count(0)
         expect(meta_editor.locator('[name="api_key"]')).to_have_value("")
         expect(meta_editor.locator('[name="api_key"]')).not_to_be_focused()
         expect(

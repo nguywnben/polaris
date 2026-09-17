@@ -111,6 +111,7 @@ from .credential_operations import (
     upload_credentials_common,
     verify_credential_common,
 )
+from .credential_security import verify_credential_action_token
 from .utils import (
     internal_server_error,
     public_error_detail,
@@ -122,7 +123,7 @@ router = APIRouter(tags=["credentials"])
 
 
 def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
-    if provider == "muse_code":
+    if provider in {"muse_code", "meta"}:
         return ()
     if provider == "kiro":
         return ("region", "profile_arn")
@@ -717,7 +718,7 @@ async def _execute_credential_action(
 @router.post("/action")
 async def creds_action(
     request: CredFileActionRequest,
-    token: str = Depends(verify_panel_token),
+    token: str = Depends(verify_credential_action_token),
     mode: str = "code_assist",
 ):
     started_at = time.perf_counter()
@@ -791,7 +792,7 @@ async def creds_action(
 )
 async def creds_batch_action(
     request: CredFileBatchActionRequest,
-    token: str = Depends(verify_panel_token),
+    token: str = Depends(verify_credential_action_token),
     mode: str = "code_assist",
 ):
     reservation = None
@@ -1225,7 +1226,6 @@ async def import_pool_credentials(
 
 
 @router.post("/verify/{filename}")
-@router.post("/verify-project/{filename}", include_in_schema=False)
 async def verify_credential(
     filename: str, token: str = Depends(verify_panel_token), mode: str = "code_assist"
 ):
@@ -1289,6 +1289,22 @@ async def get_credential_quota(
             return rejection
 
         provider_id = get_credential_provider(credential_data)
+        if provider_id == "kiro":
+            from core.kiro import KiroError
+            from core.kiro_usage import fetch_kiro_usage
+
+            fresh = await _prepare_extended_oauth(filename, credential_data, mode)
+            try:
+                usage = await fetch_kiro_usage(fresh)
+            except KiroError as exc:
+                return JSONResponse(
+                    status_code=502 if exc.status_code >= 500 else 400,
+                    content={"success": False, "filename": filename, "error": str(exc)},
+                )
+            return JSONResponse(
+                content={"success": True, "filename": filename, "provider": provider_id, **usage},
+                headers={"Cache-Control": "no-store"},
+            )
         if provider_id == "muse_code":
             from core.muse_code import quota_view
 
@@ -1492,7 +1508,7 @@ async def get_credential_quota(
                 status_code=400, detail="Credential does not contain an access token."
             )
 
-        quota_info = await fetch_quota_info(access_token)
+        quota_info = await fetch_quota_info(access_token, credential_data.get("project_id", ""))
 
         if quota_info.get("success"):
             return JSONResponse(
@@ -1500,6 +1516,11 @@ async def get_credential_quota(
                     "success": True,
                     "filename": filename,
                     "models": quota_info.get("models", {}),
+                    **{
+                        key: quota_info[key]
+                        for key in ("plan", "credit_balances", "account_metadata_status", "windows")
+                        if key in quota_info
+                    },
                 }
             )
         else:

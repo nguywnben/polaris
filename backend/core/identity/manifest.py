@@ -53,7 +53,6 @@ _MANAGEMENT_ROUTE_MANIFEST = (
         ("GET", "/api/auth/env-creds-status"),
         ("GET", "/api/credentials/status"),
         ("GET", "/api/credentials/models/{filename}"),
-        ("GET", "/api/credentials/detail/{filename}"),
         ("GET", "/api/credentials/configuration/{filename}"),
         ("GET", "/api/credentials/errors/{filename}"),
         ("GET", "/api/credentials/quota/{filename}"),
@@ -81,6 +80,7 @@ _MANAGEMENT_ROUTE_MANIFEST = (
     ),
     *_http(
         ManagementPermission.CREDENTIALS_EXPORT,
+        ("GET", "/api/credentials/detail/{filename}"),
         ("GET", "/api/credentials/download/{filename}"),
         ("GET", "/api/credentials/download-all"),
     ),

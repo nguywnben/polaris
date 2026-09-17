@@ -2105,7 +2105,7 @@ async def fetch_configured_provider_models() -> Dict[str, List[str]]:
     }
 
 
-async def fetch_quota_info(access_token: str) -> Dict[str, Any]:
+async def fetch_quota_info(access_token: str, project_id: str = "") -> Dict[str, Any]:
 
     headers = await build_primary_headers(access_token)
 
@@ -2120,45 +2120,13 @@ async def fetch_quota_info(access_token: str) -> Dict[str, Any]:
         )
 
         if response.status_code == 200:
-            data = response.json()
-            log.debug(
-                f"[provider quota] Raw response: {json.dumps(data, ensure_ascii=False)[:500]}"
-            )
+            from core.antigravity_usage import fetch_account_metadata, parse_model_quotas
 
-            quota_info = {}
-
-            if "models" in data and isinstance(data["models"], dict):
-                for model_id, model_data in data["models"].items():
-                    if isinstance(model_data, dict) and "quotaInfo" in model_data:
-                        quota = model_data["quotaInfo"]
-                        remaining = quota.get("remainingFraction", 0)
-                        reset_time_raw = quota.get("resetTime", "")
-
-                        reset_time_beijing = "N/A"
-                        if reset_time_raw:
-                            try:
-                                utc_date = datetime.fromisoformat(
-                                    reset_time_raw.replace("Z", "+00:00")
-                                )
-
-                                from datetime import timedelta
-
-                                beijing_date = utc_date + timedelta(hours=8)
-                                reset_time_beijing = beijing_date.strftime("%m-%d %H:%M")
-                            except Exception as e:
-                                log.warning(f"[provider quota] Failed to parse reset time: {e}")
-
-                        quota_info[model_id] = {
-                            "remaining": remaining,
-                            "resetTime": reset_time_beijing,
-                            "resetTimeRaw": reset_time_raw,
-                        }
-
-            return {"success": True, "models": quota_info}
+            quota_info = parse_model_quotas(response.json())
+            account = await fetch_account_metadata(primary_url, headers, project_id)
+            return {"success": True, "models": quota_info, **account}
         else:
-            log.error(
-                f"[provider quota] Failed to fetch quota ({response.status_code}): {response.text[:500]}"
-            )
+            log.error(f"[provider quota] Failed to fetch quota ({response.status_code})")
             return {"success": False, "error": f"API returned an error: {response.status_code}"}
 
     except Exception as e:

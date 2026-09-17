@@ -42,6 +42,19 @@ from core.provider_registry import (
 
 
 class ProviderCapabilityTests(unittest.TestCase):
+    def test_kiro_reauthentication_only_applies_to_oauth(self):
+        self.assertTrue(
+            credential_supports_operation(
+                {"provider": "kiro", "credential_type": "oauth"}, "reauthenticate"
+            )
+        )
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": "kiro", "credential_type": "api_key", "api_key": "synthetic"},
+                "reauthenticate",
+            )
+        )
+
     def test_every_advertised_variant_matches_the_production_capability_matrix(self):
         common = {
             "add",
@@ -76,6 +89,7 @@ class ProviderCapabilityTests(unittest.TestCase):
             ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             "muse_code": oauth | {"quota"},
+            "kiro": common | {"reauthenticate", "quota"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
             XAI_CONSOLE: common,
@@ -167,6 +181,7 @@ class ProviderCapabilityTests(unittest.TestCase):
             ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
             "muse_code": oauth | {"quota"},
+            "kiro": common | {"reauthenticate", "quota"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
             XAI_CONSOLE: common,

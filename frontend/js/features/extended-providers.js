@@ -174,6 +174,11 @@ function buildExtendedProviderWorkspaces() {
         const settings = extendedElement('div', 'extended-provider-fields');
         if (definition.base) {
             const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', definition.base, {type: 'url'});
+            if (provider === 'meta') {
+                endpoint.value = definition.base;
+                endpoint.readOnly = true;
+                reset.remove();
+            }
             if (provider === 'opencode') fields.querySelector('[name="plan"]').addEventListener('change', event => {
                 endpoint.value = ''; endpoint.placeholder = event.target.value === 'go' ? 'https://opencode.ai/zen/go/v1' : definition.base;
             });

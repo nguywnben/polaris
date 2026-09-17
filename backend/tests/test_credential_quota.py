@@ -19,6 +19,31 @@ from core.xai import XaiError
 
 
 class CredentialQuotaRouteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_kiro_quota_uses_its_runtime_not_google_oauth(self):
+        storage = AsyncMock()
+        credential = {"provider": "kiro", "credential_type": "oauth", "access_token": "synthetic"}
+        storage.get_credential.return_value = credential
+        with (
+            patch("core.panel.credentials.get_storage_adapter", AsyncMock(return_value=storage)),
+            patch(
+                "core.panel.credentials._prepare_extended_oauth", AsyncMock(return_value=credential)
+            ),
+            patch(
+                "core.kiro_usage.fetch_kiro_usage",
+                AsyncMock(
+                    return_value={
+                        "supported": True,
+                        "quota_type": "account_rate_limits",
+                        "windows": [],
+                    }
+                ),
+            ) as fetch,
+        ):
+            response = await get_credential_quota("kiro.json", token="panel-token", mode="provider")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.body)["provider"], "kiro")
+        fetch.assert_awaited_once_with(credential)
+
     async def test_claude_code_oauth_returns_account_rate_limits(self):
         storage = AsyncMock()
         storage.get_credential.return_value = {
