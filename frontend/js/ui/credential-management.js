@@ -35,7 +35,12 @@ function buildCredentialManagementHtml(context, credInfo, capabilities) {
                     ${capabilities.verify ? button('verify', 'btn_verify_id') : ''}
                     ${capabilities.reauthenticate ? button('reauthenticate', 'credential_reauthenticate_action') : ''}
                     ${capabilities.preview ? button('preview', 'btn_setup_preview') : ''}
+                    ${capabilities.credit ? button('credit', credInfo.enable_credit ? 'action_disable_credit' : 'action_enable_credit') : ''}
                 </div>
+                ${capabilities.credit ? `<div data-management-credit-confirm hidden>
+                    <p class="field-hint">${escapeHtml(t('providers.antigravity.credit_description'))}</p>
+                    <div class="credential-management-toolbar">${button('confirm-credit', 'btn_confirm')}${button('cancel-credit', 'btn_cancel')}</div>
+                </div>` : ''}
                 ${credInfo.source === 'environment' ? `<p class="field-hint">${escapeHtml(t('settings.managed_environment'))}</p>` : ''}
             </div>
             <div class="credential-management-content">
@@ -44,7 +49,7 @@ function buildCredentialManagementHtml(context, credInfo, capabilities) {
                 <div class="credential-management-result hidden" data-management-result role="status" aria-live="polite"></div>
                 ${capabilities.edit ? credentialManagementSection('configuration', 'credentials.management.configuration') : ''}
                 ${credentialManagementSection('errors', 'credentials.management.diagnostics')}
-                <details class="credential-management-sensitive" data-management-sensitive>
+                ${capabilities.reveal || capabilities.export ? `<details class="credential-management-sensitive" data-management-sensitive>
                     <summary>${escapeHtml(t('credentials.management.sensitive'))}</summary>
                     <p class="field-hint">${escapeHtml(t('modal.credential_payload_intro'))}</p>
                     <div class="credential-management-toolbar">
@@ -53,7 +58,7 @@ function buildCredentialManagementHtml(context, credInfo, capabilities) {
                         ${capabilities.export ? button('download', 'btn_download') : ''}
                     </div>
                     <div data-management-payload></div>
-                </details>
+                </details>` : ''}
                 ${capabilities.delete ? `<div class="credential-management-danger">
                     ${button('delete', 'action_delete')}
                     <div data-management-delete-confirm hidden>
@@ -96,6 +101,8 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
             ${renderCredentialAuthenticationBadge(provider, latest)}`;
         const toggle = modal.querySelector('[data-management-action="toggle"]');
         if (toggle) toggle.textContent = t(disabled ? 'action_enable' : 'action_disable');
+        const credit = modal.querySelector('[data-management-action="credit"]');
+        if (credit) credit.textContent = t(latest.enable_credit ? 'action_disable_credit' : 'action_enable_credit');
     };
     const close = async () => {
         if (closed || saving) return;
@@ -185,24 +192,13 @@ function renderCredentialManagementModels(host, models, canTest) {
 function renderCredentialManagementQuota(host, filename, data, context) {
     const content = document.createElement('div');
     content.innerHTML = buildCredentialQuotaHtml(filename, data, context);
-    const plan = data.plan || data.subscription_tier || context.subscriptionPlan;
-    host.replaceChildren();
-    if (plan) {
-        const caption = document.createElement('p');
-        caption.className = 'credential-management-plan';
-        caption.textContent = `${t(data.plan ? 'modal.plan' : 'tier')}: ${plan}`;
-        host.append(caption);
-    }
-    host.append(content.querySelector('.modal-quota-grid, .modal-empty-state'));
-    const details = [
-        Number.isFinite(Number(data.reset_credits?.available_count)) ? [t('modal.reset_credits'), data.reset_credits.available_count] : null,
-        typeof data.limit_reached === 'boolean' ? [t('modal.standard_limit'), t(data.limit_reached ? 'modal.reached' : 'modal.available')] : null,
-        typeof data.review_limit_reached === 'boolean' ? [t('modal.code_review_limit'), t(data.review_limit_reached ? 'modal.reached' : 'modal.available')] : null,
-    ].filter(Boolean);
-    if (details.length) {
-        const metadata = document.createElement('dl');
-        metadata.className = 'credential-management-facts';
-        metadata.innerHTML = details.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('');
-        host.append(metadata);
+    host.innerHTML = renderCredentialQuotaFacts(data, context);
+    const quotas = content.querySelector('.modal-quota-grid, .modal-empty-state');
+    if (quotas) host.append(quotas);
+    if (data.account_metadata_status === 'unavailable') {
+        const notice = document.createElement('p');
+        notice.className = 'field-hint';
+        notice.textContent = t('quota.facts.account_unavailable');
+        host.append(notice);
     }
 }

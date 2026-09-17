@@ -265,9 +265,7 @@ function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
     const badgeLabel = plan.kind === 'tier'
         ? t('credential_badge_tier', {tier: escapeHtml(plan.label)})
         : t('credential_badge_plan', {plan: escapeHtml(plan.label)});
-    const title = kind === 'provider_tier' || kind === 'provider_plan' ? plan.label : plan.kind === 'tier'
-        ? `Access tier reported by the provider: ${plan.label}`
-        : `Subscription plan reported by the provider: ${plan.label}`;
+    const title = t(plan.kind === 'tier' ? 'credential_badge_tier' : 'credential_badge_plan', {tier: plan.label, plan: plan.label});
 
     return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}" title="${escapeAttribute(title)}">${badgeLabel}</span>`;
 
@@ -317,7 +315,6 @@ function createCredCard(credInfo, manager) {
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
     const isAntigravity = providerMeta.id === 'google_antigravity';
-    const isCodexOAuth = providerMeta.id === 'codex' && credInfo.credential_type === 'oauth';
     const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
@@ -347,6 +344,7 @@ function createCredCard(credInfo, manager) {
     div.className = status.disabled ? 'cred-card disabled' : 'cred-card';
 
     let statusBadges = '';
+    let contextBadges = '';
 
     statusBadges += status.disabled
 
@@ -382,39 +380,39 @@ function createCredCard(credInfo, manager) {
 
     if (isAntigravity) {
 
-        statusBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
+        contextBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
 
     } else if (isMuseOAuth) {
 
-        statusBadges += renderCredentialSubscriptionBadge(
+        contextBadges += renderCredentialSubscriptionBadge(
             pathId,
             AppState.quotaPreviewCache[filename]?.data?.plan || AppState.quotaPreviewCache[filename]?.data?.subscription_tier,
             AppState.quotaPreviewCache[filename]?.data?.plan ? 'provider_plan' : 'provider_tier'
         );
 
-    } else if (isCodexOAuth) {
+    } else if (supportsQuotaPreview) {
 
-        statusBadges += renderCredentialSubscriptionBadge(
+        contextBadges += renderCredentialSubscriptionBadge(
             pathId,
             AppState.quotaPreviewCache[filename]?.data?.plan,
             'plan'
         );
 
-    } else if (managerType !== 'primary') {
+    } else if (managerType !== 'primary' && credInfo.tier) {
 
-        const tier = (credInfo.tier || 'pro').toString().toLowerCase();
+        const tier = credInfo.tier.toString().toLowerCase();
 
         const tierLabel = tier.toUpperCase();
 
         const tierClass = tier === 'ultra' ? 'tier-ultra' : (tier === 'free' ? 'tier-free' : 'tier-pro');
 
-        statusBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
+        contextBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
 
     }
 
     if (managerType === 'primary' && isAntigravity && credInfo.enable_credit) {
 
-        statusBadges += `<span class="status-badge credit-on" title="${t('credit_enabled_title')}">${t('credential_badge_credits', {state: t('credential_state_on')})}</span>`;
+        contextBadges += `<span class="status-badge credit-on" title="${t('credit_enabled_title')}">${t('credential_badge_credits', {state: t('credential_state_on')})}</span>`;
 
     }
 
@@ -450,7 +448,7 @@ function createCredCard(credInfo, manager) {
 
             activeCooldowns.slice(0, 2).forEach(item => {
 
-                statusBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
+                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
 
             });
 
@@ -460,7 +458,7 @@ function createCredCard(credInfo, manager) {
 
                 const remainingModels = activeCooldowns.slice(2).map(i => `${i.fullModel}: ${i.time}`).join('\n');
 
-                statusBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
+                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
 
             }
 
@@ -485,15 +483,15 @@ function createCredCard(credInfo, manager) {
 
         ${supportsDisable ? (status.disabled
 
-            ? `<button type="button" class="cred-btn enable" data-credential-command="enable">${t('action_enable')}</button>`
+            ? `<button type="button" class="cred-btn icon-btn enable" data-credential-command="enable" aria-label="${escapeAttribute(t('action_enable'))}" title="${escapeAttribute(t('action_enable'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"></path><path d="M18.4 6.6a8 8 0 1 1-12.8 0"></path></svg><span class="visually-hidden">${escapeHtml(t('action_enable'))}</span></button>`
 
-            : `<button type="button" class="cred-btn disable" data-credential-command="disable">${t('action_disable')}</button>`
+            : `<button type="button" class="cred-btn icon-btn disable" data-credential-command="disable" aria-label="${escapeAttribute(t('action_disable'))}" title="${escapeAttribute(t('action_disable'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"></path><path d="M18.4 6.6a8 8 0 1 1-12.8 0"></path></svg><span class="visually-hidden">${escapeHtml(t('action_disable'))}</span></button>`
 
         ) : ''}
 
-        ${supportsTest ? `<button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>` : ''}
+        ${supportsTest ? `<button type="button" class="cred-btn icon-btn" data-credential-command="test" aria-label="${escapeAttribute(t('btn_test_model'))}" title="${escapeAttribute(t('btn_test_model_title'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 3v6l-5 8.5A2 2 0 0 0 6.7 21h10.6A2 2 0 0 0 19 17.5L14 9V3"></path><path d="M8 14h8"></path></svg><span class="visually-hidden">${escapeHtml(t('btn_test_model'))}</span></button>` : ''}
 
-        <button type="button" class="cred-btn view" data-credential-command="manage">${escapeHtml(t('credentials.workspace.manage'))}</button>
+        <button type="button" class="cred-btn icon-btn view" data-credential-command="manage" aria-label="${escapeAttribute(t('credentials.workspace.manage'))}" title="${escapeAttribute(t('credentials.workspace.manage'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10"></path><path d="M18 7h2"></path><circle cx="16" cy="7" r="2"></circle><path d="M4 17h2"></path><path d="M10 17h10"></path><circle cx="8" cy="17" r="2"></circle></svg><span class="visually-hidden">${escapeHtml(t('credentials.workspace.manage'))}</span></button>
 
     `;
 
@@ -511,13 +509,14 @@ function createCredCard(credInfo, manager) {
                 <div class="cred-identity" title="${escapeAttribute(filename)}">
                     <div class="cred-identity-copy">
                         <h3 class="cred-account-name" title="${escapeAttribute(accountLabel)}">${escapeHtml(accountLabel)}</h3>
-                        ${credInfo.credential_label && getCredentialAuthenticationType(providerMeta, credInfo) === 'OAuth' && credInfo.user_email && credInfo.user_email !== accountLabel ? `<div class="cred-email">${escapeHtml(credInfo.user_email)}</div>` : ''}
+                        ${credInfo.credential_label && getCredentialAuthenticationType(providerMeta, credInfo) === 'OAuth' && credInfo.user_email && credInfo.user_email !== accountLabel ? `<div class="cred-email" title="${escapeAttribute(credInfo.user_email)}">${escapeHtml(credInfo.user_email)}</div>` : ''}
                     </div>
                 </div>
 
             </div>
 
             <div class="cred-status">${statusBadges}</div>
+            <div class="cred-status cred-context">${contextBadges}</div>
 
         </div>
 
@@ -553,7 +552,9 @@ function createCredCard(credInfo, manager) {
                 disable: supportsDisable, verify: supportsVerify, test: supportsTest,
                 edit: supportsEdit, reauthenticate: supportsReauthenticate, export: supportsExport,
                 models: supportsModelDiscovery, quota: supportsQuotaPreview, delete: supportsDelete,
-                preview: managerType !== 'primary',
+                reveal: manager.permissions.has('credentials.export'),
+                preview: managerType !== 'primary' && manager.canOperateCredential('verify'),
+                credit: managerType === 'primary' && isManagedCredential && manager.credentialSupportsOperation(credInfo, 'credit_mode'),
             });
             return;
         }

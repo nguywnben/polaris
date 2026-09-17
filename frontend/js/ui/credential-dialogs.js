@@ -110,7 +110,7 @@ async function showCredentialEditModal(pathId, options = {}) {
                         ${credentialEditField(configuration, 'base_url') ? `
                             <label class="message-modal-field">
                                 <span class="message-modal-field-label">${escapeHtml(t('provider.form.endpoint_label'))}</span>
-                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" required placeholder="https://api.example.com" value="${escapeAttribute(configuration.base_url || '')}">
+                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" ${configuration.provider === 'ollama' ? 'required' : ''} placeholder="https://api.example.com" value="${escapeAttribute(configuration.base_url || '')}">
                             </label>` : ''}
                         ${credentialEditField(configuration, 'api_key') ? `
                             <label class="message-modal-field">
@@ -346,7 +346,8 @@ function quotaLevelFromUsedPercentage(usedPercentage) {
 
 function formatQuotaNumber(value) {
 
-    const number = Number(value);
+    const number = credentialQuotaNumber(value);
+    if (number === null) return t('modal.unavailable');
     return Number.isFinite(number) ? formatConsoleNumber(number) : t('modal.unavailable');
 
 }
@@ -370,9 +371,10 @@ function buildAccountBillingQuotaHtml(filename, data, context = {}) {
     const periods = [
         data.monthly ? { id: 'monthly', label: t('modal.monthly_credits'), ...data.monthly } : null,
         data.weekly ? { id: 'weekly', label: t('modal.weekly_usage'), ...data.weekly } : null,
+        ...(Array.isArray(data.windows) ? data.windows : []),
     ].filter(Boolean);
     const remainingPercentages = periods
-        .map((period) => Number(period.remaining_percentage))
+        .map((period) => credentialQuotaNumber(period.remaining_percentage))
         .filter(Number.isFinite);
     const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
     const rows = renderMessageResultRows([
@@ -383,30 +385,7 @@ function buildAccountBillingQuotaHtml(filename, data, context = {}) {
         lowestRemaining !== null ? [t('modal.lowest_remaining'), `${lowestRemaining}%`] : null,
     ].filter(Boolean));
 
-    const cards = periods.map((period) => {
-        const usedPercentage = Math.max(0, Math.min(100, Number(period.used_percentage) || 0));
-        const remainingPercentage = Math.max(0, Math.min(100, Number(period.remaining_percentage) || 0));
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-        const usageText = period.id === 'monthly'
-            ? t('modal.credits_used', { used: formatQuotaNumber(period.used), limit: formatQuotaNumber(period.limit) })
-            : t('modal.percent_used', { value: usedPercentage });
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model">${escapeHtml(period.label)}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(usageText)}</span>
-                    <span>${escapeHtml(t('quota.resets_at', { time: formatQuotaResetTime(period.reset_time) }))}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const cards = periods.map(renderCredentialQuotaWindow).join('');
 
     return `
         <div class="message-result-panel">
@@ -430,7 +409,7 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
     const isClaudeCode = data.provider_variant === 'claude_code'
         || context.providerVariant === 'claude_code';
     const remainingPercentages = windows
-        .map((windowData) => Number(windowData.remaining_percentage))
+        .map((windowData) => credentialQuotaNumber(windowData.remaining_percentage))
         .filter(Number.isFinite);
     const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
     const rawPlan = String(data.plan || '').trim().replace(/[_-]+/g, ' ');
@@ -440,7 +419,7 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
         ? normalizeCredentialSubscriptionPlan(data.subscription_tier, 'provider_tier') : null;
     const providerPlan = isMuseCode
         ? normalizeCredentialSubscriptionPlan(data.plan, 'provider_plan') : null;
-    const availableResetCredits = Number(data.reset_credits?.available_count);
+    const availableResetCredits = credentialQuotaNumber(data.reset_credits?.available_count);
     const hasReviewWindows = windows.some((windowData) => String(windowData.id || '').startsWith('review_'));
     const rows = renderMessageResultRows([
         [t('modal.provider'), context.providerName || (isClaudeCode ? 'Claude Code' : 'Codex')],
@@ -460,31 +439,7 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
             : null,
     ].filter(Boolean));
 
-    const cards = windows.map((windowData) => {
-        const usedPercentage = Math.max(0, Math.min(100, Number(windowData.used_percentage) || 0));
-        const remainingPercentage = Math.max(
-            0,
-            Math.min(100, Number(windowData.remaining_percentage) || 0)
-        );
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-        const resetTime = formatQuotaResetTime(windowData.reset_time);
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model">${escapeHtml(windowData.label || t('modal.usage_limit'))}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(t('modal.percent_used', { value: usedPercentage }))}</span>
-                    <span>${escapeHtml(windowData.reset_time ? t('quota.resets_at', { time: resetTime }) : resetTime)}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const cards = windows.map(renderCredentialQuotaWindow).join('');
 
     return `
         <div class="message-result-panel">
@@ -514,6 +469,7 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 
     const models = data.models || {};
     const entries = Object.entries(models);
+    const windows = Array.isArray(data.windows) ? data.windows : [];
     const summary = summarizeCredentialQuota(data);
     const resetTimes = entries
         .map(([, quotaData]) => quotaData?.resetTime)
@@ -523,11 +479,11 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
         [t('modal.provider'), context.providerName || t('provider_antigravity')],
         context.email ? [t('modal.account'), context.email] : [t('modal.credential'), filename],
         [t('modal.tracked_models'), entries.length],
-        summary.label ? [t('modal.average_remaining'), summary.label] : null,
-        nextReset ? [t('quota.next_reset'), nextReset] : null,
+        summary.label ? [t(windows.length ? 'modal.usage_limit' : 'modal.average_remaining'), summary.label] : null,
+        nextReset ? [t('quota.next_reset'), formatQuotaResetTime(nextReset)] : null,
     ].filter(Boolean));
 
-    if (entries.length === 0) {
+    if (entries.length === 0 && windows.length === 0) {
 
         return `
             <div class="message-result-panel">
@@ -544,27 +500,11 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 
     const cards = entries.map(([modelName, quotaData]) => {
 
-        const remainingFraction = Number(quotaData.remaining || 0);
-        const resetTime = quotaData.resetTime || 'N/A';
-        const usedPercentage = Math.max(0, Math.min(100, Math.round((1 - remainingFraction) * 100)));
-        const remainingPercentage = Math.max(0, Math.min(100, Math.round(remainingFraction * 100)));
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model" title="${escapeAttribute(modelName)}">${escapeHtml(modelName)}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(t('modal.percent_used', { value: usedPercentage }))}</span>
-                    <span>${escapeHtml(resetTime !== 'N/A' ? t('quota.reset_at', { time: resetTime }) : t('quota.reset_unavailable'))}</span>
-                </div>
-            </div>
-        `;
+        const fraction = credentialQuotaNumber(quotaData?.remaining);
+        const remaining = fraction === null ? null : Math.min(100, Math.round(fraction * 100));
+        return renderCredentialQuotaWindow({label: modelName, remaining_percentage: remaining,
+            used_percentage: remaining === null ? null : 100 - remaining,
+            reset_time: quotaData?.resetTimeRaw || quotaData?.resetTime});
 
     }).join('');
 
@@ -577,7 +517,7 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
             </div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.model_quota'))}</div>
-                <div class="modal-quota-grid">${cards}</div>
+                <div class="modal-quota-grid">${cards}${windows.map(renderCredentialQuotaWindow).join('')}</div>
             </div>
         </div>
     `;
@@ -591,9 +531,9 @@ function summarizeCredentialQuota(data) {
     }
 
     if (data?.quota_type === 'account_billing') {
-        const periods = [data.monthly, data.weekly].filter(Boolean);
+        const periods = [data.monthly, data.weekly, ...(Array.isArray(data.windows) ? data.windows : [])].filter(Boolean);
         const remainingValues = periods
-            .map((period) => Number(period.remaining_percentage))
+            .map((period) => credentialQuotaNumber(period.remaining_percentage))
             .filter(Number.isFinite);
         if (!remainingValues.length) return { level: 'muted', label: t('modal.no_quota') };
         const remainingPercentage = Math.min(...remainingValues);
@@ -606,8 +546,13 @@ function summarizeCredentialQuota(data) {
 
     if (data?.quota_type === 'account_rate_limits') {
         const windows = Array.isArray(data.windows) ? data.windows : [];
+        if (data.summary_mode === 'resource_balances') {
+            const remaining = credentialQuotaNumber(data.summary_remaining_percentage);
+            return remaining === null ? {level: 'muted', label: t('quota_unavailable')}
+                : {level: quotaLevelFromUsedPercentage(100 - remaining), label: t('modal.percent_left', {value: remaining})};
+        }
         const remainingValues = windows
-            .map((windowData) => Number(windowData.remaining_percentage))
+            .map((windowData) => credentialQuotaNumber(windowData.remaining_percentage))
             .filter(Number.isFinite);
         if (!remainingValues.length) return { level: 'muted', label: t('modal.no_quota') };
         const remainingPercentage = Math.min(...remainingValues);
@@ -621,6 +566,19 @@ function summarizeCredentialQuota(data) {
     const models = data?.models || {};
     const entries = Object.entries(models);
 
+    const windows = Array.isArray(data?.windows) ? data.windows : [];
+    if (windows.length) {
+        const values = [...windows.map(window => credentialQuotaNumber(window.remaining_percentage)),
+            ...entries.map(([, quota]) => {
+                const fraction = credentialQuotaNumber(quota?.remaining);
+                return fraction === null ? null : Math.min(1, fraction) * 100;
+            })].filter(Number.isFinite);
+        if (!values.length) return {level: 'muted', label: t('quota_unavailable')};
+        const remaining = Math.round(Math.min(...values));
+        return {level: quotaLevelFromUsedPercentage(100 - remaining),
+            label: t('modal.percent_left', {value: remaining}), windowCount: values.length};
+    }
+
     if (!entries.length) {
 
         return {
@@ -630,25 +588,16 @@ function summarizeCredentialQuota(data) {
 
     }
 
-    let remainingTotal = 0;
-
-    entries.forEach(([, quotaData]) => {
-
-        const remainingFraction = Number(quotaData?.remaining || 0);
-        const remainingPercentage = Math.max(0, Math.min(100, Math.round(remainingFraction * 100)));
-
-        remainingTotal += remainingPercentage;
-
-    });
-
-    const averageRemaining = Math.round(remainingTotal / entries.length);
+    const fractions = entries.map(([, quota]) => credentialQuotaNumber(quota?.remaining)).filter(Number.isFinite);
+    if (!fractions.length) return {level: 'muted', label: t('quota_unavailable')};
+    const averageRemaining = Math.round(fractions.reduce((total, fraction) => total + Math.min(1, fraction) * 100, 0) / fractions.length);
     const usedPercentage = 100 - averageRemaining;
     const level = quotaLevelFromUsedPercentage(usedPercentage);
 
     return {
         level,
         label: t('modal.percent_left', { value: averageRemaining }),
-        modelCount: entries.length,
+        modelCount: fractions.length,
     };
 
 }

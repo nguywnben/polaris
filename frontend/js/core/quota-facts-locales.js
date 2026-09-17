@@ -1,0 +1,37 @@
+// Shared quota labels; provider product/model identifiers remain unchanged.
+const QUOTA_FACTS_COPY = {
+    en: ['{count}-hour limit', '{count}-day limit', 'Session limit', 'Weekly limit', 'Free trial', 'Bonus', 'Expires', 'Overage', 'Unlimited credits', 'Credits available', 'Credit balance', 'Extra usage', 'Extra usage spent', 'Extra usage limit', 'Extra usage (%)', 'Minimum credits required', 'Updated at', 'Account details could not be refreshed. Model quotas are still shown.'],
+    vi: ['Hạn mức {count} giờ', 'Hạn mức {count} ngày', 'Hạn mức phiên', 'Hạn mức tuần', 'Dùng thử', 'Thưởng', 'Hết hạn', 'Vượt hạn mức', 'Credit không giới hạn', 'Có credit', 'Số dư credit', 'Sử dụng thêm', 'Chi phí sử dụng thêm', 'Giới hạn chi phí sử dụng thêm', 'Sử dụng thêm (%)', 'Credit tối thiểu cần có', 'Cập nhật lúc', 'Chưa làm mới được thông tin tài khoản. Hạn mức mô hình vẫn được hiển thị.'],
+    de: ['{count}-Stunden-Limit', '{count}-Tage-Limit', 'Sitzungslimit', 'Wochenlimit', 'Testguthaben', 'Bonus', 'Läuft ab', 'Mehrverbrauch', 'Unbegrenztes Guthaben', 'Guthaben verfügbar', 'Guthaben', 'Zusatznutzung', 'Kosten der Zusatznutzung', 'Kostenlimit für Zusatznutzung', 'Zusatznutzung (%)', 'Erforderliches Mindestguthaben', 'Aktualisiert am', 'Kontodetails konnten nicht aktualisiert werden. Modellkontingente werden weiterhin angezeigt.'],
+    es: ['Límite de {count} horas', 'Límite de {count} días', 'Límite de sesión', 'Límite semanal', 'Prueba gratuita', 'Bonificación', 'Caduca', 'Exceso de uso', 'Créditos ilimitados', 'Créditos disponibles', 'Saldo de créditos', 'Uso adicional', 'Gasto de uso adicional', 'Límite de gasto adicional', 'Uso adicional (%)', 'Créditos mínimos necesarios', 'Actualizado', 'No se pudieron actualizar los datos de la cuenta. Las cuotas de modelos siguen visibles.'],
+    fr: ['Limite sur {count} heures', 'Limite sur {count} jours', 'Limite de session', 'Limite hebdomadaire', 'Essai gratuit', 'Bonus', 'Expiration', 'Dépassement', 'Crédits illimités', 'Crédits disponibles', 'Solde de crédits', 'Utilisation supplémentaire', 'Dépenses supplémentaires', 'Plafond des dépenses supplémentaires', 'Utilisation supplémentaire (%)', 'Crédits minimum requis', 'Mis à jour', 'Impossible d’actualiser les détails du compte. Les quotas des modèles restent affichés.'],
+    id: ['Batas {count} jam', 'Batas {count} hari', 'Batas sesi', 'Batas mingguan', 'Uji coba gratis', 'Bonus', 'Kedaluwarsa', 'Pemakaian berlebih', 'Kredit tak terbatas', 'Kredit tersedia', 'Saldo kredit', 'Penggunaan tambahan', 'Biaya penggunaan tambahan', 'Batas biaya tambahan', 'Penggunaan tambahan (%)', 'Kredit minimum diperlukan', 'Diperbarui', 'Detail akun tidak dapat diperbarui. Kuota model tetap ditampilkan.'],
+    it: ['Limite di {count} ore', 'Limite di {count} giorni', 'Limite sessione', 'Limite settimanale', 'Prova gratuita', 'Bonus', 'Scadenza', 'Eccedenza', 'Crediti illimitati', 'Crediti disponibili', 'Saldo crediti', 'Utilizzo aggiuntivo', 'Spesa aggiuntiva', 'Limite di spesa aggiuntiva', 'Utilizzo aggiuntivo (%)', 'Crediti minimi richiesti', 'Aggiornato', 'Impossibile aggiornare i dettagli dell’account. Le quote dei modelli restano visibili.'],
+    ja: ['{count}時間の上限', '{count}日間の上限', 'セッション上限', '週間上限', '無料試用', 'ボーナス', '有効期限', '超過利用', '無制限クレジット', 'クレジットあり', 'クレジット残高', '追加利用', '追加利用額', '追加利用額の上限', '追加利用率 (%)', '必要な最低クレジット', '更新日時', 'アカウント情報を更新できませんでした。モデルの利用枠は引き続き表示されます。'],
+    ko: ['{count}시간 한도', '{count}일 한도', '세션 한도', '주간 한도', '무료 체험', '보너스', '만료', '초과 사용', '무제한 크레딧', '크레딧 있음', '크레딧 잔액', '추가 사용', '추가 사용 비용', '추가 사용 비용 한도', '추가 사용률 (%)', '필요한 최소 크레딧', '업데이트 시각', '계정 정보를 새로 고칠 수 없습니다. 모델 한도는 계속 표시됩니다.'],
+    pt: ['Limite de {count} horas', 'Limite de {count} dias', 'Limite da sessão', 'Limite semanal', 'Teste gratuito', 'Bônus', 'Expira', 'Uso excedente', 'Créditos ilimitados', 'Créditos disponíveis', 'Saldo de créditos', 'Uso adicional', 'Gasto de uso adicional', 'Limite de gasto adicional', 'Uso adicional (%)', 'Créditos mínimos necessários', 'Atualizado em', 'Não foi possível atualizar os detalhes da conta. As cotas dos modelos continuam visíveis.'],
+    ru: ['Лимит на {count} ч', 'Лимит на {count} дн.', 'Лимит сеанса', 'Недельный лимит', 'Пробный период', 'Бонус', 'Истекает', 'Превышение лимита', 'Безлимитные кредиты', 'Кредиты доступны', 'Баланс кредитов', 'Дополнительное использование', 'Дополнительные расходы', 'Лимит дополнительных расходов', 'Дополнительное использование (%)', 'Минимум кредитов', 'Обновлено', 'Не удалось обновить данные аккаунта. Квоты моделей по-прежнему отображаются.'],
+    th: ['ขีดจำกัด {count} ชั่วโมง', 'ขีดจำกัด {count} วัน', 'ขีดจำกัดเซสชัน', 'ขีดจำกัดรายสัปดาห์', 'ทดลองใช้ฟรี', 'โบนัส', 'หมดอายุ', 'การใช้งานเกินขีดจำกัด', 'เครดิตไม่จำกัด', 'มีเครดิต', 'ยอดเครดิตคงเหลือ', 'การใช้งานเพิ่มเติม', 'ค่าใช้จ่ายเพิ่มเติม', 'ขีดจำกัดค่าใช้จ่ายเพิ่มเติม', 'การใช้งานเพิ่มเติม (%)', 'เครดิตขั้นต่ำที่ต้องมี', 'อัปเดตเมื่อ', 'ไม่สามารถอัปเดตรายละเอียดบัญชีได้ แต่ยังคงแสดงโควตาของโมเดล'],
+    tr: ['{count} saatlik sınır', '{count} günlük sınır', 'Oturum sınırı', 'Haftalık sınır', 'Ücretsiz deneme', 'Bonus', 'Son geçerlilik', 'Aşım', 'Sınırsız kredi', 'Kredi mevcut', 'Kredi bakiyesi', 'Ek kullanım', 'Ek kullanım harcaması', 'Ek kullanım harcama sınırı', 'Ek kullanım (%)', 'Gerekli en az kredi', 'Güncelleme zamanı', 'Hesap ayrıntıları yenilenemedi. Model kotaları gösterilmeye devam ediyor.'],
+    'zh-CN': ['{count} 小时限额', '{count} 天限额', '会话限额', '每周限额', '免费试用', '奖励', '到期时间', '超额使用', '无限额度', '有可用额度', '额度余额', '额外使用', '额外使用费用', '额外费用上限', '额外使用率 (%)', '所需最低额度', '更新时间', '无法刷新账户详情。模型配额仍会显示。'],
+    'zh-TW': ['{count} 小時限額', '{count} 天限額', '工作階段限額', '每週限額', '免費試用', '獎勵', '到期時間', '超額使用', '無限額度', '有可用額度', '額度餘額', '額外使用', '額外使用費用', '額外費用上限', '額外使用率 (%)', '所需最低額度', '更新時間', '無法重新整理帳戶詳情。模型配額仍會顯示。'],
+};
+for (const [locale, values] of Object.entries(QUOTA_FACTS_COPY)) {
+    ['hours', 'days', 'session', 'weekly', 'trial', 'bonus', 'expires', 'overage', 'unlimited', 'has_credits', 'balance', 'extra_usage', 'extra_used', 'extra_limit', 'extra_percent', 'minimum', 'observed', 'account_unavailable'].forEach((key, index) => {
+        PAGE_LOCALE_TRANSLATIONS[locale][`quota.facts.${key}`] = values[index];
+    });
+}
+const QUOTA_BILLING_COPY = {
+    en: ['On-demand usage', 'On-demand cap', 'Prepaid balance'], vi: ['Sử dụng theo nhu cầu', 'Giới hạn sử dụng theo nhu cầu', 'Số dư trả trước'],
+    de: ['Nutzung auf Abruf', 'Obergrenze auf Abruf', 'Vorausbezahltes Guthaben'], es: ['Uso bajo demanda', 'Límite bajo demanda', 'Saldo prepagado'],
+    fr: ['Utilisation à la demande', 'Plafond à la demande', 'Solde prépayé'], id: ['Penggunaan sesuai permintaan', 'Batas sesuai permintaan', 'Saldo prabayar'],
+    it: ['Utilizzo a consumo', 'Limite a consumo', 'Saldo prepagato'], ja: ['従量制の利用量', '従量制の上限', '前払い残高'],
+    ko: ['종량제 사용량', '종량제 한도', '선불 잔액'], pt: ['Uso sob demanda', 'Limite sob demanda', 'Saldo pré-pago'],
+    ru: ['Использование по запросу', 'Лимит по запросу', 'Предоплаченный баланс'], th: ['การใช้งานตามต้องการ', 'ขีดจำกัดตามต้องการ', 'ยอดคงเหลือแบบเติมเงิน'],
+    tr: ['İsteğe bağlı kullanım', 'İsteğe bağlı kullanım sınırı', 'Ön ödemeli bakiye'], 'zh-CN': ['按需用量', '按需上限', '预付余额'], 'zh-TW': ['隨需用量', '隨需上限', '預付餘額'],
+};
+for (const [locale, values] of Object.entries(QUOTA_BILLING_COPY)) {
+    ['on_demand_used', 'on_demand_cap', 'prepaid'].forEach((key, index) => {
+        PAGE_LOCALE_TRANSLATIONS[locale][`quota.facts.${key}`] = values[index];
+    });
+}

@@ -11,11 +11,71 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANAGER_SOURCE = ROOT / "frontend/js/core/credential-manager.js"
 CARD_SOURCE = ROOT / "frontend/js/ui/credential-cards.js"
+CARD_STYLES = ROOT / "frontend/css/components.css"
 POOL_HTML = ROOT / "frontend/fragments/pages/credentials.html"
 NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_provider_sections_are_ordered_by_matching_credential_count(self) -> None:
+        self._run_manager_contract("""
+const list = new TestElement();
+list.innerHTML = '';
+list.classList = {remove() {}};
+list.appendChild = () => {};
+const pagination = new TestElement();
+pagination.style = {};
+elements.set('primaryCredsList', list);
+elements.set('primaryPaginationContainer', pagination);
+const order = [];
+global.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+global.createCredentialProviderGroup = (meta, credentials) => {
+    order.push([meta.name, credentials.length]);
+    return {};
+};
+manager.filteredData = {
+    a: {filename: 'a', provider: 'few'},
+    b: {filename: 'b', provider: 'many'},
+    c: {filename: 'c', provider: 'many'},
+    d: {filename: 'd', provider: 'many'},
+    e: {filename: 'e', provider: 'medium'},
+    f: {filename: 'f', provider: 'medium'},
+};
+manager.data = manager.filteredData;
+manager.totalCount = 6;
+manager.hasLoaded = true;
+manager.facets = {provider_variant: {few: 8, many: 4, medium: 2}};
+manager.renderList();
+assert(JSON.stringify(order) === JSON.stringify([
+    ['few', 1], ['many', 3], ['medium', 2]
+]), `Unexpected provider section order: ${JSON.stringify(order)}`);
+""")
+
+    def test_every_displayed_provider_filter_is_applied_and_restored(self) -> None:
+        from backend.core.provider_registry import list_credential_variant_capabilities
+
+        variants = [item["variant_id"] for item in list_credential_variant_capabilities()]
+        self._run_manager_contract(f"""
+const variants = {json.dumps(variants)};
+const providerFilter = new TestElement();
+providerFilter.options = ['all', ...variants].map(value => ({{value}}));
+elements.set('primaryProviderFilter', providerFilter);
+manager.refresh = () => {{}};
+for (const variant of variants) {{
+    providerFilter.value = variant;
+    manager.applyStatusFilter();
+    assert(manager.currentProviderFilter === variant, `Provider filter ignored: ${{variant}}`);
+    manager.filtersRestored = false;
+    manager.currentProviderFilter = 'all';
+    window.location.search = '?pool_provider=' + variant;
+    manager.restoreFilterState();
+    assert(manager.currentProviderFilter === variant, `Provider deep link not restored: ${{variant}}`);
+}}
+providerFilter.value = 'unregistered';
+manager.applyStatusFilter();
+assert(manager.currentProviderFilter !== 'unregistered', 'Do not accept unregistered filter values');
+""")
+
     def test_identity_uses_labels_or_oauth_email_not_missing_email_errors(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -131,6 +191,7 @@ const source = fs.readFileSync({json.dumps(str(MANAGER_SOURCE))}, 'utf8');
 vm.runInThisContext(numberSource);
 vm.runInThisContext(source + '\\n;globalThis.__createCredsManager = createCredsManager;');
 const manager = globalThis.__createCredsManager('primary');
+manager.permissions = new Set(['credentials.read', 'credentials.operate', 'credentials.manage', 'credentials.export']);
 manager.capabilityByVariant = {{
     common: {{operations: ['toggle', 'delete', 'verify']}},
     credit: {{operations: ['toggle', 'delete', 'verify', 'credit_mode']}}
@@ -152,7 +213,17 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         source = CARD_SOURCE.read_text(encoding="utf-8")
 
         self.assertNotIn("isStaticProvider", source)
-        self.assertIn("const isCodexOAuth", source)
+        self.assertNotIn("isCodexOAuth", source)
+        self.assertIn("const supportsQuotaPreview", source)
+        self.assertIn("} else if (supportsQuotaPreview)", source)
+        self.assertIn("manager.credentialSupportsOperation(credInfo, 'quota')", source)
+
+    def test_credential_page_navigation_is_single_flight_and_preserves_content(self) -> None:
+        source = MANAGER_SOURCE.read_text(encoding="utf-8")
+
+        self.assertIn("pageChangePromise: null", source)
+        self.assertIn("preserveContent: true", source)
+        self.assertIn("this.pageChangePromise", source)
 
     def test_select_page_checkbox_uses_the_manager_id_contract(self) -> None:
         html = POOL_HTML.read_text(encoding="utf-8")
@@ -184,6 +255,10 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
 
         self.assertIn('class="cred-actions-primary"', source)
         self.assertIn('data-credential-command="manage"', source)
+        self.assertIn('class="cred-btn icon-btn view"', source)
+        self.assertIn('class="cred-btn icon-btn disable"', source)
+        self.assertIn('class="cred-btn icon-btn" data-credential-command="test"', source)
+        self.assertIn('class="visually-hidden"', source)
         self.assertIn("showCredentialManagement(pathId, manager, credInfo", source)
         self.assertIn("supportsQuotaPreview", source)
         primary_start = source.index("const primaryActionButtons")
@@ -197,6 +272,18 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertNotIn("showMessageModal(", workspace)
         self.assertNotIn('data-credential-command="enable_credit"', source)
         self.assertNotIn('data-credential-command="disable_credit"', source)
+
+    def test_primary_card_actions_fit_on_one_row(self) -> None:
+        styles = CARD_STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"\.cred-actions-primary\s*\{\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);",
+        )
+        self.assertNotIn(
+            '.cred-actions-primary [data-credential-command="manage"]',
+            styles,
+        )
 
     def test_cards_expose_safe_edit_and_oauth_reauthentication_actions(self) -> None:
         cards = CARD_SOURCE.read_text(encoding="utf-8")

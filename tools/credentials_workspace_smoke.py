@@ -189,7 +189,9 @@ def main():
             expect(muse_card.locator(".subscription-badge img")).to_have_count(0)
             muse_quota["subscription_tier"] = "x" * 128
             muse_card.locator("[data-quota-preview]").click()
-            expect(muse_card.locator(".subscription-badge")).to_have_attribute("title", "x" * 128)
+            expect(muse_card.locator(".subscription-badge")).to_have_attribute(
+                "title", "Cấp: " + "x" * 128
+            )
             assert not muse_card.evaluate("el => el.scrollWidth > el.clientWidth"), (
                 muse_card.evaluate("""el => [el, ...el.querySelectorAll('.cred-header, .cred-status, .subscription-badge')].map(node => ({
                     name: node.className, width: node.clientWidth, scroll: node.scrollWidth,

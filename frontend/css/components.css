@@ -186,6 +186,9 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+#credentialsTab .stats-container .stat-item { padding: 14px 16px; }
+#credentialsTab .stats-container .stat-number { font-size: var(--type-workspace); }
+
 #credentialsTab .filter-container.credential-filter-advanced-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -290,6 +293,9 @@
     font-size: var(--type-body);
 }
 
+.credential-filter-header > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.credential-filter-header .filter-summary { margin-top: 0; }
+
 .filter-summary {
     display: block;
     margin-top: 3px;
@@ -299,6 +305,7 @@
 
 #credentialsTab .credential-filter-panel .filter-container {
     margin: 0;
+    padding: 8px 12px 12px;
     border: 0;
     border-radius: 0;
 }
@@ -472,10 +479,10 @@
 }
 
 .cred-card {
-    padding: 15px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 
@@ -486,7 +493,7 @@
 .cred-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    gap: 10px;
 }
 
 .cred-title-row {
@@ -521,6 +528,7 @@
     color: var(--text-muted);
     font-size: var(--type-meta);
     min-height: 30px;
+    margin-top: auto;
 }
 
 @media (max-width: 600px) {
@@ -569,7 +577,9 @@
     color: var(--text-muted);
     font-size: var(--type-meta);
     margin-top: 3px;
-    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cred-email.empty {
@@ -633,27 +643,29 @@
 .cred-status {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
+
+.cred-context:not(:has(> :not([hidden]))) { display: none; }
+.cred-context .subscription-badge { max-width: 100%; }
+.cred-context .cooldown-badge { text-align: left; justify-content: flex-start; }
 
 .cred-actions {
     display: grid;
     gap: 8px;
     border-top: 1px solid var(--border);
     padding-top: 12px;
-    margin-top: auto;
-}
-
-.cred-actions-primary [data-credential-command="manage"] {
-    grid-column: 1 / -1;
 }
 
 .cred-actions-primary,
 .cred-actions-secondary-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
 }
+
+.cred-actions-primary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cred-actions-primary > :only-child { grid-column: 1 / -1; }
+.cred-actions-secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .cred-actions .cred-btn,
 .cred-actions-secondary summary {
@@ -662,6 +674,14 @@
     min-height: var(--control-height);
     padding: 6px 11px;
     font-size: var(--type-meta);
+}
+
+.cred-actions-primary .cred-btn.icon-btn {
+    padding-inline: 8px;
+}
+
+.cred-actions-primary .cred-btn.icon-btn svg {
+    flex: 0 0 auto;
 }
 
 .cred-actions-secondary summary {

@@ -10,13 +10,19 @@ function bindCredentialManagementActions(state) {
         button('hide').hidden = true;
         button('reveal').hidden = false;
     };
-    modal.querySelector('[data-management-sensitive]').addEventListener('toggle', event => {
+    modal.querySelector('[data-management-sensitive]')?.addEventListener('toggle', event => {
         if (!event.target.open) hidePayload();
     });
     modal.addEventListener('click', async event => {
         const trigger = event.target.closest('[data-management-action]');
         if (!trigger || state.isBusy()) return;
         const action = trigger.dataset.managementAction;
+        if (action === 'credit' || action === 'cancel-credit') {
+            const confirmation = modal.querySelector('[data-management-credit-confirm]');
+            confirmation.hidden = action !== 'credit';
+            button(action === 'credit' ? 'cancel-credit' : 'credit').focus();
+            return;
+        }
         if (action === 'delete' || action === 'cancel-delete') {
             confirm.hidden = action !== 'delete';
             if (action === 'delete') button('cancel-delete').focus();
@@ -46,14 +52,16 @@ function bindCredentialManagementActions(state) {
                 button('hide').hidden = false;
                 button('reveal').hidden = true;
                 result.classList.add('hidden');
-            } else if (action === 'toggle' || action === 'confirm-delete') {
+            } else if (action === 'toggle' || action === 'confirm-delete' || action === 'confirm-credit') {
                 const operation = action === 'confirm-delete' ? 'delete'
+                    : action === 'confirm-credit' ? (manager.data[filename]?.enable_credit ? 'disable_credit' : 'enable_credit')
                     : manager.data[filename]?.status.disabled ? 'enable' : 'disable';
                 if (!(await manager.action(filename, operation))) throw new Error(t('unknown_error'));
                 if (state.isClosed()) return;
                 if (operation === 'delete') { state.setBusy(false); await close(); return; }
                 syncOverview();
-                result.textContent = t('status_action_success', {action: t(operation === 'enable' ? 'action_enable' : 'action_disable')});
+                if (action === 'confirm-credit') modal.querySelector('[data-management-credit-confirm]').hidden = true;
+                result.textContent = t('status_action_success', {action: t(`action_${operation}`)});
             } else if (action === 'verify' || action === 'preview') {
                 const route = action === 'verify' ? 'verify' : 'configure-preview';
                 const data = await read(`./api/credentials/${route}/${encodeURIComponent(filename)}?${manager.getModeParam()}`, {method: 'POST'});

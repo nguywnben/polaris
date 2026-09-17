@@ -16,6 +16,8 @@ function createCredsManager(type) {
 
         selectedFiles: new Set(),
 
+        pageChangePromise: null,
+
         totalCount: 0,
 
         hasLoaded: false,
@@ -51,6 +53,40 @@ function createCredsManager(type) {
         capabilityByVariant: {},
 
         capabilityCatalogPromise: null,
+
+        permissions: new Set(),
+
+        async loadPermissions() {
+            this.permissions = new Set();
+            try {
+                const response = await fetch('./api/identity/session', {headers: getAuthHeaders(), cache: 'no-store'});
+                if (response.ok) {
+                    const payload = await response.json();
+                    const values = payload?.principal?.permissions;
+                    if (Array.isArray(values) && values.length <= 64) this.permissions = new Set(values.filter(value => typeof value === 'string'));
+                }
+            } catch (_error) { /* Unknown authority leaves mutation/reveal controls unavailable. */ }
+            const controls = {
+                'select-credentials-archive': 'credentials.manage',
+                'download-credentials': 'credentials.export',
+            };
+            for (const [action, permission] of Object.entries(controls)) {
+                document.querySelectorAll(`#credentialsTab [data-ui-action="${action}"]`).forEach(control => {
+                    control.disabled = !this.permissions.has(permission);
+                });
+            }
+        },
+
+        canOperateCredential(operation) {
+            const required = {
+                quota: 'credentials.read', model_discovery: 'credentials.read',
+                export: 'credentials.export', add: 'credentials.manage', edit: 'credentials.manage',
+                delete: 'credentials.manage', reauthenticate: 'credentials.manage',
+                toggle: 'credentials.operate', disable: 'credentials.operate', verify: 'credentials.operate',
+                test: 'credentials.operate', refresh: 'credentials.operate', credit_mode: 'credentials.operate',
+            }[operation];
+            return Boolean(required && this.permissions.has(required));
+        },
 
         statsData: { total: 0, normal: 0, disabled: 0 },
 
@@ -130,9 +166,12 @@ function createCredsManager(type) {
 
         getFilterDefinitions() {
 
+            const providerSelect = document.getElementById(this.getElementId('ProviderFilter'));
+            const providerValues = Array.from(providerSelect?.options || [], option => option.value);
+
             return {
 
-                provider: { state: 'currentProviderFilter', suffix: 'ProviderFilter', values: ['all', 'google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'kimi', 'kiro', 'cloudflare', 'nvidia', 'opencode', 'poolside', 'kimchi', 'kilo'] },
+                provider: { state: 'currentProviderFilter', suffix: 'ProviderFilter', values: [...new Set(['all', ...providerValues, ...Object.keys(this.capabilityByVariant)])] },
 
                 status: { state: 'currentStatusFilter', suffix: 'StatusFilter', values: ['all', 'enabled', 'disabled'] },
 
@@ -282,7 +321,7 @@ function createCredsManager(type) {
 
                 this.restoreFilterState();
 
-                await this.loadCapabilityCatalog();
+                await Promise.all([this.loadCapabilityCatalog(), this.loadPermissions()]);
 
                 if (loading && !preserveContent) loading.hidden = false;
 
@@ -583,11 +622,23 @@ function createCredsManager(type) {
 
                 });
 
-                providerGroups.forEach(({ providerMeta, credentials }) => {
+                // Keep provider sections ordered by the full filtered result set,
+                // not just the credentials visible on the current page.
+                const providerFacetCounts = this.facets?.provider_variant || {};
+                Array.from(providerGroups.values())
+                    .sort((left, right) => {
 
-                    list.appendChild(createCredentialProviderGroup(providerMeta, credentials, this));
+                        const leftCount = Number(providerFacetCounts[left.providerMeta.id] ?? left.credentials.length);
+                        const rightCount = Number(providerFacetCounts[right.providerMeta.id] ?? right.credentials.length);
 
-                });
+                        return rightCount - leftCount;
+
+                    })
+                    .forEach(({ providerMeta, credentials }) => {
+
+                        list.appendChild(createCredentialProviderGroup(providerMeta, credentials, this));
+
+                    });
 
             } else {
 
@@ -631,13 +682,16 @@ function createCredsManager(type) {
                     count: formatConsoleNumber(this.totalCount)
                 });
 
-            document.getElementById(this.getElementId('PrevPageBtn')).disabled = this.currentPage <= 1;
+            const pageChanging = Boolean(this.pageChangePromise);
+            document.getElementById(this.getElementId('PrevPageBtn')).disabled = pageChanging || this.currentPage <= 1;
 
-            document.getElementById(this.getElementId('NextPageBtn')).disabled = this.currentPage >= totalPages;
+            document.getElementById(this.getElementId('NextPageBtn')).disabled = pageChanging || this.currentPage >= totalPages;
 
         },
 
         changePage(direction) {
+
+            if (this.pageChangePromise) return;
 
             const newPage = this.currentPage + direction;
 
@@ -649,7 +703,12 @@ function createCredsManager(type) {
 
                 this.persistFilterState();
 
-                this.refresh();
+                this.pageChangePromise = this.refresh({preserveContent: true})
+                    .finally(() => {
+                        this.pageChangePromise = null;
+                        this.updatePagination();
+                    });
+                this.updatePagination();
 
             }
 
@@ -845,15 +904,20 @@ function createCredsManager(type) {
 
         credentialSupportsOperation(credential, operation) {
 
+            if (!this.canOperateCredential(operation)) return false;
+
             if (this.type !== 'primary') return true;
 
             const variantId = String(credential?.provider_variant || '').trim();
+            if (variantId === 'kiro' && operation === 'reauthenticate' && credential?.credential_type !== 'oauth') return false;
 
             return (this.capabilityByVariant[variantId]?.operations || []).includes(operation);
 
         },
 
         selectedVariantsSupport(operation) {
+
+            if (!this.canOperateCredential(operation)) return false;
 
             const variants = this.getSelectedVariantIds();
 
