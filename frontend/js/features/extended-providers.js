@@ -32,7 +32,7 @@ function extendedLogo(id, definition, workspace = false) {
     return frame;
 }
 
-function extendedField(form, provider, name, key, placeholder, {type = 'text', required = false, value = '', options} = {}) {
+function extendedField(form, provider, name, key, placeholder = '', {type = 'text', required = false, value = '', options} = {}) {
     const group = extendedElement('div', 'form-group');
     const label = extendedElement('label', '', key);
     const input = document.createElement(options ? 'select' : 'input');
@@ -42,7 +42,10 @@ function extendedField(form, provider, name, key, placeholder, {type = 'text', r
     if (options) options.forEach(item => input.add(new Option({zen: 'Zen', go: 'Go'}[item] || item, item)));
     else {
         input.type = type;
-        input.placeholder = placeholder;
+        // Configuration fields show their effective value. Keep placeholders
+        // only for secrets and other fields where an example is genuinely
+        // useful; advanced settings pass a concrete default instead.
+        if (placeholder) input.placeholder = placeholder;
         input.autocomplete = type === 'password' ? 'one-time-code' : 'off';
         input.autocapitalize = 'none';
         input.spellcheck = false;
@@ -173,27 +176,32 @@ function buildExtendedProviderWorkspaces() {
         settingsHeader.append(reset); advanced.append(settingsHeader);
         const settings = extendedElement('div', 'extended-provider-fields');
         if (definition.base) {
-            const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', definition.base, {type: 'url'});
+            const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', '', {type: 'url', value: definition.base});
             if (provider === 'meta') {
-                endpoint.value = definition.base;
                 endpoint.readOnly = true;
                 reset.remove();
             }
             if (provider === 'opencode') fields.querySelector('[name="plan"]').addEventListener('change', event => {
-                endpoint.value = ''; endpoint.placeholder = event.target.value === 'go' ? 'https://opencode.ai/zen/go/v1' : definition.base;
+                endpoint.value = event.target.value === 'go' ? 'https://opencode.ai/zen/go/v1' : definition.base;
             });
         }
-        if (provider === 'kilo') extendedField(settings, provider, 'organization_id', 'provider.ext.organization', '00000000-0000-0000-0000-000000000000');
+        if (provider === 'kilo') extendedField(settings, provider, 'organization_id', 'provider.ext.organization');
         if (provider === 'kiro') {
             advanced.append(extendedElement('p', 'card-copy', 'provider.ext.kiro_notice'));
             extendedField(settings, provider, 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
-            extendedField(settings, provider, 'profile_arn', 'provider.ext.profile', 'arn:aws:codewhisperer:us-east-1:123456789012:profile/example');
+            extendedField(settings, provider, 'profile_arn', 'provider.ext.profile');
         }
         settings.querySelectorAll('input, select').forEach(input => input.setAttribute('form', form.id));
         reset.addEventListener('click', () => {
             if (form.dataset.saving === 'true') return;
             settings.querySelectorAll('input, select').forEach(input => {
-                input.value = input.name === 'region' ? 'us-east-1' : '';
+                input.value = input.name === 'region'
+                    ? 'us-east-1'
+                    : input.name === 'base_url' && provider === 'opencode'
+                        ? 'https://opencode.ai/zen/v1'
+                        : input.name === 'base_url'
+                            ? definition.base
+                            : '';
                 input.dispatchEvent(new Event('input', {bubbles: true}));
             });
         });

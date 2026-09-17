@@ -18,10 +18,10 @@ function buildKiroDevicePanel(advanced) {
     const settingFields = extendedElement('div', 'extended-provider-fields');
     settings.append(settingFields); advanced.append(settings);
     const region = extendedField(settingFields, 'kiro-oauth', 'region', 'provider.ext.region', '', {value: 'us-east-1', options: ['us-east-1', 'eu-central-1']});
-    const tokenRegion = extendedField(settingFields, 'kiro-oauth', 'token_region', 'provider.auth.token_region', 'us-east-1', {value: 'us-east-1'});
+    const tokenRegion = extendedField(settingFields, 'kiro-oauth', 'token_region', 'provider.auth.token_region', '', {value: 'us-east-1'});
     settingFields.querySelectorAll('input, select').forEach(input => input.setAttribute('form', form.id));
     tokenRegion.maxLength = 32;
-    const startUrl = extendedField(fields, 'kiro-oauth', 'start_url', 'provider.auth.start_url', 'https://example.awsapps.com/start', {type: 'url'});
+    const startUrl = extendedField(fields, 'kiro-oauth', 'start_url', 'provider.auth.start_url', '', {type: 'url'});
     let flow = null;
     const syncFields = () => {
         const aws = ['builder-id', 'identity-center'].includes(method.value);

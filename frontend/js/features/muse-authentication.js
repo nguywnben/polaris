@@ -3,8 +3,7 @@ function buildMuseOAuthPanel(advanced) {
     const settings = extendedElement('div', 'provider-auth-settings');
     const help = extendedElement('p', 'card-copy provider-tool-copy', 'provider.muse.settings_help');
     help.id = 'museSettingsHelp';
-    const credentialLabel = extendedField(settings, 'muse', 'credential_label', 'credential_display_name', t('form.credential_name'));
-    credentialLabel.dataset.i18nPlaceholder = 'form.credential_name';
+    const credentialLabel = extendedField(settings, 'muse', 'credential_label', 'credential_display_name');
     credentialLabel.maxLength = 128;
     credentialLabel.setAttribute('aria-describedby', help.id);
     settings.prepend(help); advanced.append(settings);
