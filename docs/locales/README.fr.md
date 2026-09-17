@@ -75,7 +75,7 @@ Le catalogue comprend 23 fournisseurs. Les modèles et fonctions disponibles dé
 | <img src="../../frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | Clé API | Groq API |
 | <img src="../../frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | Clé API ; ID d’organisation facultatif | Kilo Gateway |
 | <img src="../../frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | Clé API / service | Kimchi Coding API |
-| <img src="../../frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | Clé API | Moonshot API |
+| <img src="../assets/providers/kimi-api-platform.svg" width="18" height="18" valign="middle" /> **Kimi API Platform** | Clé API | Moonshot API |
 | <img src="../../frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | OAuth navigateur / connexion appareil AWS / clé API | Kiro |
 | <img src="../../frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (code appareil Meta) | `muse-code/` |
 | <img src="../../frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | Clé API | Meta API |

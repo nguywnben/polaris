@@ -75,7 +75,7 @@ Katalog mencakup 23 penyedia. Model dan fitur yang tersedia bergantung pada izin
 | <img src="../../frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | Kunci API | Groq API |
 | <img src="../../frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | Kunci API; ID organisasi opsional | Kilo Gateway |
 | <img src="../../frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | Kunci API / layanan | Kimchi Coding API |
-| <img src="../../frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | Kunci API | Moonshot API |
+| <img src="../assets/providers/kimi-api-platform.svg" width="18" height="18" valign="middle" /> **Kimi API Platform** | Kunci API | Moonshot API |
 | <img src="../../frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | OAuth browser / perangkat AWS / kunci API | Kiro |
 | <img src="../../frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (perangkat Meta) | `muse-code/` |
 | <img src="../../frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | Kunci API | Meta API |

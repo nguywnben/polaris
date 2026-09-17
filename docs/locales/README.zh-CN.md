@@ -75,7 +75,7 @@
 | <img src="../../frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | API 密钥 | Groq API |
 | <img src="../../frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | API 密钥；组织 ID 可选 | Kilo Gateway |
 | <img src="../../frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | API / 服务密钥 | Kimchi Coding API |
-| <img src="../../frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | API 密钥 | Moonshot API |
+| <img src="../assets/providers/kimi-api-platform.svg" width="18" height="18" valign="middle" /> **Kimi API Platform** | API 密钥 | Moonshot API |
 | <img src="../../frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | 浏览器 OAuth / AWS 设备登录 / API 密钥 | Kiro |
 | <img src="../../frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth（Meta 设备码） | `muse-code/` |
 | <img src="../../frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | API 密钥 | Meta API |

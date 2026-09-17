@@ -90,7 +90,7 @@ Polaris hiện có **23 provider** trong danh mục. Bảng dưới mô tả ph�
 | <img src="../../frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | Khóa API | Groq API |
 | <img src="../../frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | Khóa API; mã tổ chức tùy chọn | Kilo Gateway |
 | <img src="../../frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | Khóa API / dịch vụ | Kimchi Coding API |
-| <img src="../../frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | Khóa API | Moonshot API |
+| <img src="../assets/providers/kimi-api-platform.svg" width="18" height="18" valign="middle" /> **Kimi API Platform** | Khóa API | Moonshot API |
 | <img src="../../frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | OAuth trình duyệt / mã thiết bị AWS / khóa API | Kiro |
 | <img src="../../frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (mã thiết bị Meta) | `muse-code/` |
 | <img src="../../frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | Khóa API | Meta API |

@@ -90,7 +90,7 @@ Polaris currently exposes **23 providers** in the catalog. The table describes e
 | <img src="frontend/assets/providers/groqcloud.png" width="18" height="18" valign="middle" /> **GroqCloud** | API key | Groq API |
 | <img src="frontend/assets/providers/kilo.png" width="18" height="18" valign="middle" /> **Kilo** | API key; optional organization ID | Kilo Gateway |
 | <img src="frontend/assets/providers/kimchi.png" width="18" height="18" valign="middle" /> **Kimchi Coding** | API / service key | Kimchi Coding API |
-| <img src="frontend/assets/providers/kimi-api-platform.png" width="18" height="18" valign="middle" /> **Kimi API Platform** | API key | Moonshot API |
+| <img src="docs/assets/providers/kimi-api-platform.svg" width="18" height="18" valign="middle" /> **Kimi API Platform** | API key | Moonshot API |
 | <img src="frontend/assets/providers/kiro.png" width="18" height="18" valign="middle" /> **Kiro** | Browser OAuth / AWS device login / API key | Kiro |
 | <img src="frontend/assets/providers/muse-code.png" width="18" height="18" valign="middle" /> **Muse Code** | OAuth (Meta device code) | `muse-code/` |
 | <img src="frontend/assets/providers/meta-model-api.png" width="18" height="18" valign="middle" /> **Meta Model API** | API key | Meta API |
