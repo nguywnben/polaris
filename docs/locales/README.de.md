@@ -139,11 +139,13 @@ Siehe [Architektur](../architecture.md) für Modulgrenzen, Anfragefluss, Zustand
 
 ## Bereitstellung
 
+Die [einfache Docker-Installation](../docker-install.md) für Linux/amd64 benötigt weder einen Repository-Klon noch manuelle `.env`-Änderungen: ein Installationsbefehl, ausdrückliche HTTP-Zustimmung für einen VPS und anschließend ein Passwort im Browser. **Lokal vorbereitet; das passende neue Installationsskript und Image müssen zuerst veröffentlicht werden.** Manuelles Docker, Compose und Quellcode-Entwicklung bleiben verfügbar. Docker-run verwendet eine [eigene Sicherungs-/Update-Anleitung](../docker-maintenance.md), nicht den Compose-Updater.
+
 Docker Compose ist der Standard für eine Maschine mit einem Worker. Folgen Sie der [Installationsanleitung](../installation.md) und ihrer [Supportmatrix](../installation.md#support-matrix) bis zum authentifizierten Dashboard; daraus ergibt sich keine zusätzliche ARM64-Unterstützung.
 
 Das Standardprofil benötigt keine externen Dienste und speichert Daten im Volume `polaris-data`. Die Vorlage zielt auf `1.0.0`. Installieren Sie nur mit veröffentlichten Polaris-Tags und Images derselben Version; erstellen Sie bei unveröffentlichtem Quellcode ein separates lokales Image gemäß der [Freigabe-Checkliste](../releases/1.0.0-preparation.md). Nutzen Sie den [Update- und Rollback-Ablauf](../updating.md); erweiterte Optionen werden über `deploy/compose.advanced.yml` aktiviert.
 
-Beachten Sie den [Bezeichnervertrag](../migrations/polaris.md) und die [Fehlerbehebung](../troubleshooting.md). Native Skripte, direktes `docker run`, Render und Zeabur sind Kompatibilitätswege ohne dieselben Installations-/Wiederherstellungsnachweise. Das Produktionsimage wird für `linux/amd64` veröffentlicht; `linux/arm64` bleibt ausgesetzt.
+Beachten Sie den [Bezeichnervertrag](../migrations/polaris.md) und die [Fehlerbehebung](../troubleshooting.md). Native Skripte, Render und Zeabur sind Kompatibilitätswege ohne dieselben Installations-/Wiederherstellungsnachweise. Das Produktionsimage wird für `linux/amd64` veröffentlicht; `linux/arm64` bleibt ausgesetzt.
 
 ### Für lokale Entwicklung oder Fehlersuche:
 
@@ -461,7 +463,7 @@ Bezeichnungen der Anmeldemodi (Credential mode names):
 
 ## Speicherung
 
-SQLite ist die empfohlene Standardspeicherung. Compose sichert `/app/backend/data` im Volume `polaris-data`; bei direktem Docker-Betrieb `/app/backend/data/creds` und `/app/backend/data/logs` dauerhaft etwa unter `/opt/polaris/creds` und `/opt/polaris/logs` einbinden.
+SQLite ist die empfohlene Standardspeicherung. Compose und der Docker-Installer sichern das gesamte `/app/backend/data` im Volume `polaris-data`. Auch bei manuellem Docker das gesamte Datenverzeichnis einbinden: Nur `creds` und `logs` reichen nicht aus, um SQLite und die Konfiguration zu erhalten.
 
 PostgreSQL ist eine optionale Erweiterung; MongoDB wird für bestehende Installationen direkt unterstützt und benötigt kein Redis. Nur eines der beiden externen Backends konfigurieren. Ein Initialisierungsfehler stoppt den Start statt still auf SQLite zurückzufallen. Externe Speicherung erlaubt keine horizontale Skalierung: ein Worker und eine Replik bleiben vorgeschrieben. Die portable verschlüsselte Sicherung unterstützt nur SQLite; ein unterstützter Live-Wechsel zwischen Backends ist nicht enthalten.
 

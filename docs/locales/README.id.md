@@ -139,11 +139,13 @@ Lihat [Arsitektur](../architecture.md) untuk batasan modul, alur permintaan, kep
 
 ## Penerapan
 
+[Instalasi Docker sederhana](../docker-install.md) untuk Linux/amd64 tidak memerlukan clone repositori atau penyuntingan `.env`: satu perintah, persetujuan HTTP secara eksplisit untuk VPS, lalu membuat kata sandi melalui web. **Masih disiapkan secara lokal; installer dan image terbaru yang sesuai harus diterbitkan terlebih dahulu.** Docker manual, Compose, dan menjalankan kode sumber tetap tersedia. Docker-run memiliki [panduan cadangan dan pembaruan sendiri](../docker-maintenance.md), bukan melalui pembaru Compose.
+
 Docker Compose pada satu mesin dan satu worker adalah jalur utama. Ikuti [instalasi](../installation.md) dan [matriks dukungan](../installation.md#support-matrix).
 
 Profil dasar tidak memerlukan layanan eksternal dan menyimpan data dalam `polaris-data`. Templat menargetkan `1.0.0`. Instal hanya dengan tag dan image Polaris yang telah dirilis dan memiliki versi sama; untuk kode sumber yang belum dirilis, buat image lokal terpisah sesuai [daftar periksa rilis](../releases/1.0.0-preparation.md). Ikuti [pembaruan dan rollback](../updating.md); fitur lanjutan bersifat opsional melalui `deploy/compose.advanced.yml`.
 
-Lihat [kontrak pengenal](../migrations/polaris.md) dan [pemecahan masalah](../troubleshooting.md). Skrip native, `docker run`, Render, dan Zeabur adalah jalur kompatibilitas tanpa verifikasi instalasi/pemulihan yang setara. Image diterbitkan untuk `linux/amd64`; publikasi `linux/arm64` masih ditangguhkan.
+Lihat [kontrak pengenal](../migrations/polaris.md) dan [pemecahan masalah](../troubleshooting.md). Skrip native, Render, dan Zeabur adalah jalur kompatibilitas tanpa verifikasi instalasi/pemulihan yang setara. Image diterbitkan untuk `linux/amd64`; publikasi `linux/arm64` masih ditangguhkan.
 
 ### Pengembangan atau diagnosis lokal:
 
@@ -461,7 +463,7 @@ Nama mode kredensial:
 
 ## Penyimpanan
 
-SQLite direkomendasikan. Compose menyimpan `/app/backend/data` dalam `polaris-data`; pada Docker langsung, mount `/app/backend/data/creds` dan `/app/backend/data/logs` ke direktori persisten seperti `/opt/polaris/creds` dan `/opt/polaris/logs`.
+SQLite direkomendasikan. Compose dan installer Docker menyimpan seluruh `/app/backend/data` dalam `polaris-data`. Pada Docker manual, mount seluruh direktori data juga: hanya menyimpan `creds` dan `logs` tidak mempertahankan SQLite dan konfigurasi.
 
 PostgreSQL opsional; MongoDB dipertahankan untuk kompatibilitas tanpa Redis. Konfigurasikan hanya satu. Kegagalan inisialisasi menghentikan startup tanpa diam-diam kembali ke SQLite. Penyimpanan eksternal tidak menyediakan skala horizontal: tetap satu worker dan satu replika. Cadangan terenkripsi portabel hanya untuk SQLite; migrasi langsung antar-backend tidak didukung.
 

@@ -11,6 +11,9 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+- Add a guided Linux/amd64 Docker installer: no repository clone or manual `.env` editing,
+  generated setup codes, explicit public HTTP consent, readiness checks, and preservation
+  of existing containers/data. Keep manual Docker, Compose, and source-run paths available.
 - Add an explicit, disabled-by-default `SETUP_ALLOW_INSECURE_HTTP` option for remote first-run
   setup, with persistent unencrypted-transport warnings in all 15 console languages.
   Setup-token, password, storage and secure-cookie requirements remain enforced.

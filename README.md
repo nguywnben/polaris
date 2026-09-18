@@ -148,6 +148,13 @@ See [Architecture](docs/architecture.md) for module boundaries, request flow, st
 
 ## Deployment
 
+For a guided Linux/amd64 installation without cloning the repository or editing `.env`,
+see [Simple Docker installation](docs/docker-install.md): one installer command, an explicit
+HTTP choice for VPS access, then create your password on the web. **This flow is prepared
+locally and requires the matching updated installer/image to be published first.** Manual
+Docker, Compose and source development remain available; Docker-run uses its own
+[backup/update procedure](docs/docker-maintenance.md), not the Compose updater.
+
 Docker Compose is the canonical production deployment path for the supported single-machine,
 single-worker profile. Follow the [Canonical installation guide](docs/installation.md) from host
 checks through the first authenticated Dashboard; its
@@ -170,7 +177,7 @@ For diagnosis and safe recovery, use the [Production troubleshooting guide](docs
 It starts with health and readiness checks, preserves the data volume, and records the exact
 information needed for a redacted support bundle.
 
-Compatibility-only native scripts under `deploy/scripts`, direct `docker run`, Render, and Zeabur
+Compatibility-only native scripts under `deploy/scripts`, Render, and Zeabur
 do not carry the full install/update/rollback evidence of the canonical path. The production image
 is published for `linux/amd64`; native `linux/arm64` publication remains paused until the complete
 locked dependency stack has equivalent build and runtime evidence.
@@ -491,10 +498,10 @@ Credential mode names:
 
 ## Storage
 
-Single-instance deployments use SQLite-backed storage in the application data directory. Docker
-Compose persists all of `/app/backend/data` in the `polaris-data` named volume. Direct
-`docker run` deployments must mount `/app/backend/data/creds` and `/app/backend/data/logs` to
-durable host paths such as `/opt/polaris/creds` and `/opt/polaris/logs`.
+Single-instance deployments use SQLite-backed storage in the application data directory.
+Compose and the Docker installer persist all of `/app/backend/data` in the `polaris-data`
+named volume. Manual `docker run` deployments must also persist the entire data directory:
+mounting only `creds` and `logs` does not preserve SQLite and configuration.
 
 SQLite is the Core storage authority and the recommended production default. PostgreSQL is an
 Advanced option for operators who manage their own database lifecycle. MongoDB is retained as a

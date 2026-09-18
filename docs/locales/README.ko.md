@@ -139,11 +139,13 @@ docs/          아키텍처 설계 문서 및 프로젝트 유지 관리 가이�
 
 ## 배포
 
+Linux/amd64용 [간편 Docker 설치](../docker-install.md)는 저장소 복제나 `.env` 수동 편집이 필요 없습니다. 명령 하나를 실행하고, VPS에서 HTTP를 쓸 경우 명시적으로 동의한 뒤 웹에서 비밀번호를 만듭니다. **현재 로컬에서 준비 중이며, 해당하는 새 설치 스크립트와 이미지가 먼저 배포되어야 합니다.** 수동 Docker, Compose, 소스 실행도 계속 지원합니다. Docker-run은 Compose 업데이트 도구가 아닌 [별도의 백업·업데이트 절차](../docker-maintenance.md)를 사용합니다.
+
 단일 머신·단일 worker의 Docker Compose가 기본 배포 경로입니다. [설치](../installation.md) 및 [지원 표](../installation.md#support-matrix)를 따르세요.
 
 기본 구성은 외부 서비스가 필요 없으며 `polaris-data`에 데이터를 보관합니다. 템플릿은 `1.0.0`을 대상으로 합니다. 공개된 동일 버전의 Polaris 태그와 이미지로만 설치하세요. 미공개 소스를 사용하는 경우 [출시 체크리스트](../releases/1.0.0-preparation.md)에 따라 별도의 로컬 이미지를 빌드하세요. [업데이트·롤백](../updating.md) 절차를 따르고 고급 옵션은 `deploy/compose.advanced.yml`로 활성화합니다.
 
-[식별자 규약](../migrations/polaris.md)과 [문제 해결](../troubleshooting.md)을 참고하세요. 네이티브 스크립트, `docker run`, Render, Zeabur는 호환 경로로, 동일한 설치·복구 검증 범위가 아닙니다. 이미지는 `linux/amd64`로 게시하며 `linux/arm64` 게시는 중단 상태입니다.
+[식별자 규약](../migrations/polaris.md)과 [문제 해결](../troubleshooting.md)을 참고하세요. 네이티브 스크립트, Render, Zeabur는 호환 경로로, 동일한 설치·복구 검증 범위가 아닙니다. 이미지는 `linux/amd64`로 게시하며 `linux/arm64` 게시는 중단 상태입니다.
 
 ### 로컬 개발 또는 진단:
 
@@ -461,7 +463,7 @@ Google Antigravity 자격 증명은 `google-antigravity-{account_fingerprint}.js
 
 ## 데이터 스토리지
 
-SQLite를 권장합니다. Compose는 `/app/backend/data`를 `polaris-data`에 저장합니다. 직접 Docker를 사용하면 `/app/backend/data/creds`와 `/app/backend/data/logs`를 `/opt/polaris/creds`, `/opt/polaris/logs` 같은 영구 경로에 마운트하세요.
+SQLite를 권장합니다. Compose와 Docker 설치 스크립트는 `/app/backend/data` 전체를 `polaris-data`에 저장합니다. 수동 Docker에서도 전체 데이터 디렉터리를 마운트해야 합니다. `creds`와 `logs`만 저장하면 SQLite와 설정은 보존되지 않습니다.
 
 PostgreSQL은 선택 사항이며 MongoDB는 Redis 없는 호환 옵션입니다. 하나만 설정하세요. 초기화 실패는 시작을 중단하며 SQLite로 조용히 전환하지 않습니다. 외부 DB도 수평 확장을 제공하지 않으며 worker와 복제본은 하나씩입니다. 이동 가능한 암호화 백업은 SQLite만 지원하고 백엔드 간 실시간 마이그레이션은 지원하지 않습니다.
 

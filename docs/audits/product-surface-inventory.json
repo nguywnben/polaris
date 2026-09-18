@@ -32,6 +32,8 @@
     "docs/locales/README.zh-CN.md",
     "docs/locales/README.zh-TW.md",
     "docs/installation.md",
+    "docs/docker-install.md",
+    "docs/docker-maintenance.md",
     "docs/backup-and-restore.md",
     "docs/updating.md",
     "CONSTRAINTS.md",

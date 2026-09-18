@@ -139,11 +139,13 @@ docs/          アーキテクチャ設計書およびプロジェクト保守�
 
 ## デプロイ
 
+Linux/amd64 向けの[簡単 Docker インストール](../docker-install.md)では、リポジトリの clone や `.env` の手動編集は不要です。コマンドを1つ実行し、VPS で HTTP を使う場合は明示的に同意した後、Web でパスワードを作成します。**現在はローカルで準備中です。対応する新しいインストーラーとイメージの公開が必要です。** 手動 Docker、Compose、ソースからの実行も引き続き利用できます。Docker-run では Compose 更新ツールではなく[専用のバックアップ・更新手順](../docker-maintenance.md)を使います。
+
 単一マシン・単一 worker の Docker Compose が推奨経路です。[インストール](../installation.md)と[対応表](../installation.md#support-matrix)に従ってください。
 
 基本構成は外部サービス不要で、データを `polaris-data` に保存します。テンプレートの対象は `1.0.0` です。公開済みの同一バージョンの Polaris タグとイメージでインストールしてください。未公開のソースを使う場合は、[リリースチェックリスト](../releases/1.0.0-preparation.md)に従って別のローカルイメージをビルドしてください。[更新・ロールバック手順](../updating.md)を参照し、高度な機能は `deploy/compose.advanced.yml` で任意に追加します。
 
-[識別子の契約](../migrations/polaris.md)と[トラブルシューティング](../troubleshooting.md)も参照してください。ネイティブスクリプト、`docker run`、Render、Zeabur は互換経路であり、同等の導入・復旧検証対象ではありません。公開イメージは `linux/amd64` 用で、`linux/arm64` の公開は停止中です。
+[識別子の契約](../migrations/polaris.md)と[トラブルシューティング](../troubleshooting.md)も参照してください。ネイティブスクリプト、Render、Zeabur は互換経路であり、同等の導入・復旧検証対象ではありません。公開イメージは `linux/amd64` 用で、`linux/arm64` の公開は停止中です。
 
 ### ローカル開発・診断：
 
@@ -461,7 +463,7 @@ Google Antigravity 認証情報は `google-antigravity-{account_fingerprint}.jso
 
 ## データストレージ
 
-SQLite を推奨します。Compose は `/app/backend/data` を `polaris-data` に永続化します。直接 Docker を使う場合は `/app/backend/data/creds` と `/app/backend/data/logs` を `/opt/polaris/creds`、`/opt/polaris/logs` などにマウントします。
+SQLite を推奨します。Compose と Docker インストーラーは `/app/backend/data` 全体を `polaris-data` に永続化します。手動 Docker でもデータディレクトリ全体をマウントしてください。`creds` と `logs` だけでは SQLite と設定を保持できません。
 
 PostgreSQL は任意、MongoDB は互換用で Redis 不要です。外部 DB は一方だけ設定してください。初期化失敗時は停止し、SQLite に黙って戻りません。外部 DB でも水平拡張はできず、worker・レプリカは各 1 つです。可搬な暗号化バックアップは SQLite のみで、バックエンド間のライブ移行は非対応です。
 

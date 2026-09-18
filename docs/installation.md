@@ -1,6 +1,11 @@
-# Canonical Installation
+# Docker Compose Installation
 
-This is the single production installation path for Polaris R1. It runs the supported
+For the no-clone guided Docker path, see [Install Polaris with Docker](docker-install.md).
+It prepares the container and setup code without manual `.env` editing. Its publication
+status and Linux/amd64 scope are stated there. This page retains the explicit Compose path
+for operators who want to manage the deployment files themselves.
+
+This is the established Compose production installation path for Polaris R1. It runs the supported
 standalone topology—one application worker and one replica—through Docker Compose with SQLite in
 one named volume. Do not add Redis, an external database, or the advanced override during the
 first installation.
@@ -179,7 +184,9 @@ a required operator check, not as independently CI-verified.
 
 ## Non-canonical paths
 
-The native Python installers and launchers in `deploy/scripts`, direct `docker run`, Render, and
+The [guided Docker-run installer](docker-install.md) is a separate no-clone path with its own
+[maintenance procedure](docker-maintenance.md); the Compose updater does not manage it.
+The native Python installers and launchers in `deploy/scripts`, Render, and
 Zeabur are compatibility paths. They may help development, migration, or community deployments,
 but they do not receive the complete production install/update/rollback evidence. Kubernetes is
 outside the product boundary. These alternatives must not be used
