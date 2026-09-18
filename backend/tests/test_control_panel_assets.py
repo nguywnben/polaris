@@ -580,6 +580,13 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("cached.data?.plan", dialog_script)
         self.assertIn("cardContext.subscriptionPlan", dialog_script)
 
+    def test_root_endpoints_are_text_not_copy_buttons(self):
+        html = (Path(__file__).resolve().parents[2] / "frontend/fragments/pages/access.html").read_text(encoding="utf-8")
+        for endpoint in ("openaiEndpointUrl", "anthropicEndpointUrl", "googleGenaiEndpointUrl"):
+            self.assertIn(f'<div class="endpoint-code-card" id="{endpoint}">', html)
+        self.assertIn('id="toggleApiKeyVisibilityBtn"', html)
+        self.assertIn('id="regenerateApiKeyBtn"', html)
+
     def test_all_supported_credentials_have_an_authentication_badge(self):
         card_script = read_scripts("ui/credential-cards.js")
 
