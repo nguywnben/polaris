@@ -37,6 +37,19 @@ MAINTAINED_DOCUMENTS = (
 
 
 class ReleaseCandidateContractTests(unittest.TestCase):
+    def test_readme_previews_preserve_intrinsic_aspect_ratio(self):
+        readmes = [ROOT / "README.md", *sorted((ROOT / "docs/locales").glob("README.*.md"))]
+        self.assertEqual(len(readmes), 15)
+        for readme in readmes:
+            with self.subTest(readme=readme.relative_to(ROOT)):
+                previews = re.findall(
+                    r"<img\b[^>]*screenshots/[^>]*>", readme.read_text(encoding="utf-8")
+                )
+                self.assertEqual(len(previews), 2)
+                for preview in previews:
+                    # GitHub clamps width; a fixed height would stretch the screenshot.
+                    self.assertNotRegex(preview, r"\b(?:width|height)\s*=")
+
     def test_release_version_is_consistent_across_runtime_install_and_changelog(self):
         self.assertEqual(DEFAULT_APPLICATION_VERSION, RELEASE_VERSION)
 

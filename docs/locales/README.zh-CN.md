@@ -54,12 +54,12 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 仪表盘" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 仪表盘" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 控制台预览" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 控制台预览" />
 </picture>
 
 <a id="supported-providers"></a>

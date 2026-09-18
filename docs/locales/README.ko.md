@@ -54,12 +54,12 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 대시보드" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 대시보드" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 콘솔 미리보기" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 콘솔 미리보기" />
 </picture>
 
 <a id="supported-providers"></a>

@@ -54,12 +54,12 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — ダッシュボード" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — ダッシュボード" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — コンソールプレビュー" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — コンソールプレビュー" />
 </picture>
 
 <a id="supported-providers"></a>

@@ -54,12 +54,12 @@ Les captures présentent des données fictives issues d’une démonstration hor
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Tableau de bord" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Tableau de bord" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Aperçu de la console" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Aperçu de la console" />
 </picture>
 
 <a id="supported-providers"></a>

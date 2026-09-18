@@ -54,12 +54,12 @@ Las capturas muestran datos ficticios de una demo sin conexión y aislada.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Panel de control" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Panel de control" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Vista previa de la consola" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Vista previa de la consola" />
 </picture>
 
 <a id="supported-providers"></a>

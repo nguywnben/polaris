@@ -54,12 +54,12 @@ Die Screenshots zeigen fiktive Daten aus einer isolierten Offline-Demo.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsolen-Vorschau" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsolen-Vorschau" />
 </picture>
 
 <a id="supported-providers"></a>
