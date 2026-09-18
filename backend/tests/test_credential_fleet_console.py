@@ -17,6 +17,29 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_badge_hints_dismiss_without_moving_focus_and_reopen_on_reentry(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const listeners = {{}};
+const badge = {{dataset: {{}}, contains: node => node === badge}};
+document.addEventListener = (name, handler) => {{ listeners[name] = handler; }};
+document.querySelectorAll = () => [badge];
+initCredentialBadgeHints();
+let consumed = 0;
+listeners.keydown({{key: 'Escape', preventDefault() {{ consumed++; }}, stopPropagation() {{}}}});
+assert(badge.dataset.hintDismissed === 'true' && consumed === 1, 'Escape dismisses the hint');
+const target = {{closest: () => badge}};
+listeners.pointerover({{target, relatedTarget: badge}});
+assert(badge.dataset.hintDismissed === 'true', 'Moving within a dismissed hint must not reopen it');
+listeners.pointerover({{target, relatedTarget: null}});
+assert(!badge.dataset.hintDismissed, 'Pointer reentry reopens the hint');
+badge.dataset.hintDismissed = 'true';
+listeners.focusin({{target}});
+assert(!badge.dataset.hintDismissed, 'Keyboard focus reentry reopens the hint');
+document.querySelectorAll = () => [];
+listeners.keydown({{key: 'Escape', preventDefault() {{ throw new Error('Unrelated Escape intercepted'); }}}});
+""")
+
     def test_identity_subtitle_uses_only_masked_key_or_oauth_email(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));

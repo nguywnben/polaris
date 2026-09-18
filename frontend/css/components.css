@@ -704,7 +704,15 @@
     overflow-wrap: anywhere;
 }
 
-.credential-badge-hint:is(:hover, :focus-visible) .credential-badge-tooltip {
+.credential-badge-tooltip::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: 6px;
+}
+
+.credential-badge-hint:not([data-hint-dismissed]):is(:hover, :focus-visible) .credential-badge-tooltip {
     display: block;
 }
 

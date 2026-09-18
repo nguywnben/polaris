@@ -23,7 +23,10 @@ class ProviderCreditSettingsFrontendTests(unittest.TestCase):
         self.assertFalse((ROOT / "frontend/js/features/provider-credit-settings.js").exists())
         cards = (ROOT / "frontend/js/ui/credential-cards.js").read_text(encoding="utf-8")
         self.assertIn("credInfo.enable_credit", cards)
-        self.assertIn("credential_badge_credits", cards)
+        self.assertIn('class="status-badge credit-on credential-badge-hint"', cards)
+        self.assertIn("const creditLabel = t('credit_enabled_title')", cards)
+        self.assertIn('aria-label="${escapeAttribute(creditLabel)}"', cards)
+        self.assertIn("${escapeHtml(creditLabel)}</span>", cards)
 
     def test_provider_website_labels_omit_trailing_slash_without_changing_targets(self):
         html = (ROOT / "frontend/fragments/pages/providers.html").read_text(encoding="utf-8")

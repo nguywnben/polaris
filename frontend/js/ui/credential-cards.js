@@ -1,3 +1,22 @@
+function initCredentialBadgeHints() {
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const hints = document.querySelectorAll('.credential-badge-hint:not([data-hint-dismissed]):is(:hover, :focus-visible)');
+        if (!hints.length) return;
+        hints.forEach(badge => { badge.dataset.hintDismissed = 'true'; });
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+    document.addEventListener('pointerover', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge && !badge.contains(event.relatedTarget)) delete badge.dataset.hintDismissed;
+    });
+    document.addEventListener('focusin', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge) delete badge.dataset.hintDismissed;
+    });
+}
+
 function getAuthHeaders(includeContentType = true) {
 
     const headers = {'Accept-Language': getActiveLocale()};

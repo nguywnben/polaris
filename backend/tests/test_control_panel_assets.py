@@ -581,11 +581,15 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("cardContext.subscriptionPlan", dialog_script)
 
     def test_root_endpoints_copy_on_click_without_icons(self):
-        html = (Path(__file__).resolve().parents[2] / "frontend/fragments/pages/access.html").read_text(encoding="utf-8")
+        html = (
+            Path(__file__).resolve().parents[2] / "frontend/fragments/pages/access.html"
+        ).read_text(encoding="utf-8")
         for endpoint in ("openaiEndpointUrl", "anthropicEndpointUrl", "googleGenaiEndpointUrl"):
             self.assertRegex(html, rf'<button[^>]+id="{endpoint}"[^>]+data-ui-action="copy-url"')
-        styles = (Path(__file__).resolve().parents[2] / "frontend/css/access.css").read_text(encoding="utf-8")
-        self.assertNotIn('.endpoint-code-card::after', styles)
+        styles = (Path(__file__).resolve().parents[2] / "frontend/css/access.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn(".endpoint-code-card::after", styles)
         self.assertIn('id="toggleApiKeyVisibilityBtn"', html)
         self.assertIn('id="regenerateApiKeyBtn"', html)
 

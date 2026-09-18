@@ -207,10 +207,9 @@ def main(stage, strict, only):
             and r["healthIconChrome"]["borderWidth"] == "0px"
             for r in results
         ), "Provider health icons should not have a background or border"
-        assert all(
-            r["usageSummaryMarginBottom"] in (None, "0px")
-            for r in results
-        ), "Provider analysis should not reserve trailing bottom space"
+        assert all(r["usageSummaryMarginBottom"] in (None, "0px") for r in results), (
+            "Provider analysis should not reserve trailing bottom space"
+        )
         assert all(r["width"] < 1200 or r["healthGridColumns"] >= 3 for r in results), (
             "Provider health matrix should use at least three columns on wide screens"
         )
