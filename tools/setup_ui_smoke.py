@@ -17,7 +17,9 @@ def main():
     with disposable_runtime() as base_url, sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         try:
-            context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1100})
+            context = browser.new_context(
+                locale="vi-VN", viewport={"width": 1440, "height": 1100}, has_touch=True
+            )
             context.add_init_script("""window.__invalidDefaults = [];
                 document.addEventListener('invalid', event => {
                     setTimeout(() => window.__invalidDefaults.push(event.defaultPrevented), 0);
@@ -114,7 +116,20 @@ def main():
             highlight = page.locator("#setupPreflightButton").evaluate(
                 "el => getComputedStyle(el).webkitTapHighlightColor"
             )
-            assert highlight == "rgba(128, 128, 128, 0.16)", highlight
+            assert highlight == "rgba(0, 0, 0, 0)", highlight
+            for selector in ("html", "#setupToken", "label[for='setupToken']", "a"):
+                colors = page.locator(selector).evaluate_all(
+                    "elements => elements.map(el => getComputedStyle(el).webkitTapHighlightColor)"
+                )
+                assert colors and all(color == "rgba(0, 0, 0, 0)" for color in colors), (
+                    selector,
+                    colors,
+                )
+            page.locator("#setupPreflightButton").tap()
+            expect(page.locator("#statusSection")).to_contain_text(
+                "Nhập mã thiết lập do người vận hành cấu hình, rồi chạy kiểm tra."
+            )
+            assert not attempts, "Touch must preserve empty-token validation"
             page.locator("#setupToken").focus()
             page.keyboard.press("Tab")
             expect(page.locator("#setupPreflightButton")).to_be_focused()

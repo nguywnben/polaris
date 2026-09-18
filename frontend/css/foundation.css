@@ -121,6 +121,8 @@ html {
     font-size: 87.5%;
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
+    /* Inherited by all controls: avoid the browser's flash overlay on touch. */
+    -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
 }
 
@@ -161,11 +163,6 @@ select:not([multiple]):not([size]) {
 :where(button, a, input, select, textarea, summary):focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
-}
-
-/* Neutral touch feedback without changing keyboard focus or text selection. */
-:where(button, a, input, select, textarea, summary, label, [role="button"], [role="tab"]) {
-    -webkit-tap-highlight-color: rgba(128, 128, 128, 0.16);
 }
 
 a {

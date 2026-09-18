@@ -15,8 +15,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
   explicitly allows HTTP. Guided local installation retains its loopback-only bind.
 - Reserve space for password visibility buttons only while the input has content,
   so empty setup and sign-in fields use their full placeholder width.
-- Shorten setup-code placeholders in all 15 languages for mobile screens and use
-  neutral touch highlights while preserving keyboard focus and text selection.
+- Shorten setup-code placeholders in all 15 languages for mobile screens and remove
+  native tap-highlight overlays while preserving keyboard focus and text selection.
 
 - Add a guided Linux/amd64 Docker installer: no repository clone or manual `.env` editing,
   generated setup codes, explicit public HTTP consent, readiness checks, and preservation
