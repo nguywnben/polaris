@@ -50,7 +50,17 @@
 
 ## 控制台預覽
 
-![Polaris — 控制台預覽](../assets/screenshots/credential-pool.png)
+螢幕截圖使用隔離的離線示範環境中的虛構資料。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 儀表板" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 控制台預覽" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

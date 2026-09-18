@@ -50,7 +50,17 @@
 
 ## Интерфейс консоли
 
-![Polaris — Интерфейс консоли](../assets/screenshots/credential-pool.png)
+На скриншотах показаны вымышленные данные из изолированной офлайн-демонстрации.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Панель управления" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Интерфейс консоли" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

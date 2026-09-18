@@ -50,7 +50,17 @@ README นี้มี 15 ภาษาและครอบคลุมควา
 
 ## ตัวอย่างคอนโซล
 
-![Polaris — ตัวอย่างคอนโซล](../assets/screenshots/credential-pool.png)
+ภาพหน้าจอใช้ข้อมูลสมมติจากสภาพแวดล้อมสาธิตแบบออฟไลน์ที่แยกไว้
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — แดชบอร์ด" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — ตัวอย่างคอนโซล" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

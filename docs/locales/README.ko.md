@@ -50,7 +50,17 @@
 
 ## 콘솔 미리보기
 
-![Polaris — 콘솔 미리보기](../assets/screenshots/credential-pool.png)
+스크린샷은 격리된 오프라인 데모의 가상 데이터를 사용합니다.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 대시보드" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 콘솔 미리보기" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

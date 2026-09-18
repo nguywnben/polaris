@@ -50,7 +50,17 @@ Modern kodlama iş akışları genellikle istemcileri ve sağlayıcıları bir a
 
 ## Konsol Önizlemesi
 
-![Polaris — Konsol Önizlemesi](../assets/screenshots/credential-pool.png)
+Ekran görüntülerinde yalıtılmış çevrimdışı demodan alınan kurgusal veriler kullanılır.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Gösterge Paneli" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsol Önizlemesi" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

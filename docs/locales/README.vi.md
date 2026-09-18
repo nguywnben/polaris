@@ -67,7 +67,17 @@ Quy trình lập trình hiện đại thường kết hợp nhiều client và p
 
 ## Giao diện Console
 
-![Trang thông tin xác thực Polaris](../assets/screenshots/credential-pool.png)
+Ảnh chụp sử dụng dữ liệu giả lập trong môi trường demo offline riêng.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Bảng điều khiển Polaris" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Trang thông tin xác thực Polaris" width="1600" height="1100" />
+</picture>
 
 ## <a id="nha-cung-cap-duoc-ho-tro"></a>Nhà cung cấp được hỗ trợ
 

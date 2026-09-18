@@ -50,7 +50,17 @@ I moderni flussi di lavoro di sviluppo combinano spesso molteplici client e prov
 
 ## Anteprima della console
 
-![Polaris — Anteprima della console](../assets/screenshots/credential-pool.png)
+Le schermate mostrano dati fittizi di una demo offline isolata.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Anteprima della console" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

@@ -13,15 +13,15 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [1.0.0] - 2026-09-18
 
-Candidate prepared on this date; publication status is determined by the matching
-Polaris release/tag/image. Reconfirm the date when publication is authorized.
+Publication approved on this date; the matching Polaris release/tag/image records
+the actual published revision.
 The historical Omni Gateway 1.0.0 is separate.
 
 ### Release preparation
 
 - Prepare runtime, Compose and documentation for Polaris 1.0.0 while preserving legacy
   release history. Legacy tags are archived and the target registry version names are
-  available. Publication still requires approval of the exact verified commit.
+  available. Publish only the exact verified commit after the required gates pass.
 - Validate unique, dated release notes and matching version metadata before publishing
   container images, not only before creating the GitHub release.
 - Keep manually dispatched candidate CI verification-only. Explicitly mark future stable
@@ -48,6 +48,8 @@ The historical Omni Gateway 1.0.0 is separate.
 
 ### Added
 
+- Current Dashboard and Credentials previews in light and dark themes across all
+  15 README languages, captured from an isolated demo with fictional data.
 - Repository README translations in all 15 supported languages, with language navigation,
   the current 23-provider catalog, configuration reference, and credential/deployment workflows.
 - New providers show the same persistent credential-save result and pool shortcut

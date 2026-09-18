@@ -1,5 +1,15 @@
 # Polaris — Current State
 
+## Publication authorized — 2026-09-18
+
+The owner approved merge, `v1.0.0` tagging and publication after refreshing README
+previews. Replace the outdated shared image with actual Dashboard/Credentials captures
+in light/dark themes, using a new offline synthetic database. Verify and commit this
+documentation-only update, run exact-SHA CI, then publish through the existing guarded
+workflow and verify the published digest in an isolated container. Never reuse operator
+data or bypass a failed release gate. Earlier checkpoints below retain their original
+authorization boundaries.
+
 ## Candidate prepared and verified — 2026-09-18
 
 The owner authorized committing the reviewed repairs, pushing only

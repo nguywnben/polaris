@@ -50,7 +50,17 @@ Fluxos de trabalho de desenvolvimento modernos costumam misturar múltiplos clie
 
 ## Prévia do Console
 
-![Polaris — Prévia do Console](../assets/screenshots/credential-pool.png)
+As capturas usam dados fictícios de uma demonstração offline isolada.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Painel" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Prévia do Console" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

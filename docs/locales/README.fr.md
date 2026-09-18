@@ -50,7 +50,17 @@ Les flux de travail de développement modernes associent fréquemment plusieurs 
 
 ## Aperçu de la console
 
-![Polaris — Aperçu de la console](../assets/screenshots/credential-pool.png)
+Les captures présentent des données fictives issues d’une démonstration hors ligne isolée.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Tableau de bord" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Aperçu de la console" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 

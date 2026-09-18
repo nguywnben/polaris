@@ -50,7 +50,17 @@
 
 ## コンソールプレビュー
 
-![Polaris — コンソールプレビュー](../assets/screenshots/credential-pool.png)
+スクリーンショットには、隔離されたオフラインデモの架空データを使用しています。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — ダッシュボード" width="1600" height="1100" />
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — コンソールプレビュー" width="1600" height="1100" />
+</picture>
 
 <a id="supported-providers"></a>
 
