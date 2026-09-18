@@ -11,6 +11,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+- Reject remote HTTP setup with a forged loopback Host header unless the operator
+  explicitly allows HTTP. Guided local installation retains its loopback-only bind.
 - Reserve space for password visibility buttons only while the input has content,
   so empty setup and sign-in fields use their full placeholder width.
 - Shorten setup-code placeholders in all 15 languages for mobile screens and use

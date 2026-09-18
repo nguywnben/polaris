@@ -66,11 +66,14 @@ On Windows PowerShell:
 Copy-Item deploy/compose.env.example .env
 ```
 
-The template pins the image, host port, and data-volume name. For interactive setup on the same
-machine, leave `API_KEY`, `PANEL_PASSWORD`, and `SETUP_TOKEN` empty. Before an unconfigured console
-can be reached through a non-loopback host, set a unique `SETUP_TOKEN` of at least 24 characters,
-or set a unique 12–256 character `PANEL_PASSWORD` for non-interactive bootstrap. Never commit the
-populated `.env` file.
+The template pins the image, host port, and data-volume name. Leave `API_KEY` and
+`PANEL_PASSWORD` empty for interactive setup, and set a unique `SETUP_TOKEN` of at least
+24 characters. Docker can hide the original loopback client address, so a local browser
+may also need the token and explicit HTTP consent. For local-only HTTP, set
+`HOST_PORT=127.0.0.1:4283` and `SETUP_ALLOW_INSECURE_HTTP=true` in `.env`. For public access,
+use HTTPS or explicitly accept the HTTP risks described below. Never trust a loopback
+Host header as proof of local transport. Alternatively, set a unique 12–256 character
+`PANEL_PASSWORD` for non-interactive bootstrap. Never commit the populated `.env` file.
 
 ## 4. Start and wait for readiness
 

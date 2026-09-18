@@ -249,9 +249,33 @@ class SetupPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["next_action"], "use_https")
         self.assertEqual(result["checks"]["transport"]["status"], "fail")
 
-    async def test_docker_bridge_request_to_loopback_origin_allows_local_http(self):
+    async def test_loopback_host_cannot_bypass_remote_http_consent(self):
+        token = "a-strong-setup-token-value-123"
+        for client in ("198.51.100.20", "172.18.0.1"):
+            for hostname in ("localhost", "127.0.0.1", "[::1]"):
+                with (
+                    self.subTest(client=client, hostname=hostname),
+                    patch.dict(os.environ, {"SETUP_TOKEN": token}),
+                ):
+                    storage = FakeStorage()
+                    result = await run_setup_preflight(
+                        build_request(client_host=client, hostname=hostname),
+                        storage,
+                        supplied_token=token,
+                    )
+                    self.assertEqual(result["state"], "invalid")
+                    self.assertEqual(result["next_action"], "use_https")
+                    self.assertFalse(storage.values)
+
+    async def test_docker_bridge_request_requires_explicit_http_consent(self):
         request = build_request(client_host="172.18.0.1", hostname="127.0.0.1")
-        with patch.dict(os.environ, {"SETUP_TOKEN": "a-strong-setup-token-value-123"}):
+        with patch.dict(
+            os.environ,
+            {
+                "SETUP_TOKEN": "a-strong-setup-token-value-123",
+                "SETUP_ALLOW_INSECURE_HTTP": "true",
+            },
+        ):
             result = await build_setup_status(
                 request,
                 FakeStorage(),
@@ -262,7 +286,8 @@ class SetupPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["state"], "fresh")
         self.assertEqual(result["next_action"], "enter_setup_token")
         self.assertEqual(
-            result["checks"]["transport"], {"status": "pass", "code": "transport_local"}
+            result["checks"]["transport"],
+            {"status": "warning", "code": "transport_insecure_allowed"},
         )
 
     async def test_remote_setup_without_operator_token_fails_closed(self):

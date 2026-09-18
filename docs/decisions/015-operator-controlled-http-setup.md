@@ -20,6 +20,13 @@ The exception affects initial setup only. Strong setup-token verification, owner
 validation, storage durability, cookie compatibility and origin protection remain unchanged.
 Do not force insecure cookies on HTTPS or trust proxy headers just to make HTTP work.
 
+Local transport requires both a loopback host and a loopback client under the existing
+proxy-trust policy. A loopback Host header alone is not evidence of local access.
+When Docker NAT hides the client, HTTP requires the same explicit server-side flag.
+The guided installer's local mode sets it only while enforcing a loopback-only published
+port; its public mode still requires the operator's HTTP confirmation. Manual Docker and
+Compose users configure this explicitly. No private-subnet heuristic grants local trust.
+
 ## Consequences
 
 - Operators can knowingly complete remote HTTP setup with no domain or TLS prerequisite.

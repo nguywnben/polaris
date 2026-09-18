@@ -93,7 +93,7 @@ class DockerInstallerTests(unittest.TestCase):
             "--read-only",
             "--init",
             "--env SETUP_TOKEN",
-            "--env SETUP_ALLOW_INSECURE_HTTP=false",
+            "--env SETUP_ALLOW_INSECURE_HTTP=true",
             "--mount type=volume,src=polaris-data,dst=/app/backend/data",
             "--security-opt no-new-privileges:true",
             "--log-opt max-size=10m",

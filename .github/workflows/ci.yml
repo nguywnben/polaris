@@ -160,9 +160,10 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: polaris-ci
       IMAGE: polaris:ci
-      HOST_PORT: "4283"
+      HOST_PORT: "127.0.0.1:4283"
       DATA_VOLUME: polaris-ci-data
       SETUP_TOKEN: container-smoke-token-2026-secure
+      SETUP_ALLOW_INSECURE_HTTP: "true"
     permissions:
       contents: read
 

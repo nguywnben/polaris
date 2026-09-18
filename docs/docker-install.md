@@ -30,6 +30,8 @@ The installer asks two plain-language questions:
 
 1. **This computer or VPS?** This computer is the default and only binds to `127.0.0.1`.
    For VPS access, enter the public IPv4 address or hostname shown by your cloud provider.
+   Local mode explicitly permits HTTP inside that loopback-only deployment, because
+   Docker can hide the original client address. A loopback Host header alone is not trusted.
 2. **Accept HTTP risks?** For public HTTP, type `YES` after reading the warning. Enter cancels.
    HTTP does not encrypt passwords, setup codes, cookies, or API traffic. HTTPS is recommended;
    this installer does not configure certificates or a reverse proxy for you.
@@ -108,7 +110,7 @@ docker pull nguywnben/polaris:1.0.0
 export SETUP_TOKEN="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
 docker run -d --name polaris --restart unless-stopped --init --read-only \
   --stop-timeout 45 -p 127.0.0.1:4283:4283 \
-  -e SETUP_TOKEN -e SETUP_ALLOW_INSECURE_HTTP=false \
+  -e SETUP_TOKEN -e SETUP_ALLOW_INSECURE_HTTP=true \
   -e HOST=0.0.0.0 -e PORT=4283 -e WORKERS=1 \
   -e POLARIS_RUNTIME_MODE=standalone -e POLARIS_REPLICA_COUNT=1 \
   --mount type=volume,src=polaris-data,dst=/app/backend/data \
@@ -119,8 +121,8 @@ printf 'Setup code: %s\n' "$SETUP_TOKEN"
 unset SETUP_TOKEN
 ```
 
-For public HTTP, deliberately change the bind to `0.0.0.0:4283:4283` and the HTTP option to
-`true` **only after accepting the risks above**, using the updated image. The direct Docker
+For public HTTP, deliberately change the bind to `0.0.0.0:4283:4283` and retain the HTTP
+option `true` **only after accepting the risks above**, using the updated image. The direct Docker
 command does not perform the installer's compatibility/readiness/collision checks. Follow
 the health check above before opening the web setup page. Docker documents these standard
 [container options](https://docs.docker.com/reference/cli/docker/container/run/).

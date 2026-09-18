@@ -83,6 +83,9 @@ main() {
         bind=0.0.0.0; allow_http=true
     else
         public_host=127.0.0.1
+        # Docker NAT can hide the loopback peer. This installer enforces the local
+        # host-side bind, so HTTP is intentional; never infer this from Host headers.
+        allow_http=true
     fi
 
     command -v docker >/dev/null 2>&1 || fail 'Install and start Docker, then run this installer again.'
