@@ -1,9 +1,10 @@
 # Install Polaris with Docker — no repository clone
 
-**Publication status:** this guided installer and the HTTP setup option are being prepared
-locally for 1.0.0. They are not in the previously published image/tag. Do not run the download
-command against that old release and expect this flow. The installer rejects incompatible
-images before creating application data. Nothing here changes an existing installation.
+This guide applies to the refreshed Polaris 1.0.0 with the guided installer and HTTP
+setup option. An earlier image with the same version does not contain this flow;
+check the source revision and digest in the [release](https://github.com/nguywnben/polaris/releases/tag/v1.0.0).
+The installer pulls the image and rejects incompatible images before creating data.
+It does not update or reset an existing installation.
 
 ## The short path
 
@@ -18,7 +19,7 @@ Docker Desktop's Linux/amd64 engine and an owner-authorized Ubuntu 24.04 x86_64 
 not macOS or ARM64. See the recorded test environment in
 [installer verification](evidence/guided-docker-install-2026-09-18.md).
 
-After the matching installer and updated image are published, run this on the machine where
+Run this on the machine where
 Polaris will live (on a VPS, inside your SSH/Termius session). Use a directory where
 `polaris-install.sh` is not an existing file you want to preserve:
 
@@ -88,7 +89,7 @@ The installer is optional. Run `bash polaris-install.sh --help` to see explicit 
 the HTTP warning; it is never enabled by default. `--wait-seconds` changes the readiness
 deadline (1–900 seconds). The installer uses the local Docker daemon, not remote contexts.
 
-To test this unpublished source without changing a release tag/image:
+To test a source checkout without changing a release tag/image:
 
 ```bash
 docker build -f deploy/Dockerfile -t polaris-install-test:local .

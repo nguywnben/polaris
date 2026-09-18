@@ -56,10 +56,11 @@ evidence below rather than treating that earlier limitation as current.
 - [x] Update the authorized native Ubuntu VPS from copied data, retain original
   container/volume/archive, preserve setup code and leave owner creation to the user.
 - [x] Independent final code review: no unresolved blocking findings.
-- [ ] Owner confirms the two reported interactions on the physical Android device.
+- [x] Owner confirms the two reported interactions on the physical Android device.
 - [ ] After renewed push/publication approval: run CI on the exact final source,
   recheck existing tag/image ownership and verify installation from the published digest.
 
-These remaining publication actions do not authorize a push or release now. Evidence:
+The owner subsequently approved push, CI and refreshed 1.0.0 publication on 2026-09-18;
+complete the remaining exact-source checks before replacing the version. Evidence:
 `docs/evidence/guided-docker-install-2026-09-18.md` and
 `docs/releases/1.0.0-readiness.md`.
