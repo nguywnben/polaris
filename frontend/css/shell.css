@@ -136,8 +136,7 @@
 
 #loginSubmitButton,
 #setupSubmitButton {
-    --control-height: 40px;
-    font-size: var(--type-body);
+    --control-height: 36px;
 }
 
 @media (max-width: 520px) {
