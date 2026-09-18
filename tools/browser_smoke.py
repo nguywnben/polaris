@@ -24,6 +24,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from playwright.sync_api import Page, Route, expect, sync_playwright
+from runtime_isolation import isolated_runtime_environment
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "Polaris-Browser-Smoke-2026"
@@ -102,20 +103,7 @@ def disposable_runtime():
     runtime = scratch / f"runtime-{os.getpid()}-{port}"
     runtime.mkdir()
     try:
-        environment = os.environ.copy()
-        environment.update(
-            PYTHON_DOTENV_DISABLED="1",
-            CREDENTIALS_DIR=str(runtime / "credentials"),
-            LOG_FILE=str(runtime / "runtime.log"),
-            POSTGRESQL_URI="",
-            MONGODB_URI="",
-            PORT=str(port),
-            HOST="127.0.0.1",
-            PANEL_PASSWORD="",
-            SETUP_TOKEN="",
-            POLARIS_RUNTIME_MODE="standalone",
-            ENABLE_LOG="0",
-        )
+        environment = isolated_runtime_environment(runtime, port)
         log_path = runtime / "server-output.log"
         with log_path.open("w", encoding="utf-8") as log_output:
             process = subprocess.Popen(

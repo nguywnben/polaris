@@ -15,6 +15,15 @@ the active project virtual environment.
 Repeat `--test-module` for every directly affected module. Task and phase commands reject empty
 test selections. Use `--dry-run` or `--list` to inspect a gate without executing it.
 
+Before a commit is authorized, use `python tools/quality_gate.py release --working-tree`.
+Its reliability step freezes tracked and non-ignored source files into an isolated snapshot,
+records per-file and combined SHA-256 hashes, and saves the result to
+`temp/release-reliability-working-tree.json`. This is working-tree evidence, not a tagged
+candidate certification. The normal release command still measures the immutable Git candidate.
+Never edit source while a snapshot is being collected. Ignored `.env`, databases and preview
+artifacts are not copied. The browser runtime keeps only OS launch variables, disables dotenv
+and price synchronization, and never inherits operator keys, proxies or telemetry settings.
+
 The required Chromium harness is `python tools/browser_smoke.py`. Install its isolated dependency
 with `python -m pip install -r requirements-browser.txt` and its browser with
 `python -m playwright install chromium`. It starts a fresh loopback-only runtime, uses disposable
@@ -31,6 +40,11 @@ Run it directly with `python tools/reliability_profile.py --profile routine --ve
 The application and container smokes remain required CI evidence; the release runner labels them
 as CI-owned instead of pretending to execute them locally. The release checklist requires the
 application, browser, and container jobs to pass for the same candidate commit.
+
+Manual `workflow_dispatch` runs are verification-only, including when dispatched on
+`main` or a tag. Container publication is restricted to push events on `main` or
+`v*` tags; release creation requires a `v*` tag push and all required jobs. Use manual
+dispatch on the preparation branch to collect CI evidence without publishing anything.
 
 The phase/release configuration contracts also run the versioned R1 compatibility guard and load
 the pre-R1 SQLite upgrade fixture. See [Compatibility and deprecation](compatibility.md).

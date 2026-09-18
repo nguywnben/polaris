@@ -6,7 +6,7 @@ import argparse
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -299,6 +299,11 @@ def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("gate", nargs="?", choices=("fast", "task", "phase", "release"))
     parser.add_argument("--test-module", action="append", default=[])
+    parser.add_argument(
+        "--working-tree",
+        action="store_true",
+        help="For release checks, benchmark a recorded source snapshot without committing.",
+    )
     parser.add_argument("--list", action="store_true", help="List a gate without executing it.")
     parser.add_argument(
         "--dry-run", action="store_true", help="Print exact gate steps and commands."
@@ -312,6 +317,29 @@ def main(arguments: list[str] | None = None) -> int:
         parser.error("a gate is required unless --list-suites is used")
     try:
         plan = build_gate_plan(options.gate, tuple(options.test_module))
+        if options.working_tree:
+            if options.gate != "release":
+                parser.error("--working-tree is only supported for the release gate")
+            plan = tuple(
+                replace(
+                    step,
+                    label=step.label + " (source snapshot)",
+                    commands=(
+                        (
+                            PYTHON,
+                            "tools/reliability_profile.py",
+                            "--profile",
+                            "routine",
+                            "--working-tree",
+                            "--output",
+                            "temp/release-reliability-working-tree.json",
+                        ),
+                    ),
+                )
+                if step.id == "reliability-profile"
+                else step
+                for step in plan
+            )
     except ValueError as exc:
         parser.error(str(exc))
     if options.list or options.dry_run:

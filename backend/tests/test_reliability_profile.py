@@ -6,9 +6,11 @@ import hashlib
 import inspect
 import json
 import os
+import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.reliability_profile import (
     MemorySample,
@@ -25,6 +27,39 @@ SOAK_PROFILE_PATH = ROOT / "tools" / "reliability-soak-profile.json"
 
 
 class ReliabilityProfileContractTests(unittest.TestCase):
+    def test_benchmark_disables_background_network_pricing_sync(self) -> None:
+        from tools.reliability_profile import CandidateRuntime
+
+        self.assertIn('PRICING_SYNC_ENABLED="false"', inspect.getsource(CandidateRuntime.start))
+
+    def test_working_tree_snapshot_uses_current_bytes_and_records_digest(self) -> None:
+        from tools.reliability_profile import snapshot_working_tree
+
+        with tempfile.TemporaryDirectory(dir=ROOT / "temp") as directory:
+            root = Path(directory) / "repo"
+            target = Path(directory) / "snapshot"
+            (root / "backend").mkdir(parents=True)
+            (root / "frontend").mkdir()
+            target.mkdir()
+            (root / "backend/main.py").write_text("changed", encoding="utf-8")
+            (root / "frontend/new.js").write_text("new", encoding="utf-8")
+            with (
+                patch("tools.reliability_profile.ROOT", root),
+                patch(
+                    "tools.reliability_profile._git_output",
+                    return_value="backend/main.py\0frontend/new.js\0backend/deleted.py\0",
+                ),
+            ):
+                result = snapshot_working_tree(target)
+            self.assertEqual((target / "backend/main.py").read_text(), "changed")
+            self.assertEqual((target / "frontend/new.js").read_text(), "new")
+            self.assertFalse((target / "backend/deleted.py").exists())
+            self.assertEqual(result["file_count"], 2)
+            self.assertEqual(len(result["sha256"]), 64)
+            self.assertEqual(
+                result["files"]["backend/main.py"], hashlib.sha256(b"changed").hexdigest()
+            )
+
     def test_routine_profile_is_bounded_for_small_team_releases(self) -> None:
         profile = load_profile(PROFILE_PATH)
 
