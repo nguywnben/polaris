@@ -17,6 +17,25 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_compact_badges_keep_full_plan_and_oauth_in_management(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+const plan = 'Muse Code Power Usage';
+const badge = renderCredentialSubscriptionBadge('test', plan, 'provider_plan');
+assert(badge.includes(`class="credential-badge-label">${{plan}}</span>`), 'Card should show the plan without the Gói prefix');
+assert(badge.includes('tabindex="0"') && badge.includes('credential-badge-tooltip'), 'Full plan must be available on focus');
+assert(badge.includes(plan) && !badge.includes('Power…'), 'Truncation must be visual, not data loss');
+assert(renderCredentialSubscriptionBadge('test', '', 'provider_plan').includes('hidden'), 'Unknown plans stay hidden');
+const unsafe = renderCredentialSubscriptionBadge('test', '<img src=x>', 'provider_plan');
+assert(!unsafe.includes('<img'), 'Provider plan text must be escaped');
+const oauth = {{id: 'muse_code'}};
+const info = {{credential_type: 'oauth'}};
+assert(renderCredentialAuthenticationBadge(oauth, info, {{compact: true}}) === '', 'Do not repeat OAuth in compact cards');
+assert(renderCredentialAuthenticationBadge(oauth, info).includes('OAuth'), 'Management still shows OAuth');
+assert(renderCredentialAuthenticationBadge({{id: 'openai_platform'}}, {{}}, {{compact: true}}).includes('credentials.workspace.api_key'), 'Keep API key badges');
+""")
+
     def test_provider_sections_are_ordered_by_matching_credential_count(self) -> None:
         self._run_manager_contract("""
 const list = new TestElement();

@@ -650,6 +650,69 @@
 .cred-context .subscription-badge { max-width: 100%; }
 .cred-context .cooldown-badge { text-align: left; justify-content: flex-start; }
 
+.cred-summary {
+    position: relative;
+    flex-wrap: nowrap;
+    align-items: center;
+    min-width: 0;
+}
+
+.cred-summary > :not([hidden]) {
+    flex: 0 1 auto;
+    white-space: nowrap;
+}
+
+.cred-summary > .enabled,
+.cred-summary > .disabled,
+.cred-summary > .credit-on {
+    flex-shrink: 0;
+}
+
+.cred-summary > .error-codes {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cred-summary .subscription-badge {
+    display: inline-flex;
+    overflow: visible;
+}
+
+.credential-badge-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.credential-badge-tooltip {
+    display: none;
+    position: absolute;
+    inset-inline: 0;
+    bottom: calc(100% + 6px);
+    z-index: 2;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: start;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.credential-badge-hint:is(:hover, :focus-visible) .credential-badge-tooltip {
+    display: block;
+}
+
+.credential-badge-hint:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
 .cred-actions {
     display: grid;
     gap: 8px;

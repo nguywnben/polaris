@@ -262,12 +262,11 @@ function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
         return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge muted" hidden></span>`;
     }
 
-    const badgeLabel = plan.kind === 'tier'
-        ? t('credential_badge_tier', {tier: escapeHtml(plan.label)})
-        : t('credential_badge_plan', {plan: escapeHtml(plan.label)});
-    const title = t(plan.kind === 'tier' ? 'credential_badge_tier' : 'credential_badge_plan', {tier: plan.label, plan: plan.label});
+    const title = plan.kind === 'tier'
+        ? t('credential_badge_tier', {tier: plan.label})
+        : t('credential_badge_plan', {plan: plan.label});
 
-    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}" title="${escapeAttribute(title)}">${badgeLabel}</span>`;
+    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge credential-badge-hint ${plan.badgeClass}" tabindex="0" aria-label="${escapeAttribute(title)}"><span class="credential-badge-label">${escapeHtml(plan.label)}</span><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(title)}</span></span>`;
 
 }
 
@@ -285,10 +284,10 @@ function getCredentialAuthenticationType(providerMeta, credInfo) {
 
 }
 
-function renderCredentialAuthenticationBadge(providerMeta, credInfo) {
+function renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact = false} = {}) {
 
     const authenticationType = getCredentialAuthenticationType(providerMeta, credInfo);
-    if (!authenticationType) return '';
+    if (!authenticationType || (compact && authenticationType === 'OAuth')) return '';
 
     const label = authenticationType === 'Connection' ? t('pool.kind.connection')
         : authenticationType === 'API key' ? t('credentials.workspace.api_key') : authenticationType;
@@ -345,6 +344,7 @@ function createCredCard(credInfo, manager) {
 
     let statusBadges = '';
     let contextBadges = '';
+    let cooldownBadges = '';
 
     statusBadges += status.disabled
 
@@ -354,7 +354,8 @@ function createCredCard(credInfo, manager) {
 
     if (status.error_codes && status.error_codes.length > 0) {
 
-        statusBadges += `<span class="error-codes">${t('error_code_prefix')} ${escapeHtml(status.error_codes.join(', '))}</span>`;
+        const errorLabel = `${t('error_code_prefix')} ${status.error_codes.join(', ')}`;
+        statusBadges += `<span class="error-codes" title="${escapeAttribute(errorLabel)}">${escapeHtml(errorLabel)}</span>`;
 
         const autoBan = status.error_codes.filter(c => c === 400 || c === 403);
 
@@ -372,7 +373,7 @@ function createCredCard(credInfo, manager) {
 
     }
 
-    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo);
+    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact: true});
 
     if (!isManagedCredential) {
         statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
@@ -412,7 +413,8 @@ function createCredCard(credInfo, manager) {
 
     if (managerType === 'primary' && isAntigravity && credInfo.enable_credit) {
 
-        contextBadges += `<span class="status-badge credit-on" title="${t('credit_enabled_title')}">${t('credential_badge_credits', {state: t('credential_state_on')})}</span>`;
+        const creditLabel = t('credit_enabled_title');
+        contextBadges += `<span class="status-badge credit-on credential-badge-hint" tabindex="0" aria-label="${escapeAttribute(creditLabel)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(creditLabel)}</span></span>`;
 
     }
 
@@ -448,7 +450,7 @@ function createCredCard(credInfo, manager) {
 
             activeCooldowns.slice(0, 2).forEach(item => {
 
-                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
+                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
 
             });
 
@@ -458,7 +460,7 @@ function createCredCard(credInfo, manager) {
 
                 const remainingModels = activeCooldowns.slice(2).map(i => `${i.fullModel}: ${i.time}`).join('\n');
 
-                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
+                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
 
             }
 
@@ -515,8 +517,8 @@ function createCredCard(credInfo, manager) {
 
             </div>
 
-            <div class="cred-status">${statusBadges}</div>
-            <div class="cred-status cred-context">${contextBadges}</div>
+            <div class="cred-status cred-summary">${statusBadges}${contextBadges}</div>
+            ${cooldownBadges ? `<div class="cred-status cred-context">${cooldownBadges}</div>` : ''}
 
         </div>
 
