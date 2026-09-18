@@ -52,10 +52,14 @@ Alur kerja coding modern sering menggabungkan berbagai klien dan penyedia: alat 
 
 Tangkapan layar menggunakan data fiktif dari demo luring yang terisolasi.
 
+### Dasbor
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dasbor" />
 </picture>
+
+### Kredensial
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

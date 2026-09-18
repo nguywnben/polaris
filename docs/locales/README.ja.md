@@ -52,10 +52,14 @@
 
 スクリーンショットには、隔離されたオフラインデモの架空データを使用しています。
 
+### ダッシュボード
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — ダッシュボード" />
 </picture>
+
+### 認証情報
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

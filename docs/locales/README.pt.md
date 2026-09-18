@@ -52,10 +52,14 @@ Fluxos de trabalho de desenvolvimento modernos costumam misturar múltiplos clie
 
 As capturas usam dados fictícios de uma demonstração offline isolada.
 
+### Painel
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Painel" />
 </picture>
+
+### Credenciais
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

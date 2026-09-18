@@ -69,10 +69,14 @@ Quy trình lập trình hiện đại thường kết hợp nhiều client và p
 
 Ảnh chụp sử dụng dữ liệu giả lập trong môi trường demo offline riêng.
 
+### Bảng điều khiển
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Bảng điều khiển Polaris" />
 </picture>
+
+### Thông tin xác thực
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

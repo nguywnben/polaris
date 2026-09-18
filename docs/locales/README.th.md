@@ -52,10 +52,14 @@ README นี้มี 15 ภาษาและครอบคลุมควา
 
 ภาพหน้าจอใช้ข้อมูลสมมติจากสภาพแวดล้อมสาธิตแบบออฟไลน์ที่แยกไว้
 
+### แดชบอร์ด
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — แดชบอร์ด" />
 </picture>
+
+### ข้อมูลรับรอง
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

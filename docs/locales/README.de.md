@@ -52,10 +52,14 @@ Moderne Entwicklungs-Workflows kombinieren oft mehrere Clients und Anbieter: Ope
 
 Die Screenshots zeigen fiktive Daten aus einer isolierten Offline-Demo.
 
+### Dashboard
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" />
 </picture>
+
+### Zugangsdaten
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

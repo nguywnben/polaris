@@ -52,10 +52,14 @@
 
 截图使用隔离的离线演示环境中的虚构数据。
 
+### 仪表盘
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 仪表盘" />
 </picture>
+
+### 凭据
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

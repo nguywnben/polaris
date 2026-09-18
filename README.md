@@ -69,10 +69,14 @@ Modern coding workflows often mix clients and providers: OpenAI-compatible tools
 
 Screenshots use fictional data from an isolated offline demo.
 
+### Dashboard
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/dashboard-dark.png" />
   <img src="docs/assets/screenshots/dashboard-light.png" alt="Polaris dashboard" />
 </picture>
+
+### Credentials
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/credentials-dark.png" />
