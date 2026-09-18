@@ -149,6 +149,34 @@ class CompatibilitySnapshotTests(unittest.TestCase):
             legacy_app.openapi()["components"]["schemas"]["OpenAIResponsesRequest"],
         )
 
+    def test_stream_options_evolution_is_exact_and_does_not_exempt_future_changes(self):
+        import main
+        from core.models import OpenAIChatCompletionRequest
+
+        from tools.compatibility_snapshot import _operation_snapshot
+
+        fixture = _load_json(ROOT / "docs/compatibility/chat-stream-options-v1.json")
+        request = OpenAIChatCompletionRequest.model_validate(fixture["request"])
+        self.assertTrue(request.stream_options.include_usage)
+        legacy_document = copy.deepcopy(main.app.openapi())
+        chat_schema = legacy_document["components"]["schemas"]["OpenAIChatCompletionRequest"]
+        self.assertNotIn("stream_options", chat_schema.get("required", []))
+        del chat_schema["properties"]["stream_options"]
+        for expected in fixture["operations"]:
+            self.assertIn(expected, self.current["public_inference_operations"])
+            self.assertIn(
+                _operation_snapshot(legacy_document, "POST", expected["path"]),
+                self.baseline["public_inference_operations"],
+            )
+            changed = copy.deepcopy(self.current)
+            for operation in changed["public_inference_operations"]:
+                if operation["path"] == expected["path"] and operation["method"] == "POST":
+                    operation["semantic_sha256"] = "0" * 64
+            self.assertIn(
+                f"changed public_inference_operations: POST {expected['path']}",
+                compare_snapshots(self.baseline, changed),
+            )
+
 
 class PreR1SQLiteUpgradeTests(unittest.IsolatedAsyncioTestCase):
     async def test_pre_r1_fixture_upgrades_without_losing_credentials_or_config(self) -> None:

@@ -2,6 +2,7 @@ import json
 import uuid
 
 from core.models import OpenAIChatCompletionRequest, model_to_dict
+from core.router.openai_stream_options import apply_stream_options
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
@@ -150,6 +151,11 @@ async def chat_completions(
         yield "data: [DONE]\n\n".encode("utf-8")
 
     return await build_streaming_response_or_error(
-        cascade_close_async_iterator(stream_generator(), owned_streams),
+        apply_stream_options(
+            cascade_close_async_iterator(stream_generator(), owned_streams),
+            include_usage=bool(
+                openai_request.stream_options and openai_request.stream_options.include_usage
+            ),
+        ),
         error_protocol="openai",
     )

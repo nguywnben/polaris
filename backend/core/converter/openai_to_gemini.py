@@ -1411,6 +1411,9 @@ def convert_gemini_to_openai_stream(
     else:
         gemini_response = gemini_chunk
 
+    if "error" in gemini_response:
+        return f"data: {json.dumps({'error': gemini_response['error']})}\n\n"
+
     choices = []
 
     for candidate in gemini_response.get("candidates", []):
@@ -1506,8 +1509,7 @@ def convert_gemini_to_openai_stream(
     }
 
     if usage:
-        has_finish_reason = any(choice.get("finish_reason") for choice in choices)
-        if has_finish_reason:
-            response_data["usage"] = usage
+        # Keep usage-only upstream frames; the public stream layer applies include_usage.
+        response_data["usage"] = usage
 
     return f"data: {json.dumps(response_data)}\n\n"

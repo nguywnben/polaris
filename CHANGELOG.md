@@ -11,6 +11,14 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept Chat Completions `stream_options.include_usage` used by VS Code and OpenCode.
+  Emit requested usage once before `[DONE]`, preserve tool-call deltas and upstream errors,
+  and retain usage-only provider frames, including fake streams and continuation attempts.
+  Preserve `tool_calls` finish reasons when providers send the stop marker separately.
+- Preserve streamed usage totals in the translated Responses API.
+
 ## [1.0.0] - 2026-09-18
 
 This refreshed 1.0.0 includes the guided installation and phone interaction fixes.

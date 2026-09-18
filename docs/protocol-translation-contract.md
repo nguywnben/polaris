@@ -38,6 +38,16 @@ or `rejected`. A provider's eligibility for a family remains defined by the sepa
 
 ## Response rules
 
+- Chat Completions accepts nullable `stream_options`; a non-null object requires
+  `stream: true`. The supported option is the boolean `include_usage` (default false).
+  Unknown options remain rejected rather than silently ignored.
+- With `include_usage: true`, ordinary chunks carry `usage: null` and one separate chunk
+  with `choices: []` carries the latest reported usage immediately before `[DONE]`.
+  Without it, usage is omitted from streaming chunks. Missing upstream usage is not
+  invented; interrupted/error streams need not emit a final usage chunk. Continuation
+  attempts sum their last cumulative snapshots without double-counting intermediate frames.
+  These rules also apply to fake streaming and the Vertex OpenAI alias.
+
 - Gemini thought parts map to OpenAI `reasoning_content`, Responses reasoning summary items, and
   Anthropic thinking blocks with the official `signature` field.
 - Tool calls, text, generated inline images, and supported code-execution parts remain visible in
