@@ -24,6 +24,20 @@ from fastapi import Response
 
 
 class ProtocolErrorUnitTests(unittest.IsolatedAsyncioTestCase):
+    def test_retry_after_is_validated_not_an_arbitrary_upstream_string(self):
+        for value, expected in (
+            ("37", "37"),
+            ("Fri, 18 Sep 2026 10:00:00 GMT", "Fri, 18 Sep 2026 10:00:00 GMT"),
+            ("secret-provider-token", None),
+            ("-1", None),
+            ("9" * 200, None),
+        ):
+            with self.subTest(value=value):
+                result = adapt_protocol_error_response(
+                    Response("{}", status_code=429, headers={"Retry-After": value}), "openai"
+                )
+                self.assertEqual(result.headers.get("retry-after"), expected)
+
     def test_paths_map_to_their_sdk_protocol(self):
         self.assertEqual(protocol_for_path("/v1/chat/completions"), "openai")
         self.assertEqual(protocol_for_path("/v1/responses"), "openai")

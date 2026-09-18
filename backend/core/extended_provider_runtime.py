@@ -13,6 +13,7 @@ import json
 from collections.abc import Awaitable, Callable
 from contextlib import aclosing
 
+from core.http_headers import retry_after_headers
 from core.httpx_client import http_client
 from core.provider_registry import EXTENDED_PROVIDERS, get_credential_provider
 from fastapi import Response
@@ -460,6 +461,7 @@ async def stream_extended_request(
                     ),
                     status_code=response.status_code,
                     media_type="application/json",
+                    headers=retry_after_headers(response.headers),
                 )
                 return
             if provider == "kiro":

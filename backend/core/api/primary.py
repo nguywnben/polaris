@@ -850,7 +850,7 @@ async def _stream_request_upstream(
                         return
                     elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                         log.warning(
-                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
+                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                         )
 
                         cooldown_until = None
@@ -893,7 +893,7 @@ async def _stream_request_upstream(
                             return
                     else:
                         log.error(
-                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
+                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
                         )
                         await record_api_call_error(
                             credential_manager,
@@ -1606,7 +1606,7 @@ async def _non_stream_request_upstream(
                     return last_error_response
                 elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                     log.warning(
-                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                     )
 
                     cooldown_until = None
@@ -1645,7 +1645,7 @@ async def _non_stream_request_upstream(
                         return last_error_response
                 else:
                     log.error(
-                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
                     )
                     await record_api_call_error(
                         credential_manager,

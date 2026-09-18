@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
+from core.http_headers import retry_after_headers
 from fastapi import Response
 from fastapi.responses import JSONResponse
 from log import redact_text
@@ -12,7 +13,6 @@ from log import redact_text
 ProtocolName = Literal["openai", "anthropic", "gemini"]
 
 _SAFE_RESPONSE_HEADERS = {
-    "retry-after",
     "www-authenticate",
     "x-request-id",
     "request-id",
@@ -211,6 +211,7 @@ def adapt_protocol_error_response(
         for key, value in response.headers.items()
         if key.lower() in _SAFE_RESPONSE_HEADERS
     }
+    headers.update(retry_after_headers(response.headers))
     return protocol_error_response(
         protocol,
         response.status_code,
