@@ -181,12 +181,6 @@
 #dashboardTab #trafficChartCard { order: -1; }
 #dashboardTab #usageBreakdownCard { order: 1; }
 #dashboardTab #historicalUsageSection { order: 1; }
-#dashboardTab .pagination-btn[aria-busy="true"] {
-    background: color-mix(in srgb, var(--surface) 88%, var(--text));
-    border-color: var(--control-hover-border);
-    color: var(--text);
-    cursor: wait;
-}
 #dashboardTab #recentActivityCard,
 #dashboardTab #providerHealthCard { order: 2; }
 @media (min-width: 961px) {
