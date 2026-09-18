@@ -13,6 +13,7 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Shorten the virtual-key secret dialog's copy button label.
 - Accept Chat Completions `stream_options.include_usage` used by VS Code and OpenCode.
   Emit requested usage once before `[DONE]`, preserve tool-call deltas and upstream errors,
   and retain usage-only provider frames, including fake streams and continuation attempts.
