@@ -52,10 +52,14 @@ I moderni flussi di lavoro di sviluppo combinano spesso molteplici client e prov
 
 Le schermate mostrano dati fittizi di una demo offline isolata.
 
+### Dashboard
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" />
 </picture>
+
+### Credenziali
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

@@ -52,10 +52,14 @@
 
 螢幕截圖使用隔離的離線示範環境中的虛構資料。
 
+### 儀表板
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 儀表板" />
 </picture>
+
+### 憑證
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

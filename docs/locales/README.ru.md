@@ -52,10 +52,14 @@
 
 На скриншотах показаны вымышленные данные из изолированной офлайн-демонстрации.
 
+### Панель управления
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Панель управления" />
 </picture>
+
+### Учётные данные
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

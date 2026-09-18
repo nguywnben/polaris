@@ -52,10 +52,14 @@ Les flux de travail de développement modernes associent fréquemment plusieurs 
 
 Les captures présentent des données fictives issues d’une démonstration hors ligne isolée.
 
+### Tableau de bord
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Tableau de bord" />
 </picture>
+
+### Identifiants
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

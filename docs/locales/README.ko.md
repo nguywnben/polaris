@@ -52,10 +52,14 @@
 
 스크린샷은 격리된 오프라인 데모의 가상 데이터를 사용합니다.
 
+### 대시보드
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 대시보드" />
 </picture>
+
+### 자격 증명
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

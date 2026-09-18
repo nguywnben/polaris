@@ -52,10 +52,14 @@ Modern kodlama iş akışları genellikle istemcileri ve sağlayıcıları bir a
 
 Ekran görüntülerinde yalıtılmış çevrimdışı demodan alınan kurgusal veriler kullanılır.
 
+### Gösterge Paneli
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Gösterge Paneli" />
 </picture>
+
+### Kimlik Bilgileri
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />

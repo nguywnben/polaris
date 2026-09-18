@@ -52,10 +52,14 @@ Los flujos de trabajo de desarrollo modernos a menudo combinan múltiples client
 
 Las capturas muestran datos ficticios de una demo sin conexión y aislada.
 
+### Panel de control
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
   <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Panel de control" />
 </picture>
+
+### Credenciales
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
