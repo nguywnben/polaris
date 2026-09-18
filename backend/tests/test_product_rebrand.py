@@ -36,6 +36,26 @@ PUBLIC_ROOT_FILES = (
     ROOT / "render.yaml",
 )
 
+# RR5: the owner explicitly retained legacy release provenance on 2026-09-18.
+# Only historical prose/archive refs in these records are allowed, not old runtime
+# aliases, environment names, API keys or product names elsewhere.
+HISTORICAL_RELEASE_RECORDS = {
+    "CHANGELOG.md",
+    "docs/audits/release-readiness-2026-09-18.md",
+    "docs/releases/1.0.0-preparation.md",
+    "docs/releases/1.0.0-registry-inventory.md",
+    "docs/releases/tag-migration-2026-09-18.md",
+    "tasks/current.md",
+    "tasks/release-readiness-2026-09-18.md",
+}
+
+
+def _without_historical_release_mentions(relative_path: str, content: str) -> str:
+    if relative_path not in HISTORICAL_RELEASE_RECORDS:
+        return content
+    content = re.sub(r"Om" + r"ni\s+Gateway", "Legacy product", content)
+    return content.replace("om" + "ni-gateway/", "archived/")
+
 
 def _public_text_files() -> list[Path]:
     files = [path for path in PUBLIC_ROOT_FILES if path.is_file()]
@@ -53,6 +73,19 @@ def _public_text_files() -> list[Path]:
 
 
 class ProductRebrandContractTests(unittest.TestCase):
+    def test_historical_exemption_does_not_allow_runtime_legacy_identifiers(self):
+        historical = "Om" + "ni Gateway: om" + "ni-gateway/v1.0.0"
+        self.assertEqual(
+            _without_historical_release_mentions("CHANGELOG.md", historical),
+            "Legacy product: archived/v1.0.0",
+        )
+        for path in ("backend/config.py", "frontend/index.html", "README.md"):
+            self.assertEqual(_without_historical_release_mentions(path, historical), historical)
+        identifiers = "OM" + "NI_API_KEY sk-og" + "w-example om" + "ni-gateway:1.0.0"
+        self.assertEqual(
+            _without_historical_release_mentions("CHANGELOG.md", identifiers), identifiers
+        )
+
     def test_tracked_text_has_no_legacy_product_identifiers(self):
         tracked = (
             subprocess.run(
@@ -86,6 +119,7 @@ class ProductRebrandContractTests(unittest.TestCase):
                 content = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
                 continue
+            content = _without_historical_release_mentions(relative_path, content)
             matches = sorted({match.group(0) for match in legacy_pattern.finditer(content)})
             if matches:
                 stale[relative_path] = matches
@@ -95,7 +129,10 @@ class ProductRebrandContractTests(unittest.TestCase):
     def test_public_product_name_is_polaris(self):
         stale: list[str] = []
         for path in _public_text_files():
-            if "Om" + "ni Gateway" in path.read_text(encoding="utf-8"):
+            content = _without_historical_release_mentions(
+                path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8")
+            )
+            if "Om" + "ni Gateway" in content:
                 stale.append(path.relative_to(ROOT).as_posix())
 
         self.assertEqual(stale, [])
@@ -118,7 +155,7 @@ class ProductRebrandContractTests(unittest.TestCase):
         self.assertIn("github.com/nguywnben/polaris", readme)
         self.assertIn("hub.docker.com/r/nguywnben/polaris", readme)
         self.assertIn("ghcr.io/nguywnben/polaris", readme)
-        self.assertIn("${IMAGE:-nguywnben/polaris:0.1.0-beta.1}", compose)
+        self.assertIn("${IMAGE:-nguywnben/polaris:1.0.0}", compose)
         self.assertIn("${DATA_VOLUME:-polaris-data}", compose)
         self.assertIn("IMAGE=nguywnben/polaris:", compose_environment)
         self.assertIn("DATA_VOLUME=polaris-data", compose_environment)

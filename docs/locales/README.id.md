@@ -127,7 +127,7 @@ Lihat [Arsitektur](../architecture.md) untuk batasan modul, alur permintaan, kep
 
 Docker Compose pada satu mesin dan satu worker adalah jalur utama. Ikuti [instalasi](../installation.md) dan [matriks dukungan](../installation.md#support-matrix).
 
-Profil dasar tidak memerlukan layanan eksternal dan menyimpan data dalam `polaris-data`. Templat menetapkan `0.1.0-beta.1`; ikuti [pembaruan dan rollback](../updating.md). Fitur lanjutan bersifat opsional melalui `deploy/compose.advanced.yml`.
+Profil dasar tidak memerlukan layanan eksternal dan menyimpan data dalam `polaris-data`. Templat menyiapkan `1.0.0`, yang belum dirilis. Selesaikan konflik tag/image lama sebelum instalasi sesuai [daftar periksa rilis](../releases/1.0.0-preparation.md). Ikuti [pembaruan dan rollback](../updating.md); fitur lanjutan bersifat opsional melalui `deploy/compose.advanced.yml`.
 
 Lihat [kontrak pengenal](../migrations/polaris.md) dan [pemecahan masalah](../troubleshooting.md). Skrip native, `docker run`, Render, dan Zeabur adalah jalur kompatibilitas tanpa verifikasi instalasi/pemulihan yang setara. Image diterbitkan untuk `linux/amd64`; publikasi `linux/arm64` masih ditangguhkan.
 
@@ -415,9 +415,9 @@ Impor massal Google AI Studio menerima file JSON dan arsip ZIP yang berisi file 
 }
 ```
 
-Setiap kunci yang diimpor divalidasi sebelum disimpan. Kunci duplikat dalam impor yang sama dilewati, kunci yang ada divalidasi ulang dan diperbarui, dan entri yang tidak valid dilaporkan tanpa mengekspos nilai kunci.
+Impor berkas dilakukan secara offline: Polaris memeriksa struktur JSON/ZIP, menyimpan kunci baru sebagai `unverified`, dan melewati kunci duplikat atau yang sudah ada tanpa menghubungi Google. Daftar model yang diimpor tidak dianggap terverifikasi. Kesalahan format dilaporkan tanpa mengungkap kunci. Setelah itu, jalankan verifikasi/penemuan model kredensial secara eksplisit; **Test model** memeriksa akses inferensi secara terpisah dan dapat memakai kuota atau menimbulkan biaya.
 
-Grok Build mendukung kredensial PKCE OAuth, sedangkan SpaceXAI Console mendukung kunci API. Kunci SpaceXAI Console divalidasi terhadap katalog model Grok Build sebelum disimpan. Untuk Grok Build OAuth, Polaris menghasilkan tautan otorisasi; setelah otorisasi, salin kode yang ditampilkan pada halaman otorisasi Grok Build dan tempelkan ke dalam formulir Grok Build OAuth. Token akses diperbarui secara otomatis saat refresh token tersedia, dan kedua jenis kredensial hanya mengekspos model Grok Build yang dinyatakan oleh katalog saat ini. Halaman Credentials dapat mengambil penggunaan kredit bulanan dan, ketika xAI menyediakannya, penggunaan mingguan untuk akun Grok Build OAuth. Tampilan penagihan tingkat akun ini tidak tersedia untuk kunci API SpaceXAI Console.
+Grok Build mendukung kredensial PKCE OAuth, sedangkan SpaceXAI Console mendukung kunci API. Kunci SpaceXAI Console divalidasi terhadap katalog model API SpaceXAI Console sebelum disimpan. Untuk Grok Build OAuth, Polaris menghasilkan tautan otorisasi; setelah otorisasi, salin kode yang ditampilkan pada halaman otorisasi Grok Build dan tempelkan ke dalam formulir Grok Build OAuth. Token akses diperbarui secara otomatis saat refresh token tersedia, dan kedua jenis kredensial hanya mengekspos model yang dinyatakan oleh katalog masing-masing. Halaman Credentials dapat mengambil penggunaan kredit bulanan dan, ketika xAI menyediakannya, penggunaan mingguan untuk akun Grok Build OAuth. Tampilan penagihan tingkat akun ini tidak tersedia untuk kunci API SpaceXAI Console.
 
 Codex menggunakan alur otorisasi perangkat OpenAI. Hasilkan kode perangkat dari halaman Providers, buka URL verifikasi yang ditampilkan, masukkan kode, selesaikan proses masuk, dan kembali untuk memeriksa otorisasi. Polaris menyimpan katalog model cakupan akun yang dikembalikan oleh Codex, menyegarkan token akses OAuth saat diperlukan, dan mengirim permintaan yang kompatibel melalui transportasi Codex Responses. OpenAI Platform menggunakan autentikasi kunci API; kunci divalidasi melalui katalog model akun sebelum disimpan di Credentials. Kedua produk mendukung impor JSON dan ZIP dengan validasi khusus penyedia dan deduplikasi.
 

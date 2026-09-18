@@ -7,7 +7,11 @@ databases, Kubernetes, multiple workers, or multiple replicas.
 
 ## Before You Begin
 
-1. Choose an exact release such as `0.1.0-beta.1` or a registry digest. The updater rejects untagged
+For the prepared `1.0.0` target, first resolve the legacy tag/image collision using the
+[publication checklist](releases/1.0.0-preparation.md). Do not use an old image under
+that tag as evidence for this checkout; prefer verified image digests across the reset.
+
+1. Choose an exact published release or a registry digest. The updater rejects untagged
    images, `latest`, and `edge`.
 2. Keep the same root `.env`, Compose files, project name, and `DATA_VOLUME` used by the running
    deployment. Preflight compares the rendered environment and `HOST_PORT` with the active

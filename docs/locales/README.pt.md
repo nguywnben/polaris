@@ -127,7 +127,7 @@ Consulte [Arquitetura](../architecture.md) para saber mais sobre limites de mód
 
 Docker Compose é a opção principal para uma máquina e um worker. Siga a [instalação](../installation.md) e a [matriz de suporte](../installation.md#support-matrix).
 
-O perfil básico dispensa serviços externos e mantém dados em `polaris-data`. O modelo fixa `0.1.0-beta.1`; siga [atualização e reversão](../updating.md). Recursos avançados são opcionais via `deploy/compose.advanced.yml`.
+O perfil básico dispensa serviços externos e mantém dados em `polaris-data`. O modelo prepara `1.0.0`, ainda não publicada. Antes da instalação, resolva o conflito com tags/imagens antigas conforme a [lista de publicação](../releases/1.0.0-preparation.md). Siga [atualização e reversão](../updating.md); recursos avançados são opcionais via `deploy/compose.advanced.yml`.
 
 Consulte [identificadores](../migrations/polaris.md) e [solução de problemas](../troubleshooting.md). Scripts nativos, `docker run`, Render e Zeabur são caminhos de compatibilidade sem as mesmas verificações. Imagens para `linux/amd64`; publicação `linux/arm64` suspensa.
 
@@ -415,9 +415,9 @@ A importação em lote do Google AI Studio aceita arquivos JSON e arquivos ZIP c
 }
 ```
 
-Cada chave importada é validada antes de ser armazenada. Chaves duplicadas no mesmo lote são desconsideradas, chaves existentes são revalidadas e atualizadas e entradas inválidas são informadas sem expor o valor da chave.
+A importação de arquivos é offline: o Polaris verifica a estrutura JSON/ZIP, salva novas chaves como `unverified` e ignora chaves duplicadas ou existentes sem contatar o Google. As listas de modelos importadas não são consideradas verificadas. Erros de formato são informados sem expor as chaves. Depois, execute explicitamente a verificação/descoberta de modelos da credencial; **Test model** verifica o acesso à inferência separadamente e pode consumir cota ou gerar cobrança.
 
-O Grok Build suporta autenticação OAuth PKCE, enquanto o SpaceXAI Console aceita chaves de API. Chaves do SpaceXAI Console são validadas contra o catálogo do Grok Build antes de serem salvas. Para o Grok Build OAuth, o gateway gera um link de autorização; ao concluir, copie o código exibido na página do Grok Build e cole no formulário do console. Tokens de acesso são renovados automaticamente quando um refresh token estiver disponível, e ambos os tipos de credencial expõem somente os modelos declarados em seus catálogos. A página Credentials permite consultar o consumo mensal e semanal (se fornecido pela xAI) para contas Grok Build OAuth. Esse detalhamento em nível de conta não se aplica a chaves de API do SpaceXAI Console.
+O Grok Build suporta autenticação OAuth PKCE, enquanto o SpaceXAI Console aceita chaves de API. Chaves do SpaceXAI Console são validadas contra o catálogo da API SpaceXAI Console antes de serem salvas. Para o Grok Build OAuth, o gateway gera um link de autorização; ao concluir, copie o código exibido na página do Grok Build e cole no formulário do console. Tokens de acesso são renovados automaticamente quando um refresh token estiver disponível, e ambos os tipos de credencial expõem somente os modelos declarados em seus catálogos. A página Credentials permite consultar o consumo mensal e semanal (se fornecido pela xAI) para contas Grok Build OAuth. Esse detalhamento em nível de conta não se aplica a chaves de API do SpaceXAI Console.
 
 O Codex utiliza o fluxo de autorização de dispositivos da OpenAI. Gere o código de dispositivo na página Providers, acesse a URL indicada, insira o código, conclua a autenticação e retorne para checar a autorização. O Polaris persiste o catálogo de modelos retornado pelo Codex, renova tokens OAuth conforme necessário e envia requisições compatíveis via transporte Codex Responses. A OpenAI Platform utiliza autenticação por chave de API; as chaves são validadas no catálogo da conta antes de serem salvas em Credentials. Ambos os produtos suportam importação de arquivos JSON e ZIP com validação e desduplicação específicas por provedor.
 

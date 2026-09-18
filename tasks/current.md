@@ -1,5 +1,30 @@
 # Polaris — Current State
 
+## Candidate closure in progress — 2026-09-18
+
+The owner authorized committing the reviewed repairs, pushing only
+`codex/release-1.0.0-readiness`, and running CI. No main merge, stable tag, registry
+publication or GitHub release publication is authorized. RR5/RR6 continue in
+[the existing release plan](release-readiness-2026-09-18.md#authorized-candidate-closure--2026-09-18).
+Target image names are available in both registries; beta rollback digests are recorded.
+Candidate notes are dated, and manual CI is verification-only. Final committed-source
+local and GitHub CI evidence must pass before the candidate can be called ready.
+
+## Local release preparation completed — 2026-09-18
+
+The owner requested a whole-product audit and preparation of the new Polaris `1.0.0`
+line. See [the scoped plan](release-readiness-2026-09-18.md) and
+[current evidence](../docs/audits/release-readiness-2026-09-18.md).
+The final local release gate, nine browser journeys and isolated Docker rehearsal passed.
+The working tree remains uncommitted; registry-image collisions and immutable-commit
+CI/sign-off still block publication. This is not a ready-to-tag declaration.
+The owner separately authorized a historical tag/release migration on 2026-09-18:
+14 Omni Gateway tags now use `omni-gateway/`; Polaris beta is `v0.1.0-beta` at its
+original commit. [Migration evidence](../docs/releases/tag-migration-2026-09-18.md)
+records the preserved releases and backup. No code commit, branch push, new `v1.0.0`
+tag or image publication was performed or authorized by that migration. R1/R2 remain completed
+historical work; their candidates and test results do not certify the current tree.
+
 ## Completed Production Balance Workstream
 
 - Completed plan: `PROD-BALANCE-R2` in `tasks/production-balance-r2.md`.

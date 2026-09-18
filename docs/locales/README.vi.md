@@ -140,7 +140,7 @@ xác thực. [Ma trận hỗ trợ cài đặt](../installation.md#support-matri
 Linux, macOS và kiến trúc CPU; tài liệu không ngầm tuyên bố hỗ trợ ARM64.
 
 Profile mặc định không cần dịch vụ bên ngoài, đồng thời lưu toàn bộ dữ liệu ứng dụng trong volume
-`polaris-data`. Mẫu môi trường tối thiểu ghim bản phát hành `0.1.0-beta.1`; việc cập nhật
+`polaris-data`. Mẫu môi trường hướng tới `1.0.0`, **chưa phát hành**; cần xử lý tag/image cũ trùng tên theo [checklist phát hành](../releases/1.0.0-preparation.md) trước khi cài đặt. Việc cập nhật
 production phải theo [quy trình cập nhật và rollback Compose](../updating.md). Chỉ bật lưu trữ ngoài,
 Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanced.yml` sau khi bản cài
 đặt cơ bản đã hoạt động tốt.
@@ -442,9 +442,9 @@ Nhập hàng loạt Google AI Studio chấp nhận các file JSON và file nén 
 }
 ```
 
-Mỗi key được nhập đều được xác thực trước khi lưu trữ. Các key trùng lặp trong cùng một lần nhập sẽ bị bỏ qua, các key đã tồn tại được xác thực lại và cập nhật, và các mục không hợp lệ được báo cáo mà không để lộ giá trị key.
+Nhập tệp là thao tác ngoại tuyến: Polaris kiểm tra cấu trúc JSON/ZIP, lưu khóa mới với trạng thái `unverified` (chưa xác minh) và bỏ qua khóa trùng hoặc đã tồn tại, không gọi Google. Danh sách mô hình trong tệp nhập không được coi là đã xác thực. Mục sai định dạng được báo riêng mà không lộ khóa. Sau đó, dùng thao tác xác minh/khám phá mô hình của credential; **Thử model** là bước riêng để kiểm tra quyền suy luận, có thể tiêu tốn hạn mức hoặc phát sinh phí.
 
-Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình Grok Build trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình Grok Build được khai báo bởi danh mục hiện tại của chúng. Trang Thông tin xác thực có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
+Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình API SpaceXAI Console trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình được khai báo trong danh mục hiện tại tương ứng. Trang Thông tin xác thực có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
 
 Codex sử dụng quy trình ủy quyền thiết bị của OpenAI. Tạo một mã thiết bị từ trang Providers, mở URL xác minh được hiển thị, nhập mã, hoàn tất đăng nhập và quay lại để kiểm tra ủy quyền. Polaris lưu trữ danh mục mô hình theo phạm vi tài khoản do Codex trả về, làm mới token truy cập OAuth khi cần và gửi các request tương thích qua giao vận Codex Responses. OpenAI Platform sử dụng xác thực API key; các key được xác thực thông qua danh mục mô hình tài khoản trước khi đưa vào nhóm. Cả hai sản phẩm đều hỗ trợ nhập JSON và ZIP với khả năng xác thực và chống trùng lặp theo từng nhà cung cấp.
 

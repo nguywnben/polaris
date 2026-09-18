@@ -46,7 +46,7 @@ configuration, recovery, browser verification, and day-to-day workflows.
 | Observability | Audit, request traces, raw logs, Prometheus, OTLP, and Langfuse are capable but fragmented | Consolidate console navigation into Activity; keep exporters opt-in |
 | Configuration | One schema covers a bounded default and opt-in controls | Basic/Advanced/Compatibility grouping with validation and generated examples |
 | Frontend | Eleven destinations, Playground, shared components, and maintained browser evidence | Keep the no-build architecture and one common interface contract |
-| Localization | Fifteen complete catalogs are expensive to curate equally | English/Vietnamese production; other locales community compatibility |
+| Localization | Fifteen contextual catalogs, expanded by the owner on 2026-09-15 | All 15 require complete contextual keys, matching interpolation and browser checks; EN/VI semantic review, others community editorial support without native-speaker certification |
 | Documentation | README covers fifteen languages; linked guides retain their document language | Keep provider/configuration coverage and examples aligned across READMEs; console locale policy is separate |
 
 ## Capability Map
@@ -200,5 +200,5 @@ The final evidence must include:
   optional soak for major releases or memory investigations;
 - provider capability matrix and opt-in live-smoke instructions;
 - backup/restore round trip with integrity and secret-redaction evidence;
-- complete English/Vietnamese copy audit and key completeness for compatibility locales;
+- English/Vietnamese semantic review, complete contextual copy and matching interpolation for all 15 locales, and browser layout/placeholder checks; native-speaker certification remains separate;
 - known limitations, supported tiers, and post-R1 backlog.

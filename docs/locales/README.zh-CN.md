@@ -127,7 +127,7 @@ docs/          架构设计说明与项目维护文档
 
 单机、单 worker 的 Docker Compose 是主要部署路径。请按照[安装指南](../installation.md)及[支持矩阵](../installation.md#support-matrix)操作。
 
-基础配置不依赖外部服务，数据保存在 `polaris-data`。模板固定使用 `0.1.0-beta.1`；升级或回滚遵循[更新指南](../updating.md)。通过 `deploy/compose.advanced.yml` 按需启用高级选项。
+基础配置不依赖外部服务，数据保存在 `polaris-data`。模板面向尚未发布的 `1.0.0`；安装前须按[发布清单](../releases/1.0.0-preparation.md)解决旧标签/镜像的同名冲突。升级或回滚遵循[更新指南](../updating.md)，通过 `deploy/compose.advanced.yml` 按需启用高级选项。
 
 参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、`docker run`、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
 
@@ -415,9 +415,9 @@ Google AI Studio 批量导入支持 JSON 文件及包含 JSON 文件的 ZIP 压�
 }
 ```
 
-每个导入的密钥在入库前均经过严格校验。同批次内的重复密钥将被跳过，已存在的密钥将重新校验并更新，无效记录将直接报错且不会泄露密钥明文。
+文件导入是离线操作：Polaris 检查 JSON/ZIP 结构，将新密钥保存为 `unverified`，跳过重复或已存在的密钥，不连接 Google。导入的模型列表不视为已验证。格式错误会单独报告，不泄露密钥。之后请主动执行凭证验证/模型发现；**Test model** 单独检查推理权限，可能消耗配额或产生费用。
 
-Grok Build 支持 PKCE OAuth 凭据，而 SpaceXAI Console 支持 API 密钥。SpaceXAI Console 密钥在保存前会对照 Grok Build 模型目录进行验证。对于 Grok Build OAuth，Polaris 会生成授权链接；授权完成后，复制授权页面展示的授权码并粘贴至表单中。当存在 Refresh Token 时系统会自动刷新访问令牌，且两种凭据类型均仅暴露其当前目录声明的 Grok Build 模型。在“凭据池”页面，可查询 Grok Build OAuth 账户的月度额度消耗情况，以及 xAI 提供时的周度使用量。该账户级账单视图不支持 SpaceXAI Console API 密钥。
+Grok Build 支持 PKCE OAuth 凭据，而 SpaceXAI Console 支持 API 密钥。SpaceXAI Console 密钥在保存前会对照 SpaceXAI Console API 模型目录进行验证。对于 Grok Build OAuth，Polaris 会生成授权链接；授权完成后，复制授权页面展示的授权码并粘贴至表单中。当存在 Refresh Token 时系统会自动刷新访问令牌，且两种凭据类型均仅暴露各自当前目录声明的模型。在“凭据”页面，可查询 Grok Build OAuth 账户的月度额度消耗情况，以及 xAI 提供时的周度使用量。该账户级账单视图不支持 SpaceXAI Console API 密钥。
 
 Codex 使用 OpenAI 设备授权流程。在“供应商”页面生成设备代码，打开展示的验证网址，输入代码完成登录，然后返回检查授权状态。Polaris 将保存 Codex 返回的账户级模型目录，在需要时自动刷新 OAuth 访问令牌，并通过 Codex Responses 传输协议转发兼容请求。OpenAI Platform 使用 API 密钥认证；密钥在保存前均通过账户模型目录进行有效性校验。两款产品均支持 JSON 和 ZIP 导入，并具备供应商特定的校验与去重能力。
 

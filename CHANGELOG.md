@@ -1,11 +1,38 @@
 # Changelog
 
 All notable user-facing changes are documented in this file. Polaris follows
-[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta.1` after the
-project-wide rename; earlier product tags remain below for release provenance. Breaking
-changes are permitted throughout the Polaris `0.x` beta series.
+[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta` after the
+project-wide rename (formerly `0.1.0-beta.1`); Omni Gateway tags are archived under
+`omni-gateway/`. See the [tag migration record](docs/releases/tag-migration-2026-09-18.md). Breaking
+changes were permitted throughout the Polaris `0.x` beta series. The next target is Polaris
+`1.0.0`; it is not published. The legacy release with the same number is labeled separately
+below. See the [publication collision checklist](docs/releases/1.0.0-preparation.md).
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-09-18
+
+Prepared release candidate; publication has not occurred. Reconfirm this date when
+the owner authorizes publication. The historical Omni Gateway 1.0.0 is separate.
+
+### Release preparation
+
+- Prepare runtime, Compose and documentation for Polaris 1.0.0 while preserving legacy
+  release history. Legacy tags are archived and the target registry version names are
+  available. Publication still requires approval of the exact verified commit.
+- Validate unique, dated release notes and matching version metadata before publishing
+  container images, not only before creating the GitHub release.
+- Keep manually dispatched candidate CI verification-only. Explicitly mark future stable
+  releases as latest so the archived Omni Gateway version line cannot outrank Polaris.
+- Isolate browser-test configuration from operator secrets. Allow reliability checks to
+  measure a SHA-256-recorded uncommitted source snapshot without claiming a release commit.
+- Omit raw update-check exceptions from debug logs; correct setup-token and offline-import
+  documentation, including all 15 README languages.
+- Preserve validated `Retry-After` values on extended-provider failures without forwarding
+  arbitrary upstream headers. Store safe inference-failure diagnostics rather than raw
+  provider bodies, and omit those bodies and credential-state values from runtime logs.
+- Credential plan/credit hints can be dismissed with Escape without moving keyboard focus;
+  pointer users can move into the hint across its visual gap.
 
 ### Provider conformance fixes
 
@@ -79,7 +106,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
   Providers; routing-wide stream conversion and retry credential switching are in Settings.
   Claude and xAI shared fields have a single editor, and Grok's OAuth inference endpoint
   is editable independently from SpaceXAI Console. Saved values and environment locks remain intact.
-- Antigravity credit controls moved from Pool to Providers, with bounded account selection
+- Antigravity credit controls belong to credential management, with capability checks
   and confirmation. Offline imports distinguish stored credentials from verified credentials.
 - Native Codex, Claude Code and Grok credential files are normalized with bounded,
   provider-specific validation. Foreign OAuth tokens are not sent to Google for email discovery.
@@ -162,7 +189,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
   inputs, visible only while populated, with keyboard support and labels in all supported console
   languages.
 
-## [0.1.0-beta.1] - 2026-09-14
+## [0.1.0-beta] - 2026-09-14
 
 ### Added
 
@@ -530,7 +557,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 - Scoped account deduplication by provider so OAuth accounts that share an email address across different providers remain independent.
 
-## [1.0.0] - 2026-07-13
+## [1.0.0 (legacy)] - 2026-07-13
 
 ### Added
 
@@ -592,7 +619,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Prevented release tags from generating invalid branch-prefixed container tags.
 - Gated GitHub Releases on verified container publication and sourced release notes from this changelog.
 
-## [0.1.0-beta] - 2026-07-08
+## [0.1.0-beta (legacy)] - 2026-07-08
 
 ### Added
 
@@ -600,20 +627,21 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta.1...HEAD
-[0.1.0-beta.1]: https://github.com/nguywnben/polaris/compare/v1.4.0...v0.1.0-beta.1
-[1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/nguywnben/polaris/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/nguywnben/polaris/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/nguywnben/polaris/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/nguywnben/polaris/compare/v1.1.4...v1.2.0
-[1.1.4]: https://github.com/nguywnben/polaris/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/nguywnben/polaris/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/nguywnben/polaris/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/nguywnben/polaris/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/nguywnben/polaris/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nguywnben/polaris/compare/v0.2.0-beta...v1.0.0
-[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...v0.2.0-beta
-[0.1.0-beta]: https://github.com/nguywnben/polaris/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...HEAD
+[0.1.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.4.0...v0.1.0-beta
+[1.5.0]: docs/evidence/p5.6-release-candidate-handoff.md
+[1.4.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.2...omni-gateway/v1.4.0
+[1.3.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.1...omni-gateway/v1.3.2
+[1.3.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.0...omni-gateway/v1.3.1
+[1.3.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.1...omni-gateway/v1.3.0
+[1.2.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.0...omni-gateway/v1.2.1
+[1.2.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.4...omni-gateway/v1.2.0
+[1.1.4]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.3...omni-gateway/v1.1.4
+[1.1.3]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.2...omni-gateway/v1.1.3
+[1.1.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.1...omni-gateway/v1.1.2
+[1.1.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.0...omni-gateway/v1.1.1
+[1.1.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.0.0...omni-gateway/v1.1.0
+[1.0.0]: docs/releases/1.0.0-preparation.md
+[1.0.0 (legacy)]: https://github.com/nguywnben/polaris/compare/9e858310c9567bb7447ea6482610e5b6b8ab22f5...36ef7651ef9bed073be0f0aa90bd02827c3cf833
+[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v0.1.0-beta...omni-gateway/v0.2.0-beta
+[0.1.0-beta (legacy)]: https://github.com/nguywnben/polaris/releases/tag/omni-gateway/v0.1.0-beta

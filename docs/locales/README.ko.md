@@ -127,7 +127,7 @@ docs/          아키텍처 설계 문서 및 프로젝트 유지 관리 가이�
 
 단일 머신·단일 worker의 Docker Compose가 기본 배포 경로입니다. [설치](../installation.md) 및 [지원 표](../installation.md#support-matrix)를 따르세요.
 
-기본 구성은 외부 서비스가 필요 없으며 `polaris-data`에 데이터를 보관합니다. 템플릿 버전은 `0.1.0-beta.1`로 고정되어 있습니다. [업데이트·롤백](../updating.md) 절차를 따르고 고급 옵션은 `deploy/compose.advanced.yml`로 활성화합니다.
+기본 구성은 외부 서비스가 필요 없으며 `polaris-data`에 데이터를 보관합니다. 템플릿은 아직 출시되지 않은 `1.0.0`을 준비합니다. 설치 전에 [출시 체크리스트](../releases/1.0.0-preparation.md)에 따라 기존 동명 태그/이미지 충돌을 해결하세요. [업데이트·롤백](../updating.md) 절차를 따르고 고급 옵션은 `deploy/compose.advanced.yml`로 활성화합니다.
 
 [식별자 규약](../migrations/polaris.md)과 [문제 해결](../troubleshooting.md)을 참고하세요. 네이티브 스크립트, `docker run`, Render, Zeabur는 호환 경로로, 동일한 설치·복구 검증 범위가 아닙니다. 이미지는 `linux/amd64`로 게시하며 `linux/arm64` 게시는 중단 상태입니다.
 
@@ -415,9 +415,9 @@ Google AI Studio 일괄 가져오기는 JSON 파일 및 JSON 파일이 포함된
 }
 ```
 
-가져온 각 키는 저장 전에 엄격하게 검증됩니다. 동일 배치 내의 중복 키는 건너뛰고, 기존 키는 재검증되어 업데이트되며, 유효하지 않은 항목은 키 평문을 노출하지 않고 개별 보고됩니다.
+파일 가져오기는 오프라인으로 처리됩니다. Polaris는 JSON/ZIP 구조를 확인하고 새 키를 `unverified` 상태로 저장하며, Google에 연결하지 않고 중복 키와 기존 키를 건너뜁니다. 가져온 모델 목록은 검증된 것으로 간주하지 않습니다. 형식 오류는 키를 노출하지 않고 보고합니다. 이후 자격 증명 검증/모델 검색을 명시적으로 실행하세요. **Test model**은 추론 권한을 별도로 확인하며 할당량을 소모하거나 비용이 발생할 수 있습니다.
 
-Grok Build는 PKCE OAuth 자격 증명을 지원하고 SpaceXAI Console은 API 키를 지원합니다. SpaceXAI Console 키는 저장 전에 Grok Build 모델 카탈로그와 대조하여 유효성을 검증합니다. Grok Build OAuth의 경우 Polaris가 인증 링크를 생성합니다. 인증 완료 후 인증 페이지에 표시된 코드를 복사하여 양식에 붙여넣으세요. 리프레시 토큰이 있는 경우 액세스 토큰이 자동으로 갱신되며, 두 자격 증명 유형 모두 현재 카탈로그에서 선언된 Grok Build 모델만 노출합니다. Credentials 페이지에서는 Grok Build OAuth 계정의 월간 크레딧 사용량과 xAI에서 제공하는 경우 주간 사용량을 확인할 수 있습니다. 이 계정 수준 청구 뷰는 SpaceXAI Console API 키에서는 지원되지 않습니다.
+Grok Build는 PKCE OAuth 자격 증명을 지원하고 SpaceXAI Console은 API 키를 지원합니다. SpaceXAI Console 키는 저장 전에 SpaceXAI Console API 모델 카탈로그와 대조하여 유효성을 검증합니다. Grok Build OAuth의 경우 Polaris가 인증 링크를 생성합니다. 인증 완료 후 인증 페이지에 표시된 코드를 복사하여 양식에 붙여넣으세요. 리프레시 토큰이 있는 경우 액세스 토큰이 자동으로 갱신되며, 두 자격 증명 유형 모두 각 카탈로그에서 선언된 모델만 노출합니다. Credentials 페이지에서는 Grok Build OAuth 계정의 월간 크레딧 사용량과 xAI에서 제공하는 경우 주간 사용량을 확인할 수 있습니다. 이 계정 수준 청구 뷰는 SpaceXAI Console API 키에서는 지원되지 않습니다.
 
 Codex는 OpenAI 디바이스 인증 플로우를 사용합니다. 제공자 페이지에서 디바이스 코드를 생성하고 표시된 확인 URL을 열어 코드를 입력하고 로그인을 완료한 후 인증 상태를 확인합니다. Polaris는 Codex가 반환한 계정 범위의 모델 카탈로그를 저장하고 필요 시 OAuth 액세스 토큰을 갱신하며 Codex Responses 전송 프로토콜을 통해 호환 요청을 전달합니다. OpenAI Platform은 API 키 인증을 사용하며 키는 계정 모델 카탈로그를 통해 유효성이 검증된 후 Credentials에 추가됩니다. 두 제품 모두 제공자별 검증 및 중복 제거 기능을 갖춘 JSON 및 ZIP 가져오기를 지원합니다.
 

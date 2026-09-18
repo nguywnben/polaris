@@ -141,7 +141,8 @@ checks through the first authenticated Dashboard; its
 Linux, macOS, and architecture status without implying unsupported ARM64 coverage.
 
 The default profile needs no external service and stores all application data in the
-`polaris-data` named volume. Its minimal environment template pins release `0.1.0-beta.1`; production
+`polaris-data` named volume. Its minimal environment template targets `1.0.0` (not yet published);
+resolve the legacy tag/image collision using the [release preparation checklist](docs/releases/1.0.0-preparation.md) before installation. Production
 updates use the encrypted, health-checked [Compose update and rollback guide](docs/updating.md).
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.
@@ -443,9 +444,9 @@ Google AI Studio batch import accepts JSON files and ZIP archives containing JSO
 }
 ```
 
-Every imported key is validated before storage. Duplicate keys within the same import are skipped, existing keys are revalidated and updated, and invalid entries are reported without exposing the key value.
+File import is offline: Polaris checks the JSON/ZIP structure, stores new keys as `unverified`, and skips duplicate or existing keys without contacting Google. Imported model lists are not trusted. Malformed entries are reported without exposing key values. Use the explicit credential verification/model-discovery action afterwards; use **Test model** separately to check inference access (which can consume quota or incur charges).
 
-Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Credentials page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
+Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the SpaceXAI Console API model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only models declared by their respective current catalogs. The Credentials page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
 
 Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Polaris stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before being saved to Credentials. Both products support JSON and ZIP import with provider-specific validation and deduplication.
 

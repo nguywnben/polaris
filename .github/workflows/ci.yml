@@ -253,7 +253,8 @@ jobs:
       - verify
       - browser-smoke
       - container-smoke
-    if: ${{ github.event_name != 'pull_request' }}
+    # Manual dispatch verifies a candidate without publishing images or releases.
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
     permissions:
       contents: read
       packages: write
@@ -267,7 +268,7 @@ jobs:
       - browser-smoke
       - container-smoke
       - publish-container
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -282,42 +283,8 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          python - <<'PY'
-          import os
-          import sys
-          from pathlib import Path
-
-          version = os.environ["RELEASE_TAG"].removeprefix("v")
-          sys.path.insert(0, "backend")
-          from app_version import DEFAULT_APPLICATION_VERSION
-
-          if version != DEFAULT_APPLICATION_VERSION:
-              raise SystemExit(
-                  "Release tag version "
-                  f"{version} does not match DEFAULT_APPLICATION_VERSION "
-                  f"{DEFAULT_APPLICATION_VERSION}."
-              )
-
-          lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
-          heading = f"## [{version}]"
-
-          try:
-              start = next(index for index, line in enumerate(lines) if line.startswith(heading))
-          except StopIteration as exc:
-              raise SystemExit(f"CHANGELOG.md has no section for {version}.") from exc
-
-          end = next(
-              (index for index in range(start + 1, len(lines)) if lines[index].startswith("## [")),
-              len(lines),
-          )
-          notes = "\n".join(lines[start + 1 : end]).strip()
-          if not notes:
-              raise SystemExit(f"CHANGELOG.md has no release notes for {version}.")
-
-          output = Path(os.environ["RUNNER_TEMP"]) / "release-notes.md"
-          output.write_text(notes + "\n", encoding="utf-8")
-          print(f"Prepared release notes for {version}.")
-          PY
+          python tools/release_preflight.py --tag "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
 
       - name: Publish release
         env:
@@ -340,6 +307,8 @@ jobs:
 
           if [[ "$RELEASE_TAG" == *-* ]]; then
             release_args+=(--prerelease)
+          else
+            release_args+=(--latest)
           fi
 
           gh release create "${release_args[@]}"
