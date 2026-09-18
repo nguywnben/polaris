@@ -96,6 +96,32 @@ create the local owner with a unique 12–256 character passphrase. For a remote
 HTTPS through a trusted reverse proxy or use a secure tunnel; enter the configured setup token
 when prompted. The application never generates or prints that token.
 
+### Explicit HTTP opt-in for a remote host
+
+HTTPS is recommended, but a domain name is not a Polaris requirement. If the server owner
+accepts unencrypted access, set `SETUP_ALLOW_INSECURE_HTTP=true` in the root `.env` together
+with a strong `SETUP_TOKEN`. Recreate the container to apply environment changes:
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml up --detach --wait
+```
+
+Then open `http://YOUR_PUBLIC_IP:4283/` (or your configured host port). The host port must be
+published and permitted by the host/cloud firewall. Setup displays an HTTP warning even after
+the checks pass. **HTTP does not encrypt setup tokens, passwords, session cookies, API keys
+or other traffic; an on-path attacker can read or modify it.** Only enable this option after
+accepting that risk. Do not enable trusted proxy headers for a directly exposed HTTP listener.
+
+The option defaults to `false`, is controlled only by the server environment, and relaxes only
+the initial setup HTTPS check. It does not bypass the setup token, password policy, durable
+storage check, authentication, or origin protection. Keep `PANEL_COOKIE_SECURE` in automatic
+mode for direct HTTP; explicitly requiring secure cookies still prevents HTTP setup. HTTPS
+continues to require secure cookies even when the option is enabled.
+
+To return to HTTPS, configure TLS and trusted proxy handling as appropriate, change the option
+back to `false`, and recreate the container. **The flag is not a post-setup HTTP access firewall**:
+restrict or close the public HTTP listener separately. Do not delete the data volume.
+
 The setup flow creates the public API key once and displays it for the operator. Store it in a
 password manager; do not put it in source control or screenshots.
 

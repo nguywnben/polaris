@@ -224,6 +224,7 @@ cho phép qua môi trường. Giá trị không hợp lệ sẽ chặn khởi đ
 | `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-polaris-`. |
 | `PANEL_PASSWORD` | trống cho đến khi thiết lập | Mật khẩu cho bảng điều khiển web. |
 | `SETUP_TOKEN` | để trống | Bắt buộc trước khi thiết lập từ xa lần đầu; dùng giá trị riêng dài ít nhất 24 ký tự. Ứng dụng không tự sinh hoặc ghi giá trị này vào log. Thiết lập trực tiếp trên localhost không cần mã. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Chỉ bật khi chấp nhận thiết lập từ xa qua HTTP không mã hóa thông tin xác thực và phiên. Khuyến nghị HTTPS; vẫn cần mã thiết lập đủ mạnh. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Thời gian sống của phiên bảng điều khiển web tính bằng giây. |
 | `PANEL_COOKIE_SECURE` | tự động | Đặt `true` để bắt buộc cookie bảng điều khiển chỉ truyền qua HTTPS. Để trống để tự động phát hiện HTTPS qua `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Cửa sổ giới hạn tần suất đăng nhập tính bằng giây. |

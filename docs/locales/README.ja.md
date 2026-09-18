@@ -192,6 +192,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自動生成 | 接頭辞 `sk-polaris-` のクライアント API キー。 |
 | `PANEL_PASSWORD` | 初期設定まで空 | Web コントロールパネルのアクセスパスワード。 |
 | `SETUP_TOKEN` | 空 | リモート初期設定用の一意な 24 文字以上のトークン。生成・ログ出力しない。直接 localhost では不要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 認証情報やセッションが暗号化されないリスクを受け入れる場合のみ、HTTP によるリモートセットアップを許可します。HTTPS を推奨し、強力なセットアップトークンは引き続き必要です。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web コントロールパネルセッションの有効期間（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自動 | `true` に設定すると Cookie の送信を HTTPS に強制します。空の場合は `X-Forwarded-Proto` から自動検出します。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | ログインレート制限ウィンドウ（秒）。 |

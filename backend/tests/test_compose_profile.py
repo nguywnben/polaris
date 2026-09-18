@@ -16,6 +16,7 @@ CORE_ENVIRONMENT = {
     "API_KEY",
     "PANEL_PASSWORD",
     "SETUP_TOKEN",
+    "SETUP_ALLOW_INSECURE_HTTP",
     "HOST",
     "PORT",
     "WORKERS",

@@ -192,6 +192,7 @@ Priorität: Umgebungsvariablen, gespeicherte Konfiguration, Standardwerte. Die [
 | `API_KEY` | automatisch erzeugt | Client-API-Schlüssel mit Präfix `sk-polaris-`. |
 | `PANEL_PASSWORD` | leer bis zur Einrichtung | Passwort für das Web-Control-Panel. |
 | `SETUP_TOKEN` | leer | Vor Remote-Ersteinrichtung erforderlich: eigener Wert mit mindestens 24 Zeichen. Wird weder erzeugt noch protokolliert; direktes localhost benötigt ihn nicht. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Remote-Einrichtung über HTTP nur bei akzeptiertem Risiko unverschlüsselter Zugangsdaten und Sitzungen erlauben. HTTPS wird empfohlen; ein starkes Einrichtungstoken bleibt erforderlich. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Lebensdauer von Webkonsolen-Sitzungen in Sekunden. |
 | `PANEL_COOKIE_SECURE` | automatisch | Auf `true` setzen, um reine HTTPS-Panel-Cookies zu erzwingen. Leer lassen, um HTTPS über `X-Forwarded-Proto` zu erkennen. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Zeitfenster für Login-Ratenbegrenzung in Sekunden. |

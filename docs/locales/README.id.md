@@ -192,6 +192,7 @@ Prioritas: variabel lingkungan, konfigurasi tersimpan, lalu nilai bawaan. [Refer
 | `API_KEY` | dibuat otomatis | Kunci API klien dengan awalan `sk-polaris-`. |
 | `PANEL_PASSWORD` | kosong sampai penyiapan | Kata sandi untuk panel kontrol web. |
 | `SETUP_TOKEN` | kosong | Token penyiapan jarak jauh unik minimal 24 karakter; tidak dibuat atau dicatat otomatis. Tidak diperlukan pada localhost langsung. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Izinkan penyiapan jarak jauh melalui HTTP hanya jika menerima risiko kredensial dan sesi tanpa enkripsi. HTTPS disarankan; token penyiapan yang kuat tetap diperlukan. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Masa berlaku sesi konsol web dalam detik. |
 | `PANEL_COOKIE_SECURE` | otomatis | Tetapkan `true` untuk mewajibkan cookie panel hanya melalui HTTPS. Biarkan kosong untuk mendeteksi HTTPS melalui `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Jendela pembatasan laju login dalam detik. |

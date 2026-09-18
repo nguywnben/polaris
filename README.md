@@ -228,6 +228,7 @@ name; likely misspelled `POLARIS_*` variables produce a warning.
 | `API_KEY` | generated automatically | Preferred key for public client API requests. Must start with `sk-polaris-`. |
 | `PANEL_PASSWORD` | empty until setup | Password for the web control panel. |
 | `SETUP_TOKEN` | empty | Required before remote first-run setup; use a unique value of at least 24 characters. It is never generated or printed by the application. Direct localhost setup does not require it. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Opt in to remote HTTP setup only after accepting unencrypted credentials and sessions. HTTPS is recommended; a strong setup token is still required. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web console session lifetime in seconds. |
 | `PANEL_COOKIE_SECURE` | automatic | Set `true` to require HTTPS-only panel cookies. Leave empty to detect HTTPS through `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Login rate-limit window in seconds. |

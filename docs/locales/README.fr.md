@@ -192,6 +192,7 @@ Priorité : environnement, configuration enregistrée, valeurs par défaut. La [
 | `API_KEY` | générée automatiquement | Clé des clients API avec préfixe `sk-polaris-`. |
 | `PANEL_PASSWORD` | vide jusqu’à la configuration | Mot de passe pour le panneau de contrôle web. |
 | `SETUP_TOKEN` | vide | Configuration distante initiale : valeur unique d’au moins 24 caractères, jamais générée ni journalisée. Inutile en localhost direct. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Autorise la configuration distante en HTTP uniquement si vous acceptez des identifiants et sessions non chiffrés. HTTPS est recommandé ; un jeton de configuration fort reste requis. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Durée de vie de la session de console web en secondes. |
 | `PANEL_COOKIE_SECURE` | automatique | Définir à `true` pour forcer les cookies de console uniquement via HTTPS. Laisser vide pour une détection automatique via `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Fenêtre de limitation de débit de connexion en secondes. |

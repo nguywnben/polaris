@@ -241,11 +241,17 @@ def main():
                 expect(page.locator(f"#{field}Toggle")).to_be_hidden()
 
             # Reload to remove the synthetic error before the batched visual inspection.
+            checks["transport"] = {"status": "warning", "code": "transport_insecure_allowed"}
             page.reload(wait_until="networkidle")
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
+            expect(page.locator("#setupHttpWarning")).to_contain_text("HTTP không mã hóa")
+            expect(page.locator("#setupCheckTransport")).to_have_attribute("data-status", "warning")
+            expect(page.locator("#setupCheckTransport")).to_contain_text("Đã cho phép HTTP")
             expect(page.locator("#setupPassword")).to_be_disabled()
             page.locator("#setupToken").fill("synthetic-setup-token-for-ui-tests")
             page.locator("#setupPreflightButton").click()
             expect(page.locator("#setupPassword")).to_be_enabled()
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
             for width, theme in ((1440, "light"), (768, "light"), (320, "light"), (1440, "dark")):
                 page.set_viewport_size({"width": width, "height": 1100})
                 page.emulate_media(color_scheme=theme)
@@ -280,6 +286,18 @@ def main():
                 page.screenshot(
                     path=str(screenshots / f"setup-{width}-{theme}.png"), full_page=True
                 )
+            checks["transport"] = {"status": "fail", "code": "https_required"}
+            state.update(state="invalid", next_action="use_https")
+            page.reload(wait_until="networkidle")
+            expect(page.locator("#setupPreflightAction")).to_contain_text(
+                "SETUP_ALLOW_INSECURE_HTTP=true"
+            )
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
+            expect(page.locator("#setupPassword")).to_be_disabled()
+            checks["transport"] = {"status": "pass", "code": "transport_secure"}
+            state.update(state="fresh", next_action="enter_setup_token")
+            page.reload(wait_until="networkidle")
+            expect(page.locator("#setupHttpWarning")).to_be_hidden()
             assert not errors, errors
             print(
                 json.dumps(

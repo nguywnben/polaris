@@ -303,7 +303,8 @@
     background: var(--danger);
 }
 
-.setup-check-list li[data-status="pending"]::before {
+.setup-check-list li[data-status="pending"]::before,
+.setup-check-list li[data-status="warning"]::before {
     background: var(--warning);
 }
 

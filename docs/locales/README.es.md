@@ -192,6 +192,7 @@ Prioridad: variables de entorno, configuración guardada y valores predeterminad
 | `API_KEY` | generada automáticamente | Clave API del cliente con prefijo `sk-polaris-`. |
 | `PANEL_PASSWORD` | vacío hasta configurar | Contraseña de acceso al panel de control web. |
 | `SETUP_TOKEN` | vacío | Configuración remota inicial: valor único de al menos 24 caracteres, no generado ni registrado. No requerido en localhost directo. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Permite la configuración remota por HTTP solo si aceptas credenciales y sesiones sin cifrar. Se recomienda HTTPS; sigue siendo obligatorio un token de configuración seguro. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Tiempo de vida de la sesión del panel de control web en segundos. |
 | `PANEL_COOKIE_SECURE` | automático | Establezca en `true` para forzar cookies solo a través de HTTPS. Vacío para autodetección mediante `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Ventana de límite de tasa de inicio de sesión en segundos. |

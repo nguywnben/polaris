@@ -11,6 +11,10 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+- Add an explicit, disabled-by-default `SETUP_ALLOW_INSECURE_HTTP` option for remote first-run
+  setup, with persistent unencrypted-transport warnings in all 15 console languages.
+  Setup-token, password, storage and secure-cookie requirements remain enforced.
+
 ## [1.0.0] - 2026-09-18
 
 Publication approved on this date; the matching Polaris release/tag/image records

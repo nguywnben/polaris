@@ -129,6 +129,10 @@ function renderSetupStatus(data, {tokenVerified = false} = {}) {
         ? 'enter_setup_token' : data.next_action;
     setSetupAction(nextAction);
 
+    const transportCode = data.checks?.transport?.code;
+    document.getElementById('setupHttpWarning')?.classList.toggle('hidden',
+        !['https_required', 'transport_insecure_allowed'].includes(transportCode));
+
     for (const [checkName, elementId] of Object.entries(SETUP_CHECK_ELEMENTS)) {
 
         const check = data.checks?.[checkName];
@@ -137,7 +141,7 @@ function renderSetupStatus(data, {tokenVerified = false} = {}) {
 
         if (!element || !check) continue;
 
-        element.dataset.status = ['pass', 'fail', 'pending'].includes(check.status)
+        element.dataset.status = ['pass', 'fail', 'pending', 'warning'].includes(check.status)
 
             ? check.status
 

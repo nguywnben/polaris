@@ -192,6 +192,7 @@ http://127.0.0.1:4283
 | `API_KEY` | otomatik üretilir | `sk-polaris-` önekli istemci API anahtarı. |
 | `PANEL_PASSWORD` | kuruluma kadar boş | Web kontrol paneli şifresi. |
 | `SETUP_TOKEN` | boş | Uzak kurulum için en az 24 karakterli benzersiz belirteç; üretilmez veya kaydedilmez. Doğrudan localhost için gerekmez. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Yalnızca kimlik bilgileri ve oturumların şifrelenmemesi riskini kabul ediyorsanız uzak HTTP kurulumuna izin verir. HTTPS önerilir; güçlü bir kurulum belirteci yine gereklidir. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Saniye cinsinden web konsolu oturum ömrü. |
 | `PANEL_COOKIE_SECURE` | otomatik | Yalnızca HTTPS panel çerezleri gerektirmek için `true` yapın. HTTPS'yi `X-Forwarded-Proto` üzerinden algılamak için boş bırakın. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Saniye cinsinden giriş hız sınırlama penceresi. |

@@ -83,7 +83,14 @@ async def build_setup_status(
             checks["setup_token"] = _check("pending", "setup_token_entry_required")
 
     secure_cookie_setting = os.getenv("PANEL_COOKIE_SECURE", "").strip().lower()
-    if not policy.local_request and not local_origin and not origin.startswith("https://"):
+    remote_http = not policy.local_request and not local_origin and origin.startswith("http://")
+    allow_insecure_http = os.getenv("SETUP_ALLOW_INSECURE_HTTP", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if remote_http and not allow_insecure_http:
         checks["transport"] = _check("fail", "https_required")
         failures.append("use_https")
     elif origin.startswith("https://") and not _panel_cookie_is_secure(request):
@@ -92,6 +99,8 @@ async def build_setup_status(
     elif origin.startswith("http://") and secure_cookie_setting in {"1", "true", "yes", "on"}:
         checks["transport"] = _check("fail", "secure_cookie_requires_https")
         failures.append("use_https_or_auto_cookie")
+    elif remote_http:
+        checks["transport"] = _check("warning", "transport_insecure_allowed")
 
     checkpoint = None
     try:

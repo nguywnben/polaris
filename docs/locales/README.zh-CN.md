@@ -192,6 +192,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自动生成 | 客户端 API 密钥，前缀为 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 设置前为空 | Web 控制面板的访问密码。 |
 | `SETUP_TOKEN` | 空 | 远程首次设置所需的唯一令牌，至少 24 字符；不自动生成或记录。直接 localhost 访问不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 仅在接受凭据和会话未加密的风险后，才启用远程 HTTP 设置。建议使用 HTTPS；仍然需要强设置令牌。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台会话有效期（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自动 | 设为 `true` 强制仅在 HTTPS 下传输 Cookie。留空时通过 `X-Forwarded-Proto` 自动检测。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登录频率限制时间窗口（秒）。 |

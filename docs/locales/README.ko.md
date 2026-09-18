@@ -192,6 +192,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 자동 생성 | `sk-polaris-` 접두사의 클라이언트 API 키. |
 | `PANEL_PASSWORD` | 설정 전까지 비어 있음 | 웹 제어판 접속 비밀번호. |
 | `SETUP_TOKEN` | 비어 있음 | 원격 초기 설정용 24자 이상의 고유 토큰. 자동 생성·로깅하지 않음. 직접 localhost 접속에는 불필요. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 인증 정보와 세션이 암호화되지 않는 위험을 감수할 때만 원격 HTTP 설정을 허용합니다. HTTPS를 권장하며 강력한 설정 토큰은 여전히 필요합니다. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | 웹 제어판 세션 유효 기간(초). |
 | `PANEL_COOKIE_SECURE` | 자동 | `true`로 설정 시 쿠키를 HTTPS로만 전송하도록 강제합니다. 비워 두면 `X-Forwarded-Proto`를 통해 자동 감지합니다. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 로그인 속도 제한 윈도우(초). |

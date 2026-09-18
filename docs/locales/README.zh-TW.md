@@ -192,6 +192,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自動產生 | 用戶端 API 金鑰，前綴為 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 設定前為空白 | Web 控制面板的造訪密碼。 |
 | `SETUP_TOKEN` | 空白 | 遠端初始設定所需的唯一權杖，至少 24 字元；不自動產生或記錄。直接 localhost 存取不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 僅在接受憑證和工作階段未加密的風險後，才啟用遠端 HTTP 設定。建議使用 HTTPS；仍然需要強式設定權杖。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台工作階段有效時間（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自動 | 設為 `true` 強制僅在 HTTPS 下傳輸 Cookie。留空時透過 `X-Forwarded-Proto` 自動偵測。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登入頻率限制時間窗口（秒）。 |
