@@ -9,17 +9,21 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs, urlparse
 
+import httpx
+
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.anthropic import (
     ANTHROPIC_REDIRECT_URI,
+    AnthropicError,
     anthropic_response_to_gemini,
     anthropic_stream_line_to_gemini,
     build_anthropic_headers,
     complete_claude_oauth,
     create_claude_oauth_url,
+    fetch_anthropic_model_ids,
     gemini_request_to_anthropic,
     parse_anthropic_model_ids,
 )
@@ -31,6 +35,51 @@ from core.state_store import InMemoryStateStore
 
 
 class AnthropicProviderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_discovery_follows_cursor_and_deduplicates_pages(self):
+        pages = [
+            httpx.Response(
+                200, json={"data": [{"id": "claude-a"}], "has_more": True, "last_id": "claude-a"}
+            ),
+            httpx.Response(
+                200, json={"data": [{"id": "claude-a"}, {"id": "claude-b"}], "has_more": False}
+            ),
+        ]
+        with (
+            patch(
+                "core.anthropic.get_anthropic_connection",
+                AsyncMock(return_value=("https://api.anthropic.com/v1", "")),
+            ),
+            patch("core.anthropic.get_async", AsyncMock(side_effect=pages)) as request,
+        ):
+            result = await fetch_anthropic_model_ids({"api_key": "synthetic"})
+        self.assertEqual(result, ["claude-a", "claude-b"])
+        self.assertEqual(
+            parse_qs(urlparse(request.call_args.args[0]).query)["after_id"], ["claude-a"]
+        )
+
+    async def test_discovery_rejects_repeated_cursor(self):
+        page = httpx.Response(
+            200, json={"data": [{"id": "claude-a"}], "has_more": True, "last_id": "claude-a"}
+        )
+        with (
+            patch(
+                "core.anthropic.get_anthropic_connection",
+                AsyncMock(return_value=("https://api.anthropic.com/v1", "")),
+            ),
+            patch("core.anthropic.get_async", AsyncMock(return_value=page)),
+        ):
+            with self.assertRaises(AnthropicError) as caught:
+                await fetch_anthropic_model_ids({"api_key": "synthetic"})
+        self.assertEqual(caught.exception.status_code, 502)
+
+    def test_model_parser_does_not_invent_ids_for_non_string_values(self):
+        self.assertEqual(
+            parse_anthropic_model_ids(
+                {"data": [{}, {"id": None}, {"id": 123}, {"id": "claude-a"}]}
+            ),
+            ["claude-a"],
+        )
+
     async def asyncSetUp(self) -> None:
         self.store = InMemoryStateStore()
         self.authorization_key = b"a" * 32

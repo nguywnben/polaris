@@ -36,6 +36,46 @@ def _frontend_sources() -> list[Path]:
 
 
 class FrontendLocaleContractTests(unittest.TestCase):
+    def test_identity_messages_reach_the_runtime_translator_for_every_locale(self):
+        source = "\n".join(
+            (
+                LOCALE_SOURCE,
+                PAGE_LOCALE_SOURCE,
+                AUDIT_LOCALE_SOURCE,
+                TRACE_LOCALE_SOURCE,
+                OPERATIONAL_LOCALE_SOURCE,
+                I18N_SOURCE.split("installLocalizedFetch();", 1)[0],
+                IDENTITY_LOCALE_SOURCE,
+                """
+let activeLocale = 'en';
+getActiveLocale = () => activeLocale;
+for (const [locale, messages] of Object.entries(IDENTITY_LOCALE_TRANSLATIONS)) {
+    activeLocale = locale;
+    for (const [key, expected] of Object.entries(messages)) {
+        if (t(key) !== expected) throw new Error(`${locale}: ${key} is absent from the live translator`);
+    }
+}
+activeLocale = 'vi';
+if (t('identity.title') !== 'Danh tính và phiên') throw new Error('Vietnamese title missing');
+if (t('identity.page', {page: 2}) !== 'Trang 2') throw new Error('Page interpolation failed');
+if (translateEnglishSource('Identity and sessions', 'vi') !== 'Danh tính và phiên') throw new Error('English source lookup missing');
+console.log('All 15 Identity runtime catalogs resolve');
+""",
+            )
+        )
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node.js is required for the runtime locale contract")
+        result = subprocess.run(
+            [node],
+            input=source,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=15,
+            cwd=ROOT,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_javascript_audit_accepts_namespaced_translation_keys(self):
         audit = (ROOT / "tools/i18n-js-audit.py").read_text(encoding="utf-8")
         self.assertIn(r"(?:\.[a-z][a-z0-9_-]*)*", audit)
@@ -313,77 +353,19 @@ class FrontendLocaleContractTests(unittest.TestCase):
         self.assertEqual(locations, ["frontend/fragments/pages/settings.html"])
 
     def test_every_referenced_translation_key_has_an_english_source(self):
-        references: set[str] = set()
-        patterns = (
-            re.compile(r"\bt\(\s*['\"]([^'\"]+)['\"]"),
-            re.compile(r"data-i18n(?:-(?:title|alt|placeholder|aria-label))?=['\"]([^'\"]+)['\"]"),
+        # Use the runtime catalog audit: feature modules may generate prefixed keys.
+        # Static array parsing misses those keys and newly registered locale modules.
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node.js is required for the locale runtime contract.")
+        result = subprocess.run(
+            [node, str(ROOT / "tools/i18n-audit.mjs"), "--strict"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
-        for path in _frontend_sources():
-            source = path.read_text(encoding="utf-8")
-            for pattern in patterns:
-                references.update(pattern.findall(source))
-
-        combined_catalog = (
-            LOCALE_SOURCE
-            + PAGE_LOCALE_SOURCE
-            + IDENTITY_LOCALE_SOURCE
-            + AUDIT_LOCALE_SOURCE
-            + TRACE_LOCALE_SOURCE
-            + OPERATIONAL_LOCALE_SOURCE
-            + I18N_SOURCE
-        )
-        generated_keys: set[str] = set()
-        for variable in (
-            "SETTINGS_PAGE_KEYS",
-            "PROVIDER_CATALOG_KEYS",
-            "PROVIDER_WORKFLOW_KEYS",
-            "PROVIDER_REMEDIATION_LOCALE_KEYS",
-            "CONSOLE_CHROME_KEYS",
-            "RUNTIME_UI_KEYS",
-            "PROVIDER_ACTION_KEYS",
-            "PROVIDER_DIALOG_KEYS",
-            "PROVIDER_AUTHORIZATION_KEYS",
-            "PROVIDER_FORM_KEYS",
-            "PROVIDER_FORM_LABEL_KEYS",
-            "DASHBOARD_METRICS_ENHANCEMENT_KEYS",
-            "ROUTING_STRATEGY_KEYS",
-            "OPERATION_COPY_KEYS",
-            "CREDENTIAL_CARD_KEYS",
-            "CREDENTIAL_MODAL_KEYS",
-            "UPDATE_GUIDE_KEYS",
-            "CREDENTIAL_FLEET_KEYS",
-            "CREDENTIAL_OPERATION_KEYS",
-            "CREDENTIAL_ACTION_KEYS",
-            "CREDENTIAL_TIER_KEYS",
-            "IDENTITY_KEYS",
-            "AUDIT_KEYS",
-            "TRACE_KEYS",
-            "TRACE_CONTEXT_KEYS",
-            "OPERATIONAL_HEALTH_KEYS",
-        ):
-            source = (
-                IDENTITY_LOCALE_SOURCE
-                if variable == "IDENTITY_KEYS"
-                else AUDIT_LOCALE_SOURCE
-                if variable == "AUDIT_KEYS"
-                else TRACE_LOCALE_SOURCE
-                if variable in {"TRACE_KEYS", "TRACE_CONTEXT_KEYS"}
-                else OPERATIONAL_LOCALE_SOURCE
-                if variable == "OPERATIONAL_HEALTH_KEYS"
-                else PAGE_LOCALE_SOURCE
-            )
-            generated_keys.update(
-                re.findall(r"['\"]([a-z][a-z0-9_.-]+)['\"]", _extract_array(source, variable))
-            )
-        missing = sorted(
-            key
-            for key in references
-            if key not in generated_keys
-            and not re.search(
-                rf"(?:['\"]{re.escape(key)}['\"]|\b{re.escape(key)})\s*:", combined_catalog
-            )
-        )
-        self.assertEqual(missing, [], f"Missing English translations: {missing}")
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_locale_selector_covers_every_supported_locale(self):
         expected = {

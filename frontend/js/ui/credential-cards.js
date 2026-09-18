@@ -1,3 +1,22 @@
+function initCredentialBadgeHints() {
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const hints = document.querySelectorAll('.credential-badge-hint:not([data-hint-dismissed]):is(:hover, :focus-visible)');
+        if (!hints.length) return;
+        hints.forEach(badge => { badge.dataset.hintDismissed = 'true'; });
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+    document.addEventListener('pointerover', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge && !badge.contains(event.relatedTarget)) delete badge.dataset.hintDismissed;
+    });
+    document.addEventListener('focusin', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge) delete badge.dataset.hintDismissed;
+    });
+}
+
 function getAuthHeaders(includeContentType = true) {
 
     const headers = {'Accept-Language': getActiveLocale()};
@@ -43,12 +62,18 @@ function getCredentialProviderMeta(credInfo, managerType) {
         .toLowerCase()
         .replace(/[\s-]+/g, '_');
 
+    const extended = typeof EXTENDED_PROVIDER_UI !== 'undefined' && Object.hasOwn(EXTENDED_PROVIDER_UI, provider)
+        ? EXTENDED_PROVIDER_UI[provider] : null;
+    if (extended) {
+        return {id: provider, name: extended.name, logo: `/frontend/assets/providers/${extended.logo}`};
+    }
+
     if (provider === 'google_ai_studio' || provider === 'ai_studio' || provider === 'aistudio' || provider === 'gemini') {
 
         return {
             id: 'google_ai_studio',
             name: t('provider_google_ai_studio'),
-            logo: '/frontend/assets/providers/google-ai-studio-logo.png'
+            logo: '/frontend/assets/providers/google-ai-studio.png'
         };
 
     }
@@ -58,7 +83,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: 'google_antigravity',
             name: t('provider_antigravity'),
-            logo: '/frontend/assets/providers/google-antigravity-logo.png'
+            logo: '/frontend/assets/providers/google-antigravity.png'
         };
 
     }
@@ -73,7 +98,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'grok',
                 name: t('provider_grok'),
-                logo: '/frontend/assets/providers/grok-build-logo.png'
+                logo: '/frontend/assets/providers/grok-build.png'
             };
         }
 
@@ -81,14 +106,14 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'xai_console',
                 name: 'SpaceXAI Console',
-                logo: '/frontend/assets/providers/spacexai-console-logo.png'
+                logo: '/frontend/assets/providers/spacexai-console.png'
             };
         }
 
         return {
             id: 'grok',
             name: t('provider_grok'),
-            logo: '/frontend/assets/providers/grok-build-logo.png'
+            logo: '/frontend/assets/providers/grok-build.png'
         };
 
     }
@@ -102,14 +127,14 @@ function getCredentialProviderMeta(credInfo, managerType) {
             return {
                 id: 'codex',
                 name: 'Codex',
-                logo: '/frontend/assets/providers/codex-logo.png'
+                logo: '/frontend/assets/providers/codex.png'
             };
         }
 
         return {
             id: 'openai_platform',
             name: 'OpenAI Platform',
-            logo: '/frontend/assets/providers/openai-platform-logo.png'
+            logo: '/frontend/assets/providers/openai-platform.png'
         };
 
     }
@@ -122,7 +147,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: isClaudeCode ? 'claude_code' : 'claude_platform',
             name: isClaudeCode ? 'Claude Code' : 'Claude Platform',
-            logo: isClaudeCode ? '/frontend/assets/providers/claude-code-logo.png' : '/frontend/assets/providers/claude-platform-logo.png'
+            logo: isClaudeCode ? '/frontend/assets/providers/claude-code.png' : '/frontend/assets/providers/claude-platform.png'
         };
 
     }
@@ -132,7 +157,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
         return {
             id: 'ollama',
             name: 'Ollama',
-            logo: '/frontend/assets/providers/ollama-logo.png'
+            logo: '/frontend/assets/providers/ollama.png'
         };
 
     }
@@ -140,7 +165,7 @@ function getCredentialProviderMeta(credInfo, managerType) {
     return {
         id: 'google_antigravity',
         name: 'Google Antigravity',
-        logo: '/frontend/assets/providers/google-antigravity-logo.png'
+        logo: '/frontend/assets/providers/google-antigravity.png'
     };
 
 }
@@ -159,7 +184,16 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
 
         : `<span>${escapeHtml(providerMeta.name.charAt(0))}</span>`;
 
-    const countLabel = t('credential_count', {count: formatConsoleNumber(credentials.length)});
+    const countLabel = t('credentials.workspace.visible', {count: formatConsoleNumber(credentials.length)});
+    const scope = t('credentials.workspace.scope', {provider: providerMeta.name, count: formatConsoleNumber(credentials.length)});
+    const operations = [
+        ['enable', 'disable', 'action_enable'],
+        ['disable', 'disable', 'action_disable'],
+        ['delete', 'delete', 'action_delete'],
+    ].filter(([, capability]) => credentials.some(item => manager.credentialSupportsOperation(item, capability)));
+    const buttons = operations.map(([action, , label]) =>
+        `<button type="button" class="cred-btn ${action === 'delete' ? 'delete' : ''}" data-provider-batch="${action}">${escapeHtml(t(label))}</button>`
+    ).join('');
 
     section.innerHTML = `
 
@@ -170,6 +204,8 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
             <h2 class="credential-provider-group-title" id="credentialProviderGroup-${escapeAttribute(providerMeta.id)}">${escapeHtml(providerMeta.name)}</h2>
 
             <span class="credential-provider-group-count">${countLabel}</span>
+
+            ${buttons ? `<div class="credential-provider-actions" role="group" aria-label="${escapeAttribute(`${providerMeta.name}: ${t('credentials.workspace.group_actions')}`)}" title="${escapeAttribute(scope)}">${buttons}</div>` : ''}
 
         </div>
 
@@ -185,6 +221,27 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
 
     });
 
+    const actions = section.querySelector('.credential-provider-actions');
+    let pending = false;
+    section.querySelectorAll('[data-provider-batch]').forEach(button => {
+        button.addEventListener('click', async () => {
+            if (pending) return;
+            pending = true;
+            actions.setAttribute('aria-busy', 'true');
+            // Retain focus on the trigger for the confirmation dialog's return path.
+            actions.querySelectorAll('button').forEach(item => item.setAttribute('aria-disabled', 'true'));
+            try {
+                await manager.batchAction(button.dataset.providerBatch, {
+                    filenames: credentials.map(item => item.filename), description: scope,
+                });
+            } finally {
+                pending = false;
+                actions.removeAttribute('aria-busy');
+                actions.querySelectorAll('button').forEach(item => item.removeAttribute('aria-disabled'));
+            }
+        });
+    });
+
     return section;
 
 }
@@ -192,6 +249,11 @@ function createCredentialProviderGroup(providerMeta, credentials, manager) {
 function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
 
     const rawValue = String(value || '').trim();
+    if (kind === 'provider_tier' || kind === 'provider_plan') {
+        if (!rawValue || rawValue.length > 128 || /[\u0000-\u001f\u007f-\u009f]/.test(rawValue)
+            || ['unknown', 'not_applicable', 'n/a', 'none'].includes(rawValue.toLowerCase())) return null;
+        return {label: rawValue, kind: kind === 'provider_plan' ? 'plan' : 'tier', badgeClass: 'muted'};
+    }
     if (!rawValue || rawValue.toLowerCase() === 'unknown' || rawValue.length > 48) return null;
 
     const normalizedKind = kind === 'tier' || /^tier[\s:_-]/i.test(rawValue) ? 'tier' : 'plan';
@@ -219,14 +281,11 @@ function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
         return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge muted" hidden></span>`;
     }
 
-    const badgeLabel = plan.kind === 'tier'
-        ? t('credential_badge_tier', {tier: escapeHtml(plan.label)})
-        : t('credential_badge_plan', {plan: escapeHtml(plan.label)});
     const title = plan.kind === 'tier'
-        ? `Access tier reported by the provider: ${plan.label}`
-        : `Subscription plan reported by the provider: ${plan.label}`;
+        ? t('credential_badge_tier', {tier: plan.label})
+        : t('credential_badge_plan', {plan: plan.label});
 
-    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}" title="${escapeAttribute(title)}">${badgeLabel}</span>`;
+    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge credential-badge-hint ${plan.badgeClass}" tabindex="0" aria-label="${escapeAttribute(title)}"><span class="credential-badge-label">${escapeHtml(plan.label)}</span><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(title)}</span></span>`;
 
 }
 
@@ -244,14 +303,34 @@ function getCredentialAuthenticationType(providerMeta, credInfo) {
 
 }
 
-function renderCredentialAuthenticationBadge(providerMeta, credInfo) {
+function renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact = false} = {}) {
 
     const authenticationType = getCredentialAuthenticationType(providerMeta, credInfo);
-    if (!authenticationType) return '';
+    if (!authenticationType || (compact && authenticationType === 'OAuth')) return '';
 
-    const title = `${providerMeta.name} ${authenticationType} credential`;
-    return `<span class="status-badge muted" title="${escapeAttribute(title)}">${authenticationType}</span>`;
+    const label = authenticationType === 'Connection' ? t('pool.kind.connection')
+        : authenticationType === 'API key' ? t('credentials.workspace.api_key') : authenticationType;
+    return `<span class="status-badge muted">${escapeHtml(label)}</span>`;
 
+}
+
+function getCredentialAccountLabel(credInfo) {
+    const label = String(credInfo.credential_label || '').trim();
+    if (label) return label;
+    const kind = String(credInfo.credential_type || 'oauth').toLowerCase();
+    const email = kind === 'oauth' ? String(credInfo.user_email || '').trim() : '';
+    if (email) return email;
+    // Filenames are existing public inventory identifiers, not token/key fragments.
+    return String(credInfo.filename || '').replace(/\.json$/i, '') || t('credential_details_title');
+}
+
+function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
+    const kind = getCredentialAuthenticationType(providerMeta, credInfo);
+    const subtitle = kind === 'API key' ? credInfo.api_key_hint
+        : kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
+            ? credInfo.user_email : '';
+    if (!subtitle) return '';
+    return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
 }
 
 function createCredCard(credInfo, manager) {
@@ -263,7 +342,7 @@ function createCredCard(credInfo, manager) {
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
     const isAntigravity = providerMeta.id === 'google_antigravity';
-    const isCodexOAuth = providerMeta.id === 'codex' && credInfo.credential_type === 'oauth';
+    const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
     const supportsQuotaPreview = managerType === 'primary'
@@ -271,7 +350,6 @@ function createCredCard(credInfo, manager) {
     const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
     const supportsExport = manager.credentialSupportsOperation(credInfo, 'export');
     const supportsModelDiscovery = manager.credentialSupportsOperation(credInfo, 'model_discovery');
-    const supportsCreditMode = manager.credentialSupportsOperation(credInfo, 'credit_mode');
     const supportsVerify = manager.credentialSupportsOperation(credInfo, 'verify');
     const supportsTest = manager.credentialSupportsOperation(credInfo, 'test');
     const supportsDelete = manager.credentialSupportsOperation(credInfo, 'delete');
@@ -287,15 +365,14 @@ function createCredCard(credInfo, manager) {
 
     }
 
-    const accountLabel = credInfo.credential_label || credInfo.user_email || t('email_not_fetched');
-    const accountClass = (credInfo.credential_label || credInfo.user_email) ? 'cred-email' : 'cred-email empty';
-    const providerLogo = providerMeta.logo
-        ? `<img src="${escapeAttribute(providerMeta.logo)}" alt="${escapeAttribute(providerMeta.name)} logo">`
-        : `<span>${escapeHtml(providerMeta.name.charAt(0))}</span>`;
+    const accountLabel = getCredentialAccountLabel(credInfo);
+    const modelCount = Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0;
 
     div.className = status.disabled ? 'cred-card disabled' : 'cred-card';
 
     let statusBadges = '';
+    let contextBadges = '';
+    let cooldownBadges = '';
 
     statusBadges += status.disabled
 
@@ -305,7 +382,8 @@ function createCredCard(credInfo, manager) {
 
     if (status.error_codes && status.error_codes.length > 0) {
 
-        statusBadges += `<span class="error-codes">${t('error_code_prefix')} ${escapeHtml(status.error_codes.join(', '))}</span>`;
+        const errorLabel = `${t('error_code_prefix')} ${status.error_codes.join(', ')}`;
+        statusBadges += `<span class="error-codes" title="${escapeAttribute(errorLabel)}">${escapeHtml(errorLabel)}</span>`;
 
         const autoBan = status.error_codes.filter(c => c === 400 || c === 403);
 
@@ -323,7 +401,7 @@ function createCredCard(credInfo, manager) {
 
     }
 
-    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo);
+    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact: true});
 
     if (!isManagedCredential) {
         statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
@@ -331,31 +409,40 @@ function createCredCard(credInfo, manager) {
 
     if (isAntigravity) {
 
-        statusBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
+        contextBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
 
-    } else if (isCodexOAuth) {
+    } else if (isMuseOAuth) {
 
-        statusBadges += renderCredentialSubscriptionBadge(
+        contextBadges += renderCredentialSubscriptionBadge(
+            pathId,
+            AppState.quotaPreviewCache[filename]?.data?.plan || AppState.quotaPreviewCache[filename]?.data?.subscription_tier,
+            AppState.quotaPreviewCache[filename]?.data?.plan ? 'provider_plan' : 'provider_tier'
+        );
+
+    } else if (supportsQuotaPreview) {
+
+        contextBadges += renderCredentialSubscriptionBadge(
             pathId,
             AppState.quotaPreviewCache[filename]?.data?.plan,
             'plan'
         );
 
-    } else if (managerType !== 'primary') {
+    } else if (managerType !== 'primary' && credInfo.tier) {
 
-        const tier = (credInfo.tier || 'pro').toString().toLowerCase();
+        const tier = credInfo.tier.toString().toLowerCase();
 
         const tierLabel = tier.toUpperCase();
 
         const tierClass = tier === 'ultra' ? 'tier-ultra' : (tier === 'free' ? 'tier-free' : 'tier-pro');
 
-        statusBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
+        contextBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
 
     }
 
     if (managerType === 'primary' && isAntigravity && credInfo.enable_credit) {
 
-        statusBadges += `<span class="status-badge credit-on" title="${t('credit_enabled_title')}">${t('credential_badge_credits', {state: t('credential_state_on')})}</span>`;
+        const creditLabel = t('credit_enabled_title');
+        contextBadges += `<span class="status-badge credit-on credential-badge-hint" tabindex="0" aria-label="${escapeAttribute(creditLabel)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(creditLabel)}</span></span>`;
 
     }
 
@@ -391,7 +478,7 @@ function createCredCard(credInfo, manager) {
 
             activeCooldowns.slice(0, 2).forEach(item => {
 
-                statusBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
+                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
 
             });
 
@@ -401,7 +488,7 @@ function createCredCard(credInfo, manager) {
 
                 const remainingModels = activeCooldowns.slice(2).map(i => `${i.fullModel}: ${i.time}`).join('\n');
 
-                statusBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
+                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
 
             }
 
@@ -413,7 +500,7 @@ function createCredCard(credInfo, manager) {
         filename,
         managerType,
         email: credInfo.user_email || '',
-        accountLabel: credInfo.user_email || credInfo.credential_label || '',
+        accountLabel,
         providerName: providerMeta.name,
         providerVariant: providerMeta.id,
         credentialSource: credInfo.source || 'managed',
@@ -426,45 +513,15 @@ function createCredCard(credInfo, manager) {
 
         ${supportsDisable ? (status.disabled
 
-            ? `<button type="button" class="cred-btn enable" data-credential-command="enable">${t('action_enable')}</button>`
+            ? `<button type="button" class="cred-btn icon-btn enable" data-credential-command="enable" aria-label="${escapeAttribute(t('action_enable'))}" title="${escapeAttribute(t('action_enable'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"></path><path d="M18.4 6.6a8 8 0 1 1-12.8 0"></path></svg><span class="visually-hidden">${escapeHtml(t('action_enable'))}</span></button>`
 
-            : `<button type="button" class="cred-btn disable" data-credential-command="disable">${t('action_disable')}</button>`
-
-        ) : ''}
-
-        ${supportsTest ? `<button type="button" class="cred-btn" data-credential-command="test" title="${escapeAttribute(t('btn_test_model_title'))}">${t('btn_test_model')}</button>` : ''}
-
-        <button type="button" class="cred-btn view" data-credential-command="view" title="${escapeAttribute(t('btn_view_content_title'))}">${t('btn_view_content')}</button>
-
-        ${supportsDelete ? `<button type="button" class="cred-btn delete" data-credential-command="delete">${t('action_delete')}</button>` : ''}
-
-    `;
-
-    const secondaryActionButtons = `
-
-        ${supportsEdit ? `<button type="button" class="cred-btn" data-credential-command="edit">${t('credential_edit_action')}</button>` : ''}
-
-        ${supportsReauthenticate ? `<button type="button" class="cred-btn" data-credential-command="reauthenticate">${t('credential_reauthenticate_action')}</button>` : ''}
-
-        ${supportsExport ? `<button type="button" class="cred-btn download" data-credential-command="download">${t('btn_download')}</button>` : ''}
-
-        ${supportsModelDiscovery && Number(credInfo.model_count) > 0 ? `<button type="button" class="cred-btn" data-credential-command="models" title="${escapeAttribute(t('btn_view_models_title'))}">${t('btn_view_models')}</button>` : ''}
-
-        ${supportsQuotaPreview ? `<button type="button" class="cred-btn" data-credential-command="quota" title="${escapeAttribute(t('btn_view_quota_title'))}">${t('btn_view_quota')}</button>` : ''}
-
-        ${managerType === 'primary' && supportsCreditMode ? (credInfo.enable_credit
-
-            ? `<button type="button" class="cred-btn" data-credential-command="disable_credit" title="${escapeAttribute(t('btn_disable_credit_title'))}">${t('btn_disable_credit')}</button>`
-
-            : `<button type="button" class="cred-btn" data-credential-command="enable_credit" title="${escapeAttribute(t('btn_enable_credit_title'))}">${t('btn_enable_credit')}</button>`
+            : `<button type="button" class="cred-btn icon-btn disable" data-credential-command="disable" aria-label="${escapeAttribute(t('action_disable'))}" title="${escapeAttribute(t('action_disable'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"></path><path d="M18.4 6.6a8 8 0 1 1-12.8 0"></path></svg><span class="visually-hidden">${escapeHtml(t('action_disable'))}</span></button>`
 
         ) : ''}
 
-        ${managerType !== 'primary' ? `<button type="button" class="cred-btn" data-credential-command="preview" title="${escapeAttribute(t('btn_setup_preview_title'))}">${t('btn_setup_preview')}</button>` : ''}
+        ${supportsTest ? `<button type="button" class="cred-btn icon-btn" data-credential-command="test" aria-label="${escapeAttribute(t('btn_test_model'))}" title="${escapeAttribute(t('btn_test_model_title'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 3v6l-5 8.5A2 2 0 0 0 6.7 21h10.6A2 2 0 0 0 19 17.5L14 9V3"></path><path d="M8 14h8"></path></svg><span class="visually-hidden">${escapeHtml(t('btn_test_model'))}</span></button>` : ''}
 
-        ${supportsVerify ? `<button type="button" class="cred-btn" data-credential-command="verify" title="${escapeAttribute(t('btn_verify_id_title'))}">${t('btn_verify_id')}</button>` : ''}
-
-        <button type="button" class="cred-btn" data-credential-command="errors" title="${escapeAttribute(t('btn_view_errors_title'))}">${t('btn_view_errors')}</button>
+        <button type="button" class="cred-btn icon-btn view" data-credential-command="manage" aria-label="${escapeAttribute(t('credentials.workspace.manage'))}" title="${escapeAttribute(t('credentials.workspace.manage'))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10"></path><path d="M18 7h2"></path><circle cx="16" cy="7" r="2"></circle><path d="M4 17h2"></path><path d="M10 17h10"></path><circle cx="8" cy="17" r="2"></circle></svg><span class="visually-hidden">${escapeHtml(t('credentials.workspace.manage'))}</span></button>
 
     `;
 
@@ -477,30 +534,31 @@ function createCredCard(credInfo, manager) {
 
             <div class="cred-title-row">
 
-                <input type="checkbox" class="${escapeAttribute(checkboxClass)}" data-filename="${escapeAttribute(filename)}" data-credential-select aria-label="${escapeAttribute(`Select ${providerMeta.name} credential for ${accountLabel}`)}">
+                <input type="checkbox" class="${escapeAttribute(checkboxClass)}" data-filename="${escapeAttribute(filename)}" data-credential-select aria-label="${escapeAttribute(t('credentials.workspace.select', {name: accountLabel}))}">
 
                 <div class="cred-identity" title="${escapeAttribute(filename)}">
-                    <div class="cred-provider-logo" aria-hidden="true">${providerLogo}</div>
                     <div class="cred-identity-copy">
-                        <div class="cred-provider-name">${escapeHtml(providerMeta.name)}</div>
-                        <div class="${accountClass}">${escapeHtml(accountLabel)}</div>
+                        <h3 class="cred-account-name" title="${escapeAttribute(accountLabel)}">${escapeHtml(accountLabel)}</h3>
+                        ${renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel)}
                     </div>
                 </div>
 
-                ${quotaPreview}
-
             </div>
 
-            <div class="cred-status">${statusBadges}</div>
+            <div class="cred-status cred-summary">${statusBadges}${contextBadges}</div>
+            ${cooldownBadges ? `<div class="cred-status cred-context">${cooldownBadges}</div>` : ''}
 
         </div>
 
+        <div class="cred-metrics">
+            <span>${escapeHtml(t('credentials.workspace.models', {count: formatConsoleNumber(modelCount)}))}</span>
+            ${quotaPreview}
+        </div>
+
+        ${credInfo.validation_status === 'unverified' ? `<p class="upload-result-message" data-i18n="provider.ownership.import_unverified_provenance">${escapeHtml(t('provider.ownership.import_unverified_provenance'))}</p>` : ''}
+
         <div class="cred-actions">
             <div class="cred-actions-primary">${primaryActionButtons}</div>
-            <details class="cred-actions-secondary">
-                <summary>${t('pool.actions.more')}</summary>
-                <div class="cred-actions-secondary-grid">${secondaryActionButtons}</div>
-            </details>
         </div>
 
     `;
@@ -518,51 +576,54 @@ function createCredCard(credInfo, manager) {
         quotaPreviewButton.addEventListener('click', () => loadPrimaryQuotaPreview(pathId));
     }
 
+    const executeCommand = async (command) => {
+        if (command === 'manage') {
+            await showCredentialManagement(pathId, manager, credInfo, {
+                disable: supportsDisable, verify: supportsVerify, test: supportsTest,
+                edit: supportsEdit, reauthenticate: supportsReauthenticate, export: supportsExport,
+                models: supportsModelDiscovery, quota: supportsQuotaPreview, delete: supportsDelete,
+                reveal: manager.permissions.has('credentials.export'),
+                preview: managerType !== 'primary' && manager.canOperateCredential('verify'),
+                credit: managerType === 'primary' && isManagedCredential && manager.credentialSupportsOperation(credInfo, 'credit_mode'),
+            });
+            return;
+        }
+
+        if (command === 'delete' && !(await showConfirmModal(t('confirm_delete_cred'), {
+            title: t('confirm_delete_cred_title'), confirmLabel: t('action_delete'),
+        }))) return;
+
+        if (['enable', 'disable', 'delete', 'enable_credit', 'disable_credit'].includes(command)) {
+            await manager.action(filename, command);
+            return;
+        }
+
+        if (command === 'view') await toggleCredDetailsCommon(pathId, manager);
+        if (command === 'download') {
+            if (managerType === 'primary') downloadPrimaryCred(filename);
+            else downloadCred(filename);
+        }
+        if (command === 'quota') await togglePrimaryQuotaDetails(pathId);
+        if (command === 'edit') await showCredentialEditModal(pathId);
+        if (command === 'reauthenticate') reauthenticateCredential(pathId);
+        if (command === 'models') await showCredentialModels(pathId);
+        if (command === 'preview') await configurePreviewChannel(filename);
+        if (command === 'verify') {
+            if (managerType === 'primary') await verifyProviderCredential(filename);
+            else await verifyCredential(filename);
+        }
+        if (command === 'test') await showCredentialModelTest(pathId);
+        if (command === 'errors') await toggleErrorDetailsCommon(pathId, manager);
+    };
     div.querySelectorAll('[data-credential-command]').forEach(button => {
-
-        button.addEventListener('click', async function () {
-
-            const command = this.getAttribute('data-credential-command');
-
-            if (command === 'delete') {
-
-                if (!(await showConfirmModal(t('confirm_delete_cred'), {
-
-                    title: t('confirm_delete_cred_title'),
-
-                    confirmLabel: t('action_delete')
-
-                }))) return;
-
-            }
-
-            if (['enable', 'disable', 'delete', 'enable_credit', 'disable_credit'].includes(command)) {
-                await manager.action(filename, command);
-                return;
-            }
-
-            if (command === 'view') await toggleCredDetailsCommon(pathId, manager);
-            if (command === 'download') {
-                if (managerType === 'primary') downloadPrimaryCred(filename);
-                else downloadCred(filename);
-            }
-            if (command === 'quota') await togglePrimaryQuotaDetails(pathId);
-            if (command === 'edit') await showCredentialEditModal(pathId);
-            if (command === 'reauthenticate') reauthenticateCredential(pathId);
-            if (command === 'models') await showCredentialModels(pathId);
-            if (command === 'preview') await configurePreviewChannel(filename);
-            if (command === 'verify') {
-                if (managerType === 'primary') await verifyProviderCredential(filename);
-                else await verifyCredential(filename);
-            }
-            if (command === 'test') {
-                await showCredentialModelTest(pathId);
-            }
-            if (command === 'errors') await toggleErrorDetailsCommon(pathId, manager);
-
-
+        button.addEventListener('click', async () => {
+            const command = button.dataset.credentialCommand;
+            // Keep dialog triggers focusable so closing restores keyboard focus.
+            const changesState = command === 'enable' || command === 'disable';
+            if (changesState) button.disabled = true;
+            try { await executeCommand(command); }
+            finally { if (changesState) button.disabled = false; }
         });
-
     });
 
     if (shouldAutoLoadQuota) {

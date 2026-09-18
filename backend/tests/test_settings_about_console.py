@@ -26,6 +26,112 @@ IDENTITY_SCRIPT = ROOT / "frontend/js/features/identity.js"
 
 
 class SettingsConsoleContractTests(unittest.TestCase):
+    def test_settings_reset_uses_system_scope(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const calls = [];
+globalThis.showConfirmModal = async () => true;
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({{}});
+globalThis.showStatus = () => {{}};
+globalThis.setTimeout = () => {{}};
+globalThis.fetch = async (url, options) => {{
+    calls.push({{url, method: options.method}});
+    return {{ok: true, json: async () => ({{}})}};
+}};
+vm.runInThisContext({json.dumps(source)});
+(async () => {{
+    await resetConfig();
+    if (calls.length !== 1 || calls[0].url !== './api/config/reset?scope=system'
+        || calls[0].method !== 'POST') throw Error('Settings reset must preserve Models routing');
+}})().catch(error => {{console.error(error); process.exitCode = 1;}});
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_routing_is_owned_by_models_and_not_submitted_by_settings(self) -> None:
+        fragment = SETTINGS.read_text(encoding="utf-8")
+        self.assertNotRegex(fragment, r'id="(?:routingStrategy|preferredProvider)"')
+        self.assertNotIn('data-i18n="settings.routing_policy"', fragment)
+        models = (ROOT / "frontend/fragments/pages/models.html").read_text(encoding="utf-8")
+        for field in ("modelRoutingStrategy", "modelPreferredProvider"):
+            self.assertRegex(models, rf'<select[^>]+id="{field}"')
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+globalThis.document = {{getElementById: () => ({{value: '', checked: false}})}};
+vm.runInThisContext({json.dumps(source)});
+const payload = collectSystemConfigForm();
+if ('routing_strategy' in payload || 'preferred_provider' in payload) throw Error('Settings overwrites routing');
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_invalid_settings_are_not_submitted(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+globalThis.document = {{querySelectorAll: () => [{{disabled: false, reportValidity: () => false}}]}};
+globalThis.fetch = () => {{throw new Error('Invalid form reached the network');}};
+globalThis.showStatus = () => {{throw new Error('Save must stop before collection/network');}};
+globalThis.t = value => value;
+vm.runInThisContext({json.dumps(source)});
+saveConfig();
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_save_validates_form_controls_and_ignores_read_only_routing_summaries(self) -> None:
+        source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const calls = [], validated = [];
+const control = (tagName, id, value, disabled = false) => ({{tagName, id, value, disabled,
+    reportValidity() {{validated.push(id); return true;}}}});
+const fields = [control('INPUT', 'host', '127.0.0.1'), control('SELECT', 'runtimeLogLevel', 'info'),
+    control('TEXTAREA', 'autoBanErrorCodes', '401'), control('INPUT', 'port', '4283', true),
+    {{tagName: 'P', id: 'routingStrategy', textContent: 'Balanced'}},
+    {{tagName: 'P', id: 'preferredProvider', textContent: 'Automatic'}}];
+globalThis.document = {{
+    getElementById: id => fields.find(field => field.id === id) || {{value: '', checked: false}},
+    querySelectorAll: selector => fields.filter(field => selector.split(',').some(part => {{
+        const tag = part.trim().split(/\\s+/).at(-1).split('[')[0];
+        return !tag || tag.toUpperCase() === field.tagName;
+    }})),
+}};
+globalThis.fetch = async (url, options) => {{calls.push({{url, payload: JSON.parse(options.body)}});
+    return {{ok: true, json: async () => ({{}})}};}};
+globalThis.getAuthHeaders = () => ({{}});
+globalThis.showStatus = () => {{}};
+globalThis.setTimeout = () => {{}};
+globalThis.t = key => key;
+vm.runInThisContext({json.dumps(source)});
+(async () => {{
+    await saveConfig();
+    if (calls.length !== 1 || calls[0].url !== './api/config/save') throw Error('Valid settings were not saved');
+    if (validated.join() !== 'host,runtimeLogLevel,autoBanErrorCodes') throw Error('Form validation was skipped');
+    if ('routing_strategy' in calls[0].payload.config || 'preferred_provider' in calls[0].payload.config)
+        throw Error('Read-only routing was submitted');
+}})().catch(error => {{console.error(error); process.exitCode = 1;}});
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_every_system_control_maps_to_the_authoritative_schema(self) -> None:
         fragment = SETTINGS.read_text(encoding="utf-8")
         rendered = set(re.findall(r'data-config-key="([a-z0-9_]+)"', fragment))
@@ -34,15 +140,28 @@ class SettingsConsoleContractTests(unittest.TestCase):
             for field in CONFIGURATION_FIELDS
             if field.config_key and field.surface == "system"
         }
-        self.assertEqual(rendered, authoritative)
+        # These two server keys are edited exclusively on Models, not duplicated here.
+        self.assertEqual(rendered, authoritative - {"routing_strategy", "preferred_provider"})
+
+    def test_connection_fields_and_keepalive_share_the_right_column(self) -> None:
+        fragment = SETTINGS.read_text(encoding="utf-8")
+        columns = fragment.split('<div class="config-column">')
+        self.assertEqual(len(columns), 3)
+        self.assertNotIn('id="keepaliveUrl"', columns[1])
+        self.assertIn('id="keepaliveUrl"', columns[2])
+        sections = re.findall(r"<section\b[^>]*>.*?</section>", fragment, re.DOTALL)
+        connection = next(section for section in sections if 'id="proxy"' in section)
+        self.assertIn('id="upstreamTimeoutSeconds"', connection)
+        self.assertEqual(fragment.count('id="upstreamTimeoutSeconds"'), 1)
+        self.assertEqual(fragment.count('id="keepaliveInterval"'), 1)
 
     def test_metadata_and_secret_preservation_are_explicit(self) -> None:
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("normalizeSettingsMetadata", source)
         self.assertIn("renderSettingsMetadata", source)
         self.assertIn("collectSystemConfigForm", source)
-        self.assertIn("code_assist_client_secret_configured", source)
-        self.assertNotIn("c.code_assist_client_secret || ''", source)
+        self.assertNotIn("code_assist_client_secret", source)
+        self.assertNotIn("codeAssistClientSecret", SETTINGS.read_text(encoding="utf-8"))
         self.assertNotIn(".innerHTML", source)
 
     def test_settings_use_independent_columns_without_per_field_notes(self) -> None:
@@ -64,7 +183,7 @@ class SettingsConsoleContractTests(unittest.TestCase):
             styles, r"\.page-header\s*>\s*\.page-actions\s*\{[^}]*flex:\s*0\s+0\s+auto"
         )
 
-    def test_blank_secret_is_not_sent_back_as_a_destructive_clear(self) -> None:
+    def test_provider_secret_is_never_submitted_by_system_settings(self) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the Settings UI contract.")
         source = SYSTEM_SCRIPT.read_text(encoding="utf-8")
@@ -80,7 +199,10 @@ const config = globalThis.contract.collectSystemConfigForm();
 if (Object.hasOwn(config, 'code_assist_client_secret')) throw new Error('blank secret sent');
 values.codeAssistClientSecret = 'replacement-secret';
 const updated = globalThis.contract.collectSystemConfigForm();
-if (updated.code_assist_client_secret !== 'replacement-secret') throw new Error('secret update lost');
+if (Object.hasOwn(updated, 'code_assist_client_secret')) throw new Error('provider secret sent by system settings');
+vm.runInThisContext('const AppState = {{envLockedFields: new Set(["host", "code_assist_client_secret"])}};');
+const locked = globalThis.contract.collectSystemConfigForm();
+if ('host' in locked || 'code_assist_client_secret' in locked) throw new Error('environment-managed fields submitted');
 """
         result = subprocess.run(
             [node, "-e", harness],
@@ -94,6 +216,28 @@ if (updated.code_assist_client_secret !== 'replacement-secret') throw new Error(
 
 
 class AboutAndIdentityConsoleContractTests(unittest.TestCase):
+    def test_support_counts_are_labelled_and_empty_snapshot_is_explicit(self) -> None:
+        source = ABOUT_SCRIPT.read_text(encoding="utf-8")
+        harness = f"""
+const vm = require('vm');
+const host = {{replaceChildren(...nodes) {{this.children = nodes;}}, setAttribute() {{}}}};
+globalThis.document = {{getElementById: () => host, addEventListener() {{}},
+  createElement: tag => ({{tag, children: [], append(...nodes) {{this.children.push(...nodes);}}, setAttribute() {{}}}})}};
+globalThis.t = key => key;
+globalThis.formatConsoleNumber = String;
+vm.runInThisContext({json.dumps(source)});
+renderAboutCapabilities([{{tier:'core',state:'active'}},{{tier:'core',state:'blocked'}}]);
+const stats = host.children[0].children[1];
+if (stats.tag !== 'dl' || stats.children.length !== 4) throw new Error('Missing labelled state counts');
+if (stats.children.map(row => row.children[1].textContent).join() !== '1,0,0,1') throw new Error('Wrong counts');
+renderAboutCapabilities([]);
+if (host.children[0]?.textContent !== 'about.no_capabilities') throw new Error('Empty snapshot has no explanation');
+"""
+        result = subprocess.run(
+            [shutil.which("node"), "-e", harness], capture_output=True, text=True, timeout=15
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_about_exposes_build_support_and_maintenance_entry_points(self) -> None:
         fragment = ABOUT.read_text(encoding="utf-8")
         for element_id in (

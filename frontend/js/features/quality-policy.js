@@ -235,6 +235,11 @@ function selectQualityProfile(profile) {
 
 function syncQualityPolicyControls() {
     const custom = selectedQualityProfile() === 'custom';
+    const hint = document.getElementById('qualityControlsHint');
+    if (hint) {
+        hint.textContent = t(custom ? 'quality.custom_controls_hint' : 'quality.preset_controls_hint');
+        if (AppState.qualityEnvLockedFields.size) hint.textContent += ` ${t('quality.locked_controls_hint')}`;
+    }
     document.querySelectorAll('[data-quality-control]').forEach(control => {
         const locked = AppState.qualityEnvLockedFields.has(control.dataset.policyField);
         const dependency = control.closest('[data-quality-dependency]');
@@ -260,12 +265,10 @@ function validateQualityDraft() {
     const keywords = settings.guardrails.blocked_keywords;
     if (keywords.length > 100 || keywords.some(keyword => keyword.length > 128)) {
         showStatus(t('quality.error_keywords'), 'error');
-        document.getElementById('qualityBlockedKeywords')?.focus();
         return false;
     }
     if (settings.compression.target_tokens >= settings.compression.threshold_tokens) {
         showStatus(t('quality.error_target'), 'error');
-        document.getElementById('tokenCompressionTarget')?.focus();
         return false;
     }
     return true;
@@ -360,18 +363,21 @@ async function previewQualityPolicy() {
         return;
     }
     const button = document.getElementById('qualityPreviewButton');
+    const payload = JSON.stringify({...buildQualityPolicyPayload(), ...qualityPreviewDescriptor()});
+    document.getElementById('qualityPreviewResult')?.classList.add('hidden');
     if (button) button.disabled = true;
     try {
         const response = await fetch('./api/quality-policy/preview', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({...buildQualityPolicyPayload(), ...qualityPreviewDescriptor()})
+            body: payload
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             if (response.status === 409) await loadQualityPolicy({preserveContent: true});
             throw new Error(qualityErrorMessage(data, 'quality.error_preview'));
         }
+        if (payload !== JSON.stringify({...buildQualityPolicyPayload(), ...qualityPreviewDescriptor()})) return;
         renderQualityPreview(data);
     } catch (error) {
         showStatus(error.message || t('quality.error_preview'), 'error');

@@ -155,4 +155,12 @@ for (const [locale, messages] of Object.entries(IDENTITY_LOCALE_TRANSLATIONS)) {
     }
     Object.assign(messages, IDENTITY_SUPPLEMENTAL_LOCALE_VALUES[locale]);
     Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
+    // Identity aliases depend on i18n.js, so register in its already-built runtime catalog too.
+    Object.assign(MESSAGE_CATALOGS[locale], messages);
+}
+
+for (const [key, message] of Object.entries(IDENTITY_LOCALE_TRANSLATIONS.en)) {
+    if (!ENGLISH_SEMANTIC_KEYS_BY_MESSAGE.has(message)) {
+        ENGLISH_SEMANTIC_KEYS_BY_MESSAGE.set(message, key);
+    }
 }

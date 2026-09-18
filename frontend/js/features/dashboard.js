@@ -1,6 +1,7 @@
 // Polaris management console: dashboard.
 
-const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 5;
+const DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE = 6;
+let dashboardUsageRevision = 0;
 
 function formatUsageCost(value) {
     return formatConsoleCurrency(value);
@@ -20,6 +21,20 @@ function setDashboardTrafficState(totalCalls) {
     const hasTraffic = Number(totalCalls || 0) > 0;
     tab?.classList.toggle('has-no-traffic', !hasTraffic);
     if (firstRun) firstRun.hidden = hasTraffic;
+    const needsProvider = Number(AppState.dashboardAggregate?.total_files) === 0;
+    const guidance = {
+        dashboardStartTitle: needsProvider ? 'dashboard.connect_provider_title' : 'dashboard.no_traffic_yet',
+        dashboardStartCopy: needsProvider ? 'dashboard.connect_provider_copy' : 'dashboard.empty_period_copy',
+        dashboardStartAction: needsProvider ? 'providers' : 'playground.label',
+        dashboardSecondaryAction: needsProvider ? 'playground.label' : 'providers',
+    };
+    for (const [id, key] of Object.entries(guidance)) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        element.dataset.i18n = key;
+        element.textContent = t(key);
+        if (id.endsWith('Action')) element.dataset.tab = key === 'providers' ? 'providers' : 'playground';
+    }
 }
 
 function getDashboardSummaryMetric(value, options = {}) {
@@ -91,7 +106,10 @@ function updateUsagePeriodLabels() {
 
     const breakdownDescription = document.getElementById('usageBreakdownDescription');
 
-    if (breakdownDescription) breakdownDescription.textContent = t('dashboard.attempt_breakdown_description', {period: periodConfig.metricLabel});
+    const credentialUsageDescription = document.getElementById('credentialUsageDescription');
+    const description = t('dashboard.attempt_breakdown_description', {period: periodConfig.metricLabel});
+    if (breakdownDescription) breakdownDescription.textContent = description;
+    if (credentialUsageDescription) credentialUsageDescription.textContent = description;
 
 }
 
@@ -131,6 +149,10 @@ function setUsagePeriod(period) {
 }
 
 async function refreshUsageStats(options = {}) {
+    const revision = ++dashboardUsageRevision;
+    const usagePeriod = getUsagePeriodConfig().value;
+    const isCurrentRefresh = () => revision === dashboardUsageRevision
+        && usagePeriod === getUsagePeriodConfig().value;
     const loading = document.getElementById('usageLoading');
 
     const list = document.getElementById('usageList');
@@ -143,7 +165,7 @@ async function refreshUsageStats(options = {}) {
 
     const statsContainer = document.getElementById('dashboardStats');
 
-    const tableWrapper = document.querySelector('#dashboardTab .usage-table-wrapper');
+    const tableWrapper = list?.closest('.usage-table-wrapper');
 
     const preserveContent = options.preserveContent ?? AppState.usageStatsLoaded;
 
@@ -175,7 +197,6 @@ async function refreshUsageStats(options = {}) {
 
         }
 
-        const usagePeriod = getUsagePeriodConfig().value;
         const timezoneOffsetMinutes = new Date().getTimezoneOffset();
 
         const usagePeriodQuery = `period=${encodeURIComponent(usagePeriod)}&timezone_offset_minutes=${encodeURIComponent(timezoneOffsetMinutes)}`;
@@ -184,6 +205,7 @@ async function refreshUsageStats(options = {}) {
         // before the per-credential table so a populated ledger cannot hold the
         // whole dashboard behind its slower bounded detail query.
         const aggregatedResponse = await fetch(`./api/usage/aggregated?${usagePeriodQuery}`, { headers: getAuthHeaders() });
+        if (!isCurrentRefresh()) return;
 
         if (aggregatedResponse.status === 401) {
 
@@ -196,6 +218,7 @@ async function refreshUsageStats(options = {}) {
         }
 
         const aggregatedData = await aggregatedResponse.json();
+        if (!isCurrentRefresh()) return;
 
         if (!aggregatedResponse.ok) {
             throw new Error(aggregatedData.detail || t('failed_to_load_usage_statistics'));
@@ -237,26 +260,15 @@ async function refreshUsageStats(options = {}) {
             : t('dashboard.input_output', inputOutputValues);
         renderTokenDistribution(aggData);
 
-        const statsResponse = await fetch(`./api/usage/stats/page?${usagePeriodQuery}&page_size=100`, { headers: getAuthHeaders() });
-
-        if (statsResponse.status === 401) {
-            showStatus(t('authentication_failed_please_log_in'), 'error');
-            setTimeout(() => location.reload(), 1500);
-            return;
-        }
-
-        const statsData = await statsResponse.json();
-        if (!statsResponse.ok) {
-            throw new Error(statsData.detail || t('failed_to_load_usage_statistics'));
-        }
+        if (!await loadUsagePages() || !isCurrentRefresh()) return;
 
         clearPageState('dashboardUsageState');
-        AppState.usageStatsData = statsData.success ? statsData.data : statsData;
         AppState.usageStatsLoaded = true;
         renderProviderHealthMatrix();
         renderUsageList();
 
     } catch (error) {
+        if (!isCurrentRefresh()) return;
 
         const message = t('status_net_error', {error: error.message});
         showPageState('dashboardUsageState', {
@@ -269,18 +281,20 @@ async function refreshUsageStats(options = {}) {
         showStatus(message, 'error');
 
     } finally {
+        if (isCurrentRefresh()) {
 
-        if (loading) loading.hidden = true;
+            if (loading) loading.hidden = true;
 
-        if (statsContainer && !preserveContent) statsContainer.setAttribute('aria-busy', 'false');
+            if (statsContainer && !preserveContent) statsContainer.setAttribute('aria-busy', 'false');
 
-        if (tableWrapper && !preserveContent) tableWrapper.hidden = false;
+            if (tableWrapper && !preserveContent) tableWrapper.hidden = false;
 
-        // The primary metrics and usage summary are the dashboard's usable state.
-        // Load deeper health and activity cards afterwards so their bounded
-        // history queries cannot delay first interaction on a populated ledger.
-        void refreshOperationalHealth();
-        void refreshRecentActivity();
+            // The primary metrics and usage summary are the dashboard's usable state.
+            // Load deeper health and activity cards afterwards so their bounded
+            // history queries cannot delay first interaction on a populated ledger.
+            void refreshOperationalHealth();
+            void refreshRecentActivity();
+        }
 
     }
 
@@ -290,7 +304,7 @@ function setOperationalHealthStatus(status) {
     const pill = document.getElementById('sloOverallStatus');
     if (!pill) return;
     const normalized = ['healthy', 'warning', 'critical', 'no_data'].includes(status) ? status : 'critical';
-    pill.className = `health-pill ${normalized === 'healthy' ? 'healthy' : normalized === 'critical' ? 'error' : 'warning'}`;
+    pill.className = `health-pill ${normalized === 'healthy' ? 'healthy' : normalized === 'critical' ? 'error' : normalized === 'no_data' ? 'neutral' : 'warning'}`;
     const label = pill.querySelector('span:last-child');
     if (label) label.textContent = t(`slo.status_${normalized}`);
 }
@@ -298,6 +312,7 @@ function setOperationalHealthStatus(status) {
 async function refreshOperationalHealth() {
     const card = document.getElementById('operationalHealthCard');
     if (!card) return;
+    card.classList.toggle('is-initial-loading', !AppState.operationalHealth);
     card.setAttribute('aria-busy', 'true');
     try {
         const response = await fetch('./api/observability/health?window_seconds=900', {headers: getAuthHeaders()});
@@ -306,17 +321,34 @@ async function refreshOperationalHealth() {
         AppState.operationalHealth = snapshot;
         const red = snapshot.red || {};
         setDashboardSummaryMetric('sloRequestRate', red.requests_per_minute, {decimals: 1});
-        document.getElementById('sloErrorRate').textContent = `${(Number(red.error_rate || 0) * 100).toFixed(1)}%`;
+        const hasSamples = Number(red.requests) > 0;
+        document.getElementById('sloErrorRate').textContent = hasSamples
+            ? `${formatUsageNumber(Number(red.error_rate || 0) * 100, {decimals: 1})}%` : '—';
         document.getElementById('sloErrorCount').textContent = t('slo.errors_of_requests', {errors: formatUsageNumber(red.errors), requests: formatUsageNumber(red.requests)});
-        document.getElementById('sloP95').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
-        document.getElementById('dashboardP95Latency').textContent = `${formatUsageNumber(red.p95_duration_ms)} ms`;
+        const latency = hasSamples && red.p95_duration_ms != null ? `${formatUsageNumber(red.p95_duration_ms)} ms` : '—';
+        document.getElementById('sloP95').textContent = latency;
+        document.getElementById('dashboardP95Latency').textContent = latency;
         const exhaustion = Object.values(snapshot.exhaustion || {}).reduce((total, value) => total + Number(value || 0), 0);
         setDashboardSummaryMetric('sloExhaustion', exhaustion);
+        const empty = !hasSamples && exhaustion === 0 && snapshot.status === 'no_data';
+        document.getElementById('operationalHealthMetrics').hidden = empty;
+        document.getElementById('operationalHealthRoutes').hidden = empty;
+        const emptyNote = document.getElementById('operationalHealthEmpty');
+        emptyNote.hidden = !empty;
+        emptyNote.textContent = t('slo.no_data');
         setOperationalHealthStatus(snapshot.status);
         renderOperationalRoutes(snapshot.routes || []);
     } catch (error) {
         AppState.operationalHealth = {status: 'critical', unavailable: true};
         setOperationalHealthStatus('critical');
+        const statusLabel = document.querySelector('#sloOverallStatus span:last-child');
+        if (statusLabel) statusLabel.textContent = t('slo.load_failed');
+        document.getElementById('operationalHealthMetrics').hidden = true;
+        document.getElementById('operationalHealthRoutes').hidden = true;
+        document.getElementById('dashboardP95Latency').textContent = '—';
+        const emptyNote = document.getElementById('operationalHealthEmpty');
+        emptyNote.hidden = false;
+        emptyNote.textContent = t('slo.load_failed');
         const rows = document.getElementById('sloRouteRows');
         if (rows) {
             rows.replaceChildren();
@@ -334,8 +366,9 @@ async function refreshRecentActivity() {
     const card = document.getElementById('recentActivityCard');
     if (!card) return;
     card.setAttribute('aria-busy', 'true');
+    setRegionBusy('recentActivityList', true);
     try {
-        const response = await fetch('./api/traces?page_size=5', {headers: getAuthHeaders()});
+        const response = await fetch('./api/traces?page_size=6', {headers: getAuthHeaders()});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         renderRecentActivity(Array.isArray(payload.traces) ? payload.traces : []);
@@ -344,6 +377,7 @@ async function refreshRecentActivity() {
         if (list) list.innerHTML = `<li class="dashboard-activity-empty">${escapeHtml(t('dashboard.recent_failed'))}</li>`;
     } finally {
         card.setAttribute('aria-busy', 'false');
+        setRegionBusy('recentActivityList', false);
     }
 }
 
@@ -394,7 +428,7 @@ function renderOperationalRoutes(routes) {
         [
             route.route,
             formatUsageNumber(route.requests),
-            `${(Number(route.error_rate || 0) * 100).toFixed(1)}%`,
+            `${formatUsageNumber(Number(route.error_rate || 0) * 100, {decimals: 1})}%`,
             `${formatUsageNumber(route.p95_duration_ms)} ms`,
         ].forEach((value) => {
             const cell = row.insertCell();
@@ -546,29 +580,11 @@ function updateUsagePagination(paginationId, prevBtnId, nextBtnId, infoId, curre
 }
 
 function changeUsagePage(delta) {
-
-    const entries = getCurrentUsageEntriesWithTraffic();
-    const totalPages = Math.max(1, Math.ceil(entries.length / (AppState.usagePageSize || 10)));
-    const nextPage = Math.min(Math.max(1, AppState.usagePage + delta), totalPages);
-
-    if (nextPage !== AppState.usagePage) {
-        AppState.usagePage = nextPage;
-        renderUsageList();
-    }
-
+    return moveUsagePage('current', delta);
 }
 
 function changeHistoricalUsagePage(delta) {
-
-    const entries = getHistoricalUsageEntriesWithTraffic();
-    const totalPages = Math.max(1, Math.ceil(entries.length / (AppState.historicalUsagePageSize || 10)));
-    const nextPage = Math.min(Math.max(1, AppState.historicalUsagePage + delta), totalPages);
-
-    if (nextPage !== AppState.historicalUsagePage) {
-        AppState.historicalUsagePage = nextPage;
-        renderHistoricalUsageList();
-    }
-
+    return moveUsagePage('historical', delta);
 }
 
 function renderHistoricalUsageList() {
@@ -579,16 +595,17 @@ function renderHistoricalUsageList() {
     if (!section || !list) return;
 
     const entries = getHistoricalUsageEntriesWithTraffic();
-    section.hidden = entries.length === 0;
+    const totalItems = UsagePages.historical?.total_items ?? entries.length;
+    section.hidden = totalItems === 0;
 
     const pageSize = AppState.historicalUsagePageSize || 10;
-    const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     if (AppState.historicalUsagePage > totalPages) {
         AppState.historicalUsagePage = totalPages;
     }
 
     const startIndex = (AppState.historicalUsagePage - 1) * pageSize;
-    const pagedEntries = entries.slice(startIndex, startIndex + pageSize);
+    const pagedEntries = UsagePages.historical ? entries : entries.slice(startIndex, startIndex + pageSize);
 
     renderUsageTableRows(list, pagedEntries);
     updateUsagePagination(
@@ -602,40 +619,46 @@ function renderHistoricalUsageList() {
 
 }
 
-function renderUsageList() {
+function renderUsageList(group = 'all') {
 
-    const list = document.getElementById('usageList');
+    if (group !== 'historical') {
+        const list = document.getElementById('usageList');
 
-    if (!list) return;
+        if (list) {
+            // The provider summary is derived from the same aggregate payload
+            // and does not change when only the credential page changes. Keep
+            // it mounted during pagination so the dashboard does not repaint
+            // the whole breakdown (and move the user's scroll position).
+            if (group === 'all') renderUsageProviderSummary();
 
-    renderUsageProviderSummary();
+            const entries = getCurrentUsageEntriesWithTraffic();
+            const pageSize = AppState.usagePageSize || 10;
+            const totalPages = Math.max(1, Math.ceil((UsagePages.current?.total_items ?? entries.length) / pageSize));
+            if (AppState.usagePage > totalPages) {
+                AppState.usagePage = totalPages;
+            }
 
-    const entries = getCurrentUsageEntriesWithTraffic();
-    const pageSize = AppState.usagePageSize || 10;
-    const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
-    if (AppState.usagePage > totalPages) {
-        AppState.usagePage = totalPages;
+            const startIndex = (AppState.usagePage - 1) * pageSize;
+            const pagedEntries = UsagePages.current ? entries : entries.slice(startIndex, startIndex + pageSize);
+
+            renderUsageTableRows(
+                list,
+                pagedEntries,
+                t('status_no_filter_data')
+            );
+
+            updateUsagePagination(
+                'usagePaginationContainer',
+                'usagePrevPageBtn',
+                'usageNextPageBtn',
+                'usagePaginationInfo',
+                AppState.usagePage,
+                totalPages
+            );
+        }
     }
 
-    const startIndex = (AppState.usagePage - 1) * pageSize;
-    const pagedEntries = entries.slice(startIndex, startIndex + pageSize);
-
-    renderUsageTableRows(
-        list,
-        pagedEntries,
-        t('status_no_filter_data')
-    );
-
-    updateUsagePagination(
-        'usagePaginationContainer',
-        'usagePrevPageBtn',
-        'usageNextPageBtn',
-        'usagePaginationInfo',
-        AppState.usagePage,
-        totalPages
-    );
-
-    renderHistoricalUsageList();
+    if (group !== 'current') renderHistoricalUsageList();
 
 }
 
@@ -647,7 +670,7 @@ function renderUsageProviderSummary() {
 
     const providers = new Map();
 
-    for (const [filename, stats] of getCurrentUsageEntriesWithTraffic()) {
+    for (const [filename, stats] of getProviderUsageEntries()) {
 
         if (filename === '__gateway_unassigned__.json') continue;
 
@@ -667,7 +690,7 @@ function renderUsageProviderSummary() {
             totalTokens: 0,
         };
 
-        if (!stats.is_deleted) current.credentials += 1;
+        if (!stats.is_deleted) current.credentials += stats.credentials ?? 1;
         current.calls += getUsageCallCount(stats);
         current.successfulCalls += Number(stats.successful_calls ?? stats.successful_calls_24h ?? 0);
         current.totalTokens += Number(stats.total_tokens ?? stats.total_tokens_24h ?? 0);
@@ -686,6 +709,7 @@ function renderUsageProviderSummary() {
     container.hidden = false;
     const providerOrder = ['google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'xai', 'openai', 'anthropic', 'code_assist'];
     const providerItems = Array.from(providers.values()).sort((left, right) => {
+        if (right.calls !== left.calls) return right.calls - left.calls;
         const leftIndex = providerOrder.indexOf(left.meta.id);
         const rightIndex = providerOrder.indexOf(right.meta.id);
         return (leftIndex === -1 ? providerOrder.length : leftIndex)
@@ -799,7 +823,7 @@ function renderTimelineChart(timeline = []) {
             : '';
     }
 
-    wrapper.innerHTML = timeline.map((slot) => {
+    wrapper.innerHTML = timeline.map((slot, index) => {
         const reqs = slot.upstream_attempts ?? slot.requests ?? 0;
         const success = slot.successful_attempts ?? slot.successful_requests ?? 0;
         const failed = slot.failed_attempts ?? slot.failed_requests ?? 0;
@@ -809,7 +833,7 @@ function renderTimelineChart(timeline = []) {
         const timeStr = formatTimelineTimestamp(slot.timestamp);
 
         return `
-            <div class="timeline-bar-col">
+            <div class="timeline-bar-col${index >= timeline.length / 2 ? ' timeline-bar-end' : ''}" tabindex="0" role="img" aria-label="${escapeAttribute(`${timeStr}: ${t('dashboard.provider_attempts')} ${formatUsageNumber(reqs)}, ${t('success')} ${formatUsageNumber(success)}, ${t('failed')} ${formatUsageNumber(failed)}, ${t('tokens')} ${formatUsageNumber(tokens)}`)}">
                 <div class="timeline-tooltip">
                     <div><strong>${escapeHtml(timeStr)}</strong></div>
                     <div>${escapeHtml(t('dashboard.provider_attempts'))}: ${formatUsageNumber(reqs)} (${escapeHtml(t('success'))}: ${formatUsageNumber(success)}${failed > 0 ? `, ${escapeHtml(t('failed'))}: ${formatUsageNumber(failed)}` : ''})</div>
@@ -858,7 +882,7 @@ function renderProviderHealthMatrix() {
     if (!container) return;
 
     const trafficMap = new Map();
-    for (const [filename, stats] of getCurrentUsageEntriesWithTraffic()) {
+    for (const [filename, stats] of getProviderUsageEntries()) {
         if (filename === '__gateway_unassigned__.json') continue;
         const meta = getCredentialProviderMeta(
             { provider: stats.provider || stats.provider_name, credential_type: stats.credential_type },
@@ -878,29 +902,30 @@ function renderProviderHealthMatrix() {
         trafficMap.set(meta.id, cur);
     }
 
-    // Lấy các provider đang có credentials trong pool
-    const activeProviderIds = new Set();
-    const primaryCreds = AppState.primaryCreds?.items || [];
-    for (const cred of primaryCreds) {
-        const meta = getCredentialProviderMeta(cred, 'pool');
-        if (meta && meta.id) activeProviderIds.add(meta.id);
-    }
+    // Inventory is independent of the usage period and the credentials page's filters/load state.
+    const connectedProviders = (UsagePages.current?.provider_inventory || [])
+        .filter(stats => stats.credentials > 0)
+        .map(stats => getCredentialProviderMeta(stats, 'usage'));
+    const activeProviderIds = new Set(connectedProviders.map(meta => meta.id));
 
-    // Chỉ giữ các provider đang có credentials trong pool HOẶC đã có traffic phát sinh
+    // Keep connected providers visible even when a new period has no calls yet.
     const relevantProviders = [];
     const providerOrder = ['google_antigravity', 'google_ai_studio', 'grok', 'xai_console', 'codex', 'openai_platform', 'claude_code', 'claude_platform', 'ollama', 'xai', 'openai', 'anthropic', 'code_assist'];
 
     const providerCatalog = [
-        { id: 'google_antigravity', name: 'Google Antigravity', logo: '/frontend/assets/providers/google-antigravity-logo.png' },
-        { id: 'google_ai_studio', name: 'Google AI Studio', logo: '/frontend/assets/providers/google-ai-studio-logo.png' },
-        { id: 'claude_code', name: 'Claude Code', logo: '/frontend/assets/providers/claude-code-logo.png' },
-        { id: 'claude_platform', name: 'Claude Platform', logo: '/frontend/assets/providers/claude-platform-logo.png' },
-        { id: 'openai_platform', name: 'OpenAI Platform', logo: '/frontend/assets/providers/openai-platform-logo.png' },
-        { id: 'codex', name: 'Codex / ChatGPT', logo: '/frontend/assets/providers/codex-logo.png' },
-        { id: 'grok', name: 'Grok / xAI Build', logo: '/frontend/assets/providers/grok-build-logo.png' },
-        { id: 'xai_console', name: 'SpaceXAI Console', logo: '/frontend/assets/providers/grok-build-logo.png' },
-        { id: 'ollama', name: 'Ollama', logo: '/frontend/assets/providers/ollama-logo.png' }
+        { id: 'google_antigravity', name: 'Google Antigravity', logo: '/frontend/assets/providers/google-antigravity.png' },
+        { id: 'google_ai_studio', name: 'Google AI Studio', logo: '/frontend/assets/providers/google-ai-studio.png' },
+        { id: 'claude_code', name: 'Claude Code', logo: '/frontend/assets/providers/claude-code.png' },
+        { id: 'claude_platform', name: 'Claude Platform', logo: '/frontend/assets/providers/claude-platform.png' },
+        { id: 'openai_platform', name: 'OpenAI Platform', logo: '/frontend/assets/providers/openai-platform.png' },
+        { id: 'codex', name: 'Codex / ChatGPT', logo: '/frontend/assets/providers/codex.png' },
+        { id: 'grok', name: 'Grok / xAI Build', logo: '/frontend/assets/providers/grok-build.png' },
+        { id: 'xai_console', name: 'SpaceXAI Console', logo: '/frontend/assets/providers/grok-build.png' },
+        { id: 'ollama', name: 'Ollama', logo: '/frontend/assets/providers/ollama.png' }
     ];
+    for (const provider of connectedProviders) {
+        if (!providerCatalog.some(item => item.id === provider.id)) providerCatalog.push(provider);
+    }
 
     for (const p of providerCatalog) {
         const hasTraffic = trafficMap.has(p.id) && trafficMap.get(p.id).calls > 0;
@@ -922,9 +947,12 @@ function renderProviderHealthMatrix() {
     }
 
     if (relevantProviders.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 18px 12px; grid-column: 1 / -1;">${escapeHtml(t('dashboard.no_traffic_yet'))}</div>`;
+        container.innerHTML = `<p class="dashboard-empty-note">${escapeHtml(t('dashboard.provider_status_empty'))}</p>`;
+        document.querySelector('#providerHealthCard .health-matrix-legend').hidden = true;
         return;
     }
+
+    document.querySelector('#providerHealthCard .health-matrix-legend').hidden = false;
 
     relevantProviders.sort((a, b) => {
         const aIdx = providerOrder.indexOf(a.id);
@@ -932,21 +960,18 @@ function renderProviderHealthMatrix() {
         return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
     });
 
-    container.innerHTML = relevantProviders.map(p => {
+    container.innerHTML = relevantProviders.map((p, index) => {
         const traffic = trafficMap.get(p.id) || { calls: 0, successful: 0, failed: 0, hasCooldown: false };
         const callMetric = getDashboardSummaryMetric(traffic.calls);
         let status = 'idle';
         let statusText = t('dashboard.status_idle');
-        let badgeClass = 'badge-idle';
 
         if (traffic.hasCooldown || (traffic.calls > 0 && (traffic.successful / traffic.calls) < 0.6)) {
             status = 'error';
             statusText = traffic.hasCooldown ? t('dashboard.status_cooldown') : t('dashboard.status_degraded');
-            badgeClass = 'badge-error';
         } else if (traffic.calls > 0) {
             status = 'healthy';
             statusText = t('dashboard.status_healthy');
-            badgeClass = 'badge-healthy';
         }
 
         return `
@@ -958,7 +983,12 @@ function renderProviderHealthMatrix() {
                         </div>
                         <span class="health-item-name">${escapeHtml(p.name)}</span>
                     </div>
-                    <span class="health-badge ${badgeClass}">${escapeHtml(statusText)}</span>
+                    <div class="health-status">
+                        <button type="button" class="health-status-trigger" aria-label="${escapeAttribute(p.name)}" aria-describedby="provider-health-status-${index}">
+                            <span class="health-status-dot" aria-hidden="true"></span>
+                        </button>
+                        <span class="health-status-tooltip" id="provider-health-status-${index}" role="tooltip" hidden>${escapeHtml(statusText)}</span>
+                    </div>
                 </div>
                 <div class="health-item-stats">
                     <span>${escapeHtml(t('requests'))}: <strong${callMetric.attributes}>${callMetric.text}</strong></span>
@@ -968,6 +998,30 @@ function renderProviderHealthMatrix() {
         `;
     }).join('');
 
+    bindProviderHealthStatusHints(container);
+}
+
+function bindProviderHealthStatusHints(container) {
+    if (!container.dataset.healthHintsBound) {
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                container.querySelectorAll('.health-status-tooltip').forEach(hint => { hint.hidden = true; });
+            }
+        });
+        container.dataset.healthHintsBound = 'true';
+    }
+    container.querySelectorAll('.health-status').forEach(indicator => {
+        const trigger = indicator.querySelector('.health-status-trigger');
+        const hint = indicator.querySelector('.health-status-tooltip');
+        const show = () => { hint.hidden = false; };
+        indicator.addEventListener('pointerenter', show);
+        indicator.addEventListener('pointerleave', () => {
+            if (!indicator.contains(document.activeElement)) hint.hidden = true;
+        });
+        trigger.addEventListener('focus', show);
+        trigger.addEventListener('blur', () => { hint.hidden = true; });
+        trigger.addEventListener('click', show);
+    });
 }
 
 // =====================================================================

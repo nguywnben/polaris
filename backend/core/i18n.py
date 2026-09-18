@@ -8,6 +8,11 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Iterator
 
+from core.meta_provider_i18n import MESSAGES as META_PROVIDER_MESSAGES
+from core.meta_provider_i18n import SOURCE_KEYS as META_SOURCE_KEYS
+from core.muse_provider_i18n import MESSAGES as MUSE_PROVIDER_MESSAGES
+from core.muse_provider_i18n import SOURCE_KEYS as MUSE_SOURCE_KEYS
+from core.provider_expansion_i18n import MESSAGES as PROVIDER_EXPANSION_MESSAGES
 from fastapi.responses import JSONResponse
 
 DEFAULT_LOCALE = "en"
@@ -451,6 +456,31 @@ _OAUTH_MESSAGE_ROWS = {
     },
 }
 
+_OAUTH_NAVIGATION_ROWS = {
+    "en": ("Return to Providers", "Open Providers in a new tab"),
+    "zh-CN": ("返回提供商页面", "在新标签页中打开提供商页面"),
+    "zh-TW": ("返回供應商頁面", "在新分頁開啟供應商頁面"),
+    "de": ("Zurück zu den Providern", "Provider in neuem Tab öffnen"),
+    "es": ("Volver a Proveedores", "Abrir Proveedores en una pestaña nueva"),
+    "fr": ("Retour aux fournisseurs", "Ouvrir les fournisseurs dans un nouvel onglet"),
+    "id": ("Kembali ke Penyedia", "Buka Penyedia di tab baru"),
+    "it": ("Torna ai fornitori", "Apri i fornitori in una nuova scheda"),
+    "ja": ("プロバイダーに戻る", "新しいタブでプロバイダーを開く"),
+    "ko": ("공급자로 돌아가기", "새 탭에서 공급자 열기"),
+    "pt": ("Voltar aos provedores", "Abrir provedores em uma nova guia"),
+    "ru": ("Вернуться к провайдерам", "Открыть провайдеров в новой вкладке"),
+    "th": ("กลับไปที่ผู้ให้บริการ", "เปิดหน้าผู้ให้บริการในแท็บใหม่"),
+    "tr": ("Sağlayıcılara dön", "Sağlayıcıları yeni sekmede aç"),
+    "vi": ("Quay lại Nhà cung cấp", "Mở Nhà cung cấp trong tab mới"),
+}
+for _locale, (_return_label, _new_tab_label) in _OAUTH_NAVIGATION_ROWS.items():
+    _OAUTH_MESSAGE_ROWS[_locale].update(
+        {
+            "oauth.return_providers": _return_label,
+            "oauth.open_providers_new_tab": _new_tab_label,
+        }
+    )
+
 for _locale, _messages in _OAUTH_MESSAGE_ROWS.items():
     for _key, _message in _messages.items():
         MESSAGES.setdefault(_key, {})[_locale] = _message
@@ -471,6 +501,42 @@ _OAUTH_CREDENTIAL_SAVED_ROWS = {
     "th": "บันทึกข้อมูลรับรอง {provider} ของ {account} ลงในพูลผู้ให้บริการแล้ว คุณสามารถปิดแท็บนี้และกลับไปที่ Polaris ได้",
     "tr": "{account} için {provider} kimlik bilgisi sağlayıcı havuzuna kaydedildi. Bu sekmeyi kapatıp Polaris’e dönebilirsiniz.",
     "vi": "Đã lưu thông tin xác thực {provider} của {account} vào kho nhà cung cấp. Bạn có thể đóng thẻ này và quay lại Polaris.",
+}
+
+MESSAGES["oauth.copy_authorization_code"] = {
+    "en": "Copy the authorization code from the code parameter in this URL. Return to the Polaris tab where you started signing in, paste it into the Claude Code authorization code field, and save the credential. Nothing has been saved yet.",
+    "vi": "Sao chép mã cấp quyền ở tham số code trong URL này. Quay lại tab Polaris đã dùng để bắt đầu đăng nhập, dán vào trường mã cấp quyền của Claude Code rồi lưu thông tin xác thực. Hiện chưa có thông tin xác thực nào được lưu.",
+    "zh-CN": "复制此 URL 中 code 参数的授权码。返回发起登录的 Polaris 标签页，将其粘贴到 Claude Code 的授权码字段中，然后保存凭据。目前尚未保存任何凭据。",
+    "zh-TW": "複製此 URL 中 code 參數的授權碼。返回發起登入的 Polaris 分頁，將其貼到 Claude Code 的授權碼欄位，再儲存憑證。目前尚未儲存任何憑證。",
+    "de": "Kopieren Sie den Autorisierungscode aus dem Parameter code dieser URL. Kehren Sie zum Polaris-Tab zurück, in dem Sie die Anmeldung gestartet haben, fügen Sie ihn in das Autorisierungscode-Feld von Claude Code ein und speichern Sie die Zugangsdaten. Es wurde noch nichts gespeichert.",
+    "es": "Copia el código de autorización del parámetro code de esta URL. Vuelve a la pestaña de Polaris donde iniciaste el acceso, pégalo en el campo de código de autorización de Claude Code y guarda la credencial. Aún no se ha guardado nada.",
+    "fr": "Copiez le code d’autorisation du paramètre code de cette URL. Revenez à l’onglet Polaris où vous avez lancé la connexion, collez-le dans le champ du code d’autorisation de Claude Code, puis enregistrez les identifiants. Rien n’a encore été enregistré.",
+    "id": "Salin kode otorisasi dari parameter code pada URL ini. Kembali ke tab Polaris tempat Anda memulai login, tempelkan ke kolom kode otorisasi Claude Code, lalu simpan kredensial. Belum ada kredensial yang disimpan.",
+    "it": "Copia il codice di autorizzazione dal parametro code di questo URL. Torna alla scheda Polaris in cui hai avviato l’accesso, incollalo nel campo del codice di autorizzazione di Claude Code e salva le credenziali. Non è stato ancora salvato nulla.",
+    "ja": "この URL の code パラメーターから認可コードをコピーしてください。ログインを開始した Polaris のタブに戻り、Claude Code の認可コード欄に貼り付けて認証情報を保存してください。まだ何も保存されていません。",
+    "ko": "이 URL의 code 매개변수에서 인증 코드를 복사하세요. 로그인을 시작한 Polaris 탭으로 돌아가 Claude Code의 인증 코드 필드에 붙여넣고 자격 증명을 저장하세요. 아직 저장된 자격 증명은 없습니다.",
+    "pt": "Copie o código de autorização do parâmetro code desta URL. Volte à aba do Polaris em que iniciou o login, cole-o no campo de código de autorização do Claude Code e salve a credencial. Nada foi salvo ainda.",
+    "ru": "Скопируйте код авторизации из параметра code в этом URL. Вернитесь во вкладку Polaris, где вы начали вход, вставьте его в поле кода авторизации Claude Code и сохраните учётные данные. Пока ничего не сохранено.",
+    "th": "คัดลอกรหัสอนุญาตจากพารามิเตอร์ code ใน URL นี้ กลับไปที่แท็บ Polaris ที่เริ่มเข้าสู่ระบบ วางรหัสในช่องรหัสอนุญาตของ Claude Code แล้วบันทึกข้อมูลรับรอง ขณะนี้ยังไม่มีการบันทึกข้อมูลรับรอง",
+    "tr": "Bu URL’deki code parametresinden yetkilendirme kodunu kopyalayın. Girişi başlattığınız Polaris sekmesine dönün, kodu Claude Code yetkilendirme kodu alanına yapıştırın ve kimlik bilgilerini kaydedin. Henüz hiçbir şey kaydedilmedi.",
+}
+
+MESSAGES["oauth.callback_received"] = {
+    "en": "Kiro returned its callback. Close this tab and return to the Polaris tab where you started signing in to complete the connection.",
+    "vi": "Đã nhận callback từ Kiro. Đóng tab này và quay lại tab Polaris đã dùng để bắt đầu đăng nhập để hoàn tất kết nối.",
+    "zh-CN": "已收到 Kiro 回调。请关闭此标签页，返回发起登录的 Polaris 标签页以完成连接。",
+    "zh-TW": "已收到 Kiro 回呼。請關閉此分頁，返回發起登入的 Polaris 分頁以完成連線。",
+    "de": "Der Kiro-Callback ist eingegangen. Schließen Sie diesen Tab und kehren Sie zum Polaris-Tab zurück, in dem Sie die Anmeldung gestartet haben, um die Verbindung abzuschließen.",
+    "es": "Se recibió la respuesta de Kiro. Cierra esta pestaña y vuelve a la pestaña de Polaris donde iniciaste sesión para completar la conexión.",
+    "fr": "Le retour de Kiro a été reçu. Fermez cet onglet et revenez à l’onglet Polaris où vous avez lancé la connexion pour la terminer.",
+    "id": "Callback Kiro telah diterima. Tutup tab ini dan kembali ke tab Polaris tempat Anda memulai login untuk menyelesaikan koneksi.",
+    "it": "Il callback di Kiro è stato ricevuto. Chiudi questa scheda e torna alla scheda Polaris in cui hai avviato l’accesso per completare la connessione.",
+    "ja": "Kiro からのコールバックを受信しました。このタブを閉じ、ログインを開始した Polaris のタブに戻って接続を完了してください。",
+    "ko": "Kiro 콜백을 받았습니다. 이 탭을 닫고 로그인을 시작한 Polaris 탭으로 돌아가 연결을 완료하세요.",
+    "pt": "O callback do Kiro foi recebido. Feche esta aba e volte à aba do Polaris em que iniciou o login para concluir a conexão.",
+    "ru": "Получен обратный вызов от Kiro. Закройте эту вкладку и вернитесь во вкладку Polaris, где вы начали вход, чтобы завершить подключение.",
+    "th": "ได้รับ callback จาก Kiro แล้ว ปิดแท็บนี้แล้วกลับไปที่แท็บ Polaris ที่เริ่มเข้าสู่ระบบเพื่อเชื่อมต่อให้เสร็จ",
+    "tr": "Kiro geri çağırması alındı. Bu sekmeyi kapatıp bağlantıyı tamamlamak için girişi başlattığınız Polaris sekmesine dönün.",
 }
 
 for _locale, _message in _OAUTH_CREDENTIAL_SAVED_ROWS.items():
@@ -1115,6 +1181,14 @@ for _locale, _messages in _SECURITY_BOUNDARY_ROWS.items():
         MESSAGES.setdefault(_key, {})[_locale] = _message
 
 _PANEL_MESSAGE_PATTERNS = (
+    (
+        re.compile(r"Credential belongs to a different provider\.$"),
+        "provider.ext.wrong_import_provider",
+    ),
+    (
+        re.compile(r"Import an API key credential for this provider\.$"),
+        "provider.ext.import_api_key",
+    ),
     (re.compile(r"too many .*attempts", re.IGNORECASE), "panel.rate_limited"),
     (re.compile(r"setup[\s_-]*token", re.IGNORECASE), "panel.setup_token_required"),
     (
@@ -1169,6 +1243,10 @@ _PANEL_MESSAGE_PATTERNS = (
         "panel.operation_complete",
     ),
 )
+
+MESSAGES.update(PROVIDER_EXPANSION_MESSAGES)
+MESSAGES.update(META_PROVIDER_MESSAGES)
+MESSAGES.update(MUSE_PROVIDER_MESSAGES)
 
 ENGLISH_TEXT_KEYS = {
     translations[DEFAULT_LOCALE]: key
@@ -1244,6 +1322,10 @@ def panel_message_key(value: str) -> str | None:
     exact_key = ENGLISH_TEXT_KEYS.get(value)
     if exact_key:
         return exact_key
+    if value in META_SOURCE_KEYS:
+        return META_SOURCE_KEYS[value]
+    if value in MUSE_SOURCE_KEYS:
+        return MUSE_SOURCE_KEYS[value]
     for pattern, key in _PANEL_MESSAGE_PATTERNS:
         if pattern.search(value):
             return key

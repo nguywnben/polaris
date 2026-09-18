@@ -5,7 +5,10 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
+import httpx
+from fastapi import FastAPI
 from fastapi.routing import APIWebSocketRoute
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -24,7 +27,9 @@ from core.identity import (
     permissions_for_role,
     require_management_route,
 )
+from core.panel.credentials import router as credentials_router
 from core.panel.logs import router as logs_router
+from core.utils import _VerifiedPanelToken
 
 
 def _protected_openapi_operations() -> set[tuple[str, str]]:
@@ -195,6 +200,7 @@ class ManagementRouteAuthorizationMatrixTests(unittest.TestCase):
         )
         for method, path in (
             ("GET", "/api/auth/keys"),
+            ("GET", "/api/credentials/detail/{filename}"),
             ("GET", "/api/credentials/download-all"),
             ("POST", "/api/config/save"),
             ("POST", "/api/auth/keys/reset"),
@@ -271,6 +277,114 @@ class ManagementRouteAuthorizationMatrixTests(unittest.TestCase):
         self.assertNotIn(ManagementPermission.IDENTITY_MANAGE, writer.permissions)
         self.assertNotIn(ManagementPermission.OWNERS_MANAGE, writer.permissions)
         self.assertNotIn(ManagementPermission.RECOVERY_MANAGE, writer.permissions)
+
+
+class CredentialSecretAuthorizationTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.app = FastAPI()
+        self.app.include_router(credentials_router, prefix="/api/credentials")
+        self.storage = AsyncMock()
+        self.storage.get_credential.return_value = {
+            "provider": "openai",
+            "api_key": "sentinel-private-key",
+        }
+        self.storage.get_backend_info.return_value = {"backend_type": "sqlite"}
+        self.storage.get_credential_state.return_value = {}
+
+    async def request(self, principal, method, path, **kwargs):
+        token = _VerifiedPanelToken("test-session", principal)
+        with (
+            patch("core.utils.verify_panel_token_value", AsyncMock(return_value=token)),
+            patch(
+                "core.panel.credentials.get_storage_adapter", AsyncMock(return_value=self.storage)
+            ),
+            patch(
+                "core.panel.credentials._execute_credential_action",
+                AsyncMock(return_value={"success": True}),
+            ),
+        ):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=self.app), base_url="http://test"
+            ) as client:
+                return await client.request(
+                    method, path, headers={"Authorization": "Bearer test-session"}, **kwargs
+                )
+
+    async def test_read_only_principals_cannot_reveal_payload(self):
+        principals = [
+            ManagementPrincipal.oidc_user(
+                issuer="https://idp.example", subject="viewer", role=ManagementRole.VIEWER
+            ),
+            ManagementPrincipal.virtual_key(
+                "reader", scopes=("management:permission:credentials.read",)
+            ),
+        ]
+        for principal in principals:
+            with self.subTest(principal=principal.principal_type):
+                response = await self.request(
+                    principal, "GET", "/api/credentials/detail/example.json?mode=provider"
+                )
+                self.assertEqual(response.status_code, 403)
+                self.assertNotIn("sentinel-private-key", response.text)
+        self.storage.get_credential.assert_not_awaited()
+
+    async def test_export_permission_can_reveal_payload(self):
+        admin = ManagementPrincipal.oidc_user(
+            issuer="https://idp.example", subject="admin", role=ManagementRole.SECURITY_ADMIN
+        )
+        response = await self.request(
+            admin, "GET", "/api/credentials/detail/example.json?mode=provider"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("sentinel-private-key", response.text)
+
+    async def test_operator_cannot_delete_single_or_batch_including_preview(self):
+        principals = [
+            ManagementPrincipal.oidc_user(
+                issuer="https://idp.example", subject="operator", role=ManagementRole.OPERATOR
+            ),
+            ManagementPrincipal.virtual_key(
+                "operator", scopes=("management:permission:credentials.operate",)
+            ),
+        ]
+        cases = [
+            ("action", {"filename": "example.json", "action": "delete"}),
+            ("batch-action", {"filenames": ["example.json"], "action": "delete", "preview": True}),
+            ("batch-action", {"filenames": ["example.json"], "action": "delete"}),
+        ]
+        for principal in principals:
+            for path, body in cases:
+                with self.subTest(principal=principal.principal_type, body=body):
+                    response = await self.request(
+                        principal, "POST", f"/api/credentials/{path}?mode=provider", json=body
+                    )
+                    self.assertEqual(response.status_code, 403)
+        self.storage.get_credential.assert_not_awaited()
+        self.storage.remove_credential.assert_not_awaited()
+
+    async def test_retired_verify_alias_is_not_registered(self):
+        response = await self.request(
+            ManagementPrincipal.local_owner(),
+            "POST",
+            "/api/credentials/verify-project/example.json",
+        )
+        self.assertEqual(response.status_code, 404)
+
+    async def test_admin_can_delete_and_operator_can_toggle(self):
+        for role, action in (
+            (ManagementRole.SECURITY_ADMIN, "delete"),
+            (ManagementRole.OPERATOR, "disable"),
+        ):
+            principal = ManagementPrincipal.oidc_user(
+                issuer="https://idp.example", subject=role.value, role=role
+            )
+            response = await self.request(
+                principal,
+                "POST",
+                "/api/credentials/action?mode=provider",
+                json={"filename": "example.json", "action": action},
+            )
+            self.assertEqual(response.status_code, 200)
 
 
 if __name__ == "__main__":

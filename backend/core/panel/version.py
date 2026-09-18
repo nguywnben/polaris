@@ -165,8 +165,8 @@ async def get_version_info(check_update: bool = False):
                 "latest_date": latest.date,
             }
         )
-    except Exception as exc:
-        log.debug(f"Update check failed: {exc}")
+    except Exception:
+        log.debug("Update check failed; remote error details omitted.")
         response_data.update(
             {
                 "check_update": False,

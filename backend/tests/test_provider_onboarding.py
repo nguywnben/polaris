@@ -32,6 +32,21 @@ VARIANTS = {
 
 
 class ProviderOnboardingContractTests(unittest.TestCase):
+    def test_onboarding_completion_clears_transient_ui_without_rendering_payloads(self):
+        source = (ROOT / "frontend/js/features/antigravity-authentication.js").read_text(
+            encoding="utf-8"
+        )
+        completion = source.split("async function completePrimaryCredentialSave", 1)[1].split(
+            "async function getPrimaryCredentials", 1
+        )[0]
+        self.assertNotIn("JSON.stringify(data.credentials", completion)
+        self.assertNotIn('id="primaryCredsContent"', PROVIDER_HTML)
+        results = (ROOT / "frontend/js/features/provider-save-results.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("completeProviderEntry", results)
+        self.assertIn("prepareProviderKeyEntries", ONBOARDING_SOURCE.read_text(encoding="utf-8"))
+
     def test_every_advertised_variant_maps_to_one_selector_and_workspace(self) -> None:
         source = (ROOT / "frontend/js/features/navigation.js").read_text(
             encoding="utf-8"
@@ -58,28 +73,26 @@ class ProviderOnboardingContractTests(unittest.TestCase):
         self.assertIn('id="providerCapabilityStatus"', PROVIDER_HTML)
         self.assertIn('data-ui-action="retry-provider-capabilities"', PROVIDER_HTML)
 
-    def test_ready_capability_status_is_silent_and_pagination_follows_active_heading(
+    def test_ready_capability_status_is_silent_and_pagination_stays_with_catalog(
         self,
     ) -> None:
         onboarding = ONBOARDING_SOURCE.read_text(encoding="utf-8")
         navigation = (ROOT / "frontend/js/features/navigation.js").read_text(encoding="utf-8")
 
         self.assertIn("container.classList.toggle('hidden', state === 'ready')", onboarding)
-        self.assertIn("activeHeader?.append(paginationContainer)", navigation)
-        self.assertIn(
-            'class="provider-workspace-header">\n'
-            '                            <div class="provider-workspace-heading">',
-            PROVIDER_HTML,
+        self.assertNotIn("activeHeader?.append(paginationContainer)", navigation)
+        self.assertEqual(PROVIDER_HTML.count('id="providerCatalogPagination"'), 1)
+        self.assertLess(
+            PROVIDER_HTML.index('id="providerCatalogPagination"'),
+            PROVIDER_HTML.index('<section class="provider-workspace'),
         )
-        default_workspace = PROVIDER_HTML.split('id="providerWorkspaceGoogleAntigravity"', 1)[1]
-        default_header = default_workspace.split('<div class="provider-tools-grid">', 1)[0]
-        self.assertIn('id="providerCatalogPagination"', default_header)
 
     def test_import_is_always_visible_while_settings_are_progressively_disclosed(self) -> None:
         source = ONBOARDING_SOURCE.read_text(encoding="utf-8")
         styles = (ROOT / "frontend/css/providers-and-models.css").read_text(encoding="utf-8")
 
-        self.assertIn("function presentProviderImportPanel(panel)", source)
+        self.assertIn("function presentProviderImportPanel(panel, providerId)", source)
+        self.assertIn("addProviderCredentialExample(panel, providerId)", source)
         self.assertIn("title.dataset.providerStaticLabel = 'import'", source)
         self.assertNotIn("createProviderDisclosure(importPanel", source)
         self.assertIn("document.createElement('details')", source)

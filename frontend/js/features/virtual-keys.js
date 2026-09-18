@@ -114,7 +114,7 @@ async function loadVirtualKeys({ announce = false } = {}) {
     const preserveContent = VirtualKeyAccessState.loaded;
     VirtualKeyAccessState.loading = true;
     clearPageState('virtualKeyState');
-    if (list) list.setAttribute('aria-busy', 'true');
+    setRegionBusy(list, true);
     try {
         const payload = await virtualKeyApi('', { headers: getAuthHeaders(false) });
         VirtualKeyAccessState.records = Array.isArray(payload.data) ? payload.data : [];
@@ -138,7 +138,7 @@ async function loadVirtualKeys({ announce = false } = {}) {
         showStatus(message, 'error');
     } finally {
         VirtualKeyAccessState.loading = false;
-        if (list) list.setAttribute('aria-busy', 'false');
+        setRegionBusy(list, false);
     }
 }
 
@@ -198,7 +198,8 @@ function renderVirtualKeys() {
     const empty = document.getElementById('virtualKeyEmptyState');
     if (!list || !empty) return;
     const section = document.getElementById('virtualKeySection');
-    const isPristineEmpty = VirtualKeyAccessState.records.length === 0;
+    const isPristineEmpty = VirtualKeyAccessState.records.length === 0
+        && !VirtualKeyAccessState.query.trim() && !VirtualKeyAccessState.status;
     const records = visibleVirtualKeys();
     section?.classList.toggle('is-pristine-empty', isPristineEmpty);
     list.replaceChildren(...records.map(renderVirtualKeyCard));
@@ -253,7 +254,7 @@ function editVirtualKey(keyId) {
 }
 
 function trapVirtualKeyModalFocus(modal, event) {
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab' || event.defaultPrevented) return;
     const focusable = Array.from(modal.querySelectorAll(
         'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
     )).filter((element) => !element.hidden && element.getClientRects().length > 0);
@@ -293,7 +294,7 @@ function openVirtualKeyForm(record = null) {
                     <div class="form-grid">
                         <label class="form-group"><span>${escapeHtml(t('access.key_name'))}</span><input name="name" required maxlength="128" autocomplete="off" placeholder="${escapeAttribute(t('access.key_name_placeholder'))}" value="${escapeAttribute(record?.name || '')}"></label>
                         ${editing ? `<label class="form-group virtual-key-enabled"><span>${escapeHtml(t('access.key_enabled'))}</span><input type="checkbox" class="config-checkbox" name="enabled" ${record.enabled ? 'checked' : ''}></label>` : ''}
-                        <label class="form-group"><span>${escapeHtml(t('access.expires_at'))}</span><input type="datetime-local" name="expires_at" value="${escapeAttribute(virtualKeyDateTimeValue(record?.expires_at))}"></label>
+                        <label class="form-group"><span>${escapeHtml(t('access.expires_at'))}</span><input type="datetime-local" name="expires_at" placeholder="YYYY-MM-DDTHH:MM" value="${escapeAttribute(virtualKeyDateTimeValue(record?.expires_at))}"></label>
                         <label class="form-group"><span>${escapeHtml(t('access.rpm_limit'))}</span><input type="number" name="rpm_limit" min="1" step="1" inputmode="numeric" placeholder="${escapeAttribute(t('access.rpm_limit_placeholder'))}" value="${escapeAttribute(virtualKeyOptionalNumber(record?.rpm_limit))}"></label>
                         <label class="form-group"><span>${escapeHtml(t('access.tpm_limit'))}</span><input type="number" name="tpm_limit" min="1" step="1" inputmode="numeric" placeholder="${escapeAttribute(t('access.tpm_limit_placeholder'))}" value="${escapeAttribute(virtualKeyOptionalNumber(record?.tpm_limit))}"></label>
                         <label class="form-group"><span>${escapeHtml(t('access.daily_budget'))}</span><input type="number" name="budget_daily_usd" min="0" step="0.01" inputmode="decimal" placeholder="${escapeAttribute(t('access.daily_budget_placeholder'))}" value="${escapeAttribute(virtualKeyOptionalNumber(record?.budget_daily_usd))}"></label>
@@ -315,7 +316,7 @@ function openVirtualKeyForm(record = null) {
     `;
     const form = modal.querySelector('#virtualKeyForm');
     const close = () => {
-        document.removeEventListener('keydown', onEscape);
+        modal.removeEventListener('keydown', onEscape);
         void unmountModal(modal);
     };
     const onEscape = (event) => {
@@ -326,10 +327,9 @@ function openVirtualKeyForm(record = null) {
         if (event.target === modal || event.target.closest('[data-virtual-key-cancel]')) close();
     });
     form?.addEventListener('submit', (event) => submitVirtualKeyForm(event, record, close));
-    document.addEventListener('keydown', onEscape);
+    modal.addEventListener('keydown', onEscape);
     void mountModal(modal).then(() => {
         syncVirtualKeyPricingControl(form);
-        form?.elements.namedItem('name')?.focus();
     });
 }
 
@@ -445,7 +445,7 @@ function showVirtualKeySecret(secret, titleKey) {
             <div class="message-modal-header"><h3 id="virtualKeySecretTitle">${escapeHtml(t(titleKey))}</h3></div>
             <div class="message-modal-body">
                 <p>${escapeHtml(t('access.secret_once'))}</p>
-                <div class="secret-field"><input id="virtualKeySecret" type="text" readonly autocomplete="off" aria-label="${escapeAttribute(t('access.new_key_secret'))}"><button type="button" class="btn btn-secondary" data-virtual-key-copy>${escapeHtml(t('access.copy_secret'))}</button></div>
+                <div class="secret-field"><input id="virtualKeySecret" type="text" readonly autocomplete="off" placeholder="${escapeAttribute(t('form.secret'))}" aria-label="${escapeAttribute(t('access.new_key_secret'))}"><button type="button" class="btn btn-secondary" data-virtual-key-copy>${escapeHtml(t('access.copy_secret'))}</button></div>
             </div>
             <div class="message-modal-footer"><button type="button" class="message-modal-btn message-modal-btn-primary" data-virtual-key-secret-close>${escapeHtml(t('access.secret_saved'))}</button></div>
         </div>
@@ -462,7 +462,7 @@ function showVirtualKeySecret(secret, titleKey) {
         if (closed) return;
         closed = true;
         clearVirtualKeySecret();
-        document.removeEventListener('keydown', onEscape);
+        modal.removeEventListener('keydown', onEscape);
         window.removeEventListener('pagehide', close);
         void unmountModal(modal).then(() => modal.replaceChildren());
     };
@@ -476,9 +476,9 @@ function showVirtualKeySecret(secret, titleKey) {
         }
         if (event.target === modal || event.target.closest('[data-virtual-key-secret-close]')) close();
     });
-    document.addEventListener('keydown', onEscape);
+    modal.addEventListener('keydown', onEscape);
     window.addEventListener('pagehide', close, { once: true });
-    void mountModal(modal).then(() => secretInput.focus());
+    void mountModal(modal);
 }
 
 async function rotateVirtualKey(keyId) {
@@ -543,13 +543,13 @@ async function showVirtualKeyUsage(keyId) {
             trapVirtualKeyModalFocus(modal, event);
         };
         close = () => {
-            document.removeEventListener('keydown', onKeydown);
+            modal.removeEventListener('keydown', onKeydown);
             void unmountModal(modal);
         };
         modal.addEventListener('click', (event) => {
             if (event.target === modal || event.target.closest('[data-virtual-key-usage-close]')) close();
         });
-        document.addEventListener('keydown', onKeydown);
+        modal.addEventListener('keydown', onKeydown);
         void mountModal(modal).then(() => modal.querySelector('[data-virtual-key-usage-close]')?.focus());
     } catch (error) {
         showStatus(t('access.usage_load_failed', { error: error.message }), 'error');

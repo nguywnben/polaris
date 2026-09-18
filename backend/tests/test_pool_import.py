@@ -37,7 +37,6 @@ from core.provider_registry import (
     build_antigravity_credential_filename,
     canonicalize_antigravity_credential_filename,
 )
-from core.xai import XaiValidation
 
 
 def build_zip(entries: list[tuple[str, object]]) -> bytes:
@@ -254,11 +253,11 @@ class PoolArchiveRestoreTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch(
-                "core.pool_import.validate_api_key",
+                "core.google_ai_studio.validate_api_key",
                 new=AsyncMock(return_value=validation),
             ) as validate_mock,
             patch(
-                "core.pool_import.store_google_ai_studio_credential",
+                "core.pool_import.store_imported_connection",
                 new=AsyncMock(
                     return_value={
                         "action": "created",
@@ -272,7 +271,7 @@ class PoolArchiveRestoreTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["uploaded_count"], 1)
         self.assertEqual(result["skipped_count"], 1)
-        self.assertEqual(validate_mock.await_count, 1)
+        validate_mock.assert_not_awaited()
 
     async def test_restores_each_provider_with_its_own_validation_and_deduplication(self):
         archive = upload_archive(
@@ -306,68 +305,29 @@ class PoolArchiveRestoreTests(unittest.IsolatedAsyncioTestCase):
                 ),
             ]
         )
-        validation = GoogleAIStudioValidation(model_ids=["gemini-test"])
-        xai_validation = XaiValidation(model_ids=["grok-test"])
-
         with (
             patch(
-                "core.pool_import.validate_api_key",
-                new=AsyncMock(return_value=validation),
-            ) as validate_mock,
-            patch(
-                "core.pool_import.store_google_ai_studio_credential",
-                new=AsyncMock(
-                    return_value={
-                        "action": "updated",
-                        "filename": "google-ai-studio-test.json",
-                        "label": "API key ending alue",
-                    }
-                ),
-            ) as store_mock,
+                "core.httpx_client.http_client.get_client",
+                side_effect=AssertionError("Import must be offline"),
+            ),
             patch(
                 "core.pool_import.credential_manager.add_primary_credential",
-                new=AsyncMock(
-                    return_value={
-                        "action": "created",
-                        "stored": True,
-                        "filename": "google-antigravity-e65009f6e0ae9fc2.json",
-                        "email": "user@example.com",
-                        "message": "Credential added to the pool.",
-                    }
-                ),
+                AsyncMock(return_value={"action": "created", "stored": True}),
             ) as add_mock,
-            patch(
-                "core.pool_import.validate_xai_api_key",
-                new=AsyncMock(return_value=xai_validation),
-            ) as validate_xai_mock,
-            patch(
-                "core.pool_import.store_xai_api_key_credential",
-                new=AsyncMock(
-                    return_value={
-                        "action": "created",
-                        "filename": "xai-grok-test.json",
-                        "label": "API key ending alue",
-                    }
-                ),
-            ) as store_xai_mock,
         ):
             result = await restore_pool_archive(archive)
-
         self.assertEqual(result["uploaded_count"], 3)
         self.assertEqual(result["error_count"], 0)
         self.assertEqual(result["providers"][GOOGLE_ANTIGRAVITY]["created"], 1)
-        self.assertEqual(result["providers"][GOOGLE_AI_STUDIO]["updated"], 1)
+        self.assertEqual(result["providers"][GOOGLE_AI_STUDIO]["created"], 1)
         self.assertEqual(result["providers"][XAI_CONSOLE]["created"], 1)
         self.assertEqual(result["providers"][XAI_CONSOLE]["provider_name"], "SpaceXAI Console")
         self.assertEqual(result["providers"][XAI_CONSOLE]["routing_provider"], XAI)
-        validate_mock.assert_awaited_once_with("google-api-key-value")
-        store_mock.assert_awaited_once()
-        validate_xai_mock.assert_awaited_once_with("xai-api-key-value")
-        store_xai_mock.assert_awaited_once()
-        add_mock.assert_awaited_once()
+        self.assertEqual(add_mock.await_count, 3)
+        for item in result["results"]:
+            self.assertEqual(item["validation_status"], "unverified")
         self.assertEqual(
-            add_mock.await_args.args[0],
-            "google-antigravity-e65009f6e0ae9fc2.json",
+            add_mock.await_args_list[0].args[0], "google-antigravity-e65009f6e0ae9fc2.json"
         )
         serialized = json.dumps(result)
         self.assertNotIn("google-api-key-value", serialized)

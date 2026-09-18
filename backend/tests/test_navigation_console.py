@@ -36,7 +36,7 @@ class NavigationConsoleContractTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
-    def test_primary_navigation_follows_the_fixed_r1_information_architecture(self) -> None:
+    def test_primary_navigation_follows_configuration_testing_access_and_operations(self) -> None:
         body = serve_control_panel().body.decode("utf-8")
         sidebar = (FRONTEND / "fragments/layout/sidebar.html").read_text(encoding="utf-8")
         tabs = re.findall(r'data-ui-action="switch-tab" data-tab="([^"]+)"', sidebar)
@@ -45,15 +45,15 @@ class NavigationConsoleContractTests(unittest.TestCase):
             tabs,
             [
                 "dashboard",
-                "playground",
                 "providers",
-                "pool",
+                "credentials",
                 "models",
                 "quality",
+                "playground",
                 "access",
+                "identity",
                 "activity",
                 "config",
-                "identity",
                 "about",
             ],
         )
@@ -62,14 +62,14 @@ class NavigationConsoleContractTests(unittest.TestCase):
             "navigation.credentials",
             "navigation.models_routing",
             "navigation.activity",
-            "navigation.team_access",
+            "navigation.identity",
         ):
             self.assertIn(f'data-i18n="{key}"', sidebar)
         self.assertNotIn('id="advancedNavigation"', sidebar)
         self.assertNotIn("<details", sidebar)
-        self.assertRegex(
+        self.assertNotRegex(
             sidebar,
-            r'<button[^>]+data-tab="identity"[^>]+data-conditional-navigation="team-access"[^>]+hidden',
+            r'<button[^>]+data-tab="identity"[^>]*\bhidden\b',
         )
         self.assertIn('href="#mainContent"', body)
         self.assertIn('id="mainContent"', body)
@@ -113,7 +113,7 @@ class NavigationConsoleContractTests(unittest.TestCase):
         for path in ("/activity", "/audit", "/logs"):
             self.assertIs(console_routes[path], serve_control_panel)
 
-    def test_activity_view_and_conditional_team_navigation_behave_in_the_dom(self) -> None:
+    def test_activity_view_and_fixed_identity_navigation_behave_in_the_dom(self) -> None:
         activity = (FRONTEND / "js/features/activity.js").read_text(encoding="utf-8")
         conditional = (FRONTEND / "js/features/conditional-navigation.js").read_text(
             encoding="utf-8"
@@ -135,7 +135,7 @@ global.document = {{
     addEventListener() {{}},
     getElementById(id) {{ return elements.get(id) || null; }},
     querySelector(selector) {{
-        return selector === '[data-conditional-navigation="team-access"]' ? teamAccess : null;
+        return selector === '[data-tab="identity"]' || selector === '[data-conditional-navigation="team-access"]' ? teamAccess : null;
     }}
 }};
 global.window = {{ location: {{pathname: '/activity', search: ''}} }};
@@ -155,7 +155,13 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
     assert(activityViewFromLocation('/audit', '') === 'audit', 'audit URL alias failed');
     assert(activityViewFromLocation('/logs', '') === 'runtime', 'logs URL alias failed');
     await refreshTeamAccessNavigation();
-    assert(teamAccess.hidden === true, 'disabled Team access must be hidden');
+    assert(teamAccess.hidden === false, 'identity must remain visible when OIDC is disabled');
+    identityApi = async () => {{throw new Error('unavailable');}};
+    await refreshTeamAccessNavigation();
+    assert(teamAccess.hidden === false, 'identity must remain visible when policy loading fails');
+    assert(AppState.teamAccessEnabled === null, 'failed policy must not enable OIDC');
+    resetConditionalNavigation();
+    assert(teamAccess.hidden === false, 'reset must not hide identity');
     identityApi = async () => ({{enabled: true}});
     await refreshTeamAccessNavigation();
     assert(teamAccess.hidden === false, 'enabled Team access must be visible');
@@ -167,7 +173,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
 """
         self._run_javascript_contract(harness)
 
-    def test_team_access_is_fail_closed_and_direct_configuration_remains_discoverable(self) -> None:
+    def test_team_access_policy_remains_fail_closed_without_hiding_navigation(self) -> None:
         conditional = (FRONTEND / "js/features/conditional-navigation.js").read_text(
             encoding="utf-8"
         )
@@ -175,7 +181,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
 
         self.assertIn("teamAccessEnabled: null", state)
         self.assertIn("policy?.enabled === true", conditional)
-        self.assertIn("window.location.pathname === '/identity'", conditional)
+        self.assertIn("teamAccessTab.hidden = false", conditional)
         self.assertIn("catch", conditional)
         self.assertIn("teamAccessEnabled = null", conditional)
         self.assertIn("refreshTeamAccessNavigation", conditional)
@@ -191,6 +197,13 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertIn("event.key === 'Escape'", mobile)
         self.assertIn("focusActivePage", navigation)
         self.assertIn("heading.focus", navigation)
+
+    def test_tab_navigation_yields_a_paint_before_running_heavy_loaders(self) -> None:
+        navigation = (FRONTEND / "js/core/navigation.js").read_text(encoding="utf-8")
+
+        self.assertIn("requestAnimationFrame", navigation)
+        self.assertIn("setTimeout(start, 0)", navigation)
+        self.assertIn("AppState.tabLoadPromises[tabName] = loadPromise", navigation)
 
     def test_mobile_drawer_preserves_the_original_return_focus_across_resize_sync(self) -> None:
         mobile = (FRONTEND / "js/features/mobile-navigation.js").read_text(encoding="utf-8")
@@ -242,7 +255,9 @@ assert(sidebar.inert === true, 'closed drawer remained interactive');
         settings = (FRONTEND / "fragments/pages/settings.html").read_text(encoding="utf-8")
 
         self.assertEqual(settings.count('data-settings-tier="advanced"'), 1)
-        self.assertEqual(settings.count('data-settings-tier="compatibility"'), 2)
+        self.assertEqual(settings.count('data-settings-tier="compatibility"'), 1)
+        self.assertNotIn('id="codeAssistEndpoint"', settings)
+        self.assertIn('id="keepaliveUrl"', settings)
         self.assertNotIn("<details", settings)
         self.assertNotIn("<summary", settings)
         self.assertNotIn("config-advanced-summary", settings)

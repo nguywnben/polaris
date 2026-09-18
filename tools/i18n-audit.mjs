@@ -22,6 +22,8 @@ const referencesByFile = new Map();
 const patterns = [
     /\bt\(\s*['"]([^'"]+)['"]/g,
     /data-i18n(?:-(?:title|alt|placeholder|aria-label))?=['"]([^'"]+)['"]/g,
+    /\bextendedElement\(\s*['"][^'"]+['"]\s*,\s*['"][^'"]*['"]\s*,\s*['"]([^'"]+)['"]/g,
+    /\.dataset\.i18n(?:Placeholder|AriaLabel)?\s*=\s*['"]([^'"]+)['"]/g,
 ];
 for (const file of sources) {
     const source = fs.readFileSync(file, 'utf8');
@@ -31,6 +33,11 @@ for (const file of sources) {
             referenced.add(match[1]);
             fileReferences.add(match[1]);
         }
+    }
+    for (const match of source.matchAll(/data-provider-form-copy=['"]([^'"]+)['"]/g)) {
+        const key = `provider.form.${match[1]}`;
+        referenced.add(key);
+        fileReferences.add(key);
     }
     if (fileReferences.size) referencesByFile.set(path.relative(root, file), fileReferences);
 }
@@ -46,6 +53,37 @@ const identityLocaleSource = fs.readFileSync(path.join(frontend, 'js/core/identi
 vm.runInContext(`${localeSource}\n${pageLocaleSource}\n${auditLocaleSource}\n${traceLocaleSource}\n${operationalLocaleSource}\n${i18nSource}\n${identityLocaleSource}\nglobalThis.__catalogs = {SUPPORTED_LOCALES, COMMON_UI_TRANSLATIONS, SETTINGS_LOCALE_TRANSLATIONS, AUTH_LOCALE_TRANSLATIONS, DIALOG_LOCALE_TRANSLATIONS, PAGE_LOCALE_TRANSLATIONS, TRANSLATIONS, LEGACY_UI_FALLBACKS, PROVIDER_COPY_FALLBACKS, PROVIDER_LABEL_TRANSLATIONS, PROVIDER_LABEL_KEYS, PRESERVED_TECHNICAL_TRANSLATION_KEYS, resolveLegacyFallback};`, context);
 
 const catalogs = context.__catalogs;
+for (const file of ['oidc-entry-locales.js', 'backup-locales.js']) {
+    vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core', file), 'utf8'), context);
+}
+vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-copy-locales.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-expansion-locales.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/quota-facts-locales.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(frontend, 'js/core/provider-auth-locales.js'), 'utf8'), context);
+// Load the same late locale overrides as the shipped bundle, including Identity aliases.
+const completionDirectory = path.join(frontend, 'js/locales');
+if (fs.existsSync(completionDirectory)) {
+    for (const file of fs.readdirSync(completionDirectory).filter(name => name.endsWith('.js')).sort()) {
+        vm.runInContext(fs.readFileSync(path.join(completionDirectory, file), 'utf8'), context);
+    }
+}
+const completionRegistration = path.join(frontend, 'js/core/locale-completion.js');
+if (fs.existsSync(completionRegistration)) {
+    vm.runInContext(fs.readFileSync(completionRegistration, 'utf8'), context);
+}
+const strict = process.argv.includes('--strict');
+const runtimeCatalogs = vm.runInContext('MESSAGE_CATALOGS', context);
+const exactProviderCopy = vm.runInContext('PROVIDER_EXACT_COPY', context);
+const preservedNames = new Set([
+    'Google Antigravity', 'Google AI Studio', 'Grok Build', 'SpaceXAI Console',
+    'Code Assist', 'OpenAI Platform', 'Claude Code', 'Claude Platform', 'Top P',
+]);
+const effectiveCatalog = locale => ({
+    ...(catalogs.TRANSLATIONS[locale] || {}),
+    ...(runtimeCatalogs[locale] || {}),
+});
+const english = effectiveCatalog('en');
+const variables = text => JSON.stringify([...text.matchAll(/\{([\w]+)\}/g)].map(match => match[1]).sort());
 const verbose = process.argv.includes('--verbose');
 if (process.argv.includes('--by-file')) {
     for (const [file, keys] of [...referencesByFile.entries()].sort()) {
@@ -53,18 +91,47 @@ if (process.argv.includes('--by-file')) {
     }
 }
 let hasMissing = false;
+if (strict) {
+    const providerHtml = fs.readFileSync(path.join(frontend, 'fragments/pages/providers.html'), 'utf8');
+    for (const [, attributes, text] of providerHtml.matchAll(/<p\b([^>]*)>([^<]+)<\/p>/g)) {
+        if (/data-i18n|data-provider-form-copy/.test(attributes)) continue;
+        const source = text.trim();
+        if (source.split(/\s+/).length < 5) continue;
+        const exact = vm.runInContext(`translateEnglishSource(${JSON.stringify(source)}, 'en')`, context);
+        if (!exact) {
+            hasMissing = true;
+            console.error(`Provider instructions lack an exact translation key: ${source}`);
+        }
+    }
+}
 const fallbackCategories = ['complete', 'failed', 'progress', 'confirm', 'unavailable', 'required', 'notice'];
 const providerFallbackCategories = ['configure', 'import', 'instruction', 'files', 'drop', 'loading', 'unavailable'];
 for (const locale of Object.keys(catalogs.SUPPORTED_LOCALES)) {
-    const available = {
-        ...(catalogs.COMMON_UI_TRANSLATIONS[locale] || {}),
-        ...(catalogs.SETTINGS_LOCALE_TRANSLATIONS[locale] || {}),
-        ...(catalogs.AUTH_LOCALE_TRANSLATIONS[locale] || {}),
-        ...(catalogs.DIALOG_LOCALE_TRANSLATIONS[locale] || {}),
-        ...(catalogs.PAGE_LOCALE_TRANSLATIONS[locale] || {}),
-        ...(catalogs.SUPPORTED_LOCALES[locale]?.messages || {}),
-        ...(catalogs.TRANSLATIONS[locale] || {}),
-    };
+    const available = effectiveCatalog(locale);
+    if (strict) {
+        const unresolvedProviderCopy = [];
+        for (const [suffix, [source]] of Object.entries(exactProviderCopy)) {
+            const key = `provider.copy.${suffix}`;
+            const actual = vm.runInContext(`translateProviderCopy(${JSON.stringify(source)}, ${JSON.stringify(locale)})`, context);
+            if (actual !== available[key]) {
+                hasMissing = true;
+                unresolvedProviderCopy.push(key);
+            }
+        }
+        if (unresolvedProviderCopy.length) console.error(`${locale}: ${unresolvedProviderCopy.length} provider instructions do not resolve exactly: ${unresolvedProviderCopy.slice(0, 6).join(', ')}`);
+        const incomplete = Object.keys(english).filter(key => typeof available[key] !== 'string' || !available[key].trim());
+        const mismatches = Object.keys(english).filter(key => available[key] && variables(english[key]) !== variables(available[key]));
+        const englishCopies = locale === 'en' ? [] : Object.keys(english).filter(key =>
+            available[key] === english[key] && /[a-z]{3} [a-z]{3}/i.test(english[key])
+            && !preservedNames.has(english[key])
+            && !catalogs.PRESERVED_TECHNICAL_TRANSLATION_KEYS.has(key)
+        );
+        for (const [kind, keys] of [['incomplete', incomplete], ['variable mismatch', mismatches], ['English fallback', englishCopies]]) {
+            if (!keys.length) continue;
+            hasMissing = true;
+            console.error(`${locale}: ${keys.length} ${kind}: ${keys.slice(0, 12).join(', ')}`);
+        }
+    }
     const fallbackMessages = catalogs.LEGACY_UI_FALLBACKS[locale] || {};
     const invalidFallbacks = fallbackCategories.filter((category) => (
         typeof fallbackMessages[category] !== 'string' || fallbackMessages[category].trim().length === 0

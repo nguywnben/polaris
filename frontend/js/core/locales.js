@@ -1,15 +1,36 @@
 // Polaris management console: supported interface locales.
 
+// Contextual hints supplement persistent field labels; identifiers remain exact.
+const FORM_PLACEHOLDER_KEYS = ["form.oauth_client_id","form.user_agent","form.subject","form.fingerprint","form.secret","form.value","form.credential_name"];
+const FORM_PLACEHOLDER_VALUES = {
+    "en": ["Enter the OAuth client ID","Enter the client identifier","Enter the exact subject identifier","Enter a fingerprint","The key will appear here","Enter the requested value","Enter a name to identify this credential"],
+    "vi": ["Nhập mã ứng dụng OAuth","Nhập mã nhận diện ứng dụng","Nhập chính xác mã định danh chủ thể","Nhập mã vân tay","Khóa sẽ hiển thị tại đây","Nhập giá trị được yêu cầu","Đặt tên để nhận biết thông tin xác thực này"],
+    "zh-CN": ["输入 OAuth 客户端 ID","输入客户端标识","输入完整且准确的主体标识","输入指纹","密钥将显示在此处","输入所需的值","输入便于识别此凭据的名称"],
+    "zh-TW": ["輸入 OAuth 用戶端 ID","輸入用戶端識別碼","輸入完整且正確的主體識別碼","輸入指紋","金鑰將顯示於此處","輸入所需的值","輸入方便辨識此憑證的名稱"],
+    "de": ["OAuth-Client-ID eingeben","Client-Kennung eingeben","Exakte Subjektkennung eingeben","Fingerabdruck eingeben","Der Schlüssel wird hier angezeigt","Den angeforderten Wert eingeben","Einen Namen zur Erkennung dieser Zugangsdaten eingeben"],
+    "es": ["Introduce el ID del cliente OAuth","Introduce el identificador del cliente","Introduce el identificador exacto del sujeto","Introduce una huella digital","La clave aparecerá aquí","Introduce el valor solicitado","Introduce un nombre para identificar estas credenciales"],
+    "fr": ["Saisissez l’identifiant du client OAuth","Saisissez l’identifiant du client","Saisissez l’identifiant exact du sujet","Saisissez une empreinte","La clé s’affichera ici","Saisissez la valeur demandée","Nommez ces identifiants pour les reconnaître"],
+    "id": ["Masukkan ID klien OAuth","Masukkan pengenal klien","Masukkan pengenal subjek yang persis sama","Masukkan sidik jari","Kunci akan ditampilkan di sini","Masukkan nilai yang diminta","Beri nama agar kredensial ini mudah dikenali"],
+    "it": ["Inserisci l’ID client OAuth","Inserisci l’identificativo del client","Inserisci l’identificativo esatto del soggetto","Inserisci un’impronta digitale","La chiave verrà visualizzata qui","Inserisci il valore richiesto","Inserisci un nome per riconoscere queste credenziali"],
+    "ja": ["OAuth クライアント ID を入力","クライアント識別子を入力","サブジェクト識別子を正確に入力","フィンガープリントを入力","ここにキーが表示されます","指定された値を入力","この認証情報を識別する名前を入力"],
+    "ko": ["OAuth 클라이언트 ID 입력","클라이언트 식별자 입력","정확한 주체 식별자 입력","지문 입력","키가 여기에 표시됩니다","요청된 값 입력","이 자격 증명을 구분할 이름 입력"],
+    "pt": ["Digite o ID do cliente OAuth","Digite o identificador do cliente","Digite o identificador exato do sujeito","Digite uma impressão digital","A chave aparecerá aqui","Digite o valor solicitado","Digite um nome para identificar estas credenciais"],
+    "ru": ["Введите ID клиента OAuth","Введите идентификатор клиента","Введите точный идентификатор субъекта","Введите отпечаток","Здесь появится ключ","Введите запрошенное значение","Введите название для этих учётных данных"],
+    "th": ["ป้อน ID ไคลเอนต์ OAuth","ป้อนตัวระบุไคลเอนต์","ป้อนตัวระบุเจ้าของข้อมูลให้ตรงทุกอักขระ","ป้อนลายนิ้วมือดิจิทัล","คีย์จะแสดงที่นี่","ป้อนค่าที่ร้องขอ","ตั้งชื่อเพื่อให้ระบุข้อมูลรับรองนี้ได้"],
+    "tr": ["OAuth istemci kimliğini girin","İstemci tanımlayıcısını girin","Özne tanımlayıcısını tam olarak girin","Parmak izini girin","Anahtar burada görünecek","İstenen değeri girin","Bu kimlik bilgisini tanımak için bir ad girin"],
+};
+
 const SUPPORTED_LOCALES = {
     en: {
         label: 'English',
         messages: {
-            language: 'Language', dashboard: 'Dashboard', pool: 'Pool', models: 'Models', providers: 'Providers', settings: 'Settings', logs: 'Logs', about: 'About',
+            setup_show_secret: 'Show content',
+            language: 'Language', dashboard: 'Dashboard', credentials: 'Credentials', models: 'Models', providers: 'Providers', settings: 'Settings', logs: 'Logs', about: 'About',
             sign_out: 'Sign out', sign_in_title: 'Sign In to the Console', login_copy: 'Manage routing, credentials, fallback behavior, and protocol translation from one focused workspace.',
             console_password: 'Console password', enter_password: 'Enter password', continue: 'Continue', setup_title: 'Create Your Console Password', setup_copy: 'Secure this new Polaris instance before opening the management console.',
             confirm_password: 'Confirm password', create_password: 'Create password', footer_tagline: 'Universal AI routing for coding tools.',
             dashboard_title: 'Polaris Dashboard', dashboard_description: 'See whether the gateway is ready, what needs attention, and how traffic is performing.',
-            pool_title: 'Provider Credential Pool', pool_description: 'Manage accounts and API keys from every connected provider. Monitor credential health, routing capacity, and pool backups from one place.',
+            credentials_title: 'Credentials', credentials_description: 'Manage connected accounts and API keys. Monitor credential health, manage access, and import or export credentials.',
             models_title: 'Routing Models', models_description: 'Manage virtual model routes and inspect provider models available to the shared credential pool.',
             providers_title: 'Add Provider Credentials', providers_description: 'Choose a provider, connect an account or API key, and add it to the shared routing pool.',
             settings_title: 'System Configuration', settings_description: 'Tune console access, storage, proxy, retry policy, response translation, and keep-alive behavior.',
@@ -20,12 +41,13 @@ const SUPPORTED_LOCALES = {
     'zh-CN': {
         label: '中文(简体)',
         messages: {
-            language: '语言', dashboard: '仪表板', pool: '凭据池', models: '模型', providers: '提供商', settings: '设置', logs: '日志', about: '关于',
+            setup_show_secret: '显示内容',
+            language: '语言', dashboard: '仪表板', credentials: '凭据', models: '模型', providers: '提供商', settings: '设置', logs: '日志', about: '关于',
             sign_out: '退出登录', sign_in_title: '登录控制台', login_copy: '在一个专注的工作区中管理路由、凭据、故障转移策略和协议转换。',
             console_password: '控制台密码', enter_password: '输入密码', continue: '继续', setup_title: '创建控制台密码', setup_copy: '在打开管理控制台前，请先保护这个新的 Polaris 实例。',
             confirm_password: '确认密码', create_password: '创建密码', footer_tagline: '面向编码工具的通用 AI 路由。',
             dashboard_title: 'Polaris 仪表板', dashboard_description: '监控编码工具流量的请求流、提供商容量和集成详情。',
-            pool_title: '提供商凭据池', pool_description: '集中管理所有已连接提供商的账户和 API 密钥，并监控凭据健康度、路由容量和池备份。',
+            credentials_title: '凭据', credentials_description: '管理已连接的账户和 API 密钥，监控凭据状态、管理访问权限以及导入或导出凭据。',
             models_title: '路由模型', models_description: '管理虚拟模型路由，并查看共享凭据池中可用的提供商模型。',
             providers_title: '添加提供商凭据', providers_description: '选择提供商，连接账户或 API 密钥，然后将其加入共享路由池。',
             settings_title: '系统配置', settings_description: '调整控制台访问、存储、代理、重试策略、响应转换和保活行为。',
@@ -36,12 +58,13 @@ const SUPPORTED_LOCALES = {
     'zh-TW': {
         label: '中文(繁體)',
         messages: {
-            language: '語言', dashboard: '儀表板', pool: '憑證集區', models: '模型', providers: '供應商', settings: '設定', logs: '日誌', about: '關於',
+            setup_show_secret: '顯示內容',
+            language: '語言', dashboard: '儀表板', credentials: '憑證', models: '模型', providers: '供應商', settings: '設定', logs: '日誌', about: '關於',
             sign_out: '登出', sign_in_title: '登入主控台', login_copy: '在單一專注的工作區中管理路由、憑證、容錯行為與通訊協定轉換。',
             console_password: '主控台密碼', enter_password: '輸入密碼', continue: '繼續', setup_title: '建立主控台密碼', setup_copy: '開啟管理主控台前，請先保護這個新的 Polaris 執行個體。',
             confirm_password: '確認密碼', create_password: '建立密碼', footer_tagline: '適用於程式開發工具的通用 AI 路由。',
             dashboard_title: 'Polaris 儀表板', dashboard_description: '監控程式開發工具流量的請求流程、供應商容量與整合詳細資料。',
-            pool_title: '供應商憑證集區', pool_description: '集中管理每個已連線供應商的帳戶與 API 金鑰，並監控憑證健康度、路由容量與集區備份。',
+            credentials_title: '憑證', credentials_description: '管理已連線的帳戶和 API 金鑰，監控憑證狀態、管理存取權限以及匯入或匯出憑證。',
             models_title: '路由模型', models_description: '管理虛擬模型路由，並檢視共用憑證集區可用的供應商模型。',
             providers_title: '新增供應商憑證', providers_description: '選擇供應商、連線帳戶或 API 金鑰，然後加入共用路由集區。',
             settings_title: '系統設定', settings_description: '調整主控台存取、儲存空間、Proxy、重試策略、回應轉換與保活行為。',
@@ -52,12 +75,13 @@ const SUPPORTED_LOCALES = {
     de: {
         label: 'Deutsch',
         messages: {
-            language: 'Sprache', dashboard: 'Dashboard', pool: 'Pool', models: 'Modelle', providers: 'Anbieter', settings: 'Einstellungen', logs: 'Protokolle', about: 'Info',
+            setup_show_secret: 'Inhalt anzeigen',
+            language: 'Sprache', dashboard: 'Dashboard', credentials: 'Zugangsdaten', models: 'Modelle', providers: 'Anbieter', settings: 'Einstellungen', logs: 'Protokolle', about: 'Info',
             sign_out: 'Abmelden', sign_in_title: 'Bei der Konsole anmelden', login_copy: 'Verwalten Sie Routing, Zugangsdaten, Failover-Verhalten und Protokollübersetzung in einem fokussierten Arbeitsbereich.',
             console_password: 'Konsolenpasswort', enter_password: 'Passwort eingeben', continue: 'Weiter', setup_title: 'Konsolenpasswort erstellen', setup_copy: 'Sichern Sie diese neue Polaris-Instanz, bevor Sie die Verwaltungskonsole öffnen.',
             confirm_password: 'Passwort bestätigen', create_password: 'Passwort erstellen', footer_tagline: 'Universelles KI-Routing für Coding-Tools.',
             dashboard_title: 'Polaris Dashboard', dashboard_description: 'Überwachen Sie Anfragefluss, Anbieterkapazität und Integrationsdetails für den Traffic Ihrer Coding-Tools.',
-            pool_title: 'Anbieter-Zugangsdatenpool', pool_description: 'Verwalten Sie Konten und API-Schlüssel aller verbundenen Anbieter. Behalten Sie Zustand, Routing-Kapazität und Pool-Backups an einem Ort im Blick.',
+            credentials_title: 'Zugangsdaten', credentials_description: 'Verwalten Sie verbundene Konten und API-Schlüssel. Prüfen Sie den Zustand der Zugangsdaten, verwalten Sie den Zugriff und importieren oder exportieren Sie Zugangsdaten.',
             models_title: 'Routing-Modelle', models_description: 'Verwalten Sie virtuelle Modellrouten und prüfen Sie die im gemeinsamen Zugangsdatenpool verfügbaren Anbietermodelle.',
             providers_title: 'Anbieter-Zugangsdaten hinzufügen', providers_description: 'Wählen Sie einen Anbieter, verbinden Sie ein Konto oder einen API-Schlüssel und fügen Sie ihn dem gemeinsamen Routing-Pool hinzu.',
             settings_title: 'Systemkonfiguration', settings_description: 'Konfigurieren Sie Konsolenzugriff, Speicher, Proxy, Wiederholungsstrategie, Antwortübersetzung und Keep-Alive-Verhalten.',
@@ -68,12 +92,13 @@ const SUPPORTED_LOCALES = {
     es: {
         label: 'Español',
         messages: {
-            language: 'Idioma', dashboard: 'Panel', pool: 'Grupo', models: 'Modelos', providers: 'Proveedores', settings: 'Configuración', logs: 'Registros', about: 'Acerca de',
+            setup_show_secret: 'Mostrar contenido',
+            language: 'Idioma', dashboard: 'Panel', credentials: 'Credenciales', models: 'Modelos', providers: 'Proveedores', settings: 'Configuración', logs: 'Registros', about: 'Acerca de',
             sign_out: 'Cerrar sesión', sign_in_title: 'Iniciar sesión en la consola', login_copy: 'Administra el enrutamiento, las credenciales, el comportamiento de conmutación por error y la traducción de protocolos desde un espacio de trabajo enfocado.',
             console_password: 'Contraseña de la consola', enter_password: 'Introduce la contraseña', continue: 'Continuar', setup_title: 'Crea la contraseña de la consola', setup_copy: 'Protege esta nueva instancia de Polaris antes de abrir la consola de administración.',
             confirm_password: 'Confirmar contraseña', create_password: 'Crear contraseña', footer_tagline: 'Enrutamiento universal de IA para herramientas de programación.',
             dashboard_title: 'Panel de Polaris', dashboard_description: 'Supervisa el flujo de solicitudes, la capacidad de los proveedores y los detalles de integración del tráfico de herramientas de programación.',
-            pool_title: 'Grupo de credenciales de proveedores', pool_description: 'Administra cuentas y claves API de todos los proveedores conectados. Supervisa el estado de las credenciales, la capacidad de enrutamiento y las copias de seguridad desde un solo lugar.',
+            credentials_title: 'Credenciales', credentials_description: 'Gestiona cuentas conectadas y claves API. Supervisa el estado de las credenciales, administra el acceso e importa o exporta credenciales.',
             models_title: 'Modelos de enrutamiento', models_description: 'Administra rutas de modelos virtuales e inspecciona los modelos de proveedores disponibles en el grupo compartido de credenciales.',
             providers_title: 'Añadir credenciales de proveedor', providers_description: 'Elige un proveedor, conecta una cuenta o una clave API y añádela al grupo de enrutamiento compartido.',
             settings_title: 'Configuración del sistema', settings_description: 'Ajusta el acceso a la consola, el almacenamiento, el proxy, la política de reintentos, la traducción de respuestas y el comportamiento de keep-alive.',
@@ -84,12 +109,13 @@ const SUPPORTED_LOCALES = {
     fr: {
         label: 'Français',
         messages: {
-            language: 'Langue', dashboard: 'Tableau de bord', pool: 'Pool', models: 'Modèles', providers: 'Fournisseurs', settings: 'Paramètres', logs: 'Journaux', about: 'À propos',
+            setup_show_secret: 'Afficher le contenu',
+            language: 'Langue', dashboard: 'Tableau de bord', credentials: 'Identifiants', models: 'Modèles', providers: 'Fournisseurs', settings: 'Paramètres', logs: 'Journaux', about: 'À propos',
             sign_out: 'Se déconnecter', sign_in_title: 'Se connecter à la console', login_copy: 'Gérez le routage, les identifiants, le basculement et la traduction de protocoles depuis un espace de travail unique.',
             console_password: 'Mot de passe de la console', enter_password: 'Saisir le mot de passe', continue: 'Continuer', setup_title: 'Créer le mot de passe de la console', setup_copy: 'Sécurisez cette nouvelle instance Polaris avant d’ouvrir la console d’administration.',
             confirm_password: 'Confirmer le mot de passe', create_password: 'Créer le mot de passe', footer_tagline: 'Routage IA universel pour les outils de développement.',
             dashboard_title: 'Tableau de bord Polaris', dashboard_description: 'Suivez le flux des requêtes, la capacité des fournisseurs et les détails d’intégration du trafic des outils de développement.',
-            pool_title: 'Pool d’identifiants fournisseurs', pool_description: 'Gérez les comptes et clés API de chaque fournisseur connecté. Suivez l’état des identifiants, la capacité de routage et les sauvegardes du pool au même endroit.',
+            credentials_title: 'Identifiants', credentials_description: 'Gérez les comptes connectés et les clés API. Surveillez l’état des identifiants, gérez les accès et importez ou exportez des identifiants.',
             models_title: 'Modèles de routage', models_description: 'Gérez les routes de modèles virtuels et examinez les modèles fournisseurs disponibles dans le pool d’identifiants partagé.',
             providers_title: 'Ajouter des identifiants fournisseur', providers_description: 'Choisissez un fournisseur, connectez un compte ou une clé API, puis ajoutez-le au pool de routage partagé.',
             settings_title: 'Configuration système', settings_description: 'Réglez l’accès à la console, le stockage, le proxy, la politique de relance, la traduction des réponses et le keep-alive.',
@@ -100,12 +126,13 @@ const SUPPORTED_LOCALES = {
     id: {
         label: 'Indonesia',
         messages: {
-            language: 'Bahasa', dashboard: 'Dasbor', pool: 'Pool', models: 'Model', providers: 'Penyedia', settings: 'Pengaturan', logs: 'Log', about: 'Tentang',
+            setup_show_secret: 'Tampilkan isi',
+            language: 'Bahasa', dashboard: 'Dasbor', credentials: 'Kredensial', models: 'Model', providers: 'Penyedia', settings: 'Pengaturan', logs: 'Log', about: 'Tentang',
             sign_out: 'Keluar', sign_in_title: 'Masuk ke Konsol', login_copy: 'Kelola perutean, kredensial, perilaku failover, dan penerjemahan protokol dari satu ruang kerja yang terfokus.',
             console_password: 'Kata sandi konsol', enter_password: 'Masukkan kata sandi', continue: 'Lanjutkan', setup_title: 'Buat Kata Sandi Konsol', setup_copy: 'Amankan instans Polaris baru ini sebelum membuka konsol pengelolaan.',
             confirm_password: 'Konfirmasi kata sandi', create_password: 'Buat kata sandi', footer_tagline: 'Perutean AI universal untuk alat pemrograman.',
             dashboard_title: 'Dasbor Polaris', dashboard_description: 'Pantau aliran permintaan, kapasitas penyedia, dan detail integrasi untuk trafik alat pemrograman.',
-            pool_title: 'Pool Kredensial Penyedia', pool_description: 'Kelola akun dan kunci API dari setiap penyedia yang terhubung. Pantau kesehatan kredensial, kapasitas perutean, dan cadangan pool dari satu tempat.',
+            credentials_title: 'Kredensial', credentials_description: 'Kelola akun terhubung dan kunci API. Pantau status kredensial, kelola akses, serta impor atau ekspor kredensial.',
             models_title: 'Model Perutean', models_description: 'Kelola rute model virtual dan periksa model penyedia yang tersedia bagi pool kredensial bersama.',
             providers_title: 'Tambahkan Kredensial Penyedia', providers_description: 'Pilih penyedia, hubungkan akun atau kunci API, lalu tambahkan ke pool perutean bersama.',
             settings_title: 'Konfigurasi Sistem', settings_description: 'Atur akses konsol, penyimpanan, proxy, kebijakan percobaan ulang, penerjemahan respons, dan perilaku keep-alive.',
@@ -116,12 +143,13 @@ const SUPPORTED_LOCALES = {
     it: {
         label: 'Italiano',
         messages: {
-            language: 'Lingua', dashboard: 'Dashboard', pool: 'Pool', models: 'Modelli', providers: 'Provider', settings: 'Impostazioni', logs: 'Log', about: 'Informazioni',
+            setup_show_secret: 'Mostra contenuto',
+            language: 'Lingua', dashboard: 'Dashboard', credentials: 'Credenziali', models: 'Modelli', providers: 'Provider', settings: 'Impostazioni', logs: 'Log', about: 'Informazioni',
             sign_out: 'Esci', sign_in_title: 'Accedi alla console', login_copy: 'Gestisci routing, credenziali, comportamento di failover e traduzione dei protocolli da un unico spazio di lavoro.',
             console_password: 'Password della console', enter_password: 'Inserisci la password', continue: 'Continua', setup_title: 'Crea la password della console', setup_copy: 'Proteggi questa nuova istanza Polaris prima di aprire la console di gestione.',
             confirm_password: 'Conferma password', create_password: 'Crea password', footer_tagline: 'Routing IA universale per strumenti di sviluppo.',
             dashboard_title: 'Dashboard Polaris', dashboard_description: 'Monitora il flusso delle richieste, la capacità dei provider e i dettagli di integrazione per il traffico degli strumenti di sviluppo.',
-            pool_title: 'Pool di credenziali provider', pool_description: 'Gestisci account e chiavi API di ogni provider connesso. Monitora stato delle credenziali, capacità di routing e backup del pool da un unico punto.',
+            credentials_title: 'Credenziali', credentials_description: 'Gestisci gli account collegati e le chiavi API. Monitora lo stato delle credenziali, gestisci gli accessi e importa o esporta le credenziali.',
             models_title: 'Modelli di routing', models_description: 'Gestisci percorsi di modelli virtuali e controlla i modelli provider disponibili nel pool condiviso di credenziali.',
             providers_title: 'Aggiungi credenziali provider', providers_description: 'Scegli un provider, collega un account o una chiave API e aggiungilo al pool di routing condiviso.',
             settings_title: 'Configurazione di sistema', settings_description: 'Regola accesso alla console, archiviazione, proxy, criteri di tentativo, traduzione delle risposte e comportamento keep-alive.',
@@ -132,12 +160,13 @@ const SUPPORTED_LOCALES = {
     ja: {
         label: '日本語',
         messages: {
-            language: '言語', dashboard: 'ダッシュボード', pool: 'プール', models: 'モデル', providers: 'プロバイダー', settings: '設定', logs: 'ログ', about: '概要',
+            setup_show_secret: '内容を表示',
+            language: '言語', dashboard: 'ダッシュボード', credentials: '認証情報', models: 'モデル', providers: 'プロバイダー', settings: '設定', logs: 'ログ', about: '概要',
             sign_out: 'サインアウト', sign_in_title: 'コンソールにサインイン', login_copy: 'ルーティング、認証情報、フェイルオーバー動作、プロトコル変換を一つのワークスペースで管理します。',
             console_password: 'コンソールのパスワード', enter_password: 'パスワードを入力', continue: '続行', setup_title: 'コンソールのパスワードを作成', setup_copy: '管理コンソールを開く前に、この新しい Polaris インスタンスを保護してください。',
             confirm_password: 'パスワードを確認', create_password: 'パスワードを作成', footer_tagline: 'コーディングツールのためのユニバーサル AI ルーティング。',
             dashboard_title: 'Polaris ダッシュボード', dashboard_description: 'コーディングツールのトラフィックについて、リクエストフロー、プロバイダー容量、統合の詳細を監視します。',
-            pool_title: 'プロバイダー認証情報プール', pool_description: '接続済みプロバイダーのアカウントと API キーを管理し、認証情報の状態、ルーティング容量、プールのバックアップを一か所で確認します。',
+            credentials_title: '認証情報', credentials_description: '接続済みアカウントと API キーを管理します。認証情報の状態を確認し、アクセスの管理や認証情報のインポート・エクスポートを行えます。',
             models_title: 'ルーティングモデル', models_description: '仮想モデルルートを管理し、共有認証情報プールで利用できるプロバイダーモデルを確認します。',
             providers_title: 'プロバイダー認証情報を追加', providers_description: 'プロバイダーを選択し、アカウントまたは API キーを接続して、共有ルーティングプールに追加します。',
             settings_title: 'システム設定', settings_description: 'コンソールアクセス、ストレージ、プロキシ、再試行ポリシー、応答変換、キープアライブ動作を調整します。',
@@ -148,12 +177,13 @@ const SUPPORTED_LOCALES = {
     ko: {
         label: '한국어',
         messages: {
-            language: '언어', dashboard: '대시보드', pool: '풀', models: '모델', providers: '공급자', settings: '설정', logs: '로그', about: '정보',
+            setup_show_secret: '내용 표시',
+            language: '언어', dashboard: '대시보드', credentials: '자격 증명', models: '모델', providers: '공급자', settings: '설정', logs: '로그', about: '정보',
             sign_out: '로그아웃', sign_in_title: '콘솔에 로그인', login_copy: '하나의 집중된 작업 공간에서 라우팅, 자격 증명, 장애 조치 동작, 프로토콜 변환을 관리하세요.',
             console_password: '콘솔 비밀번호', enter_password: '비밀번호 입력', continue: '계속', setup_title: '콘솔 비밀번호 만들기', setup_copy: '관리 콘솔을 열기 전에 새 Polaris 인스턴스를 보호하세요.',
             confirm_password: '비밀번호 확인', create_password: '비밀번호 만들기', footer_tagline: '코딩 도구를 위한 범용 AI 라우팅.',
             dashboard_title: 'Polaris 대시보드', dashboard_description: '코딩 도구 트래픽의 요청 흐름, 공급자 용량, 통합 세부 정보를 모니터링합니다.',
-            pool_title: '공급자 자격 증명 풀', pool_description: '연결된 모든 공급자의 계정과 API 키를 관리하세요. 자격 증명 상태, 라우팅 용량, 풀 백업을 한곳에서 확인할 수 있습니다.',
+            credentials_title: '자격 증명', credentials_description: '연결된 계정과 API 키를 관리하세요. 자격 증명 상태를 확인하고 접근 권한을 관리하며 자격 증명을 가져오거나 내보낼 수 있습니다.',
             models_title: '라우팅 모델', models_description: '가상 모델 경로를 관리하고 공유 자격 증명 풀에서 사용할 수 있는 공급자 모델을 확인하세요.',
             providers_title: '공급자 자격 증명 추가', providers_description: '공급자를 선택하고 계정 또는 API 키를 연결한 후 공유 라우팅 풀에 추가하세요.',
             settings_title: '시스템 구성', settings_description: '콘솔 접근, 저장소, 프록시, 재시도 정책, 응답 변환, keep-alive 동작을 조정합니다.',
@@ -164,12 +194,13 @@ const SUPPORTED_LOCALES = {
     pt: {
         label: 'Português',
         messages: {
-            language: 'Idioma', dashboard: 'Painel', pool: 'Pool', models: 'Modelos', providers: 'Provedores', settings: 'Configurações', logs: 'Logs', about: 'Sobre',
+            setup_show_secret: 'Mostrar conteúdo',
+            language: 'Idioma', dashboard: 'Painel', credentials: 'Credenciais', models: 'Modelos', providers: 'Provedores', settings: 'Configurações', logs: 'Logs', about: 'Sobre',
             sign_out: 'Sair', sign_in_title: 'Entrar no Console', login_copy: 'Gerencie roteamento, credenciais, comportamento de failover e tradução de protocolos em um espaço de trabalho focado.',
             console_password: 'Senha do console', enter_password: 'Digite a senha', continue: 'Continuar', setup_title: 'Crie a Senha do Console', setup_copy: 'Proteja esta nova instância do Polaris antes de abrir o console de gerenciamento.',
             confirm_password: 'Confirmar senha', create_password: 'Criar senha', footer_tagline: 'Roteamento universal de IA para ferramentas de programação.',
             dashboard_title: 'Painel do Polaris', dashboard_description: 'Monitore o fluxo de solicitações, a capacidade dos provedores e os detalhes de integração do tráfego de ferramentas de programação.',
-            pool_title: 'Pool de Credenciais de Provedores', pool_description: 'Gerencie contas e chaves de API de todos os provedores conectados. Acompanhe a integridade das credenciais, a capacidade de roteamento e os backups do pool em um só lugar.',
+            credentials_title: 'Credenciais', credentials_description: 'Gerencie contas conectadas e chaves de API. Monitore o estado das credenciais, gerencie o acesso e importe ou exporte credenciais.',
             models_title: 'Modelos de Roteamento', models_description: 'Gerencie rotas de modelos virtuais e inspecione os modelos de provedores disponíveis no pool compartilhado de credenciais.',
             providers_title: 'Adicionar Credenciais de Provedor', providers_description: 'Escolha um provedor, conecte uma conta ou chave de API e adicione-a ao pool de roteamento compartilhado.',
             settings_title: 'Configuração do Sistema', settings_description: 'Ajuste o acesso ao console, armazenamento, proxy, política de tentativas, tradução de respostas e comportamento de keep-alive.',
@@ -180,12 +211,13 @@ const SUPPORTED_LOCALES = {
     ru: {
         label: 'Русский',
         messages: {
-            language: 'Язык', dashboard: 'Панель', pool: 'Пул', models: 'Модели', providers: 'Провайдеры', settings: 'Настройки', logs: 'Журналы', about: 'О проекте',
+            setup_show_secret: 'Показать содержимое',
+            language: 'Язык', dashboard: 'Панель', credentials: 'Учётные данные', models: 'Модели', providers: 'Провайдеры', settings: 'Настройки', logs: 'Журналы', about: 'О проекте',
             sign_out: 'Выйти', sign_in_title: 'Войти в консоль', login_copy: 'Управляйте маршрутизацией, учётными данными, отказоустойчивостью и преобразованием протоколов в едином рабочем пространстве.',
             console_password: 'Пароль консоли', enter_password: 'Введите пароль', continue: 'Продолжить', setup_title: 'Создайте пароль консоли', setup_copy: 'Защитите новый экземпляр Polaris перед открытием консоли управления.',
             confirm_password: 'Подтвердите пароль', create_password: 'Создать пароль', footer_tagline: 'Универсальная маршрутизация ИИ для инструментов разработки.',
             dashboard_title: 'Панель Polaris', dashboard_description: 'Отслеживайте поток запросов, возможности провайдеров и детали интеграции трафика инструментов разработки.',
-            pool_title: 'Пул учётных данных провайдеров', pool_description: 'Управляйте аккаунтами и API-ключами всех подключённых провайдеров. Контролируйте состояние учётных данных, ресурсы маршрутизации и резервные копии пула в одном месте.',
+            credentials_title: 'Учётные данные', credentials_description: 'Управляйте подключёнными аккаунтами и API-ключами. Проверяйте состояние учётных данных, управляйте доступом, импортируйте и экспортируйте учётные данные.',
             models_title: 'Модели маршрутизации', models_description: 'Управляйте маршрутами виртуальных моделей и просматривайте модели провайдеров, доступные в общем пуле учётных данных.',
             providers_title: 'Добавить учётные данные провайдера', providers_description: 'Выберите провайдера, подключите аккаунт или API-ключ и добавьте его в общий пул маршрутизации.',
             settings_title: 'Конфигурация системы', settings_description: 'Настройте доступ к консоли, хранилище, прокси, политику повторов, преобразование ответов и keep-alive.',
@@ -196,12 +228,13 @@ const SUPPORTED_LOCALES = {
     th: {
         label: 'ภาษาไทย',
         messages: {
-            language: 'ภาษา', dashboard: 'แดชบอร์ด', pool: 'พูล', models: 'โมเดล', providers: 'ผู้ให้บริการ', settings: 'การตั้งค่า', logs: 'บันทึก', about: 'เกี่ยวกับ',
+            setup_show_secret: 'แสดงเนื้อหา',
+            language: 'ภาษา', dashboard: 'แดชบอร์ด', credentials: 'ข้อมูลรับรอง', models: 'โมเดล', providers: 'ผู้ให้บริการ', settings: 'การตั้งค่า', logs: 'บันทึก', about: 'เกี่ยวกับ',
             sign_out: 'ออกจากระบบ', sign_in_title: 'ลงชื่อเข้าใช้คอนโซล', login_copy: 'จัดการการกำหนดเส้นทาง ข้อมูลรับรอง การทำงานเมื่อเกิดข้อผิดพลาด และการแปลงโปรโตคอลจากพื้นที่ทำงานเดียว',
             console_password: 'รหัสผ่านคอนโซล', enter_password: 'ป้อนรหัสผ่าน', continue: 'ดำเนินการต่อ', setup_title: 'สร้างรหัสผ่านคอนโซล', setup_copy: 'ปกป้องอินสแตนซ์ Polaris ใหม่นี้ก่อนเปิดคอนโซลการจัดการ',
             confirm_password: 'ยืนยันรหัสผ่าน', create_password: 'สร้างรหัสผ่าน', footer_tagline: 'การกำหนดเส้นทาง AI สากลสำหรับเครื่องมือเขียนโค้ด',
             dashboard_title: 'แดชบอร์ด Polaris', dashboard_description: 'ติดตามการไหลของคำขอ ความจุของผู้ให้บริการ และรายละเอียดการผสานรวมสำหรับทราฟฟิกของเครื่องมือเขียนโค้ด',
-            pool_title: 'พูลข้อมูลรับรองผู้ให้บริการ', pool_description: 'จัดการบัญชีและ API key จากผู้ให้บริการที่เชื่อมต่อทั้งหมด ตรวจสอบสถานะข้อมูลรับรอง ความจุการกำหนดเส้นทาง และข้อมูลสำรองของพูลได้ในที่เดียว',
+            credentials_title: 'ข้อมูลรับรอง', credentials_description: 'จัดการบัญชีที่เชื่อมต่อและคีย์ API ตรวจสอบสถานะข้อมูลรับรอง จัดการสิทธิ์เข้าถึง และนำเข้าหรือส่งออกข้อมูลรับรอง',
             models_title: 'โมเดลการกำหนดเส้นทาง', models_description: 'จัดการเส้นทางโมเดลเสมือนและตรวจสอบโมเดลของผู้ให้บริการที่มีในพูลข้อมูลรับรองร่วม',
             providers_title: 'เพิ่มข้อมูลรับรองผู้ให้บริการ', providers_description: 'เลือกผู้ให้บริการ เชื่อมต่อบัญชีหรือ API key แล้วเพิ่มลงในพูลการกำหนดเส้นทางร่วม',
             settings_title: 'การกำหนดค่าระบบ', settings_description: 'ปรับการเข้าถึงคอนโซล พื้นที่จัดเก็บ พร็อกซี นโยบายการลองใหม่ การแปลงการตอบกลับ และ keep-alive',
@@ -212,12 +245,13 @@ const SUPPORTED_LOCALES = {
     tr: {
         label: 'Türkçe',
         messages: {
-            language: 'Dil', dashboard: 'Pano', pool: 'Havuz', models: 'Modeller', providers: 'Sağlayıcılar', settings: 'Ayarlar', logs: 'Günlükler', about: 'Hakkında',
+            setup_show_secret: 'İçeriği göster',
+            language: 'Dil', dashboard: 'Pano', credentials: 'Kimlik Bilgileri', models: 'Modeller', providers: 'Sağlayıcılar', settings: 'Ayarlar', logs: 'Günlükler', about: 'Hakkında',
             sign_out: 'Oturumu kapat', sign_in_title: 'Konsolda oturum aç', login_copy: 'Yönlendirmeyi, kimlik bilgilerini, yük devretme davranışını ve protokol çevirisini tek bir odaklı çalışma alanından yönetin.',
             console_password: 'Konsol parolası', enter_password: 'Parolayı girin', continue: 'Devam et', setup_title: 'Konsol Parolasını Oluştur', setup_copy: 'Yönetim konsolunu açmadan önce bu yeni Polaris örneğini güvence altına alın.',
             confirm_password: 'Parolayı onayla', create_password: 'Parola oluştur', footer_tagline: 'Kodlama araçları için evrensel yapay zekâ yönlendirmesi.',
             dashboard_title: 'Polaris Panosu', dashboard_description: 'Kodlama aracı trafiğinin istek akışını, sağlayıcı kapasitesini ve entegrasyon ayrıntılarını izleyin.',
-            pool_title: 'Sağlayıcı Kimlik Bilgileri Havuzu', pool_description: 'Bağlı tüm sağlayıcıların hesaplarını ve API anahtarlarını yönetin. Kimlik bilgisi durumunu, yönlendirme kapasitesini ve havuz yedeklerini tek yerden izleyin.',
+            credentials_title: 'Kimlik Bilgileri', credentials_description: 'Bağlı hesapları ve API anahtarlarını yönetin. Kimlik bilgilerinin durumunu izleyin, erişimi yönetin ve kimlik bilgilerini içe veya dışa aktarın.',
             models_title: 'Yönlendirme Modelleri', models_description: 'Sanal model rotalarını yönetin ve ortak kimlik bilgileri havuzunda bulunan sağlayıcı modellerini inceleyin.',
             providers_title: 'Sağlayıcı Kimlik Bilgileri Ekle', providers_description: 'Bir sağlayıcı seçin, hesap veya API anahtarı bağlayın ve ortak yönlendirme havuzuna ekleyin.',
             settings_title: 'Sistem Yapılandırması', settings_description: 'Konsol erişimini, depolamayı, proxy’yi, yeniden deneme ilkesini, yanıt çevirisini ve keep-alive davranışını ayarlayın.',
@@ -228,12 +262,13 @@ const SUPPORTED_LOCALES = {
     vi: {
         label: 'Tiếng Việt',
         messages: {
-            language: 'Ngôn ngữ', dashboard: 'Tổng quan', pool: 'Thông tin xác thực', models: 'Mô hình', providers: 'Nhà cung cấp', settings: 'Cài đặt', logs: 'Nhật ký', about: 'Giới thiệu',
+            setup_show_secret: 'Hiện nội dung',
+            language: 'Ngôn ngữ', dashboard: 'Tổng quan', credentials: 'Thông tin xác thực', models: 'Mô hình', providers: 'Nhà cung cấp', settings: 'Cài đặt', logs: 'Nhật ký', about: 'Giới thiệu',
             sign_out: 'Đăng xuất', sign_in_title: 'Đăng nhập vào bảng điều khiển', login_copy: 'Quản lý định tuyến, thông tin xác thực, cơ chế dự phòng và chuyển đổi giao thức trong một không gian làm việc tập trung.',
             console_password: 'Mật khẩu bảng điều khiển', enter_password: 'Nhập mật khẩu', continue: 'Tiếp tục', setup_title: 'Tạo mật khẩu bảng điều khiển', setup_copy: 'Bảo vệ phiên bản Polaris mới này trước khi mở bảng điều khiển quản trị.',
             confirm_password: 'Xác nhận mật khẩu', create_password: 'Tạo mật khẩu', footer_tagline: 'Định tuyến AI phổ quát cho công cụ lập trình.',
             dashboard_title: 'Bảng điều khiển Polaris', dashboard_description: 'Xem gateway đã sẵn sàng chưa, mục nào cần xử lý và lưu lượng đang hoạt động ra sao.',
-            pool_title: 'Kho thông tin xác thực nhà cung cấp', pool_description: 'Quản lý tài khoản và khóa API từ mọi nhà cung cấp đã kết nối. Theo dõi trạng thái thông tin xác thực, năng lực định tuyến và bản sao lưu tại một nơi.',
+            credentials_title: 'Thông tin xác thực', credentials_description: 'Quản lý tài khoản đã kết nối và khóa API. Theo dõi trạng thái, quản lý quyền truy cập, nhập và xuất thông tin xác thực.',
             models_title: 'Mô hình định tuyến', models_description: 'Quản lý các tuyến mô hình ảo và kiểm tra mô hình của nhà cung cấp có trong kho thông tin xác thực dùng chung.',
             providers_title: 'Thêm thông tin xác thực nhà cung cấp', providers_description: 'Chọn nhà cung cấp, kết nối tài khoản hoặc khóa API, rồi thêm vào kho định tuyến dùng chung.',
             settings_title: 'Cấu hình hệ thống', settings_description: 'Điều chỉnh quyền truy cập bảng điều khiển, lưu trữ, proxy, chính sách thử lại, chuyển đổi phản hồi và cơ chế keep-alive.',
@@ -368,20 +403,199 @@ for (const locale of Object.keys(AUTH_LOCALE_TRANSLATIONS)) {
     };
 }
 
+const FORM_VALIDATION_KEYS = ['validation.required', 'validation.min_length', 'validation.max_length', 'validation.min', 'validation.max', 'validation.step', 'validation.format', 'validation.invalid'];
+const FORM_VALIDATION_MESSAGES = {
+    en: ['Enter or choose a value.', 'Use at least {limit} characters.', 'Use at most {limit} characters.', 'Enter a value of at least {limit}.', 'Enter a value no greater than {limit}.', 'Use increments of {step}.', 'Use the required format.', 'Enter a valid value.'],
+    'zh-CN': ['请输入或选择一个值。', '请至少输入 {limit} 个字符。', '最多输入 {limit} 个字符。', '请输入不小于 {limit} 的值。', '请输入不大于 {limit} 的值。', '请使用 {step} 的步长。', '请使用要求的格式。', '请输入有效值。'],
+    'zh-TW': ['請輸入或選擇一個值。', '請至少輸入 {limit} 個字元。', '最多輸入 {limit} 個字元。', '請輸入不小於 {limit} 的值。', '請輸入不大於 {limit} 的值。', '請使用 {step} 的間距。', '請使用要求的格式。', '請輸入有效值。'],
+    de: ['Einen Wert eingeben oder auswählen.', 'Mindestens {limit} Zeichen verwenden.', 'Höchstens {limit} Zeichen verwenden.', 'Einen Wert von mindestens {limit} eingeben.', 'Einen Wert von höchstens {limit} eingeben.', 'Schritte von {step} verwenden.', 'Das erforderliche Format verwenden.', 'Einen gültigen Wert eingeben.'],
+    es: ['Introduce o selecciona un valor.', 'Usa al menos {limit} caracteres.', 'Usa como máximo {limit} caracteres.', 'Introduce un valor mínimo de {limit}.', 'Introduce un valor máximo de {limit}.', 'Usa incrementos de {step}.', 'Usa el formato requerido.', 'Introduce un valor válido.'],
+    fr: ['Saisissez ou choisissez une valeur.', 'Utilisez au moins {limit} caractères.', 'Utilisez au maximum {limit} caractères.', 'Saisissez une valeur supérieure ou égale à {limit}.', 'Saisissez une valeur inférieure ou égale à {limit}.', 'Utilisez des incréments de {step}.', 'Utilisez le format requis.', 'Saisissez une valeur valide.'],
+    id: ['Masukkan atau pilih nilai.', 'Gunakan minimal {limit} karakter.', 'Gunakan maksimal {limit} karakter.', 'Masukkan nilai minimal {limit}.', 'Masukkan nilai maksimal {limit}.', 'Gunakan kelipatan {step}.', 'Gunakan format yang diminta.', 'Masukkan nilai yang valid.'],
+    it: ['Inserisci o scegli un valore.', 'Usa almeno {limit} caratteri.', 'Usa al massimo {limit} caratteri.', 'Inserisci un valore di almeno {limit}.', 'Inserisci un valore non superiore a {limit}.', 'Usa incrementi di {step}.', 'Usa il formato richiesto.', 'Inserisci un valore valido.'],
+    ja: ['値を入力または選択してください。', '{limit} 文字以上で入力してください。', '{limit} 文字以内で入力してください。', '{limit} 以上の値を入力してください。', '{limit} 以下の値を入力してください。', '{step} 刻みで入力してください。', '指定された形式で入力してください。', '有効な値を入力してください。'],
+    ko: ['값을 입력하거나 선택하세요.', '{limit}자 이상 입력하세요.', '{limit}자 이하로 입력하세요.', '{limit} 이상의 값을 입력하세요.', '{limit} 이하의 값을 입력하세요.', '{step} 간격으로 입력하세요.', '요구되는 형식을 사용하세요.', '유효한 값을 입력하세요.'],
+    pt: ['Introduza ou escolha um valor.', 'Use pelo menos {limit} caracteres.', 'Use no máximo {limit} caracteres.', 'Introduza um valor de pelo menos {limit}.', 'Introduza um valor não superior a {limit}.', 'Use incrementos de {step}.', 'Use o formato exigido.', 'Introduza um valor válido.'],
+    ru: ['Введите или выберите значение.', 'Используйте не менее {limit} символов.', 'Используйте не более {limit} символов.', 'Введите значение не меньше {limit}.', 'Введите значение не больше {limit}.', 'Используйте шаг {step}.', 'Используйте требуемый формат.', 'Введите допустимое значение.'],
+    th: ['ป้อนหรือเลือกค่า', 'ใช้ตัวอักษรอย่างน้อย {limit} ตัว', 'ใช้ตัวอักษรไม่เกิน {limit} ตัว', 'ป้อนค่าอย่างน้อย {limit}', 'ป้อนค่าไม่เกิน {limit}', 'ใช้ช่วงเพิ่มทีละ {step}', 'ใช้รูปแบบที่กำหนด', 'ป้อนค่าที่ถูกต้อง'],
+    tr: ['Bir değer girin veya seçin.', 'En az {limit} karakter kullanın.', 'En fazla {limit} karakter kullanın.', 'En az {limit} değerini girin.', 'En fazla {limit} değerini girin.', '{step} adımlarını kullanın.', 'İstenen biçimi kullanın.', 'Geçerli bir değer girin.'],
+    vi: ['Vui lòng nhập hoặc chọn giá trị.', 'Nhập ít nhất {limit} ký tự.', 'Nhập tối đa {limit} ký tự.', 'Nhập giá trị từ {limit} trở lên.', 'Nhập giá trị không vượt quá {limit}.', 'Nhập giá trị theo bước {step}.', 'Giá trị chưa đúng định dạng yêu cầu.', 'Vui lòng nhập giá trị hợp lệ.']
+};
+for (const [locale, values] of Object.entries(FORM_VALIDATION_MESSAGES)) {
+    FORM_VALIDATION_KEYS.forEach((key, index) => { SUPPORTED_LOCALES[locale].messages[key] = values[index]; });
+}
+
+const DASHBOARD_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'dashboard.connect_provider_title': 'Connect your first provider',
+        'dashboard.connect_provider_copy': 'Add an account or API key, choose a model route, then send a request in Playground.',
+        'dashboard.empty_period_copy': 'No provider attempts in this time range. Try another range or send a request in Playground.',
+        'dashboard.provider_status_empty': 'No provider status to display yet. Connect a provider to get started.',
+    },
+    vi: {
+        'dashboard.connect_provider_title': 'Kết nối nhà cung cấp đầu tiên',
+        'dashboard.connect_provider_copy': 'Thêm tài khoản hoặc khóa API, cấu hình tuyến mô hình, rồi gửi yêu cầu trong Thử nghiệm.',
+        'dashboard.empty_period_copy': 'Chưa có lần gọi nhà cung cấp trong khoảng thời gian này. Hãy chọn khoảng khác hoặc gửi yêu cầu trong Thử nghiệm.',
+        'dashboard.provider_status_empty': 'Chưa có trạng thái nhà cung cấp để hiển thị. Hãy kết nối nhà cung cấp để bắt đầu.',
+    },
+};
+for (const [locale, config] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(config.messages, DASHBOARD_GUIDANCE_TRANSLATIONS[locale] || DASHBOARD_GUIDANCE_TRANSLATIONS.en);
+}
+
+const LOGIN_FORM_TRANSLATIONS = {
+    "en": {login_password_copy: "Enter your console password to access Polaris.", login_submit: "Sign in", login_pending: "Signing in…"},
+    "vi": {login_password_copy: "Nhập mật khẩu bảng điều khiển để truy cập Polaris.", login_submit: "Đăng nhập", login_pending: "Đang đăng nhập…"},
+    "zh-CN": {login_password_copy: "输入控制台密码以访问 Polaris。", login_submit: "登录", login_pending: "正在登录…"},
+    "zh-TW": {login_password_copy: "輸入主控台密碼以存取 Polaris。", login_submit: "登入", login_pending: "正在登入…"},
+    "de": {login_password_copy: "Gib dein Konsolenpasswort ein, um auf Polaris zuzugreifen.", login_submit: "Anmelden", login_pending: "Anmeldung läuft…"},
+    "es": {login_password_copy: "Introduce tu contraseña de la consola para acceder a Polaris.", login_submit: "Iniciar sesión", login_pending: "Iniciando sesión…"},
+    "fr": {login_password_copy: "Saisissez le mot de passe de la console pour accéder à Polaris.", login_submit: "Se connecter", login_pending: "Connexion en cours…"},
+    "id": {login_password_copy: "Masukkan kata sandi konsol untuk mengakses Polaris.", login_submit: "Masuk", login_pending: "Sedang masuk…"},
+    "it": {login_password_copy: "Inserisci la password della console per accedere a Polaris.", login_submit: "Accedi", login_pending: "Accesso in corso…"},
+    "ja": {login_password_copy: "コンソールのパスワードを入力して Polaris にアクセスします。", login_submit: "サインイン", login_pending: "サインイン中…"},
+    "ko": {login_password_copy: "콘솔 비밀번호를 입력하여 Polaris에 접속하세요.", login_submit: "로그인", login_pending: "로그인 중…"},
+    "pt": {login_password_copy: "Digite a senha do console para acessar o Polaris.", login_submit: "Entrar", login_pending: "Entrando…"},
+    "ru": {login_password_copy: "Введите пароль консоли для доступа к Polaris.", login_submit: "Войти", login_pending: "Вход…"},
+    "th": {login_password_copy: "ป้อนรหัสผ่านคอนโซลเพื่อเข้าใช้ Polaris", login_submit: "เข้าสู่ระบบ", login_pending: "กำลังเข้าสู่ระบบ…"},
+    "tr": {login_password_copy: "Polaris’e erişmek için konsol parolanızı girin.", login_submit: "Giriş yap", login_pending: "Giriş yapılıyor…"},
+};
+for (const [locale, messages] of Object.entries(LOGIN_FORM_TRANSLATIONS)) {
+    Object.assign(SUPPORTED_LOCALES[locale].messages, messages);
+}
+
+const PASSWORD_CHECK_TRANSLATIONS = {
+    "en": {password_check_length: "Between 12 and 256 characters", password_check_variety: "At least 4 different characters", password_check_uncommon: "Not on the blocked common-password list", password_check_match: "Passwords match", password_check_met: "Met", password_check_pending: "Not met"},
+    "vi": {password_check_length: "Dài từ 12 đến 256 ký tự", password_check_variety: "Có ít nhất 4 ký tự khác nhau", password_check_uncommon: "Không thuộc danh sách mật khẩu phổ biến bị chặn", password_check_match: "Mật khẩu xác nhận trùng khớp", password_check_met: "Đã đạt", password_check_pending: "Chưa đạt"},
+    "zh-CN": {password_check_length: "长度为 12–256 个字符", password_check_variety: "至少包含 4 种不同字符", password_check_uncommon: "不在已屏蔽的常见密码列表中", password_check_match: "确认密码一致", password_check_met: "已满足", password_check_pending: "未满足"},
+    "zh-TW": {password_check_length: "長度為 12–256 個字元", password_check_variety: "至少包含 4 種不同字元", password_check_uncommon: "不在已封鎖的常見密碼清單中", password_check_match: "確認密碼一致", password_check_met: "已符合", password_check_pending: "未符合"},
+    "de": {password_check_length: "12 bis 256 Zeichen", password_check_variety: "Mindestens 4 verschiedene Zeichen", password_check_uncommon: "Nicht auf der Liste gesperrter häufiger Passwörter", password_check_match: "Passwörter stimmen überein", password_check_met: "Erfüllt", password_check_pending: "Nicht erfüllt"},
+    "es": {password_check_length: "Entre 12 y 256 caracteres", password_check_variety: "Al menos 4 caracteres diferentes", password_check_uncommon: "No figura en la lista de contraseñas comunes bloqueadas", password_check_match: "Las contraseñas coinciden", password_check_met: "Cumplido", password_check_pending: "No cumplido"},
+    "fr": {password_check_length: "Entre 12 et 256 caractères", password_check_variety: "Au moins 4 caractères différents", password_check_uncommon: "Absent de la liste des mots de passe courants bloqués", password_check_match: "Les mots de passe correspondent", password_check_met: "Respecté", password_check_pending: "Non respecté"},
+    "id": {password_check_length: "Antara 12 dan 256 karakter", password_check_variety: "Minimal 4 karakter berbeda", password_check_uncommon: "Tidak termasuk daftar kata sandi umum yang diblokir", password_check_match: "Konfirmasi kata sandi cocok", password_check_met: "Terpenuhi", password_check_pending: "Belum terpenuhi"},
+    "it": {password_check_length: "Da 12 a 256 caratteri", password_check_variety: "Almeno 4 caratteri diversi", password_check_uncommon: "Non presente nella lista delle password comuni bloccate", password_check_match: "Le password coincidono", password_check_met: "Soddisfatto", password_check_pending: "Non soddisfatto"},
+    "ja": {password_check_length: "12〜256文字", password_check_variety: "4種類以上の異なる文字", password_check_uncommon: "ブロック対象の一般的なパスワードではない", password_check_match: "確認用パスワードが一致", password_check_met: "条件を満たしています", password_check_pending: "条件を満たしていません"},
+    "ko": {password_check_length: "12~256자", password_check_variety: "서로 다른 문자 4개 이상", password_check_uncommon: "차단된 일반 비밀번호 목록에 없음", password_check_match: "비밀번호 확인 일치", password_check_met: "충족", password_check_pending: "미충족"},
+    "pt": {password_check_length: "Entre 12 e 256 caracteres", password_check_variety: "Pelo menos 4 caracteres diferentes", password_check_uncommon: "Não consta na lista de senhas comuns bloqueadas", password_check_match: "As senhas coincidem", password_check_met: "Atendido", password_check_pending: "Não atendido"},
+    "ru": {password_check_length: "От 12 до 256 символов", password_check_variety: "Не менее 4 разных символов", password_check_uncommon: "Нет в списке заблокированных распространённых паролей", password_check_match: "Пароли совпадают", password_check_met: "Выполнено", password_check_pending: "Не выполнено"},
+    "th": {password_check_length: "ความยาว 12–256 ตัวอักษร", password_check_variety: "มีตัวอักษรที่แตกต่างกันอย่างน้อย 4 ตัว", password_check_uncommon: "ไม่อยู่ในรายการรหัสผ่านทั่วไปที่ถูกบล็อก", password_check_match: "รหัสผ่านยืนยันตรงกัน", password_check_met: "ผ่าน", password_check_pending: "ยังไม่ผ่าน"},
+    "tr": {password_check_length: "12–256 karakter uzunluğunda", password_check_variety: "En az 4 farklı karakter", password_check_uncommon: "Engellenen yaygın parolalar listesinde değil", password_check_match: "Parolalar eşleşiyor", password_check_met: "Karşılandı", password_check_pending: "Karşılanmadı"},
+};
+for (const [locale, messages] of Object.entries(PASSWORD_CHECK_TRANSLATIONS)) {
+    Object.assign(SUPPORTED_LOCALES[locale].messages, messages);
+}
+
+const PROVIDER_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'providers.oauth_intro': 'Generate an authorization link and save the account directly into the active pool.',
+        'providers.antigravity_settings_hint': 'Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.',
+        'providers.oauth_client_hint': 'Manage the OAuth application used for Google Antigravity authorization.',
+        'providers.google_hosts_hint': 'Configure provider and Google API hosts used by Google Antigravity requests.',
+        'providers.protocol_hint': 'Tune headers, streaming conversion, and retry credential switching.'
+    },
+    vi: {
+        'providers.oauth_intro': 'Lấy liên kết cấp quyền, kết nối tài khoản rồi lưu vào kho thông tin xác thực.',
+        'providers.antigravity_settings_hint': 'Điều chỉnh ứng dụng OAuth, địa chỉ API và cách xử lý yêu cầu của Google Antigravity.',
+        'providers.oauth_client_hint': 'Ứng dụng OAuth dùng để cấp quyền cho tài khoản Google Antigravity.',
+        'providers.google_hosts_hint': 'Địa chỉ các dịch vụ Google được dùng khi gửi yêu cầu.',
+        'providers.protocol_hint': 'Thiết lập header, chuyển đổi phản hồi streaming và đổi thông tin xác thực khi thử lại.'
+    }
+};
+for (const [locale, definition] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(definition.messages, PROVIDER_GUIDANCE_TRANSLATIONS[locale] || PROVIDER_GUIDANCE_TRANSLATIONS.en);
+}
+
+const POOL_GUIDANCE_TRANSLATIONS = {
+    en: {
+        'settings.save_configuration': 'Save configuration',
+        'settings.save_scope': 'Language and theme apply immediately on this device. Save configuration applies to server settings.',
+        'settings.save_scope_short': 'Password and retention policies use their own save buttons.',
+        'activity.apply_short': 'Apply',
+        'activity.reset_filters': 'Reset filters',
+        'activity.filter_hint_traces': 'Filters are shared across tabs. Actor type does not apply to request traces.',
+        'activity.filter_hint_audit': 'Filters are shared across tabs. Provider does not apply to audit events.',
+        'activity.filter_hint_runtime': 'Filters match the retained log text. Outcomes are inferred from log wording.',
+        'access.empty_title': 'No virtual keys yet',
+        'access.empty_hint': 'Create a separate key for each client and set only the permissions it needs.',
+        'access.filtered_hint': 'Try another name or change the status filter.',
+        'quality.preset_controls_hint': 'These values are defined by the selected profile. Choose Custom to edit individual controls, then save to apply.',
+        'quality.custom_controls_hint': 'Edit the controls below, preview their impact, then save to apply the policy.',
+        'quality.locked_controls_hint': 'Controls managed by the runtime environment remain locked.',
+        'models.empty_title': 'No models yet',
+        'models.empty_copy': 'Connect a provider account or API key first. If you already have credentials, check that they are enabled and have discovered models.',
+        'models.manage_credentials': 'Manage credentials',
+        'pool.empty_title': 'No credentials yet',
+        'pool.empty_copy': 'Connect an account or add an API key to get started. You can also import a ZIP backup.',
+        'pool.add_credential': 'Add credentials'
+    },
+    vi: {
+        'settings.save_configuration': 'Lưu cấu hình',
+        'settings.save_scope': 'Ngôn ngữ và giao diện áp dụng ngay trên thiết bị này. Các thiết lập máy chủ cần nhấn Lưu cấu hình.',
+        'settings.save_scope_short': 'Mật khẩu và chính sách lưu giữ có nút lưu riêng.',
+        'activity.apply_short': 'Áp dụng',
+        'activity.reset_filters': 'Đặt lại bộ lọc',
+        'activity.filter_hint_traces': 'Bộ lọc được giữ khi chuyển tab. Loại tác nhân không áp dụng cho dấu vết yêu cầu.',
+        'activity.filter_hint_audit': 'Bộ lọc được giữ khi chuyển tab. Nhà cung cấp không áp dụng cho sự kiện kiểm toán.',
+        'activity.filter_hint_runtime': 'Bộ lọc tìm trong phần nhật ký đang lưu. Kết quả được suy ra từ nội dung dòng nhật ký.',
+        'access.empty_title': 'Chưa có khóa API ảo',
+        'access.empty_hint': 'Tạo khóa riêng cho từng ứng dụng và chỉ cấp những quyền cần thiết.',
+        'access.filtered_hint': 'Thử tên khác hoặc thay đổi bộ lọc trạng thái.',
+        'quality.preset_controls_hint': 'Các giá trị bên dưới được đặt theo hồ sơ đang chọn. Chọn Tùy chỉnh để sửa từng mục, rồi lưu để áp dụng.',
+        'quality.custom_controls_hint': 'Điều chỉnh các mục bên dưới, mô phỏng ảnh hưởng rồi lưu để áp dụng chính sách.',
+        'quality.locked_controls_hint': 'Các mục do môi trường quản lý vẫn bị khóa.',
+        'models.empty_title': 'Chưa có mô hình',
+        'models.empty_copy': 'Kết nối tài khoản hoặc khóa API của nhà cung cấp để bắt đầu. Nếu đã có thông tin xác thực, hãy kiểm tra chúng đã bật và có mô hình được phát hiện.',
+        'models.manage_credentials': 'Quản lý thông tin xác thực',
+        'pool.empty_title': 'Chưa có thông tin xác thực',
+        'pool.empty_copy': 'Kết nối tài khoản hoặc thêm khóa API để bắt đầu. Bạn cũng có thể nhập bản sao lưu ZIP.',
+        'pool.add_credential': 'Thêm thông tin xác thực'
+    }
+};
+for (const [locale, definition] of Object.entries(SUPPORTED_LOCALES)) {
+    Object.assign(definition.messages, POOL_GUIDANCE_TRANSLATIONS[locale] || POOL_GUIDANCE_TRANSLATIONS.en);
+}
+
+for (const [locale, values] of Object.entries(FORM_PLACEHOLDER_VALUES)) {
+    Object.assign(COMMON_UI_TRANSLATIONS[locale], Object.fromEntries(
+        FORM_PLACEHOLDER_KEYS.map((key, index) => [key, values[index]])
+    ));
+}
+
+const OAUTH_SECRET_PLACEHOLDERS = {
+    "en": "Enter the OAuth client secret",
+    "vi": "Nhập khóa bí mật của ứng dụng OAuth",
+    "zh-CN": "输入 OAuth 客户端密钥",
+    "zh-TW": "輸入 OAuth 用戶端密鑰",
+    "de": "OAuth-Client-Geheimnis eingeben",
+    "es": "Introduce el secreto del cliente OAuth",
+    "fr": "Saisissez le secret du client OAuth",
+    "id": "Masukkan rahasia klien OAuth",
+    "it": "Inserisci il segreto del client OAuth",
+    "ja": "OAuth クライアントシークレットを入力",
+    "ko": "OAuth 클라이언트 시크릿 입력",
+    "pt": "Digite o segredo do cliente OAuth",
+    "ru": "Введите секрет клиента OAuth",
+    "th": "ป้อนข้อมูลลับของไคลเอนต์ OAuth",
+    "tr": "OAuth istemci sırrını girin"
+};
+for (const [locale, message] of Object.entries(OAUTH_SECRET_PLACEHOLDERS)) {
+    COMMON_UI_TRANSLATIONS[locale]['form.oauth_client_secret'] = message;
+}
+
 const DIALOG_LOCALE_TRANSLATIONS = {
-    en: { available_models_title: 'Available Models', no_models_for_credential: 'No model information is available for this credential.', model_test_title: 'Model Test', credential_details_title: 'Credential Details', credential_verification_title: 'Credential Verification', preview_configuration_title: 'Preview Channel Configuration', pool_import_title: 'Pool Import', batch_verification_title: 'Batch Verification', provider_batch_verification_title: 'Provider Batch Verification' },
-    'zh-CN': { available_models_title: '可用模型', no_models_for_credential: '此凭据暂无可用的模型信息。', model_test_title: '模型测试', credential_details_title: '凭据详情', credential_verification_title: '凭据验证', preview_configuration_title: '预览通道配置', pool_import_title: '凭据池导入', batch_verification_title: '批量验证', provider_batch_verification_title: '提供商凭据批量验证' },
-    'zh-TW': { available_models_title: '可用模型', no_models_for_credential: '此憑證目前沒有可用的模型資訊。', model_test_title: '模型測試', credential_details_title: '憑證詳細資料', credential_verification_title: '憑證驗證', preview_configuration_title: '預覽通道設定', pool_import_title: '憑證集區匯入', batch_verification_title: '批次驗證', provider_batch_verification_title: '供應商憑證批次驗證' },
-    de: { available_models_title: 'Verfügbare Modelle', no_models_for_credential: 'Für diesen Zugang sind keine Modellinformationen verfügbar.', model_test_title: 'Modelltest', credential_details_title: 'Zugangsdaten', credential_verification_title: 'Zugangsdaten prüfen', preview_configuration_title: 'Vorschaukanal konfigurieren', pool_import_title: 'Zugangspool importieren', batch_verification_title: 'Stapelprüfung', provider_batch_verification_title: 'Provider-Zugänge stapelweise prüfen' },
-    es: { available_models_title: 'Modelos disponibles', no_models_for_credential: 'No hay información de modelos disponible para esta credencial.', model_test_title: 'Prueba de modelo', credential_details_title: 'Detalles de la credencial', credential_verification_title: 'Verificación de credencial', preview_configuration_title: 'Configuración del canal de vista previa', pool_import_title: 'Importación del pool', batch_verification_title: 'Verificación por lotes', provider_batch_verification_title: 'Verificación por lotes del proveedor' },
-    fr: { available_models_title: 'Modèles disponibles', no_models_for_credential: 'Aucune information de modèle n’est disponible pour cet identifiant.', model_test_title: 'Test du modèle', credential_details_title: 'Détails de l’identifiant', credential_verification_title: 'Vérification de l’identifiant', preview_configuration_title: 'Configuration du canal Preview', pool_import_title: 'Importation du pool', batch_verification_title: 'Vérification groupée', provider_batch_verification_title: 'Vérification groupée du fournisseur' },
-    id: { available_models_title: 'Model yang Tersedia', no_models_for_credential: 'Informasi model tidak tersedia untuk kredensial ini.', model_test_title: 'Uji Model', credential_details_title: 'Detail Kredensial', credential_verification_title: 'Verifikasi Kredensial', preview_configuration_title: 'Konfigurasi Kanal Pratinjau', pool_import_title: 'Impor Pool', batch_verification_title: 'Verifikasi Massal', provider_batch_verification_title: 'Verifikasi Massal Penyedia' },
-    it: { available_models_title: 'Modelli disponibili', no_models_for_credential: 'Non sono disponibili informazioni sui modelli per questa credenziale.', model_test_title: 'Test del modello', credential_details_title: 'Dettagli della credenziale', credential_verification_title: 'Verifica della credenziale', preview_configuration_title: 'Configurazione del canale Preview', pool_import_title: 'Importazione del pool', batch_verification_title: 'Verifica in blocco', provider_batch_verification_title: 'Verifica in blocco del provider' },
-    ja: { available_models_title: '利用可能なモデル', no_models_for_credential: 'この認証情報で利用できるモデル情報はありません。', model_test_title: 'モデルテスト', credential_details_title: '認証情報の詳細', credential_verification_title: '認証情報の検証', preview_configuration_title: 'プレビューチャネルの設定', pool_import_title: 'プールのインポート', batch_verification_title: '一括検証', provider_batch_verification_title: 'プロバイダー認証情報の一括検証' },
-    ko: { available_models_title: '사용 가능한 모델', no_models_for_credential: '이 자격 증명에 사용할 수 있는 모델 정보가 없습니다.', model_test_title: '모델 테스트', credential_details_title: '자격 증명 세부 정보', credential_verification_title: '자격 증명 검증', preview_configuration_title: 'Preview 채널 설정', pool_import_title: '풀 가져오기', batch_verification_title: '일괄 검증', provider_batch_verification_title: '공급자 자격 증명 일괄 검증' },
-    pt: { available_models_title: 'Modelos disponíveis', no_models_for_credential: 'Não há informações de modelos disponíveis para esta credencial.', model_test_title: 'Teste de modelo', credential_details_title: 'Detalhes da credencial', credential_verification_title: 'Verificação da credencial', preview_configuration_title: 'Configuração do canal de visualização', pool_import_title: 'Importação do pool', batch_verification_title: 'Verificação em lote', provider_batch_verification_title: 'Verificação em lote do provedor' },
-    ru: { available_models_title: 'Доступные модели', no_models_for_credential: 'Для этих учётных данных нет сведений о доступных моделях.', model_test_title: 'Проверка модели', credential_details_title: 'Сведения об учётных данных', credential_verification_title: 'Проверка учётных данных', preview_configuration_title: 'Настройка канала Preview', pool_import_title: 'Импорт пула', batch_verification_title: 'Пакетная проверка', provider_batch_verification_title: 'Пакетная проверка учётных данных провайдера' },
-    th: { available_models_title: 'โมเดลที่ใช้ได้', no_models_for_credential: 'ไม่มีข้อมูลโมเดลสำหรับข้อมูลรับรองนี้', model_test_title: 'ทดสอบโมเดล', credential_details_title: 'รายละเอียดข้อมูลรับรอง', credential_verification_title: 'ตรวจสอบข้อมูลรับรอง', preview_configuration_title: 'ตั้งค่าช่องทาง Preview', pool_import_title: 'นำเข้าพูล', batch_verification_title: 'ตรวจสอบแบบกลุ่ม', provider_batch_verification_title: 'ตรวจสอบข้อมูลรับรองของผู้ให้บริการแบบกลุ่ม' },
-    tr: { available_models_title: 'Kullanılabilir Modeller', no_models_for_credential: 'Bu kimlik bilgisi için model bilgisi bulunmuyor.', model_test_title: 'Model Testi', credential_details_title: 'Kimlik Bilgisi Ayrıntıları', credential_verification_title: 'Kimlik Bilgisi Doğrulama', preview_configuration_title: 'Preview Kanalı Yapılandırması', pool_import_title: 'Havuz İçe Aktarma', batch_verification_title: 'Toplu Doğrulama', provider_batch_verification_title: 'Sağlayıcı Kimlik Bilgilerini Toplu Doğrulama' },
-    vi: { available_models_title: 'Mô hình khả dụng', no_models_for_credential: 'Thông tin xác thực này chưa có dữ liệu về mô hình khả dụng.', model_test_title: 'Kiểm tra mô hình', credential_details_title: 'Chi tiết thông tin xác thực', credential_verification_title: 'Xác minh thông tin xác thực', preview_configuration_title: 'Cấu hình kênh Preview', pool_import_title: 'Nhập kho thông tin xác thực', batch_verification_title: 'Xác minh hàng loạt', provider_batch_verification_title: 'Xác minh hàng loạt theo nhà cung cấp' }
+    en: { available_models_title: 'Available Models', no_models_for_credential: 'No model information is available for this credential.', model_test_title: 'Model Test', credential_details_title: 'Credential Details', credential_verification_title: 'Credential Verification', preview_configuration_title: 'Preview Channel Configuration', pool_import_title: 'Import credentials', batch_verification_title: 'Batch Verification', provider_batch_verification_title: 'Provider Batch Verification' },
+    'zh-CN': { available_models_title: '可用模型', no_models_for_credential: '此凭据暂无可用的模型信息。', model_test_title: '模型测试', credential_details_title: '凭据详情', credential_verification_title: '凭据验证', preview_configuration_title: '预览通道配置', pool_import_title: '导入凭据', batch_verification_title: '批量验证', provider_batch_verification_title: '提供商凭据批量验证' },
+    'zh-TW': { available_models_title: '可用模型', no_models_for_credential: '此憑證目前沒有可用的模型資訊。', model_test_title: '模型測試', credential_details_title: '憑證詳細資料', credential_verification_title: '憑證驗證', preview_configuration_title: '預覽通道設定', pool_import_title: '匯入憑證', batch_verification_title: '批次驗證', provider_batch_verification_title: '供應商憑證批次驗證' },
+    de: { available_models_title: 'Verfügbare Modelle', no_models_for_credential: 'Für diesen Zugang sind keine Modellinformationen verfügbar.', model_test_title: 'Modelltest', credential_details_title: 'Zugangsdaten', credential_verification_title: 'Zugangsdaten prüfen', preview_configuration_title: 'Vorschaukanal konfigurieren', pool_import_title: 'Zugangsdaten importieren', batch_verification_title: 'Stapelprüfung', provider_batch_verification_title: 'Provider-Zugänge stapelweise prüfen' },
+    es: { available_models_title: 'Modelos disponibles', no_models_for_credential: 'No hay información de modelos disponible para esta credencial.', model_test_title: 'Prueba de modelo', credential_details_title: 'Detalles de la credencial', credential_verification_title: 'Verificación de credencial', preview_configuration_title: 'Configuración del canal de vista previa', pool_import_title: 'Importar credenciales', batch_verification_title: 'Verificación por lotes', provider_batch_verification_title: 'Verificación por lotes del proveedor' },
+    fr: { available_models_title: 'Modèles disponibles', no_models_for_credential: 'Aucune information de modèle n’est disponible pour cet identifiant.', model_test_title: 'Test du modèle', credential_details_title: 'Détails de l’identifiant', credential_verification_title: 'Vérification de l’identifiant', preview_configuration_title: 'Configuration du canal Preview', pool_import_title: 'Importer des identifiants', batch_verification_title: 'Vérification groupée', provider_batch_verification_title: 'Vérification groupée du fournisseur' },
+    id: { available_models_title: 'Model yang Tersedia', no_models_for_credential: 'Informasi model tidak tersedia untuk kredensial ini.', model_test_title: 'Uji Model', credential_details_title: 'Detail Kredensial', credential_verification_title: 'Verifikasi Kredensial', preview_configuration_title: 'Konfigurasi Kanal Pratinjau', pool_import_title: 'Impor kredensial', batch_verification_title: 'Verifikasi Massal', provider_batch_verification_title: 'Verifikasi Massal Penyedia' },
+    it: { available_models_title: 'Modelli disponibili', no_models_for_credential: 'Non sono disponibili informazioni sui modelli per questa credenziale.', model_test_title: 'Test del modello', credential_details_title: 'Dettagli della credenziale', credential_verification_title: 'Verifica della credenziale', preview_configuration_title: 'Configurazione del canale Preview', pool_import_title: 'Importa credenziali', batch_verification_title: 'Verifica in blocco', provider_batch_verification_title: 'Verifica in blocco del provider' },
+    ja: { available_models_title: '利用可能なモデル', no_models_for_credential: 'この認証情報で利用できるモデル情報はありません。', model_test_title: 'モデルテスト', credential_details_title: '認証情報の詳細', credential_verification_title: '認証情報の検証', preview_configuration_title: 'プレビューチャネルの設定', pool_import_title: '認証情報をインポート', batch_verification_title: '一括検証', provider_batch_verification_title: 'プロバイダー認証情報の一括検証' },
+    ko: { available_models_title: '사용 가능한 모델', no_models_for_credential: '이 자격 증명에 사용할 수 있는 모델 정보가 없습니다.', model_test_title: '모델 테스트', credential_details_title: '자격 증명 세부 정보', credential_verification_title: '자격 증명 검증', preview_configuration_title: 'Preview 채널 설정', pool_import_title: '자격 증명 가져오기', batch_verification_title: '일괄 검증', provider_batch_verification_title: '공급자 자격 증명 일괄 검증' },
+    pt: { available_models_title: 'Modelos disponíveis', no_models_for_credential: 'Não há informações de modelos disponíveis para esta credencial.', model_test_title: 'Teste de modelo', credential_details_title: 'Detalhes da credencial', credential_verification_title: 'Verificação da credencial', preview_configuration_title: 'Configuração do canal de visualização', pool_import_title: 'Importar credenciais', batch_verification_title: 'Verificação em lote', provider_batch_verification_title: 'Verificação em lote do provedor' },
+    ru: { available_models_title: 'Доступные модели', no_models_for_credential: 'Для этих учётных данных нет сведений о доступных моделях.', model_test_title: 'Проверка модели', credential_details_title: 'Сведения об учётных данных', credential_verification_title: 'Проверка учётных данных', preview_configuration_title: 'Настройка канала Preview', pool_import_title: 'Импорт учётных данных', batch_verification_title: 'Пакетная проверка', provider_batch_verification_title: 'Пакетная проверка учётных данных провайдера' },
+    th: { available_models_title: 'โมเดลที่ใช้ได้', no_models_for_credential: 'ไม่มีข้อมูลโมเดลสำหรับข้อมูลรับรองนี้', model_test_title: 'ทดสอบโมเดล', credential_details_title: 'รายละเอียดข้อมูลรับรอง', credential_verification_title: 'ตรวจสอบข้อมูลรับรอง', preview_configuration_title: 'ตั้งค่าช่องทาง Preview', pool_import_title: 'นำเข้าข้อมูลรับรอง', batch_verification_title: 'ตรวจสอบแบบกลุ่ม', provider_batch_verification_title: 'ตรวจสอบข้อมูลรับรองของผู้ให้บริการแบบกลุ่ม' },
+    tr: { available_models_title: 'Kullanılabilir Modeller', no_models_for_credential: 'Bu kimlik bilgisi için model bilgisi bulunmuyor.', model_test_title: 'Model Testi', credential_details_title: 'Kimlik Bilgisi Ayrıntıları', credential_verification_title: 'Kimlik Bilgisi Doğrulama', preview_configuration_title: 'Preview Kanalı Yapılandırması', pool_import_title: 'Kimlik bilgilerini içe aktar', batch_verification_title: 'Toplu Doğrulama', provider_batch_verification_title: 'Sağlayıcı Kimlik Bilgilerini Toplu Doğrulama' },
+    vi: { available_models_title: 'Mô hình khả dụng', no_models_for_credential: 'Thông tin xác thực này chưa có dữ liệu về mô hình khả dụng.', model_test_title: 'Kiểm tra mô hình', credential_details_title: 'Chi tiết thông tin xác thực', credential_verification_title: 'Xác minh thông tin xác thực', preview_configuration_title: 'Cấu hình kênh Preview', pool_import_title: 'Nhập thông tin xác thực', batch_verification_title: 'Xác minh hàng loạt', provider_batch_verification_title: 'Xác minh hàng loạt theo nhà cung cấp' }
 };

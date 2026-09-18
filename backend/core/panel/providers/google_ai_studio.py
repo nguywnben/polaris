@@ -15,7 +15,7 @@ from core.google_ai_studio import (
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ConfigSaveRequest, GoogleAIStudioCredentialRequest
 from core.provider_registry import GOOGLE_AI_STUDIO, api_key_fingerprint
-from core.provider_store import store_google_ai_studio_credential
+from core.provider_store import store_google_ai_studio_credential, store_imported_connection
 from core.storage_adapter import get_storage_adapter
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -223,7 +223,7 @@ async def import_google_ai_studio_credentials(
     files: List[UploadFile] = File(...),
     token: str = Depends(verify_panel_token),
 ):
-    """Validate and import Google AI Studio API keys from JSON files or ZIP archives."""
+    """Import unverified Google AI Studio API keys from bounded JSON/ZIP uploads."""
     if not files:
         raise HTTPException(status_code=400, detail="Select at least one import file.")
     if len(files) > 50:
@@ -271,25 +271,23 @@ async def import_google_ai_studio_credentials(
         seen_fingerprints.add(fingerprint)
 
         try:
-            validation = await validate_api_key(api_key)
-            saved = await _store_google_ai_studio_credential(api_key, validation)
+            saved = await store_imported_connection(GOOGLE_AI_STUDIO, api_key)
             action = saved["action"]
-            if action == "updated":
+            if action == "skipped":
+                skipped_count += 1
+            elif action == "updated":
                 updated_count += 1
             else:
                 created_count += 1
             results.append(
                 {
-                    "status": "success",
+                    "status": saved["status"],
                     "action": action,
                     "filename": saved["filename"],
                     "source_filename": source_name,
-                    "model_count": validation.model_count,
-                    "message": (
-                        "Existing API key was revalidated and updated."
-                        if action == "updated"
-                        else "API key was validated and added to the pool."
-                    ),
+                    "model_count": 0,
+                    "validation_status": "unverified",
+                    "message": "Credential imported. Inference access is not verified.",
                 }
             )
         except GoogleAIStudioError as exc:
@@ -300,8 +298,8 @@ async def import_google_ai_studio_credentials(
                     "message": str(exc),
                 }
             )
-        except Exception as exc:
-            log.error(f"Failed to import a Google AI Studio credential: {exc}")
+        except Exception:
+            log.error("Failed to import a Google AI Studio credential")
             results.append(
                 {
                     "status": "error",

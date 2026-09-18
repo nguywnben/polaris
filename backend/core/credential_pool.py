@@ -51,6 +51,8 @@ async def resolve_credential_email(credential_data: Dict[str, Any]) -> str:
         return email
     if get_static_credential_identity(credential_data):
         return ""
+    if get_credential_provider(credential_data) != GOOGLE_ANTIGRAVITY:
+        return ""
 
     try:
         from core.google_oauth_api import Credentials, get_user_email
@@ -148,6 +150,7 @@ def _plan_upsert(
     email: str,
     static_identity: str,
     is_antigravity: bool,
+    skip_existing: bool = False,
 ) -> CredentialPoolMutation:
     if static_identity:
         matches = [
@@ -170,6 +173,21 @@ def _plan_upsert(
                 },
             )
         keep = min(matches, key=lambda item: item.rotation_order)
+        if skip_existing:
+            # This decision runs inside the storage mutation transaction, not
+            # in an earlier lookup that can race another import or update.
+            return CredentialPoolMutation(
+                writes=(),
+                deletes=(),
+                result={
+                    "action": "skipped",
+                    "stored": False,
+                    "filename": keep.filename,
+                    "email": None,
+                    "identity": static_identity,
+                    "message": "The existing API key credential was kept unchanged.",
+                },
+            )
         updated = dict(credential_data)
         if keep.credential_data.get("created_at") and not updated.get("created_at"):
             updated["created_at"] = keep.credential_data["created_at"]
@@ -276,6 +294,8 @@ async def upsert_credential_by_email(
     filename: str,
     credential_data: Dict[str, Any],
     mode: str = "code_assist",
+    *,
+    skip_existing: bool = False,
 ) -> Dict[str, Any]:
     """Store one credential per account or API-key identity."""
     storage_adapter = await get_storage_adapter()
@@ -294,6 +314,7 @@ async def upsert_credential_by_email(
             email=email,
             static_identity=static_identity,
             is_antigravity=is_antigravity,
+            skip_existing=skip_existing,
         ),
     )
 

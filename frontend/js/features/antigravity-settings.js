@@ -65,28 +65,23 @@ function populateAntigravitySettings() {
         secretField.dataset.secretConfigured = String(
             AppState.antigravityConfiguredSecrets?.has('antigravity_client_secret')
         );
-        secretField.placeholder = secretField.dataset.secretConfigured === 'true'
-            ? t('provider.form.client_secret_help')
-            : '';
+        secretField.dataset.i18nPlaceholder = secretField.dataset.secretConfigured === 'true'
+            ? 'settings.secret_unchanged'
+            : 'form.oauth_client_secret';
+        secretField.placeholder = t(secretField.dataset.i18nPlaceholder);
     }
 
     setAntigravityConfigField('antigravityApiUrl', c.antigravity_api_url || '');
 
-    setAntigravityConfigField('antigravityOauthUrl', c.oauth_url || '');
 
-    setAntigravityConfigField('antigravityGoogleApisUrl', c.google_apis_url || '');
 
-    setAntigravityConfigField('antigravityResourceManagerUrl', c.resource_manager_url || '');
 
-    setAntigravityConfigField('antigravityServiceUsageUrl', c.service_usage_url || '');
 
     setAntigravityConfigField('antigravityUserAgent', c.antigravity_user_agent || '');
 
     setAntigravityConfigField('antigravityPayloadUserAgent', c.antigravity_payload_user_agent || '');
 
-    setAntigravityConfigCheckbox('antigravityStreamToNonstream', Boolean(c.stream_to_nonstream !== false));
 
-    setAntigravityConfigCheckbox('antigravitySwitchCredential', Boolean(c.switch_credential_enabled));
 
     applyProviderEnvironmentLocks(
         'antigravity.settings',
@@ -149,14 +144,8 @@ async function saveAntigravitySettings() {
         const config = {
             antigravity_client_id: getValue('antigravityOauthClientId'),
             antigravity_api_url: getValue('antigravityApiUrl'),
-            oauth_url: getValue('antigravityOauthUrl'),
-            google_apis_url: getValue('antigravityGoogleApisUrl'),
-            resource_manager_url: getValue('antigravityResourceManagerUrl'),
-            service_usage_url: getValue('antigravityServiceUsageUrl'),
             antigravity_user_agent: getValue('antigravityUserAgent'),
-            antigravity_payload_user_agent: getValue('antigravityPayloadUserAgent'),
-            stream_to_nonstream: getChecked('antigravityStreamToNonstream', true),
-            switch_credential_enabled: getChecked('antigravitySwitchCredential')
+            antigravity_payload_user_agent: getValue('antigravityPayloadUserAgent')
         };
 
         const clientSecret = getValue('antigravityOauthClientSecret');

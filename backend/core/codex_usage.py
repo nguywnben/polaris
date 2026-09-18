@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta, timezone
+from itertools import islice
 from typing import Any, Dict, Optional
 
 import httpx
@@ -22,10 +23,10 @@ def _finite_number(value: Any) -> Optional[float]:
     return number if math.isfinite(number) else None
 
 
-def _percentage(value: Any) -> int:
+def _percentage(value: Any) -> Optional[int]:
     number = _finite_number(value)
     if number is None:
-        number = 0
+        return None
     return max(0, min(100, int(math.floor(number + 0.5))))
 
 
@@ -131,7 +132,9 @@ def _normalize_window(
 ) -> Optional[Dict[str, Any]]:
     if not isinstance(window, dict) or not window:
         return None
-    used = _percentage(window.get("used_percent", window.get("percent_used", 0)))
+    used = _percentage(window.get("used_percent", window.get("percent_used")))
+    if used is None:
+        return None
     return {
         "id": window_id,
         "label": _duration_label(window, fallback_label),
@@ -173,7 +176,7 @@ def _append_windows(
         normalized = _normalize_window(raw_window, window_id, label)
         if normalized:
             if prefix:
-                normalized["label"] = f"Review {normalized['label']}"
+                normalized["label"] = f"{prefix} · {normalized['label']}"
             windows.append(normalized)
             added = True
     return added
@@ -192,24 +195,60 @@ def parse_codex_usage(payload: Any) -> Dict[str, Any]:
     windows: list[Dict[str, Any]] = []
     _append_windows(windows, normal_rate_limit)
     _append_windows(windows, review_rate_limit, prefix="review")
-    if not windows:
-        raise CodexError("Codex usage did not contain valid rate-limit windows.", 502)
-
+    additional = payload.get("additional_rate_limits")
+    candidates = list(islice(by_limit_id.items(), 32)) if isinstance(by_limit_id, dict) else []
+    if isinstance(additional, list):
+        candidates.extend(
+            (item.get("limit_name") or item.get("metered_feature") or item.get("id"), item)
+            for item in additional[:32]
+            if isinstance(item, dict)
+        )
+    seen = set()
+    for name, snapshot in candidates[:32]:
+        name = str(name or "").strip()[:80]
+        if not name or not name.isprintable() or name in seen:
+            continue
+        seen.add(name)
+        if snapshot == normal_rate_limit or snapshot == review_rate_limit:
+            continue
+        _append_windows(windows, snapshot, prefix=name)
     normal_body = _rate_limit_body(normal_rate_limit) or {}
     review_body = _rate_limit_body(review_rate_limit) or {}
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
     reset_credits = payload.get("rate_limit_reset_credits")
     available_credits = _finite_number(
-        reset_credits.get("available_count") if isinstance(reset_credits, dict) else 0
+        reset_credits.get("available_count") if isinstance(reset_credits, dict) else None
     )
-    return {
+    result = {
         "quota_type": "account_rate_limits",
-        "plan": str(payload.get("plan_type") or summary.get("plan") or "unknown"),
-        "limit_reached": _boolean(normal_body.get("limit_reached", False)),
-        "review_limit_reached": _boolean(review_body.get("limit_reached", False)),
-        "reset_credits": {"available_count": max(0, int(available_credits or 0))},
         "windows": windows,
     }
+    plan = payload.get("plan_type") or summary.get("plan")
+    if isinstance(plan, str) and plan.strip() and plan.isprintable():
+        result["plan"] = plan.strip()[:80]
+    for key, body in (("limit_reached", normal_body), ("review_limit_reached", review_body)):
+        value = body.get("limit_reached")
+        if isinstance(value, bool) or value in ("true", "false"):
+            result[key] = _boolean(value)
+    if available_credits is not None and available_credits >= 0:
+        result["reset_credits"] = {"available_count": int(available_credits)}
+    credits = payload.get("credits")
+    if isinstance(credits, dict):
+        safe = {
+            key: credits[key]
+            for key in ("has_credits", "unlimited")
+            if isinstance(credits.get(key), bool)
+        }
+        balance = _finite_number(credits.get("balance"))
+        if balance is not None and balance >= 0:
+            safe["balance"] = balance
+        if safe:
+            result["credits"] = safe
+    if not windows:
+        if len(result) == 2:
+            raise CodexError("Codex usage did not contain valid rate-limit windows.", 502)
+        result["quota_status"] = "unavailable"
+    return result
 
 
 async def fetch_codex_usage(access_token: str, account_id: str = "") -> Dict[str, Any]:

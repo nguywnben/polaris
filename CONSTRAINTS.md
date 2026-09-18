@@ -100,8 +100,12 @@ Every core journey must have an automated contract test and a browser smoke path
   announcements, and contrast meet WCAG 2.2 AA intent.
 - Browser smoke covers current Chromium. Browser-specific defects outside that maintained target
   are documented rather than silently ignored or promoted to an unverified support claim.
-- English and Vietnamese are curated production locales. Other existing locales retain automated
-  key completeness and English fallback but are community-maintained compatibility locales.
+- All 15 supported interface locales require complete contextual translations, matching interpolation
+  variables, and a browser layout/placeholder smoke check (scope expanded by the owner on 2026-09-15).
+  Ordinary UI copy must not silently fall back to English; product names and protocol identifiers
+  stay exact. Automated checks and editorial review are not a native-speaker certification.
+- Text-entry inputs and textareas require meaningful placeholders at normal font weight (400).
+  Controls without placeholder support retain accessible labels and meaningful initial choices.
 
 ### Maintainability
 

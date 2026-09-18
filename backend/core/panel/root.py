@@ -5,7 +5,7 @@ import re
 from functools import lru_cache
 from html import escape
 
-from core.anthropic import AnthropicError, complete_claude_oauth, is_claude_oauth_state
+from core.anthropic import is_claude_oauth_state
 from core.auth import accept_oauth_callback
 from core.i18n import get_locale, translate
 from fastapi import APIRouter, HTTPException, Request
@@ -24,7 +24,7 @@ CONSOLE_FRAGMENT_PATHS = (
     "pages/ai-quality.html",
     "pages/access.html",
     "pages/identity.html",
-    "pages/pool.html",
+    "pages/credentials.html",
     "pages/models.html",
     "pages/playground.html",
     "pages/providers.html",
@@ -44,12 +44,15 @@ CONSOLE_STYLE_ASSETS = (
     "css/quality-policy.css",
     "css/playground.css",
     "css/access.css",
+    "css/backups.css",
     "css/identity.css",
     "css/audit.css",
     "css/observability.css",
     "css/components.css",
     "css/dialogs.css",
+    "css/credential-management.css",
     "css/responsive.css",
+    "css/oauth-callback.css",
 )
 
 CONSOLE_EARLY_SCRIPT_ASSETS = ("js/core/theme.js",)
@@ -60,9 +63,29 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/core/audit-locales.js",
     "js/core/trace-locales.js",
     "js/core/operational-locales.js",
+    "js/core/provider-copy-locales.js",
+    "js/core/provider-expansion-locales.js",
+    "js/core/quota-facts-locales.js",
+    "js/core/provider-auth-locales.js",
     "js/core/number-format.js",
     "js/core/i18n.js",
     "js/core/identity-locales.js",
+    "js/core/oidc-entry-locales.js",
+    "js/core/backup-locales.js",
+    "js/locales/de.js",
+    "js/locales/es.js",
+    "js/locales/fr.js",
+    "js/locales/id.js",
+    "js/locales/it.js",
+    "js/locales/ja.js",
+    "js/locales/ko.js",
+    "js/locales/pt.js",
+    "js/locales/ru.js",
+    "js/locales/th.js",
+    "js/locales/tr.js",
+    "js/locales/zh-CN.js",
+    "js/locales/zh-TW.js",
+    "js/core/locale-completion.js",
     "js/core/identity-contract.js",
     "js/core/navigation.js",
     "js/core/credential-manager.js",
@@ -74,20 +97,32 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/ui/dialog-content.js",
     "js/ui/dialogs.js",
     "js/ui/credential-dialogs.js",
+    "js/ui/credential-quota-facts.js",
+    "js/ui/credential-management.js",
+    "js/ui/credential-management-actions.js",
     "js/ui/credential-cards.js",
     "js/features/authentication.js",
+    "js/features/usage-pagination.js",
     "js/features/virtual-keys.js",
     "js/features/identity.js",
     "js/features/conditional-navigation.js",
     "js/features/audit.js",
     "js/features/traces.js",
     "js/features/activity.js",
+    "js/features/provider-credential-examples.js",
+    "js/features/provider-save-results.js",
+    "js/features/extended-provider-import.js",
+    "js/features/kiro-authentication.js",
+    "js/features/kiro-browser-login.js",
+    "js/features/muse-authentication.js",
+    "js/features/extended-providers.js",
+    "js/features/provider-catalog-layout.js",
     "js/features/navigation.js",
     "js/features/model-pool.js",
     "js/features/playground.js",
     "js/features/code-assist-authentication.js",
     "js/features/antigravity-authentication.js",
-    "js/features/credential-pool.js",
+    "js/features/credentials.js",
     "js/features/credential-diagnostics.js",
     "js/features/credential-batch-actions.js",
     "js/features/logs.js",
@@ -100,7 +135,9 @@ CONSOLE_SCRIPT_ASSETS = (
     "js/features/anthropic-settings.js",
     "js/features/ollama-settings.js",
     "js/features/antigravity-settings.js",
+    "js/features/provider-owned-settings.js",
     "js/features/system-settings.js",
+    "js/features/backups.js",
     "js/features/quality-policy.js",
     "js/features/dashboard.js",
     "js/features/about.js",
@@ -200,107 +237,73 @@ def serve_console_scripts(request: Request):
     )
 
 
-def _oauth_callback_page(success: bool, title: str, message: str) -> HTMLResponse:
+def _oauth_callback_page(
+    success: bool, title: str, message: str, *, manual_callback: bool = False
+) -> HTMLResponse:
     safe_title = escape(title)
     safe_message = escape(message)
+    version = _console_asset_version()
+    action_label = escape(
+        translate("oauth.open_providers_new_tab" if manual_callback else "oauth.return_providers")
+    )
+    navigation = ' target="_blank" rel="noopener noreferrer"' if manual_callback else ""
+    status = "success" if success else "failure"
+    status_path = '<path d="m8 12 3 3 5-6"/>' if success else '<path d="m9 9 6 6m0-6-6 6"/>'
     html = f"""<!doctype html>
 <html lang="{escape(get_locale())}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
     <title>{safe_title} - Polaris</title>
+    <script src="/frontend/theme.js?v={version}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-    <style>
-        :root {{
-            color-scheme: light;
-            --text: #111111;
-            --muted: #666666;
-            --border: #e5e5e5;
-            --bg: #ffffff;
-            --bg-subtle: #f7f7f7;
-            --surface: #ffffff;
-            --radius: 8px;
-        }}
-        * {{
-            box-sizing: border-box;
-        }}
-        body {{
-            min-height: 100vh;
-            min-height: 100dvh;
-            margin: 0;
-            display: grid;
-            place-items: center;
-            padding: 16px;
-            background: var(--bg-subtle);
-            color: var(--text);
-            font-family: "Google Sans", Arial, sans-serif;
-        }}
-        main {{
-            width: min(100%, 480px);
-            padding: 28px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--surface);
-        }}
-        .brand {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 18px;
-        }}
-        .brand-mark {{
-            width: 22px;
-            height: 22px;
-            flex: 0 0 auto;
-        }}
-        .brand-mark img {{
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: contain;
-        }}
-        .brand-title {{
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 1.2;
-            letter-spacing: 0;
-        }}
-        h1 {{
-            margin: 0 0 8px;
-            font-size: 28px;
-            line-height: 1.1;
-            font-weight: 700;
-            letter-spacing: 0;
-        }}
-        p {{
-            margin: 0;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.55;
-        }}
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/frontend/console.css?v={version}">
 </head>
 <body>
-    <main>
-        <div class="brand">
-            <span class="brand-mark" aria-hidden="true">
-                <img src="/frontend/assets/logo.png" alt="">
-            </span>
-            <span class="brand-title">Polaris</span>
-        </div>
-        <h1>{safe_title}</h1>
-        <p>{safe_message}</p>
+    <main class="login-wrapper oauth-callback-wrapper">
+        <section class="login-card signin-card oauth-callback-card" aria-labelledby="callbackTitle">
+            <div class="login-brand">
+                <span class="app-mark" aria-hidden="true">
+                    <img class="app-mark-image" src="/frontend/assets/logo.png" alt="">
+                </span>
+                <span class="login-brand-title">Polaris</span>
+            </div>
+            <div class="oauth-callback-heading">
+                <svg class="oauth-callback-icon {status}" viewBox="0 0 24 24" width="24" height="24"
+                     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9"/>{status_path}
+                </svg>
+                <h1 id="callbackTitle" class="login-title">{safe_title}</h1>
+            </div>
+            <p class="login-copy">{safe_message}</p>
+            <a class="btn oauth-callback-return" href="/providers"{navigation}>{action_label}</a>
+        </section>
     </main>
 </body>
 </html>"""
-    return HTMLResponse(content=html, status_code=200 if success else 400)
+    return HTMLResponse(
+        content=html,
+        status_code=200 if success else 400,
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 
 @router.get("/callback", response_class=HTMLResponse, include_in_schema=False)
 async def serve_oauth_callback(request: Request):
     """Render the OAuth callback result page."""
+    if request.query_params.get("kiro") in {"received", "failed"}:
+        received = request.query_params["kiro"] == "received"
+        return _oauth_callback_page(
+            received,
+            "Kiro",
+            translate("oauth.callback_received")
+            if received
+            else translate("oauth.retry", provider="Kiro"),
+        )
     code = request.query_params.get("code")
     state = request.query_params.get("state")
     error = request.query_params.get("error")
@@ -315,30 +318,19 @@ async def serve_oauth_callback(request: Request):
         )
 
     if is_claude_callback:
-        try:
-            result = await complete_claude_oauth(code or "", state or "")
-        except AnthropicError as exc:
-            log.warning(f"Claude Code OAuth callback was rejected: {exc}")
+        # A public GET must not exchange tokens, consume the flow, or save credentials.
+        # Keep the code in this URL for an explicit save in the original console tab.
+        if not code or not code.strip():
             return _oauth_callback_page(
                 False,
                 translate("oauth.failed_title", provider="Claude Code"),
                 translate("oauth.retry", provider="Claude Code"),
             )
-        except Exception as exc:
-            log.error(f"Failed to complete the Claude Code OAuth callback: {exc}")
-            return _oauth_callback_page(
-                False,
-                translate("oauth.failed_title", provider="Claude Code"),
-                translate("oauth.internal_error", provider="Claude Code"),
-            )
         return _oauth_callback_page(
             True,
-            translate("oauth.success_title", provider="Claude Code"),
-            translate(
-                "oauth.credential_saved",
-                provider="Claude Code",
-                account=result.get("account_label") or result.get("label") or "account",
-            ),
+            "Claude Code",
+            translate("oauth.copy_authorization_code"),
+            manual_callback=True,
         )
 
     accepted, _message = accept_oauth_callback(code, state)
@@ -347,6 +339,7 @@ async def serve_oauth_callback(request: Request):
             True,
             translate("oauth.success_title", provider="OAuth"),
             translate("oauth.copy_callback"),
+            manual_callback=True,
         )
 
     return _oauth_callback_page(
@@ -364,7 +357,7 @@ async def serve_oauth_callback(request: Request):
 @router.get("/access", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/identity", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/code_assist", response_class=HTMLResponse, include_in_schema=False)
-@router.get("/pool", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/credentials", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/models", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/playground", response_class=HTMLResponse, include_in_schema=False)
 @router.get("/providers", response_class=HTMLResponse, include_in_schema=False)

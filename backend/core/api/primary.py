@@ -2,19 +2,18 @@ import asyncio
 import hashlib
 import json
 import time
+from contextlib import aclosing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from config import (
-    get_anthropic_api_url,
     get_antigravity_api_url,
     get_antigravity_payload_user_agent,
     get_antigravity_stream_to_nonstream,
     get_antigravity_switch_credential_enabled,
     get_auto_disable_error_codes,
-    get_claude_user_agent,
     get_codex_api_url,
     get_codex_user_agent,
     get_google_ai_studio_api_url,
@@ -31,6 +30,7 @@ from core.anthropic import (
     build_anthropic_headers,
     fetch_anthropic_model_ids,
     gemini_request_to_anthropic,
+    get_anthropic_connection,
 )
 from core.antigravity import (
     build_antigravity_headers,
@@ -57,6 +57,11 @@ from core.codex import (
 )
 from core.coordination import CoordinationUnavailableError
 from core.credential_manager import credential_manager
+from core.extended_provider_runtime import (
+    discover_extended_models,
+    prepare_extended_request,
+    stream_extended_request,
+)
 from core.gateway_pipeline import (
     apply_pre_call_guardrails,
     lookup_response_cache,
@@ -71,6 +76,7 @@ from core.google_ai_studio import (
 )
 from core.httpx_client import get_async, post_async, stream_post_async
 from core.model_blacklist import record_model_not_found
+from core.muse_quota import subscription_observer
 from core.ollama import (
     build_ollama_headers,
     fetch_ollama_model_ids,
@@ -95,6 +101,7 @@ from core.provider_registry import (
     CLAUDE_CODE,
     CLAUDE_PLATFORM,
     CODEX,
+    EXTENDED_PROVIDERS,
     GOOGLE_AI_STUDIO,
     GOOGLE_ANTIGRAVITY,
     GROK,
@@ -280,13 +287,20 @@ async def prepare_provider_request(
     provider_id = get_credential_provider(credential_data)
     model_name = str(body.get("model") or "").strip()
     inner_request = body.get("request", body)
+    from core.meta_native_boundary import validate_native_request
+
+    validate_native_request(inner_request, provider_id)
     compression_result = compress_gemini_request(
         dict(inner_request),
         CompressionSettings(**await get_token_compression_config()),
     )
     compressed_request = dict(compression_result.request)
 
-    if provider_id == GOOGLE_AI_STUDIO:
+    if provider_id in EXTENDED_PROVIDERS:
+        target_url, auth_headers, payload = prepare_extended_request(
+            credential_data, compressed_request, model_name, streaming
+        )
+    elif provider_id == GOOGLE_AI_STUDIO:
         api_key = str(credential_data.get("api_key") or "").strip()
         payload = dict(compressed_request)
         for internal_key in ("model", "sessionId", "labels", "enabledCreditTypes"):
@@ -343,10 +357,11 @@ async def prepare_provider_request(
             )
     elif provider_id == ANTHROPIC:
         payload = gemini_request_to_anthropic(dict(compressed_request), model_name, streaming)
-        target_url = f"{(await get_anthropic_api_url()).rstrip('/')}/messages"
+        anthropic_base_url, anthropic_user_agent = await get_anthropic_connection(credential_data)
+        target_url = f"{anthropic_base_url}/messages"
         auth_headers = build_anthropic_headers(
             credential_data,
-            user_agent=await get_claude_user_agent(),
+            user_agent=anthropic_user_agent,
         )
     elif provider_id == OLLAMA:
         payload = gemini_request_to_ollama(dict(compressed_request), model_name, streaming)
@@ -376,7 +391,9 @@ async def prepare_provider_request(
             compression_result=compression_result,
         )
 
-    if extra_headers:
+    # Extended providers own their complete auth context; do not allow ingress
+    # Authorization/API-key headers to replace their selected credential.
+    if extra_headers and provider_id not in EXTENDED_PROVIDERS:
         auth_headers.update(extra_headers)
         if provider_id == GOOGLE_AI_STUDIO:
             auth_headers.pop("Authorization", None)
@@ -408,7 +425,7 @@ async def prepare_provider_request(
             auth_headers.update(
                 build_anthropic_headers(
                     credential_data,
-                    user_agent=await get_claude_user_agent(),
+                    user_agent=anthropic_user_agent,
                 )
             )
         elif provider_id == OLLAMA:
@@ -733,15 +750,34 @@ async def _stream_request_upstream(
         stream_token_usage: Dict[str, Any] = {}
         need_retry = False
         model_route_retry = False
+        upstream = None
 
         try:
-            async for chunk in stream_post_async(
-                url=target_url,
-                body=final_payload,
-                native=native,
-                headers=auth_headers,
-                timeout=await get_upstream_timeout_seconds(),
-            ):
+            upstream = (
+                stream_extended_request(
+                    credential_data,
+                    model_name,
+                    url=target_url,
+                    body=final_payload,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                    subscription_observer=subscription_observer(current_file, credential_data),
+                    **(
+                        {"native_responses": True}
+                        if "_polaris_meta_responses" in body.get("request", body)
+                        else {}
+                    ),
+                )
+                if provider_id in EXTENDED_PROVIDERS
+                else stream_post_async(
+                    url=target_url,
+                    body=final_payload,
+                    native=native,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
+            )
+            async for chunk in upstream:
                 if isinstance(chunk, Response):
                     status_code = chunk.status_code
                     last_error_response = chunk
@@ -814,7 +850,7 @@ async def _stream_request_upstream(
                         return
                     elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                         log.warning(
-                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
+                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                         )
 
                         cooldown_until = None
@@ -857,7 +893,7 @@ async def _stream_request_upstream(
                             return
                     else:
                         log.error(
-                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
+                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
                         )
                         await record_api_call_error(
                             credential_manager,
@@ -912,10 +948,12 @@ async def _stream_request_upstream(
                     chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
                     stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
 
-                    if isinstance(chunk, bytes):
-                        log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
-                    else:
-                        log.debug(f"[provider stream raw] chunk(str): {chunk}")
+                    # Native reasoning and prompt-bearing Meta items stay out of logs.
+                    if provider_id not in {"meta", "muse_code"}:
+                        if isinstance(chunk, bytes):
+                            log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
+                        else:
+                            log.debug(f"[provider stream raw] chunk(str): {chunk}")
 
                     yield chunk
 
@@ -1149,6 +1187,10 @@ async def _stream_request_upstream(
                     )
                 return
 
+        finally:
+            if upstream is not None:
+                await upstream.aclose()
+
     log.error("[provider stream] all retries failed.")
     if last_error_response:
         yield last_error_response
@@ -1216,7 +1258,8 @@ async def _non_stream_request_upstream(
             model_routing=model_routing,
         )
 
-        return await collect_streaming_response(stream)
+        async with aclosing(stream):
+            return await collect_streaming_response(stream)
 
     log.debug("[provider] Direct non-streaming mode enabled")
 
@@ -1259,15 +1302,15 @@ async def _non_stream_request_upstream(
         # ChatGPT's Codex endpoint is stream-only. Re-enter through the streaming
         # path so downstream non-stream clients still receive one collected response.
         await credential_manager.release_credential(current_file, mode="primary")
-        return await collect_streaming_response(
-            _stream_request_upstream(
-                body=body,
-                native=False,
-                headers=headers,
-                model_candidates=model_candidates,
-                model_routing=model_routing,
-            )
+        stream = _stream_request_upstream(
+            body=body,
+            native=False,
+            headers=headers,
+            model_candidates=model_candidates,
+            model_routing=model_routing,
         )
+        async with aclosing(stream):
+            return await collect_streaming_response(stream)
 
     request_body = {**body, "model": model_name}
     try:
@@ -1346,12 +1389,31 @@ async def _non_stream_request_upstream(
         need_retry = False
 
         try:
-            response = await post_async(
-                url=target_url,
-                json=final_payload,
-                headers=auth_headers,
-                timeout=await get_upstream_timeout_seconds(),
-            )
+            if provider_id in EXTENDED_PROVIDERS:
+                # Evaluate on every retry: a legacy provider may fall back to a
+                # binary/stream-only provider. Keep the selected lease and route.
+                stream_context = await prepare_provider_request(
+                    credential_data, request_body, streaming=True, extra_headers=headers
+                )
+                upstream = stream_extended_request(
+                    credential_data,
+                    model_name,
+                    url=stream_context.target_url,
+                    body=stream_context.payload,
+                    headers=stream_context.headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                    subscription_observer=subscription_observer(current_file, credential_data),
+                )
+                async with aclosing(upstream):
+                    collected = await collect_streaming_response(upstream)
+                response = httpx.Response(collected.status_code, content=collected.body)
+            else:
+                response = await post_async(
+                    url=target_url,
+                    json=final_payload,
+                    headers=auth_headers,
+                    timeout=await get_upstream_timeout_seconds(),
+                )
 
             status_code = response.status_code
 
@@ -1544,7 +1606,7 @@ async def _non_stream_request_upstream(
                     return last_error_response
                 elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                     log.warning(
-                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                     )
 
                     cooldown_until = None
@@ -1583,7 +1645,7 @@ async def _non_stream_request_upstream(
                         return last_error_response
                 else:
                     log.error(
-                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
                     )
                     await record_api_call_error(
                         credential_manager,
@@ -1616,6 +1678,9 @@ async def _non_stream_request_upstream(
                         )
                 continue
 
+        except (asyncio.CancelledError, GeneratorExit):
+            await credential_manager.release_credential(current_file, mode="primary")
+            raise
         except CoordinationUnavailableError as exc:
             return await _coordination_unavailable_response(
                 log_prefix="[provider]",
@@ -1864,7 +1929,9 @@ async def _discover_credential_model_ids(
     stored = _stored_model_ids(credential_data)
     data = credential_data
     try:
-        if provider_variant == GOOGLE_ANTIGRAVITY:
+        if provider_variant in EXTENDED_PROVIDERS:
+            discovered = await discover_extended_models(data)
+        elif provider_variant == GOOGLE_ANTIGRAVITY:
             data = await credential_manager.prepare_credential(
                 filename, credential_data, mode="primary"
             )
@@ -2038,7 +2105,7 @@ async def fetch_configured_provider_models() -> Dict[str, List[str]]:
     }
 
 
-async def fetch_quota_info(access_token: str) -> Dict[str, Any]:
+async def fetch_quota_info(access_token: str, project_id: str = "") -> Dict[str, Any]:
 
     headers = await build_primary_headers(access_token)
 
@@ -2053,45 +2120,13 @@ async def fetch_quota_info(access_token: str) -> Dict[str, Any]:
         )
 
         if response.status_code == 200:
-            data = response.json()
-            log.debug(
-                f"[provider quota] Raw response: {json.dumps(data, ensure_ascii=False)[:500]}"
-            )
+            from core.antigravity_usage import fetch_account_metadata, parse_model_quotas
 
-            quota_info = {}
-
-            if "models" in data and isinstance(data["models"], dict):
-                for model_id, model_data in data["models"].items():
-                    if isinstance(model_data, dict) and "quotaInfo" in model_data:
-                        quota = model_data["quotaInfo"]
-                        remaining = quota.get("remainingFraction", 0)
-                        reset_time_raw = quota.get("resetTime", "")
-
-                        reset_time_beijing = "N/A"
-                        if reset_time_raw:
-                            try:
-                                utc_date = datetime.fromisoformat(
-                                    reset_time_raw.replace("Z", "+00:00")
-                                )
-
-                                from datetime import timedelta
-
-                                beijing_date = utc_date + timedelta(hours=8)
-                                reset_time_beijing = beijing_date.strftime("%m-%d %H:%M")
-                            except Exception as e:
-                                log.warning(f"[provider quota] Failed to parse reset time: {e}")
-
-                        quota_info[model_id] = {
-                            "remaining": remaining,
-                            "resetTime": reset_time_beijing,
-                            "resetTimeRaw": reset_time_raw,
-                        }
-
-            return {"success": True, "models": quota_info}
+            quota_info = parse_model_quotas(response.json())
+            account = await fetch_account_metadata(primary_url, headers, project_id)
+            return {"success": True, "models": quota_info, **account}
         else:
-            log.error(
-                f"[provider quota] Failed to fetch quota ({response.status_code}): {response.text[:500]}"
-            )
+            log.error(f"[provider quota] Failed to fetch quota ({response.status_code})")
             return {"success": False, "error": f"API returned an error: {response.status_code}"}
 
     except Exception as e:

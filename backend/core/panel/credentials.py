@@ -40,6 +40,11 @@ from core.credential_fleet_query import (
 )
 from core.credential_manager import credential_manager
 from core.credential_operation_evidence import record_durable_credential_mutation
+from core.extended_provider_runtime import (
+    discover_extended_models,
+    normalize_extended_credential,
+    test_extended_credential,
+)
 from core.google_ai_studio import (
     GoogleAIStudioError,
     build_api_key_headers,
@@ -56,6 +61,8 @@ from core.models import (
     CredFileActionRequest,
     CredFileBatchActionRequest,
 )
+from core.muse_oauth import MuseOAuthError
+from core.muse_quota import subscription_observer
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
 from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
 from core.pool_import import PoolImportError, restore_pool_archive
@@ -71,6 +78,8 @@ from core.provider_connection_diagnostics import (
 )
 from core.provider_registry import (
     ANTHROPIC,
+    EXTENDED_CONNECTION_FIELDS,
+    EXTENDED_PROVIDERS,
     GOOGLE_AI_STUDIO,
     OLLAMA,
     OPENAI,
@@ -102,6 +111,7 @@ from .credential_operations import (
     upload_credentials_common,
     verify_credential_common,
 )
+from .credential_security import verify_credential_action_token
 from .utils import (
     internal_server_error,
     public_error_detail,
@@ -112,6 +122,36 @@ from .utils import (
 router = APIRouter(tags=["credentials"])
 
 
+def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
+    if provider in {"muse_code", "meta"}:
+        return ()
+    if provider == "kiro":
+        return ("region", "profile_arn")
+    if provider not in EXTENDED_PROVIDERS:
+        return ()
+    extra = {"cloudflare": "account_id", "kilo": "organization_id", "opencode": "plan"}
+    return ("base_url", extra[provider]) if provider in extra else ("base_url",)
+
+
+async def _prepare_extended_oauth(filename: str, data: dict, mode: str) -> dict:
+    if get_credential_provider(data) == "muse_code":
+        from core.muse_code import refresh_credential
+
+        fresh = await refresh_credential(data)
+        storage = await get_storage_adapter()
+        if not await storage.store_credential(filename, fresh, mode=mode):
+            raise MuseOAuthError("Unable to save Muse Code credentials.", 503)
+        return fresh
+    if get_credential_provider(data) != "kiro" or data.get("credential_type") != "oauth":
+        return data
+    prepared = await credential_manager.prepare_credential(filename, data, mode=mode)
+    if not prepared:
+        raise HTTPException(
+            status_code=401, detail="Kiro OAuth session could not be renewed. Sign in again."
+        )
+    return prepared
+
+
 async def _get_available_credential_models(credential_data: dict) -> list[str]:
     """Return models that can be selected for one credential test."""
     declared_models = get_declared_credential_models(credential_data)
@@ -119,6 +159,8 @@ async def _get_available_credential_models(credential_data: dict) -> list[str]:
         return declared_models
 
     provider_id = get_credential_provider(credential_data)
+    if provider_id in EXTENDED_PROVIDERS:
+        return []
     catalog = await model_catalog_service.get_catalog()
     return [entry.model_id for entry in catalog if provider_id in entry.providers]
 
@@ -132,6 +174,7 @@ def _editable_credential_fields(credential_data: dict) -> list[str]:
         fields.append("api_key")
     if get_credential_provider(credential_data) == OLLAMA:
         fields.extend(("api_key", "base_url"))
+    fields.extend(_extended_configuration_fields(get_credential_provider(credential_data)))
     return list(dict.fromkeys(fields))
 
 
@@ -155,12 +198,26 @@ def _credential_configuration_payload(filename: str, credential_data: dict) -> d
     }
     if provider_id == OLLAMA:
         payload["base_url"] = str(credential_data.get("base_url") or "")
+    for field in _extended_configuration_fields(provider_id):
+        payload[field] = str(credential_data.get(field) or "")
+        payload[f"has_{field}"] = bool(payload[field])
     return payload
 
 
 async def _validate_credential_update(candidate: dict, changed_fields: set[str]) -> None:
     provider_id = get_credential_provider(candidate)
     credential_type = str(candidate.get("credential_type") or "").strip().lower()
+
+    if provider_id in EXTENDED_PROVIDERS:
+        if changed_fields & {"api_key", *EXTENDED_CONNECTION_FIELDS}:
+            # Connection changes invalidate the old catalog, including protocol
+            # families which may no longer be supported after an OpenCode plan edit.
+            candidate["model_ids"] = []
+            if "plan" in changed_fields and "base_url" not in changed_fields:
+                candidate["base_url"] = ""
+            candidate.update(normalize_extended_credential(candidate))
+            candidate["model_ids"] = await discover_extended_models(candidate)
+        return
 
     if provider_id == OLLAMA:
         if changed_fields & {"api_key", "base_url"}:
@@ -253,16 +310,31 @@ async def update_credential_configuration(
             detail=f"Unsupported credential field(s): {', '.join(unsupported)}.",
         )
 
+    try:
+        credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
+    except MuseOAuthError as exc:
+        # Invalid provider credentials must not look like an expired console login.
+        raise HTTPException(
+            status_code=502 if exc.status_code >= 500 else 400, detail=str(exc)
+        ) from None
     candidate = dict(credential_data)
     if "credential_label" in changed_fields:
         candidate["credential_label"] = str(request.credential_label or "").strip()
     if "api_key" in changed_fields:
         candidate["api_key"] = request.api_key.get_secret_value().strip() if request.api_key else ""
+        if not candidate["api_key"] and get_credential_provider(candidate) in EXTENDED_PROVIDERS:
+            candidate["api_key"] = credential_data.get("api_key", "")
+            changed_fields.discard("api_key")
     if "base_url" in changed_fields:
         try:
-            candidate["base_url"] = normalize_ollama_base_url(str(request.base_url or ""))
+            candidate["base_url"] = str(request.base_url or "")
+            if get_credential_provider(candidate) == OLLAMA:
+                candidate["base_url"] = normalize_ollama_base_url(candidate["base_url"])
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+    for field in set(EXTENDED_CONNECTION_FIELDS) - {"base_url"}:
+        if field in changed_fields:
+            candidate[field] = str(getattr(request, field) or "").strip()
 
     try:
         await _validate_credential_update(candidate, changed_fields)
@@ -271,8 +343,19 @@ async def update_credential_configuration(
             status_code=getattr(exc, "status_code", 400),
             detail=public_error_detail(exc),
         ) from exc
+    except ValueError as exc:
+        if get_credential_provider(candidate) not in EXTENDED_PROVIDERS:
+            raise
+        raise HTTPException(
+            status_code=getattr(exc, "status_code", 400),
+            detail=public_error_detail(exc)
+            if hasattr(exc, "status_code")
+            else "Invalid provider credential.",
+        ) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Provider model discovery timed out.") from exc
 
-    if changed_fields & {"api_key", "base_url"}:
+    if changed_fields & {"api_key", *EXTENDED_CONNECTION_FIELDS}:
         if get_credential_provider(candidate) == OLLAMA:
             candidate["connection_fingerprint"] = api_key_fingerprint(
                 f"{str(candidate.get('base_url') or '').rstrip('/')}\0"
@@ -411,7 +494,24 @@ async def get_credential_models(
         if rejection:
             return rejection
 
-        model_ids = await _get_available_credential_models(credential_data)
+        if mode == "primary" and get_credential_provider(credential_data) in EXTENDED_PROVIDERS:
+            credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
+            candidate = dict(credential_data)
+            candidate["model_ids"] = []
+            candidate.update(normalize_extended_credential(candidate))
+            if get_credential_provider(candidate) == "muse_code":
+                from core.muse_code import discover_minted_models
+
+                model_ids = await discover_minted_models(candidate)
+            else:
+                model_ids = await discover_extended_models(candidate)
+            candidate["model_ids"] = model_ids
+            if not await storage_adapter.store_credential(filename, candidate, mode=mode):
+                raise HTTPException(
+                    status_code=500, detail="The credential update could not be stored."
+                )
+        else:
+            model_ids = await _get_available_credential_models(credential_data)
         return JSONResponse(
             content={
                 "success": True,
@@ -423,6 +523,15 @@ async def get_credential_models(
         )
     except HTTPException:
         raise
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=getattr(exc, "status_code", 400),
+            detail=public_error_detail(exc)
+            if hasattr(exc, "status_code")
+            else "Invalid provider credential.",
+        ) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Provider model discovery timed out.") from exc
     except Exception as exc:
         log.error(f"Failed to retrieve credential models: {exc}")
         raise HTTPException(
@@ -609,7 +718,7 @@ async def _execute_credential_action(
 @router.post("/action")
 async def creds_action(
     request: CredFileActionRequest,
-    token: str = Depends(verify_panel_token),
+    token: str = Depends(verify_credential_action_token),
     mode: str = "code_assist",
 ):
     started_at = time.perf_counter()
@@ -683,7 +792,7 @@ async def creds_action(
 )
 async def creds_batch_action(
     request: CredFileBatchActionRequest,
-    token: str = Depends(verify_panel_token),
+    token: str = Depends(verify_credential_action_token),
     mode: str = "code_assist",
 ):
     reservation = None
@@ -1117,7 +1226,6 @@ async def import_pool_credentials(
 
 
 @router.post("/verify/{filename}")
-@router.post("/verify-project/{filename}", include_in_schema=False)
 async def verify_credential(
     filename: str, token: str = Depends(verify_panel_token), mode: str = "code_assist"
 ):
@@ -1181,6 +1289,35 @@ async def get_credential_quota(
             return rejection
 
         provider_id = get_credential_provider(credential_data)
+        if provider_id == "kiro":
+            from core.kiro import KiroError
+            from core.kiro_usage import fetch_kiro_usage
+
+            fresh = await _prepare_extended_oauth(filename, credential_data, mode)
+            try:
+                usage = await fetch_kiro_usage(fresh)
+            except KiroError as exc:
+                return JSONResponse(
+                    status_code=502 if exc.status_code >= 500 else 400,
+                    content={"success": False, "filename": filename, "error": str(exc)},
+                )
+            return JSONResponse(
+                content={"success": True, "filename": filename, "provider": provider_id, **usage},
+                headers={"Cache-Control": "no-store"},
+            )
+        if provider_id == "muse_code":
+            from core.muse_code import quota_view
+
+            fresh = await _prepare_extended_oauth(filename, credential_data, mode)
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "filename": filename,
+                    "provider": provider_id,
+                    **quota_view(fresh),
+                },
+                headers={"Cache-Control": "no-store"},
+            )
         if provider_id == GOOGLE_AI_STUDIO:
             return JSONResponse(
                 content={
@@ -1371,7 +1508,7 @@ async def get_credential_quota(
                 status_code=400, detail="Credential does not contain an access token."
             )
 
-        quota_info = await fetch_quota_info(access_token)
+        quota_info = await fetch_quota_info(access_token, credential_data.get("project_id", ""))
 
         if quota_info.get("success"):
             return JSONResponse(
@@ -1379,6 +1516,11 @@ async def get_credential_quota(
                     "success": True,
                     "filename": filename,
                     "models": quota_info.get("models", {}),
+                    **{
+                        key: quota_info[key]
+                        for key in ("plan", "credit_balances", "account_metadata_status", "windows")
+                        if key in quota_info
+                    },
                 }
             )
         else:
@@ -1391,7 +1533,7 @@ async def get_credential_quota(
                 },
             )
 
-    except (AnthropicError, CodexError, OllamaError, XaiError) as e:
+    except (AnthropicError, CodexError, OllamaError, XaiError, MuseOAuthError) as e:
         return JSONResponse(
             status_code=502 if e.status_code >= 500 else 400,
             content={"success": False, "filename": filename, "error": str(e)},
@@ -1676,6 +1818,50 @@ async def _test_credential_unbounded(
             return _credential_test_failure_response(
                 connection_diagnostic("invalid_model"),
                 status_code=400,
+                filename=filename,
+                provider=provider_id,
+                credential_type=credential_data.get("credential_type"),
+                model=test_model,
+            )
+
+        if mode == "primary" and provider_id in EXTENDED_PROVIDERS:
+            credential_data = await _prepare_extended_oauth(filename, credential_data, mode)
+            quota_observer = subscription_observer(filename, credential_data)
+            response = await test_extended_credential(
+                credential_data,
+                test_model,
+                **({"subscription_observer": quota_observer} if quota_observer is not None else {}),
+            )
+            status_code = response.status_code
+            if status_code == 200:
+                await storage_adapter.update_credential_state(
+                    filename, {"error_codes": [], "error_messages": {}}, mode=mode
+                )
+                return JSONResponse(
+                    content={
+                        "success": True,
+                        "status_code": status_code,
+                        "message": "Model test completed successfully.",
+                        "filename": filename,
+                        "provider": provider_id,
+                        "credential_type": credential_data.get("credential_type"),
+                        "model": test_model,
+                    }
+                )
+            # Catalog visibility is not inference authorization. Rate limiting is
+            # likewise a failed explicit test, never a successful authentication.
+            diagnostic = classify_provider_response(status_code)
+            await storage_adapter.update_credential_state(
+                filename,
+                {
+                    "error_codes": [status_code],
+                    "error_messages": {str(status_code): diagnostic.message},
+                },
+                mode=mode,
+            )
+            return _credential_test_failure_response(
+                diagnostic,
+                status_code=status_code,
                 filename=filename,
                 provider=provider_id,
                 credential_type=credential_data.get("credential_type"),

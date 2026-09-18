@@ -107,20 +107,9 @@ async function addGoogleAIStudioCredential(event) {
             throw createProviderRequestError(response, data);
         }
 
-        const result = document.getElementById('googleAiStudioSaveResult');
-        const title = document.getElementById('googleAiStudioSaveResultTitle');
-        const text = document.getElementById('googleAiStudioSaveResultText');
-        if (title) {
-            title.textContent = t(data.credential_action === 'updated'
-                ? 'runtime.credential_updated_title'
-                : 'runtime.credential_added_title');
-        }
-        if (text) {
-            text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(data.model_count)})}`;
-        }
-        result?.classList.remove('hidden');
+        showProviderCredentialSaveResult('googleAiStudio', data);
         resetProviderTransientSecrets('google-ai-studio.credential');
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await refreshUsageStats();
     } catch (error) {
@@ -129,6 +118,6 @@ async function addGoogleAIStudioCredential(event) {
         }), 'error');
     } finally {
         button.disabled = false;
-        button.textContent = t('runtime.validate_add');
+        button.textContent = t('provider.ui.add_key');
     }
 }

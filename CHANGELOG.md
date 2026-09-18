@@ -1,13 +1,199 @@
 # Changelog
 
 All notable user-facing changes are documented in this file. Polaris follows
-[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta.1` after the
-project-wide rename; earlier product tags remain below for release provenance. Breaking
-changes are permitted throughout the Polaris `0.x` beta series.
+[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta` after the
+project-wide rename (formerly `0.1.0-beta.1`); Omni Gateway tags are archived under
+`omni-gateway/`. See the [tag migration record](docs/releases/tag-migration-2026-09-18.md). Breaking
+changes were permitted throughout the Polaris `0.x` beta series. This source targets Polaris
+`1.0.0`; verify matching release/tag/image publication before installing from a development
+checkout. The legacy release with the same number is labeled separately
+below. See the [publication collision checklist](docs/releases/1.0.0-preparation.md).
 
 ## [Unreleased]
 
-## [0.1.0-beta.1] - 2026-09-14
+## [1.0.0] - 2026-09-18
+
+Publication approved on this date; the matching Polaris release/tag/image records
+the actual published revision.
+The historical Omni Gateway 1.0.0 is separate.
+
+### Release preparation
+
+- Prepare runtime, Compose and documentation for Polaris 1.0.0 while preserving legacy
+  release history. Legacy tags are archived and the target registry version names are
+  available. Publish only the exact verified commit after the required gates pass.
+- Validate unique, dated release notes and matching version metadata before publishing
+  container images, not only before creating the GitHub release.
+- Keep manually dispatched candidate CI verification-only. Explicitly mark future stable
+  releases as latest so the archived Omni Gateway version line cannot outrank Polaris.
+- Isolate browser-test configuration from operator secrets. Allow reliability checks to
+  measure a SHA-256-recorded uncommitted source snapshot without claiming a release commit.
+- Omit raw update-check exceptions from debug logs; correct setup-token and offline-import
+  documentation, including all 15 README languages.
+- Preserve validated `Retry-After` values on extended-provider failures without forwarding
+  arbitrary upstream headers. Store safe inference-failure diagnostics rather than raw
+  provider bodies, and omit those bodies and credential-state values from runtime logs.
+- Credential plan/credit hints can be dismissed with Escape without moving keyboard focus;
+  pointer users can move into the hint across its visual gap.
+
+### Provider conformance fixes
+
+- Follow bounded Google AI Studio and Claude model-catalog pagination instead
+  of reporting success with only the first page; reject cyclic pagination.
+- Ignore missing/non-string model IDs in Claude and OpenAI Platform catalogs.
+- Correlate canonical tool calls and results across the legacy Chat, Codex
+  Responses and Claude Messages adapters, independent of content-part order.
+- Reject unrepresented generation options consistently across all hosted Chat
+  adapters instead of silently discarding them for six providers.
+
+### Added
+
+- Current Dashboard and Credentials previews in light and dark themes across all
+  15 README languages, captured from an isolated demo with fictional data.
+- Repository README translations in all 15 supported languages, with language navigation,
+  the current 23-provider catalog, configuration reference, and credential/deployment workflows.
+- New providers show the same persistent credential-save result and pool shortcut
+  as legacy providers. Result summaries use the selected UI language instead of
+  mixing raw English server messages with translated labels.
+- Every provider now offers a JSON credential example beside the import heading,
+  with provider-specific OAuth, API-key or Ollama connection fields and no copied secrets.
+- Kiro browser sign-in follows the cockpit-tools portal/PKCE flow, with explicit
+  credential saving and a manual callback-URL fallback for remote instances.
+  All five provider OAuth workspaces require an explicit save or authorization
+  check; Kiro no longer polls or saves automatically after receiving a callback.
+  The public Claude Code callback page no longer exchanges tokens or saves an account;
+  it directs the user back to the original console tab for an explicit save.
+  Saved-account token refresh remains unchanged.
+  Generate the sign-in link first, then open or copy it without an automatic popup;
+  the callback textarea stays visible while authorization is pending. The link button
+  remains available to cancel the previous pending flow and generate a new link.
+  Link spacing and the single primary save action match Antigravity, without pending
+  or expiry copy; the sign-in timeout still applies.
+  AWS device login and API keys remain separate secondary options.
+- GroqCloud, DeepSeek Platform, Mistral AI Studio and Cerebras Cloud API-key
+  providers, with credential-specific endpoints, JSON/ZIP imports, chat model
+  discovery, streaming/tool adapters, PNG logos and descriptions in 15 languages.
+- Groq streaming usage/error metadata and Mistral reasoning chunks/tool IDs are
+  adapted at the provider boundary. See the API-platform guide for reasoning limits.
+- Complete contextual interface catalogs for all 15 supported languages, including exact
+  provider authorization/import instructions and localized field hints.
+- Regression checks for missing translations, interpolation variables, provider-copy fidelity,
+  language switching, and nonblank normal-weight placeholders.
+- Live setup-password checklist for length, character variety, blocked common passwords,
+  and confirmation, grouped below both password fields and matching the server policy
+  without imposing composition rules.
+
+### Fixed
+
+- Provider website labels omit trailing slashes without changing link targets.
+  Removed the Antigravity credits management panel from provider onboarding;
+  stored credit preferences, credential status badges and backend credit APIs are unchanged.
+
+- Provider workspaces use consistent API-key actions, concise placeholders and
+  import wording across old and new integrations. JSON examples sit beside the
+  import heading instead of adding a competing action footer.
+- Kiro device authorization presents a copyable code, sign-in action, expiry and
+  localized cancellation. OAuth and API-key settings are grouped in one full-width
+  advanced section while remaining bound to their own credential forms.
+- Translation checks cover generated provider controls as well as static markup.
+- Shared Google configuration saves and resets now emit correlated, redacted
+  provider audit events through the same pipeline as other provider settings.
+- Settings groups keep-alive with server connections, places inference timeout
+  under Storage and Connections, and removes the duplicate routing summary.
+  Independent columns stay compact while retention and backups remain full width.
+- Light/dark changes apply the palette together instead of letting input and card
+  hover transitions lag behind the page background. Normal interaction transitions remain enabled.
+- Page-header actions share a consistent height and concise contextual labels.
+  Identity refresh reports success or failure through toasts, without inline
+  success messages or moving focus into fields; partial failures are not reported as success.
+- Provider settings now have one owner: Code Assist and shared Google endpoints are in
+  Providers; routing-wide stream conversion and retry credential switching are in Settings.
+  Claude and xAI shared fields have a single editor, and Grok's OAuth inference endpoint
+  is editable independently from SpaceXAI Console. Saved values and environment locks remain intact.
+- Antigravity credit controls belong to credential management, with capability checks
+  and confirmation. Offline imports distinguish stored credentials from verified credentials.
+- Native Codex, Claude Code and Grok credential files are normalized with bounded,
+  provider-specific validation. Foreign OAuth tokens are not sent to Google for email discovery.
+- OAuth destination validation is consistent at save/runtime; Claude rate limits and server
+  errors remain transient. Explicit NO_PROXY rules apply to shared HTTP and streaming clients.
+
+- Global credential routing policy remains editable before any provider models exist and
+  saves independently from virtual routes, with failed drafts retained for retry.
+- Activity distinguishes an empty request history from filters with no matches. Connecting
+  the runtime log stream no longer incorrectly reports that logs were cleared.
+- Identity keeps all effective permissions in a keyboard-accessible disclosure and hides
+  pagination when neither a previous nor a next page exists, shortening the mobile view.
+- Shared light/dark styling keeps the Polaris logo visible and secondary/status text readable.
+  Phone and tablet controls use consistent touch sizing; mobile navigation contains keyboard
+  focus and disables background interaction until closed. Native dialog backdrops use the
+  shared theme, and the dashboard's recent-activity heading no longer crowds its description.
+- Opening a modal no longer automatically focuses its first input, textarea, or select.
+  Focus starts on a non-editable surface while Tab, Shift+Tab, Escape, and return focus remain available.
+- Toasts stay above native and custom modals without moving focus into form controls;
+  validation keeps field error markers and normal keyboard navigation. Identity creation
+  uses its Cancel action without a duplicate close icon.
+- Late translations now override old English defaults in the live translator. Provider auto-copy
+  no longer overwrites explicitly localized labels or caches placeholders in a previous language.
+- Text inputs and textareas have contextual placeholders at normal weight; configured OAuth
+  secret fields keep an appropriate hint after settings load.
+- Session inventory uses Unix-anchored timestamps instead of displaying dates in 1970,
+  while session expiration remains based on monotonic elapsed time.
+- Activity tabs wrap on narrow screens instead of creating a horizontal scroller.
+- OAuth result pages share the console's theme and auth styling, distinguish success/failure,
+  and offer localized provider navigation. Manual callback flows keep their URL in the original
+  tab; callback responses are not cached and do not send referrers.
+- Identity uses a full-width permission list, content-sized readiness panels, flat identity/session
+  records, and read-only roles for identities the current principal cannot edit. Empty status rows
+  no longer reserve space; responsive controls retain confirmation and permission safeguards.
+- Identity translations now reach the live language catalogs and English-source lookup,
+  instead of leaving headings in English and exposing raw translation keys.
+- Sidebar order follows provider setup, routing and quality, testing, access management,
+  and operations; desktop and mobile use the same reading and keyboard order.
+- Identity and sessions remains discoverable in the sidebar even when OIDC team access is
+  disabled or unavailable, without enabling OIDC or changing management permissions.
+- About uses labelled support-state counts and simpler responsive sections, with clear
+  documentation/sponsor links and explicit empty support information. Failed loads no
+  longer leave the build/support regions marked as busy.
+- Provider catalog shows full descriptions with quieter capability labels and keeps
+  pagination beside the catalog. Search and paging retain a keyboard entry point.
+  Connection/import panels are more compact, provider introductions stay specific,
+  and Antigravity settings use distinct English/Vietnamese guidance.
+- Playground uses balanced responsive columns, simpler message editors, a contextual
+  message counter, and visible output limits. Running requests show a pending submit
+  label while keeping cancellation available; stale validation clears when the draft is valid again.
+- Overview now uses compact, content-sized sections and contextual first-run guidance.
+  Unsampled health metrics no longer imply zero latency or zero errors; unavailable health
+  remains distinct from no traffic. Dashboard charts fit small screens and expose keyboard-accessible tooltips.
+- Login now shares setup's secret visibility controls and visual rhythm, with concise
+  localized guidance, a clear sign-in action, pending feedback, and duplicate-submit protection.
+  Failed attempts retain the masked password for correction; successful sign-in clears it.
+- Setup password fields stay locked until the current required setup token passes
+  server verification. Reloading, editing the token, or a failed check locks them;
+  stale responses cannot unlock fields after a token edit.
+- Validation borders clear when a field is edited instead of retaining browser-owned
+  invalid styling; invalid submissions still receive Polaris feedback.
+
+- Replaced native browser validation popups with localized Polaris error toasts for
+  static and dynamically created forms, preserving HTML constraints and invalid-field feedback.
+- Form fields now highlight only under the pointer, not when their labels are hovered.
+  Text-field labels no longer focus/open controls; accessible names, keyboard navigation,
+  and checkbox/radio label activation are preserved. The root-key label no longer
+  copies a secret, while direct clicks and Enter on the key still copy it.
+- Failed setup checks retain the entered setup token so it can be corrected and retried.
+- Setup checks now prompt for an empty setup token before sending a request and announce
+  successful checks with a toast without moving focus to the password field. The inline
+  guidance stays visible and updates to the current action after verification or token edits.
+- Removed synthetic hidden `admin` usernames from console setup, sign-in, and password-change
+  forms so password managers receive the actual password-only flow.
+
+### Changed
+
+- Simplified the first-run setup layout with compact installation checks and clearer password
+  grouping. Added accessible, independently controlled visibility buttons inside all setup secret
+  inputs, visible only while populated, with keyboard support and labels in all supported console
+  languages.
+
+## [0.1.0-beta] - 2026-09-14
 
 ### Added
 
@@ -375,7 +561,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 - Scoped account deduplication by provider so OAuth accounts that share an email address across different providers remain independent.
 
-## [1.0.0] - 2026-07-13
+## [1.0.0 (legacy)] - 2026-07-13
 
 ### Added
 
@@ -437,7 +623,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Prevented release tags from generating invalid branch-prefixed container tags.
 - Gated GitHub Releases on verified container publication and sourced release notes from this changelog.
 
-## [0.1.0-beta] - 2026-07-08
+## [0.1.0-beta (legacy)] - 2026-07-08
 
 ### Added
 
@@ -445,20 +631,21 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta.1...HEAD
-[0.1.0-beta.1]: https://github.com/nguywnben/polaris/compare/v1.4.0...v0.1.0-beta.1
-[1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/nguywnben/polaris/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/nguywnben/polaris/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/nguywnben/polaris/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/nguywnben/polaris/compare/v1.1.4...v1.2.0
-[1.1.4]: https://github.com/nguywnben/polaris/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/nguywnben/polaris/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/nguywnben/polaris/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/nguywnben/polaris/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/nguywnben/polaris/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nguywnben/polaris/compare/v0.2.0-beta...v1.0.0
-[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...v0.2.0-beta
-[0.1.0-beta]: https://github.com/nguywnben/polaris/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...HEAD
+[0.1.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.4.0...v0.1.0-beta
+[1.5.0]: docs/evidence/p5.6-release-candidate-handoff.md
+[1.4.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.2...omni-gateway/v1.4.0
+[1.3.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.1...omni-gateway/v1.3.2
+[1.3.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.0...omni-gateway/v1.3.1
+[1.3.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.1...omni-gateway/v1.3.0
+[1.2.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.0...omni-gateway/v1.2.1
+[1.2.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.4...omni-gateway/v1.2.0
+[1.1.4]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.3...omni-gateway/v1.1.4
+[1.1.3]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.2...omni-gateway/v1.1.3
+[1.1.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.1...omni-gateway/v1.1.2
+[1.1.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.0...omni-gateway/v1.1.1
+[1.1.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.0.0...omni-gateway/v1.1.0
+[1.0.0]: docs/releases/1.0.0-preparation.md
+[1.0.0 (legacy)]: https://github.com/nguywnben/polaris/compare/9e858310c9567bb7447ea6482610e5b6b8ab22f5...36ef7651ef9bed073be0f0aa90bd02827c3cf833
+[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v0.1.0-beta...omni-gateway/v0.2.0-beta
+[0.1.0-beta (legacy)]: https://github.com/nguywnben/polaris/releases/tag/omni-gateway/v0.1.0-beta

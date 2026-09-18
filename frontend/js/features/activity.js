@@ -137,6 +137,11 @@ async function loadActivityView(view) {
 function setActivityView(view, {load = true} = {}) {
     const selectedView = normalizeActivityView(view);
     AppState.activeActivityView = selectedView;
+    const hint = document.getElementById('activityFilterHint');
+    if (hint) {
+        hint.dataset.i18n = `activity.filter_hint_${selectedView}`;
+        hint.textContent = t(hint.dataset.i18n);
+    }
     for (const [name, definition] of Object.entries(ACTIVITY_VIEWS)) {
         const selected = name === selectedView;
         const tab = document.getElementById(definition.tabId);
@@ -167,7 +172,11 @@ function loadActivityConsole() {
 
 function setActivityFilterStatus(key) {
     const status = document.getElementById('activityFilterStatus');
-    if (status) status.textContent = key ? t(key) : '';
+    if (status) {
+        if (key) status.dataset.i18n = key;
+        else delete status.dataset.i18n;
+        status.textContent = key ? t(key) : '';
+    }
 }
 
 function resetActivityPagination() {

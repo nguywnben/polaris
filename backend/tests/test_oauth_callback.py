@@ -14,6 +14,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from core.i18n import MESSAGES, SUPPORTED_LOCALES
 from core.panel import root
 
 
@@ -34,7 +35,32 @@ def _callback_request(**query: str) -> Request:
 
 
 class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
-    async def test_claude_callback_is_completed_by_the_anthropic_handler(self):
+    def test_navigation_labels_cover_every_locale(self):
+        for key in (
+            "oauth.return_providers",
+            "oauth.open_providers_new_tab",
+            "oauth.callback_received",
+            "oauth.copy_authorization_code",
+        ):
+            self.assertEqual(set(MESSAGES[key]), set(SUPPORTED_LOCALES))
+            self.assertTrue(all(MESSAGES[key].values()))
+
+    def test_result_page_is_themed_escaped_and_has_safe_navigation(self):
+        for success in (False, True):
+            response = root._oauth_callback_page(success, "<script>alert(1)</script>", "A & B")
+            body = response.body.decode("utf-8")
+            self.assertIn("/frontend/theme.js", body)
+            self.assertIn("/frontend/console.css", body)
+            self.assertNotIn("/frontend/console.js", body)
+            self.assertIn('href="/providers"', body)
+            self.assertIn("&lt;script&gt;", body)
+            self.assertNotIn("<script>alert(1)</script>", body)
+            self.assertIn("A &amp; B", body)
+            self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+            self.assertEqual(response.headers["cache-control"], "no-store")
+            self.assertEqual(response.status_code, 200 if success else 400)
+
+    async def test_claude_callback_requires_explicit_credential_save(self):
         complete = AsyncMock(
             return_value={
                 "action": "created",
@@ -53,9 +79,23 @@ class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Claude Code Authentication Successful", response.body.decode("utf-8"))
-        complete.assert_awaited_once_with("claude-code", "claude-state")
+        body = response.body.decode("utf-8")
+        self.assertIn("Claude Code", body)
+        self.assertIn("authorization code", body)
+        self.assertIn('target="_blank" rel="noopener noreferrer"', body)
+        self.assertNotIn("Authentication Successful", body)
+        complete.assert_not_awaited()
         accept_google.assert_not_called()
+
+    async def test_claude_callback_without_code_or_with_error_never_completes(self):
+        for query in ({"state": "claude-state"}, {"state": "claude-state", "error": "denied"}):
+            with (
+                patch.object(root, "is_claude_oauth_state", return_value=True),
+                patch.object(root, "complete_claude_oauth", AsyncMock(), create=True) as complete,
+            ):
+                response = await root.serve_oauth_callback(_callback_request(**query))
+            self.assertEqual(response.status_code, 400)
+            complete.assert_not_awaited()
 
     async def test_google_callback_still_uses_the_existing_handler(self):
         with (
@@ -72,6 +112,7 @@ class OAuthCallbackTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         accept_google.assert_called_once_with("google-code", "google-state")
+        self.assertIn('target="_blank" rel="noopener noreferrer"', response.body.decode("utf-8"))
 
 
 if __name__ == "__main__":

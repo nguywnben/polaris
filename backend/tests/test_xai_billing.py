@@ -15,6 +15,7 @@ from core.xai import XaiError
 from core.xai_billing import (
     XAI_BILLING_API_URL,
     fetch_xai_billing_usage,
+    parse_xai_billing_facts,
     parse_xai_monthly_usage,
     parse_xai_weekly_usage,
 )
@@ -30,6 +31,28 @@ class FakeResponse:
 
 
 class XaiBillingTests(unittest.IsolatedAsyncioTestCase):
+    def test_billing_facts_preserve_product_limits_and_only_allowlisted_metadata(self):
+        facts = parse_xai_billing_facts(
+            {
+                "config": {
+                    "subscriptionTier": "grok-build",
+                    "onDemandUsed": 5,
+                    "onDemandCap": 20,
+                    "prepaidBalance": 12,
+                    "productUsage": [
+                        {"product": "Build", "usagePercent": 45},
+                        {"product": "Unknown"},
+                    ],
+                    "secret": "must-not-return",
+                }
+            }
+        )
+        self.assertEqual(facts["plan"], "grok-build")
+        self.assertEqual(facts["windows"][0]["remaining_percentage"], 55)
+        self.assertIsNone(facts["windows"][1]["remaining_percentage"])
+        self.assertEqual(facts["prepaid_balance"], 12)
+        self.assertNotIn("must-not-return", str(facts))
+
     def test_monthly_usage_is_normalized_for_the_console(self):
         usage = parse_xai_monthly_usage(
             {
@@ -59,7 +82,7 @@ class XaiBillingTests(unittest.IsolatedAsyncioTestCase):
                 }
             )
 
-    def test_weekly_usage_defaults_to_zero_at_the_start_of_a_period(self):
+    def test_weekly_usage_missing_percentage_is_not_full_quota(self):
         usage = parse_xai_weekly_usage(
             {
                 "config": {
@@ -69,8 +92,19 @@ class XaiBillingTests(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-        self.assertEqual(usage["used_percentage"], 0)
-        self.assertEqual(usage["remaining_percentage"], 100)
+        self.assertIsNone(usage)
+
+    def test_zero_allocation_does_not_mean_full_quota(self):
+        usage = parse_xai_monthly_usage(
+            {
+                "config": {
+                    "monthlyLimit": {"val": 0},
+                    "used": {"val": 0},
+                    "billingPeriodEnd": "2030-01-01T00:00:00Z",
+                }
+            }
+        )
+        self.assertEqual(usage["remaining_percentage"], 0)
 
     async def test_fetch_uses_grok_build_billing_contract(self):
         access_token = "oauth-access-token"

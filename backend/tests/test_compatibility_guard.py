@@ -66,6 +66,16 @@ class CompatibilitySnapshotTests(unittest.TestCase):
             )
         )
 
+    def test_scoped_reset_evolution_does_not_exempt_future_contract_changes(self) -> None:
+        changed = copy.deepcopy(self.current)
+        for operation in changed["management_operations"]:
+            if operation["method"] == "POST" and operation["path"] == "/api/config/reset":
+                operation["semantic_sha256"] = "0" * 64
+        self.assertIn(
+            "changed management_operations: POST /api/config/reset",
+            compare_snapshots(self.baseline, changed),
+        )
+
     def test_console_urls_and_generated_client_examples_remain_valid(self) -> None:
         self.assertEqual(self.baseline["console_routes"]["tab_map"]["dashboard"], "/dashboard")
         self.assertIn("/code_assist", self.baseline["console_routes"]["server_paths"])
@@ -86,7 +96,58 @@ class CompatibilitySnapshotTests(unittest.TestCase):
 
         route_map = self.current["console_routes"]["route_map"]
         for alias, canonical in self.baseline["console_routes"]["compatibility_aliases"].items():
+            if canonical == "/pool":
+                canonical = "/credentials"
             self.assertEqual(route_map[alias], route_map[canonical])
+
+    def test_credentials_rename_does_not_exempt_future_route_removal(self):
+        changed = copy.deepcopy(self.current)
+        changed["console_routes"]["server_paths"].remove("/credentials")
+        self.assertIn(
+            "removed console_routes.server_paths: ['/credentials']",
+            compare_snapshots(self.baseline, changed),
+        )
+
+    def test_meta_responses_addition_does_not_exempt_future_contract_changes(self):
+        changed = copy.deepcopy(self.current)
+        for operation in changed["public_inference_operations"]:
+            if operation["method"] == "POST" and operation["path"] == "/v1/responses":
+                operation["semantic_sha256"] = "0" * 64
+        self.assertIn(
+            "changed public_inference_operations: POST /v1/responses",
+            compare_snapshots(self.baseline, changed),
+        )
+
+    def test_responses_union_retains_the_unmodified_legacy_schema(self):
+        from core.router.primary.responses import router
+        from fastapi import FastAPI
+
+        app = FastAPI()
+        app.include_router(router)
+        document = app.openapi()
+        schema = document["paths"]["/v1/responses"]["post"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]
+        self.assertEqual(
+            schema["anyOf"],
+            [
+                {"$ref": "#/components/schemas/OpenAIResponsesRequest"},
+                {"$ref": "#/components/schemas/MetaResponsesRequest"},
+            ],
+        )
+        from core.models import OpenAIResponsesRequest
+
+        legacy_app = FastAPI()
+
+        async def legacy_handler(request):
+            return {}
+
+        legacy_handler.__annotations__["request"] = OpenAIResponsesRequest
+        legacy_app.post("/v1/responses")(legacy_handler)
+        self.assertEqual(
+            document["components"]["schemas"]["OpenAIResponsesRequest"],
+            legacy_app.openapi()["components"]["schemas"]["OpenAIResponsesRequest"],
+        )
 
 
 class PreR1SQLiteUpgradeTests(unittest.IsolatedAsyncioTestCase):

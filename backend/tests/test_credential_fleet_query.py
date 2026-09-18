@@ -54,6 +54,56 @@ def _item(
 
 
 class CredentialFleetQueryTests(unittest.TestCase):
+    def test_api_key_hint_is_masked_at_the_public_boundary(self):
+        key = "sample-prefix-private-middle-suffix"
+        credential = {
+            "provider": "openai",
+            "credential_type": "api_key",
+            "api_key": key,
+            "token": "oauth-secret",
+            "refresh_token": "refresh-secret",
+        }
+        item = enrich_credential_summary(
+            {"filename": "key.json", "api_key_hint": key},
+            credential,
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(item["api_key_hint"], "sample…ffix")
+        self.assertNotIn(key, repr(item))
+        self.assertNotIn("private-middle", repr(item))
+        self.assertNotIn("api_key", item)
+        self.assertNotIn("token", item)
+        for value, expected in [
+            ("short-key", "••••"),
+            ("", None),
+            (None, None),
+            (123, None),
+            ("invalid\nkey", None),
+        ]:
+            with self.subTest(value=value):
+                result = enrich_credential_summary(
+                    {},
+                    {**credential, "api_key": value},
+                    backend_type="sqlite",
+                    mode="primary",
+                )
+                self.assertEqual(result.get("api_key_hint"), expected)
+        oauth = enrich_credential_summary(
+            {},
+            {**credential, "credential_type": "oauth"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertIsNone(oauth.get("api_key_hint"))
+        updated = enrich_credential_summary(
+            {},
+            {**credential, "api_key": "rotated-prefix-private-value-last"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(updated["api_key_hint"], "rotate…last")
+
     def setUp(self) -> None:
         self.registry = CredentialSelectionRegistry(ttl_seconds=300, max_entries=8)
 

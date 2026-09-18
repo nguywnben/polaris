@@ -11,11 +11,199 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANAGER_SOURCE = ROOT / "frontend/js/core/credential-manager.js"
 CARD_SOURCE = ROOT / "frontend/js/ui/credential-cards.js"
-POOL_HTML = ROOT / "frontend/fragments/pages/pool.html"
+CARD_STYLES = ROOT / "frontend/css/components.css"
+POOL_HTML = ROOT / "frontend/fragments/pages/credentials.html"
 NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_badge_hints_dismiss_without_moving_focus_and_reopen_on_reentry(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const listeners = {{}};
+const badge = {{dataset: {{}}, contains: node => node === badge}};
+document.addEventListener = (name, handler) => {{ listeners[name] = handler; }};
+document.querySelectorAll = () => [badge];
+initCredentialBadgeHints();
+let consumed = 0;
+listeners.keydown({{key: 'Escape', preventDefault() {{ consumed++; }}, stopPropagation() {{}}}});
+assert(badge.dataset.hintDismissed === 'true' && consumed === 1, 'Escape dismisses the hint');
+const target = {{closest: () => badge}};
+listeners.pointerover({{target, relatedTarget: badge}});
+assert(badge.dataset.hintDismissed === 'true', 'Moving within a dismissed hint must not reopen it');
+listeners.pointerover({{target, relatedTarget: null}});
+assert(!badge.dataset.hintDismissed, 'Pointer reentry reopens the hint');
+badge.dataset.hintDismissed = 'true';
+listeners.focusin({{target}});
+assert(!badge.dataset.hintDismissed, 'Keyboard focus reentry reopens the hint');
+document.querySelectorAll = () => [];
+listeners.keydown({{key: 'Escape', preventDefault() {{ throw new Error('Unrelated Escape intercepted'); }}}});
+""")
+
+    def test_identity_subtitle_uses_only_masked_key_or_oauth_email(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+const provider = {{id: 'openai_platform'}};
+const key = {{credential_type: 'api_key', api_key_hint: 'sample…last', api_key: 'never-render-this'}};
+assert(renderCredentialIdentitySubtitle(provider, key, 'Work').includes('sample…last'), 'Show masked key beneath the name');
+assert(!renderCredentialIdentitySubtitle(provider, key, 'Work').includes('never-render'), 'Never derive preview from a full client-side key');
+assert(renderCredentialIdentitySubtitle(provider, {{api_key: 'secret'}}, 'Work') === '', 'Missing hint must not fall back to the full key');
+assert(!renderCredentialIdentitySubtitle(provider, {{...key, api_key_hint: '<img src=x>'}}, 'Work').includes('<img'), 'Escape the hint');
+const oauth = {{credential_type: 'oauth', credential_label: 'Work', user_email: 'user@example.test', api_key_hint: 'not-for-oauth'}};
+assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('user@example.test'), 'Keep OAuth email under a label');
+assert(!renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('not-for-oauth'), 'OAuth must not show key hints');
+assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'user@example.test') === '', 'Do not repeat the email when it is the main title');
+""")
+
+    def test_compact_badges_keep_full_plan_and_oauth_in_management(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+const plan = 'Muse Code Power Usage';
+const badge = renderCredentialSubscriptionBadge('test', plan, 'provider_plan');
+assert(badge.includes(`class="credential-badge-label">${{plan}}</span>`), 'Card should show the plan without the Gói prefix');
+assert(badge.includes('tabindex="0"') && badge.includes('credential-badge-tooltip'), 'Full plan must be available on focus');
+assert(badge.includes(plan) && !badge.includes('Power…'), 'Truncation must be visual, not data loss');
+assert(renderCredentialSubscriptionBadge('test', '', 'provider_plan').includes('hidden'), 'Unknown plans stay hidden');
+const unsafe = renderCredentialSubscriptionBadge('test', '<img src=x>', 'provider_plan');
+assert(!unsafe.includes('<img'), 'Provider plan text must be escaped');
+const oauth = {{id: 'muse_code'}};
+const info = {{credential_type: 'oauth'}};
+assert(renderCredentialAuthenticationBadge(oauth, info, {{compact: true}}) === '', 'Do not repeat OAuth in compact cards');
+assert(renderCredentialAuthenticationBadge(oauth, info).includes('OAuth'), 'Management still shows OAuth');
+assert(renderCredentialAuthenticationBadge({{id: 'openai_platform'}}, {{}}, {{compact: true}}).includes('credentials.workspace.api_key'), 'Keep API key badges');
+""")
+
+    def test_provider_sections_are_ordered_by_matching_credential_count(self) -> None:
+        self._run_manager_contract("""
+const list = new TestElement();
+list.innerHTML = '';
+list.classList = {remove() {}};
+list.appendChild = () => {};
+const pagination = new TestElement();
+pagination.style = {};
+elements.set('primaryCredsList', list);
+elements.set('primaryPaginationContainer', pagination);
+const order = [];
+global.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+global.createCredentialProviderGroup = (meta, credentials) => {
+    order.push([meta.name, credentials.length]);
+    return {};
+};
+manager.filteredData = {
+    a: {filename: 'a', provider: 'few'},
+    b: {filename: 'b', provider: 'many'},
+    c: {filename: 'c', provider: 'many'},
+    d: {filename: 'd', provider: 'many'},
+    e: {filename: 'e', provider: 'medium'},
+    f: {filename: 'f', provider: 'medium'},
+};
+manager.data = manager.filteredData;
+manager.totalCount = 6;
+manager.hasLoaded = true;
+manager.facets = {provider_variant: {few: 8, many: 4, medium: 2}};
+manager.renderList();
+assert(JSON.stringify(order) === JSON.stringify([
+    ['few', 1], ['many', 3], ['medium', 2]
+]), `Unexpected provider section order: ${JSON.stringify(order)}`);
+""")
+
+    def test_every_displayed_provider_filter_is_applied_and_restored(self) -> None:
+        from backend.core.provider_registry import list_credential_variant_capabilities
+
+        variants = [item["variant_id"] for item in list_credential_variant_capabilities()]
+        self._run_manager_contract(f"""
+const variants = {json.dumps(variants)};
+const providerFilter = new TestElement();
+providerFilter.options = ['all', ...variants].map(value => ({{value}}));
+elements.set('primaryProviderFilter', providerFilter);
+manager.refresh = () => {{}};
+for (const variant of variants) {{
+    providerFilter.value = variant;
+    manager.applyStatusFilter();
+    assert(manager.currentProviderFilter === variant, `Provider filter ignored: ${{variant}}`);
+    manager.filtersRestored = false;
+    manager.currentProviderFilter = 'all';
+    window.location.search = '?pool_provider=' + variant;
+    manager.restoreFilterState();
+    assert(manager.currentProviderFilter === variant, `Provider deep link not restored: ${{variant}}`);
+}}
+providerFilter.value = 'unregistered';
+manager.applyStatusFilter();
+assert(manager.currentProviderFilter !== 'unregistered', 'Do not accept unregistered filter values');
+""")
+
+    def test_identity_uses_labels_or_oauth_email_not_missing_email_errors(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const oauth = {{credential_type: 'oauth', filename: 'muse-code-ab12.json'}};
+const key = {{credential_type: 'api_key', filename: 'deepseek-cd34.json'}};
+assert(getCredentialAccountLabel(oauth) === 'muse-code-ab12', 'OAuth without email needs an identifier');
+assert(getCredentialAccountLabel(key) === 'deepseek-cd34', 'Keys do not need email');
+assert(getCredentialAccountLabel({{...oauth, user_email: 'person@example.test'}}) === 'person@example.test', 'Keep known OAuth email');
+assert(getCredentialAccountLabel({{...key, user_email: 'not-an-account'}}) === 'deepseek-cd34', 'API keys must not use email fallback');
+assert(getCredentialAccountLabel({{...oauth, credential_label: 'Work'}}) === 'Work', 'Explicit labels take precedence');
+assert(!getCredentialAccountLabel({{...key, api_key: 'secret-key'}}).includes('secret'), 'Never derive identity from a secret');
+""")
+
+    def test_provider_batch_snapshots_scope_and_preserves_unrelated_selection(self) -> None:
+        self._run_manager_contract("""
+(async () => {
+    manager.selectedFiles = new Set(['other.json']);
+    const targets = ['provider-a.json', 'provider-b.json'];
+    const requests = [];
+    global.AppState = {quotaPreviewCache: {}, credentialCardIndex: {}};
+    global.showStatus = () => {};
+    global.showMessageModal = () => {};
+    global.showConfirmModal = async (message) => {
+        assert(message.includes('Provider A'), 'Confirmation must name the provider scope');
+        targets.push('unrelated.json');
+        manager.selectedFiles.add('another.json');
+        return true;
+    };
+    global.fetch = async (url, options) => {
+        requests.push(JSON.parse(options.body));
+        return {ok: true, json: async () => ({total_count: 2, success_count: 2,
+            outcome_counts: {eligible: 2}, preview_token: 'snapshot', results: []})};
+    };
+    manager.refresh = async () => {};
+    await manager.batchAction('disable', {filenames: targets, description: 'Provider A — visible credentials'});
+    assert(requests.length === 2, 'Batch needs preview and commit');
+    assert(requests.every(body => JSON.stringify(body.filenames) === JSON.stringify(['provider-a.json', 'provider-b.json'])), 'Scope must stay fixed across confirmation');
+    assert(requests[1].preview_token === 'snapshot', 'Server preview token must be retained');
+    assert(manager.selectedFiles.has('other.json') && manager.selectedFiles.has('another.json'), 'Provider action must preserve global selection');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
+    def test_filtered_empty_results_do_not_hide_filter_controls(self) -> None:
+        self._run_manager_contract("""
+const tab = {classList: {toggle(name, value) {this[name] = value;}}};
+const firstRun = {hidden: true};
+elements.set('credentialsTab', tab);
+elements.set('credentialsFirstRun', firstRun);
+manager.hasLoaded = true;
+manager.totalCount = 0;
+manager.updateFirstRunState();
+assert(firstRun.hidden === false, 'An unfiltered empty pool needs onboarding');
+for (const definition of Object.values(manager.getFilterDefinitions())) {
+    manager[definition.state] = 'filtered-value';
+    manager.updateFirstRunState();
+    assert(firstRun.hidden === true, 'Filtered zero results are not an empty credential store');
+    assert(tab.classList['is-pristine-empty'] === false, 'Filters must remain accessible');
+    manager[definition.state] = 'all';
+}
+manager.hasLoaded = false;
+manager.updateFirstRunState();
+assert(firstRun.hidden === true, 'Loading is not an empty credential store');
+""")
+
+    def test_load_errors_are_outside_the_data_only_region(self) -> None:
+        html = POOL_HTML.read_text(encoding="utf-8")
+        self.assertLess(
+            html.index('id="primaryCredsState"'), html.index('id="credentialsFirstRun"')
+        )
+
     def _run_manager_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         if node is None:
@@ -49,7 +237,7 @@ global.document = {{
     }}
 }};
 global.window = {{
-    location: {{href: 'http://localhost/pool', search: ''}},
+    location: {{href: 'http://localhost/credentials', search: ''}},
     history: {{state: null, replaceState() {{}}}}
 }};
 global.sessionStorage = {{getItem() {{ return null; }}, setItem() {{}}}};
@@ -61,6 +249,7 @@ const source = fs.readFileSync({json.dumps(str(MANAGER_SOURCE))}, 'utf8');
 vm.runInThisContext(numberSource);
 vm.runInThisContext(source + '\\n;globalThis.__createCredsManager = createCredsManager;');
 const manager = globalThis.__createCredsManager('primary');
+manager.permissions = new Set(['credentials.read', 'credentials.operate', 'credentials.manage', 'credentials.export']);
 manager.capabilityByVariant = {{
     common: {{operations: ['toggle', 'delete', 'verify']}},
     credit: {{operations: ['toggle', 'delete', 'verify', 'credit_mode']}}
@@ -82,7 +271,17 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         source = CARD_SOURCE.read_text(encoding="utf-8")
 
         self.assertNotIn("isStaticProvider", source)
-        self.assertIn("const isCodexOAuth", source)
+        self.assertNotIn("isCodexOAuth", source)
+        self.assertIn("const supportsQuotaPreview", source)
+        self.assertIn("} else if (supportsQuotaPreview)", source)
+        self.assertIn("manager.credentialSupportsOperation(credInfo, 'quota')", source)
+
+    def test_credential_page_navigation_is_single_flight_and_preserves_content(self) -> None:
+        source = MANAGER_SOURCE.read_text(encoding="utf-8")
+
+        self.assertIn("pageChangePromise: null", source)
+        self.assertIn("preserveContent: true", source)
+        self.assertIn("this.pageChangePromise", source)
 
     def test_select_page_checkbox_uses_the_manager_id_contract(self) -> None:
         html = POOL_HTML.read_text(encoding="utf-8")
@@ -113,19 +312,36 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         source = CARD_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn('class="cred-actions-primary"', source)
-        self.assertIn('class="cred-actions-secondary"', source)
-        self.assertIn("supportsCreditMode", source)
+        self.assertIn('data-credential-command="manage"', source)
+        self.assertIn('class="cred-btn icon-btn view"', source)
+        self.assertIn('class="cred-btn icon-btn disable"', source)
+        self.assertIn('class="cred-btn icon-btn" data-credential-command="test"', source)
+        self.assertIn('class="visually-hidden"', source)
+        self.assertIn("showCredentialManagement(pathId, manager, credInfo", source)
         self.assertIn("supportsQuotaPreview", source)
         primary_start = source.index("const primaryActionButtons")
-        secondary_start = source.index("const secondaryActionButtons")
         test_action = source.index('data-credential-command="test"')
-        credit_action = source.index('data-credential-command="enable_credit"')
-        quota_action = source.index('data-credential-command="quota"')
-        self.assertLess(primary_start, secondary_start)
         self.assertGreater(test_action, primary_start)
-        self.assertLess(test_action, secondary_start)
-        self.assertGreater(credit_action, secondary_start)
-        self.assertGreater(quota_action, secondary_start)
+        self.assertNotIn("const secondaryActionButtons", source)
+        workspace = (ROOT / "frontend/js/ui/credential-management.js").read_text(encoding="utf-8")
+        self.assertIn("capabilities.quota ? credentialManagementSection", workspace)
+        self.assertIn("capabilities.models || capabilities.test", workspace)
+        self.assertIn("data-management-result", workspace)
+        self.assertNotIn("showMessageModal(", workspace)
+        self.assertNotIn('data-credential-command="enable_credit"', source)
+        self.assertNotIn('data-credential-command="disable_credit"', source)
+
+    def test_primary_card_actions_fit_on_one_row(self) -> None:
+        styles = CARD_STYLES.read_text(encoding="utf-8")
+
+        self.assertRegex(
+            styles,
+            r"\.cred-actions-primary\s*\{\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);",
+        )
+        self.assertNotIn(
+            '.cred-actions-primary [data-credential-command="manage"]',
+            styles,
+        )
 
     def test_cards_expose_safe_edit_and_oauth_reauthentication_actions(self) -> None:
         cards = CARD_SOURCE.read_text(encoding="utf-8")
@@ -134,8 +350,8 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertIn("const isManagedCredential", cards)
         self.assertIn("supportsEdit", cards)
         self.assertIn("supportsReauthenticate", cards)
-        self.assertIn('data-credential-command="edit"', cards)
-        self.assertIn('data-credential-command="reauthenticate"', cards)
+        self.assertIn("edit: supportsEdit", cards)
+        self.assertIn("reauthenticate: supportsReauthenticate", cards)
         self.assertIn("credential_badge_environment", cards)
         self.assertIn("showCredentialEditModal(pathId)", cards)
         self.assertIn("reauthenticateCredential(pathId)", cards)

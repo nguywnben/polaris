@@ -11,11 +11,13 @@ from core.anthropic import (
     complete_claude_oauth,
     create_claude_oauth_url,
     normalize_anthropic_api_url,
+    normalize_claude_oauth_url,
     validate_anthropic_api_key,
 )
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ClaudeOAuthCodeRequest, ClaudePlatformCredentialRequest, ConfigSaveRequest
 from core.pool_import import PoolImportError, restore_anthropic_credential
+from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import ANTHROPIC, CLAUDE_CODE, CLAUDE_PLATFORM, api_key_fingerprint
 from core.provider_store import store_claude_platform_credential
 from core.storage_adapter import get_storage_adapter
@@ -39,15 +41,16 @@ ANTHROPIC_CONFIG_KEYS = {
     "claude_oauth_token_url",
     "claude_client_id",
     "claude_user_agent",
+    "claude_platform_api_url",
+    "claude_platform_user_agent",
 }
 ANTHROPIC_CONFIG_SCOPES = {
-    "platform": {"anthropic_api_url"},
+    "shared": {"anthropic_api_url", "claude_user_agent"},
+    "platform": {"claude_platform_api_url", "claude_platform_user_agent"},
     "code": {
-        "anthropic_api_url",
         "claude_oauth_authorize_url",
         "claude_oauth_token_url",
         "claude_client_id",
-        "claude_user_agent",
     },
 }
 
@@ -59,6 +62,8 @@ async def _current_anthropic_config() -> dict:
         "claude_oauth_token_url": await config.get_claude_oauth_token_url(),
         "claude_client_id": await config.get_claude_client_id(),
         "claude_user_agent": await config.get_claude_user_agent(),
+        "claude_platform_api_url": await config.get_claude_platform_api_url(),
+        "claude_platform_user_agent": await config.get_claude_platform_user_agent(),
     }
 
 
@@ -82,33 +87,30 @@ async def save_anthropic_config(
             status_code=400,
             detail=f"Unsupported Anthropic setting(s): {', '.join(unknown_keys)}.",
         )
-    current = await _current_anthropic_config()
     locked = get_env_locked_keys() & ANTHROPIC_CONFIG_KEYS
-    candidate = {
-        key: current[key] if key in locked else new_config.get(key, current[key])
-        for key in ANTHROPIC_CONFIG_KEYS
-    }
+    normalized = {}
     try:
-        api_url = normalize_anthropic_api_url(str(candidate["anthropic_api_url"] or ""))
-        authorize_url = config.validate_https_url(
-            str(candidate["claude_oauth_authorize_url"] or ""),
-            "Claude authorization endpoint",
-        )
-        token_url = config.validate_https_url(
-            str(candidate["claude_oauth_token_url"] or ""),
-            "Claude token endpoint",
-        )
+        for key in new_config.keys() - locked:
+            value = str(new_config[key] or "").strip()
+            if key in {"anthropic_api_url", "claude_platform_api_url"}:
+                value = normalize_anthropic_api_url(value)
+            elif key == "claude_platform_user_agent":
+                if not value or len(value) > 512 or not value.isascii() or not value.isprintable():
+                    raise ValueError(
+                        "HTTP User-Agent must be between 1 and 512 printable ASCII characters."
+                    )
+            elif key in {"claude_oauth_authorize_url", "claude_oauth_token_url"}:
+                label = (
+                    "Claude authorization endpoint"
+                    if key == "claude_oauth_authorize_url"
+                    else "Claude token endpoint"
+                )
+                value = normalize_claude_oauth_url(value, label)
+            elif not value:
+                raise ValueError("Anthropic client settings cannot be empty.")
+            normalized[key] = value
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    normalized = {
-        "anthropic_api_url": api_url,
-        "claude_oauth_authorize_url": authorize_url,
-        "claude_oauth_token_url": token_url,
-        "claude_client_id": str(candidate["claude_client_id"] or "").strip(),
-        "claude_user_agent": str(candidate["claude_user_agent"] or "").strip(),
-    }
-    if not normalized["claude_client_id"] or not normalized["claude_user_agent"]:
-        raise HTTPException(status_code=400, detail="Claude Code client settings cannot be empty.")
     storage_adapter = await get_storage_adapter()
     for key, value in normalized.items():
         if key in new_config and key not in locked:
@@ -131,7 +133,8 @@ async def reset_anthropic_config(
     normalized_scope = str(scope or "").strip().lower()
     if normalized_scope and normalized_scope not in ANTHROPIC_CONFIG_SCOPES:
         raise HTTPException(
-            status_code=400, detail="Anthropic setting scope must be 'platform' or 'code'."
+            status_code=400,
+            detail="Anthropic setting scope must be 'shared', 'platform', or 'code'.",
         )
     locked = get_env_locked_keys() & ANTHROPIC_CONFIG_KEYS
     storage_adapter = await get_storage_adapter()
@@ -228,18 +231,13 @@ def _parse_anthropic_json(content: bytes, source_name: str, credential_type: str
             raise ValueError(f"{source_name} must contain credential objects.")
         candidate_name = f"{source_name} #{index}" if len(values) > 1 else source_name
         if credential_type == "api_key":
+            item = normalize_provider_import(item, "claude_platform")
             api_key = str(item.get("api_key") or "").strip()
             if not api_key:
                 raise ValueError(f"{candidate_name}: API key is missing.")
             candidates.append({"source_filename": candidate_name, "api_key": api_key})
             continue
-        normalized = dict(item)
-        if not normalized.get("access_token") and normalized.get("accessToken"):
-            normalized["access_token"] = normalized["accessToken"]
-        if not normalized.get("refresh_token") and normalized.get("refreshToken"):
-            normalized["refresh_token"] = normalized["refreshToken"]
-        normalized["provider"] = ANTHROPIC
-        normalized["credential_type"] = "oauth"
+        normalized = normalize_provider_import(item, "claude_code")
         candidates.append({"source_filename": candidate_name, "payload": normalized})
     return candidates
 

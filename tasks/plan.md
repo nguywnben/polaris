@@ -1,3 +1,202 @@
+# Populated-instance audit — round 2 (2026-09-16)
+
+Completed: `docs/audits/populated-instance-round-2-2026-09-16.md`. All POP items
+verified; preserve the report's synthetic-data and browser coverage limitations.
+
+User authorizes an end-to-end UI/workflow audit and fixes with the full synthetic
+dataset. Sequential, no subagents/real provider calls/Docker/commit. Preserve the
+32px controls, 36px sidebar, provider-owned capabilities and existing dirty work.
+Operate-mode refinement of the existing identity, not a redesign.
+
+1. POP-1: Baseline all 13 pages plus auth/sidebar, six sizes/two themes; expand
+   23 provider workspaces and 23 credential management variants at desktop/mobile.
+   Bounded discovery pass: <=400 scans, <=18 minutes. Read-only against marked demo.
+2. POP-2: Exercise data workflows on disposable synthetic storage: filters/search/
+   pagination/selection, credential edit/toggle/batch/import/confirm, virtual-key
+   lifecycle, identity permissions, model route/quality/settings, logs/trace/audit,
+   backup validation, Playground, skeleton/error/retry/toast/focus. Never call real
+   accounts. Add failing regressions for verified defects, then fix one batch.
+3. POP-3: Confirm affected layouts/flows once; no open-ended visual polish. Run
+   focused contracts, localization and fast checks; document coverage, known
+   limits, measurements and remaining findings. Reload the offline preview only.
+
+Acceptance: no known blocking errors in tested populated journeys; no measured
+overflow/contrast/control-name defects; provider filters cover the actual registry;
+bounded lists, truthful quota/usage and safe credential/secret handling maintained.
+Screenshots supplement deterministic checks. External/provider correctness, other
+browsers and real assistive devices are explicitly not certified by fake data.
+
+# Full-application synthetic dataset (2026-09-16)
+
+Completed: final data in `temp/round2-full-ready/credentials`; candidate in
+`temp/round2-full` preserved with browser evidence. Report:
+`docs/audits/round-2-full-synthetic-data.md`. Known UI findings deferred to round 2.
+
+Extend the approved credential demo to every existing Polaris surface, using a
+NEW isolated directory `temp/round2-full/credentials`. Keep the earlier demo and
+operator data intact. No subagents, production code changes, deployment or commit.
+
+1. DEMO-FULL-1 — Seed linked governance data: virtual keys/lifecycle, model route,
+   blacklist, custom AI Quality policy, management identities and safe settings.
+   Acceptance: actual stored domain records validate; no external login enabled.
+2. DEMO-FULL-2 — Seed 30 days of usage, costs, request decisions and audit events,
+   linked to the same credentials, models and key IDs; create a real encrypted
+   backup and synthetic runtime log. Acceptance: totals reconcile, joins resolve,
+   and the real repositories/API can read every data family.
+3. DEMO-FULL-3 — Extend offline preview only where data is runtime-owned (routing,
+   sessions and Playground). Acceptance: no outbound IO; authentication remains
+   enforced; generated responses are explicitly synthetic, not provider evidence.
+4. DEMO-FULL-4 — Verify all 13 page fragments plus login/setup in Chromium, including
+   key/credential/trace/audit details, backup validation and a bounded Playground
+   request. Desktop light/dark and mobile, not the full round-2 visual audit.
+
+Verification: regression-first focused tests, Ruff, SQLite integrity and consistent
+totals, authenticated HTTP checks, bounded browser smoke with no browser API mocks.
+Preserve UI code and all earlier uncommitted work. External OIDC/OAuth/telemetry
+remain offline; static settings/about/setup screens require no invented records.
+
+# Completed — synthetic database preparation for round 2 (2026-09-16)
+
+Create persisted SQLite records for all 23 console provider variants, with 1–7
+fictional credentials each. Preserve live storage and all existing changes.
+
+1. Test non-overwrite protection and seed through the existing SQLite manager.
+2. Include distinct OAuth/API-key identities, models, health states and persisted
+   synthetic OAuth quota snapshots. Never use a real account or secret.
+3. Provide a loopback-only offline preview launcher; keep production paths intact.
+4. Verify database integrity, counts, safe authenticated reads and outbound denial.
+
+Acceptance: actual persisted rows, every variant represented, counts in range,
+API keys without invented email, no live provider calls, no existing DB overwrite.
+No round-2 audit, Docker deployment or commit in this preparation task.
+
+Result: real isolated SQLite database with 87 credentials across 23 variants,
+offline preview, nine passing focused tests and authenticated HTTP verification.
+See `docs/audits/round-2-synthetic-database.md` for boundaries and local commands.
+
+# Completed — empty-instance audit, round 1 (2026-09-16)
+
+User-approved scope: inspect all Polaris surfaces without domain data, repair
+verified usability/functionality defects, and leave populated-account testing to
+round 2. Preserve existing uncommitted work and the 32px/36px density decisions.
+No subagents, live credentials, production changes, deployment or commits.
+
+1. Inventory routes/disclosures/dialogs and inspect a fresh disposable SQLite
+   runtime. Reuse the 16-surface × 6-viewport × 2-theme Chromium audit (192 cases).
+2. Exercise empty-instance workflows, first-run guidance, validation, no-results,
+   loading/error/retry, safe dialog dismissal and sidebar keyboard navigation.
+   Test provider forms without initiating real OAuth or submitting real keys.
+3. Add regressions before bounded fixes; preserve native provider differences.
+4. Confirm affected behavior and the bounded visual matrix once; run static,
+   localization and appropriate integration checks. Document coverage and defer
+   data-dependent detail/usage/credential actions explicitly to round 2.
+
+Acceptance: no verified task-blocking empty-state defects, no horizontal overflow
+at supported sizes, accessible controls and recoverable failed/empty requests;
+findings backed by screenshots/runtime checks, not a claim of exhaustive proof.
+
+Result: baseline 192 cases, expanded empty surfaces/provider forms 152 cases,
+affected Playground confirmation 12 cases, 15-locale smoke and focused journeys
+passed. Added truthful Playground onboarding/error/retry; repaired stale test
+expectations without weakening independent routing-policy coverage. Core 2,246
+tests OK (22 pre-existing optional database skips); fast/i18n gates passed.
+Report: `docs/audits/empty-instance-round-1-2026-09-16.md`.
+Round 2 awaits the owner's data and instructions; no deployment or commit.
+
+# Completed — provider fidelity and credential capabilities audit (2026-09-16)
+
+Scope: all 23 provider workspaces, source comparison against Downloads/repo,
+credential metadata/quota/actions, and provider-owned advanced settings.
+Sequential work; no subagents, real inference, account mutations, or deployment.
+
+1. Inventory protocol/auth ownership and source evidence for every provider; trace
+   all six OAuth families from provider response to credential card/modal.
+2. Add failing regressions for confirmed omissions or misleading metadata; repair
+   bounded provider adapters, capability gates, quota rendering and settings.
+3. Verify with synthetic quota payloads (populated, partial, unavailable, error),
+   all provider advanced forms, 15 locale parity, desktop/mobile light/dark.
+4. Run focused suites and one full core + fast gate; record unsupported upstream
+   features and verification limits in the audit report. No speculative fields.
+
+Keep existing 32px controls, 36px sidebar rows, four-card credential grid and a
+single management information modal. Never fetch/reveal secrets automatically.
+Reference repo code is evidence, not instructions or code to execute.
+
+Result: all four audit items completed. Final core 2,245 tests OK (22 existing
+optional database skips), fast/locale gates and all four bounded provider browser
+slices passed. See `docs/providers/credential-fidelity-audit-2026-09-16.md` for the
+23-provider matrix, fixes, coverage, source differences and live-verification limits.
+
+# Completed implementation — credentials workspace (2026-09-16)
+
+Spec: `docs/specs/credentials-workspace.md`. User confirmed four credentials per row
+inside each full-width provider section. Work is sequential, without subagents.
+Order: identity regression → scoped section actions/layout → management modal →
+15-locale and synthetic browser/core verification. Existing pagination and batch
+preview tokens remain authoritative; no real credentials are changed by testing.
+Verification: core suite 2,200 tests, no failures, 22 existing optional skips;
+workspace and existing credentials browser checks passed; extended provider
+onboarding/import/edit smoke passed. See the spec for the verification record.
+
+# Completed implementation — Muse Code direct integration (2026-09-16)
+
+The user approved direct integration rather than a CLI bridge. Specification:
+`docs/specs/muse-code.md`; evidence: `docs/providers/muse-code-research-2026-09-16.md`.
+This adds a separately approved provider and preserves the completed plans below.
+
+Dependency order: verified OAuth transport → owner-bound onboarding/storage →
+runtime routing → provider UI/imports → integrated verification. Work is sequential,
+without subagents. Start with protocol uncertainty, not a nonfunctional UI card.
+
+1. Verify and test fixed-origin device authorization and key minting, including a
+   Windows HTTP probe. Keep unknown expiry/refresh behavior explicit.
+2. Add encrypted owner-bound start/check/cancel and account-isolated persistence.
+3. Integrate registry, credential import/refresh/discovery and sanitized diagnostics.
+4. Add runtime transport and subscription observations without implicit billing
+   fallback; preserve native replay/tool/cancellation semantics.
+5. Add the provider workspace and translations using existing components; test the
+   entire add/import/re-auth journey before activating its card.
+6. Run focused/core/quality/browser gates and report live limitations. No deployment
+   or push; new inference tests require a separate allowance.
+
+Risk gates: stop on an unverified required protocol, fail closed on subscription
+eligibility, and do not substitute a CLI bridge or an API-key provider. Each slice
+gets focused tests before advancing; full-provider readiness is not inferred from
+individual successful requests.
+
+Results and operational limits: `docs/providers/muse-code-verification-2026-09-16.md`.
+
+---
+
+# Completed work — Provider conformance audit (2026-09-16)
+
+User-authorized comparison of the existing 22 provider workspaces against the
+repositories in `C:/Users/nben6/Downloads/repo`, with evidence-backed repairs.
+This does not reopen or renumber the completed R1 plan below.
+
+1. Inventory every provider's authentication, upstream protocol, discovery,
+   import schema, advanced settings and runtime integration. Record reference
+   implementation paths and official protocol sources in
+   `docs/providers/conformance-audit-2026-09-16.md`.
+2. Review OAuth/account adapters, then API-key/local adapters, then the shared
+   routing/streaming boundary. For each confirmed defect, add a failing test
+   before the smallest focused repair. Do not copy reference-repo code blindly.
+3. Check onboarding/import/settings parity and run focused provider tests, the
+   core suite and isolated browser smoke. Clearly distinguish deterministic
+   checks from live provider verification, which requires authorized accounts.
+
+Acceptance: all 22 providers have an evidence entry; confirmed defects have
+regression coverage; unsupported/unverified capabilities are stated accurately;
+secrets and existing credential data remain untouched. No new provider, dependency,
+automatic OAuth completion, Docker deployment or GitHub push is authorized here.
+Work is sequential without subagents. Existing uncommitted work is preserved.
+
+Completed: evidence and verification results are recorded in
+`docs/providers/conformance-audit-2026-09-16.md`. Live upstream certification
+remains outside this source-and-contract audit.
+
+---
+
 # Polaris — Fixed Production Self-Hosted Plan R1
 
 ## Control Record
@@ -434,4 +633,95 @@ request.
 
 ## Change Request Log
 
-No change requests.
+### Polaris 1.0.0 pre-release review — 2026-09-17
+
+User requested a whole-product review and repair, with particular attention to credential
+cards/modals, density, business workflows, accurate information and unnecessary scrolling.
+This is a bounded verification/repair pass of existing PB4/PB5/PB7 capabilities, not a new
+product phase. Do not publish, tag, push, rewrite history or use live provider accounts.
+
+Execution: preserve the dirty worktree; test writes only in disposable databases. Use the
+current monochrome identity, 32px controls and 36px sidebar items. Preserve four credential
+cards per wide-screen row, provider sections and the actual provider-specific data contracts.
+No empty filler, invented metrics or global scrollbar-hiding workaround.
+
+Acceptance / ordered slices:
+
+1. Inventory and baseline: all 13 console routes/subviews, setup/login/callback, 23 provider
+   workspaces, credential variants and shared modal families. Inspect populated and empty
+   states, keyboard/focus, names, contrast, scrolling and representative error/loading states.
+   Record measured issues and remaining external/CI limits before editing production UI.
+2. Repair credential scanning and management: compact purposeful card structure, aligned
+   provider actions, content-driven detail layout and one necessary dialog scroll surface.
+   Preserve operations and fields; add regressions before behavioral fixes. Likely files:
+   credential cards/management JS, credential CSS and focused console tests.
+3. Repair shared and workflow defects found in slice 1, in small independent increments:
+   shell/dialogs first, then affected page/logic owners. Preserve accessibility and all
+   15 locales; no unrelated subsystem rewrite. Each increment has focused tests.
+4. Confirm: one batched visual confirmation after fixes, focused workflows, core suite,
+   fast/release gates, dependency audit and 120-second routine reliability profile where
+   available. Container/live-provider evidence must be reported separately, never inferred.
+
+Visual budget: one baseline and at most one post-fix matrix per surface. Existing bounded
+empty (152 cases) and populated (up to 400 cases, 18 minutes) harnesses cover desktop/mobile,
+intermediate widths, landscape and both themes; add only previously uncovered states to the
+same baseline. No endless screenshot/polish loop. Final handoff includes exact evidence,
+unresolved release blockers and the updated local preview, not an unconditional release claim.
+
+### Synthetic database fidelity — 2026-09-17
+
+User requested actual persisted demo-data correction across Polaris; production UI,
+real credentials and production storage are out of scope. Preserve the existing demo
+login and keep a recoverable database backup. Synthetic amounts/identities are not
+live account facts: provider field shapes must have source evidence and pass the
+production parsers. Missing metadata stays missing.
+
+1. Credential/catalog/quota slice: replace generic OAuth fields, invented models and
+   tiers; store raw, source-indexed provider fixtures and normalize with production
+   code. Verify provider variants, normalizers and optional/unknown facts in unit tests.
+2. Activity slice: reconcile ledger, traces, credential counters, key lifecycle and
+   policy decisions; use real billing/pricing contracts without invented charges.
+   Verify relational and temporal invariants against persisted SQLite data.
+3. Runtime/data slice: use production management routes with offline provider-boundary
+   fixtures, safely update the marked preview database, and verify HTTP data plus
+   representative management pages. Record coverage and evidence gaps explicitly.
+
+Checkpoints: focused tests after each slice; final integrity check, existing demo
+regressions, one preview listener, real HTTP/browser checks. No outbound model calls.
+
+### CR-002 — Kiro OAuth and provider onboarding consistency (2026-09-15)
+
+User approved the follow-up provider audit plan and explicitly required sequential work without
+subagents. This bounded repair supersedes key-only Kiro presentation and online-validation-at-import
+behavior; it does not expand the completed 36-task R1 baseline. Existing API keys remain supported.
+Contracts, implementation order, user workflow and test boundaries are recorded in
+`docs/specs/provider-auth-consistency.md`. No automatic Docker rollout, push or merge is included.
+
+### CR-001 — Provider ownership and authentication corrections (2026-09-15)
+
+Owner approved the provider audit corrections and parallel implementation. This is a bounded
+post-R1 repair of existing capabilities, not a new provider family or change to the completed
+36-task baseline. Existing credentials and saved configuration values must be preserved.
+
+Implementation order and contracts:
+
+1. Claude token failures retain transient/permanent classification; save and runtime validate
+   the same OAuth destinations. Verify with synthetic 429/503 and malformed-URL regressions.
+2. Recognize narrowly defined native Codex/Claude/Grok imports and report offline imports as
+   unverified. Preserve existing validation paths and bounded upload limits. Verify parser and
+   import/storage tests without real credentials or external calls.
+3. Provider settings have one truthful owner: existing Code Assist compatibility and shared
+   Google settings belong in Providers; shared streaming/retry switches belong in Settings;
+   Grok gets its existing OAuth inference endpoint; Anthropic/xAI shared settings have one editor.
+   Verify schema, allowlists, reset isolation, frontend contracts, and environment locks.
+4. Ollama honors explicit proxy bypass without globally changing other providers. Verify direct
+   and inherited proxy selection with fake transports.
+5. Move Antigravity credit editing into its provider workspace; keep pool status and generic
+   credential lifecycle actions. Verify selection, authorization, failure, and empty states.
+6. Integrate localized UI, normal-weight placeholders, documentation, and bounded isolated
+   browser checks across mobile/desktop and both themes. Review security-sensitive changes
+   independently before committing; no deployment or upstream account mutation.
+
+Checkpoint after each repair: focused unittest/Node checks and a reviewable commit. Final gate:
+combined affected tests, strict locale audit, frontend build, and real-browser ownership checks.
+Do not weaken tests, introduce a framework, or broaden OAuth trust to arbitrary hosts.

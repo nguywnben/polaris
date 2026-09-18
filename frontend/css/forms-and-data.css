@@ -1,3 +1,16 @@
+input::placeholder,
+textarea::placeholder {
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+/* Only the disabled empty prompt is a select placeholder, not a real “All” choice. */
+select:has(option[value=""][disabled]:checked),
+select option[value=""][disabled] {
+    font-weight: 400;
+}
+
 .endpoint-code-card,
 .code-block,
 .credentials,
@@ -32,7 +45,8 @@ button.endpoint-code-card:hover {
     margin-bottom: 8px;
 }
 
-.auth-link-header label {
+.auth-link-header label,
+.auth-link-header .auth-link-label {
     margin-bottom: 0;
 }
 
@@ -68,29 +82,29 @@ button.endpoint-code-card:hover {
     gap: 12px;
     padding: 12px;
     background: var(--success-bg);
-    border: 1px solid #cfe8d5;
+    border: 1px solid var(--success-border);
     border-radius: var(--radius);
 }
 
 .save-result.info {
     background: var(--info-bg);
-    border-color: #d6e4ff;
+    border-color: var(--info-border);
 }
 
 .save-result.warning {
     background: var(--warning-bg);
-    border-color: #f0dda7;
+    border-color: var(--warning-border);
 }
 
 .save-result.error {
     background: var(--danger-bg);
-    border-color: #f1c4c0;
+    border-color: var(--danger-border);
 }
 
 .save-result strong {
     display: block;
     color: var(--success);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.35;
 }
@@ -110,12 +124,22 @@ button.endpoint-code-card:hover {
 .save-result p {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.45;
 }
 
 .provider-save-result {
     margin-top: 14px;
+}
+
+.provider-save-result > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.provider-save-result > .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .upload-result {
@@ -143,7 +167,7 @@ button.endpoint-code-card:hover {
 
 .upload-result-file {
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 650;
     line-height: 1.35;
     word-break: break-word;
@@ -151,42 +175,42 @@ button.endpoint-code-card:hover {
 
 .upload-result-message {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.45;
 }
 
-.usage-provider-summary.pool-import-provider-summary {
+.usage-provider-summary.credentials-import-provider-summary {
     grid-template-columns: minmax(0, 1fr);
     margin-bottom: 0;
 }
 
-.pool-import-provider-summary .usage-provider-item {
+.credentials-import-provider-summary .usage-provider-item {
     grid-template-columns: minmax(0, 1fr) minmax(230px, auto);
 }
 
-.pool-import-provider-summary .usage-provider-metrics {
+.credentials-import-provider-summary .usage-provider-metrics {
     width: 100%;
     max-width: 300px;
 }
 
-.message-result-summary.pool-import-summary {
+.message-result-summary.credentials-import-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.pool-import-result-heading {
+.credentials-import-result-heading {
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
 }
 
-.pool-import-result-heading .status-badge {
+.credentials-import-result-heading .status-badge {
     width: auto;
     min-width: 78px;
     flex: 0 0 auto;
 }
 
-.pool-import-result-heading .upload-result-file {
+.credentials-import-result-heading .upload-result-file {
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -198,7 +222,6 @@ button.endpoint-code-card:hover {
 
 .copy-field label {
     margin-bottom: 0;
-    pointer-events: none;
 }
 
 .secret-field {
@@ -229,7 +252,7 @@ button.endpoint-code-card:hover {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 4px 10px;
-    font-size: 12px;
+    font-size: var(--type-meta);
 }
 
 .health-pill {
@@ -294,6 +317,7 @@ button.endpoint-code-card:hover {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .health-item-logo {
@@ -302,10 +326,10 @@ button.endpoint-code-card:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: 0;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .health-item-logo img {
@@ -316,38 +340,65 @@ button.endpoint-code-card:hover {
 
 .health-item-name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--type-label);
     color: var(--text);
+    overflow-wrap: anywhere;
 }
 
-.health-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 12px;
-    line-height: 1.3;
+.health-status {
+    position: relative;
+    flex: 0 0 auto;
 }
 
-.health-badge.badge-healthy {
-    background: var(--success-bg);
-    color: var(--success);
+.health-status-trigger {
+    display: grid;
+    place-items: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: help;
 }
 
-.health-badge.badge-idle {
-    background: var(--control-hover);
-    color: var(--text-muted);
+.health-status-trigger:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
-.health-badge.badge-error {
-    background: var(--danger-bg);
-    color: var(--danger);
+.health-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-healthy .health-status-dot { background: var(--success); }
+.status-idle .health-status-dot { background: var(--warning); }
+.status-error .health-status-dot { background: var(--danger); }
+
+.health-status-tooltip {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 100%;
+    z-index: 10;
+    width: max-content;
+    max-width: min(220px, calc(100vw - 64px));
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--type-meta);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 .health-item-stats {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: var(--type-meta);
     color: var(--text-muted);
     border-top: 1px dashed var(--border);
     padding-top: 8px;
@@ -414,7 +465,7 @@ button.endpoint-code-card:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: var(--type-meta);
     color: var(--text-muted);
 }
 
@@ -468,7 +519,7 @@ button.endpoint-code-card:hover {
     border: 1px solid var(--border-strong);
     padding: 6px 10px;
     border-radius: var(--radius);
-    font-size: 11px;
+    font-size: var(--type-meta);
     white-space: nowrap;
     z-index: 10;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -501,7 +552,7 @@ button.endpoint-code-card:hover {
 .timeline-labels-row {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--type-meta);
     color: var(--text-muted);
     padding: 0 2px;
 }
@@ -517,20 +568,20 @@ button.endpoint-code-card:hover {
 }
 
 .dist-metric-label {
-    font-size: 12px;
+    font-size: var(--type-meta);
     color: var(--text-muted);
     font-weight: 500;
 }
 
 .dist-metric-value {
-    font-size: 16px;
+    font-size: var(--type-section);
     font-weight: 700;
     color: var(--text);
     line-height: 1.2;
 }
 
 .dist-metric-pct {
-    font-size: 11px;
+    font-size: var(--type-meta);
     color: var(--text-soft);
 }
 
@@ -575,7 +626,7 @@ button.endpoint-code-card:hover {
 
 .setup-card-copy {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.5;
 }
 
@@ -599,7 +650,7 @@ button.endpoint-code-card:hover {
     border-radius: 6px;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 680;
     line-height: 1;
     white-space: nowrap;
@@ -655,14 +706,14 @@ button.endpoint-code-card:hover {
 
 .client-route-header strong {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.35;
 }
 
 .client-route-header span {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.35;
     text-align: right;
 }
@@ -688,13 +739,13 @@ button.endpoint-code-card:hover {
 
 .client-route-details dt {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 650;
 }
 
 .client-route-details dd {
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--type-meta);
     word-break: break-word;
 }
 
@@ -719,7 +770,7 @@ button.endpoint-code-card:hover {
 
 .usage-provider-item {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: 16px;
     padding: 12px 14px;
@@ -751,7 +802,7 @@ button.endpoint-code-card:hover {
 
 .usage-provider-name {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.35;
 }
@@ -759,13 +810,13 @@ button.endpoint-code-card:hover {
 .usage-provider-meta {
     margin-top: 2px;
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.35;
 }
 
 .usage-provider-metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(64px, auto));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     margin: 0;
 }
@@ -781,7 +832,7 @@ button.endpoint-code-card:hover {
 
 .usage-provider-metrics dt {
     color: var(--text-soft);
-    font-size: 11px;
+    font-size: var(--type-meta);
     font-weight: 650;
     line-height: 1.3;
 }
@@ -789,7 +840,7 @@ button.endpoint-code-card:hover {
 .usage-provider-metrics dd {
     margin-top: 3px;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.3;
 }
@@ -812,7 +863,7 @@ button.endpoint-code-card:hover {
 .usage-table th {
     background: var(--bg-subtle);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 680;
 }
 
@@ -839,7 +890,7 @@ button.endpoint-code-card:hover {
 
 .usage-cell-primary {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.35;
 }
@@ -847,7 +898,7 @@ button.endpoint-code-card:hover {
 .usage-cell-meta {
     margin-top: 4px;
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.35;
 }
 
@@ -865,7 +916,7 @@ button.endpoint-code-card:hover {
 
 .usage-credential-name {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 680;
     line-height: 1.35;
     word-break: break-word;
@@ -874,14 +925,15 @@ button.endpoint-code-card:hover {
 .usage-credential-meta {
     margin-top: 4px;
     color: var(--text-soft);
-    font-size: 12px;
+    font-size: var(--type-meta);
     line-height: 1.35;
 }
 
-label {
+label,
+.auth-link-label {
     display: block;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--type-meta);
     font-weight: 650;
     margin-bottom: 7px;
 }
@@ -896,7 +948,7 @@ input[type="datetime-local"],
 select,
 textarea {
     width: 100%;
-    min-height: 38px;
+    min-height: var(--control-height);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--surface);
@@ -915,21 +967,24 @@ select {
     padding: 8px 38px 8px 13px;
 }
 
-input:not([type]):not(:disabled):not(.disabled):not(:focus):hover,
-input[type="text"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="password"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="number"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="url"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="search"]:not(:disabled):not(.disabled):not(:focus):hover,
-input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus):hover,
-select:not(:disabled):not(.disabled):not(:focus):hover,
-textarea:not(:disabled):not(.disabled):not(:focus):hover {
+input:not([type]):not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="text"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="password"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="number"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="url"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="search"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+input[type="datetime-local"]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+select:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover],
+textarea:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover] {
     border-color: var(--field-hover-border);
     background-color: var(--control-hover);
 }
 
 textarea {
     border-radius: var(--radius);
+    min-width: 0;
+    max-width: 100%;
+    resize: vertical;
 }
 
 :is(
@@ -969,31 +1024,7 @@ select:open {
     box-shadow: none;
 }
 
-:is(
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea
-):user-invalid:not(:focus) {
-    border-color: var(--danger);
-}
-
-:is(
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea
-):user-invalid:focus {
+:is(input, select, textarea)[aria-invalid="true"]:not(:disabled) {
     border-color: var(--danger);
     box-shadow: none;
 }
@@ -1043,7 +1074,7 @@ textarea[readonly] {
     box-shadow: none;
 }
 
-.secret-field input[readonly]:not(:disabled):not(.disabled):not(:focus):hover {
+.secret-field input[readonly]:not(:disabled):not(.disabled):not(:focus)[data-pointer-hover] {
     background: var(--control-hover);
     border-color: var(--control-hover-border);
 }

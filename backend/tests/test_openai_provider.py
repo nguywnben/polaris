@@ -52,6 +52,12 @@ def jwt_with_claims(claims: dict) -> str:
 
 
 class OpenAIProviderTests(unittest.IsolatedAsyncioTestCase):
+    def test_platform_model_parser_does_not_invent_ids(self):
+        self.assertEqual(
+            parse_openai_model_ids({"data": [{}, {"id": None}, {"id": 123}, {"id": "gpt-test"}]}),
+            ["gpt-test"],
+        )
+
     async def asyncSetUp(self) -> None:
         self.store = InMemoryStateStore()
         self.authorization_key = b"o" * 32

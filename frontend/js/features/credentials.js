@@ -192,9 +192,9 @@ async function downloadAllPrimaryCreds() {
 
 }
 
-function selectPoolImportArchive() {
+function selectCredentialsImportArchive() {
 
-    const input = document.getElementById('poolImportArchiveInput');
+    const input = document.getElementById('credentialsImportArchiveInput');
 
     if (!input) return;
 
@@ -203,7 +203,7 @@ function selectPoolImportArchive() {
 
 }
 
-function getPoolImportActionLabel(result) {
+function getCredentialImportActionLabel(result) {
 
     if (result.status === 'error') return t('failed');
     if (result.status === 'skipped') return t('import.action_skipped');
@@ -213,7 +213,7 @@ function getPoolImportActionLabel(result) {
 
 }
 
-function buildPoolImportResultHtml(data) {
+function buildCredentialImportResultHtml(data) {
 
     const providerItems = Object.values(data.providers || {}).filter((provider) => {
 
@@ -226,7 +226,7 @@ function buildPoolImportResultHtml(data) {
         ? `
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('provider_activity'))}</div>
-                <div class="usage-provider-summary pool-import-provider-summary">
+                <div class="usage-provider-summary credentials-import-provider-summary">
                     ${providerItems.map((provider) => {
                         const providerMeta = getCredentialProviderMeta({ provider: provider.provider }, 'usage');
                         const imported = Number(provider.created || 0)
@@ -261,23 +261,25 @@ function buildPoolImportResultHtml(data) {
     const results = Array.isArray(data.results) ? data.results : [];
     const visibleResults = results.slice(0, 24);
     const fileResults = visibleResults.map((result) => {
+        const unverified = result.status === 'success' && result.validation_status === 'unverified';
 
         const statusClass = result.status === 'error'
             ? 'danger'
-            : result.status === 'skipped'
+            : result.status === 'skipped' || unverified
                 ? 'muted'
                 : 'success';
         const providerName = result.provider_name
             || (result.provider ? getCredentialProviderMeta({ provider: result.provider }, 'usage').name : `${t('provider')}: ${t('modal.unknown')}`);
         const sourceName = result.source_filename || result.filename || t('credential');
+        const message = unverified ? t('provider.ownership.import_unverified') : result.message || t('import.pool_complete');
 
         return `
             <div class="upload-result-item">
-                <div class="pool-import-result-heading">
-                    <span class="status-badge ${statusClass}">${escapeHtml(getPoolImportActionLabel(result))}</span>
+                <div class="credentials-import-result-heading">
+                    <span class="status-badge ${statusClass}">${escapeHtml(getCredentialImportActionLabel(result))}</span>
                     <span class="upload-result-file">${escapeHtml(sourceName)}</span>
                 </div>
-                <div class="upload-result-message">${escapeHtml(providerName)} - ${escapeHtml(ensureTerminalPunctuation(result.message || t('import.pool_complete')))}</div>
+                <div class="upload-result-message">${escapeHtml(providerName)} - <span${unverified ? ' data-i18n="provider.ownership.import_unverified"' : ''}>${escapeHtml(ensureTerminalPunctuation(message))}</span></div>
             </div>
         `;
 
@@ -297,10 +299,10 @@ function buildPoolImportResultHtml(data) {
 
     return `
         <div class="message-result-panel">
-            <div class="message-result-intro">${escapeHtml(t('import.archive_intro'))}</div>
+            <div class="message-result-intro" data-i18n="import.archive_intro">${escapeHtml(t('import.archive_intro'))}</div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('runtime.summary'))}</div>
-                <div class="message-result-summary pool-import-summary">${renderMessageResultRows([
+                <div class="message-result-summary credentials-import-summary">${renderMessageResultRows([
                     [t('credential'), Number(data.total_count || 0)],
                     [t('import.action_added'), Number(data.uploaded_count || 0)],
                     [t('import.action_skipped'), Number(data.skipped_count || 0)],
@@ -314,7 +316,7 @@ function buildPoolImportResultHtml(data) {
 
 }
 
-async function handlePoolImportArchive(event) {
+async function handleCredentialsImportArchive(event) {
 
     const input = event.target;
     const archive = input?.files?.[0];
@@ -337,7 +339,7 @@ async function handlePoolImportArchive(event) {
 
     }
 
-    const button = document.getElementById('poolImportArchiveBtn');
+    const button = document.getElementById('credentialsImportArchiveBtn');
     const originalLabel = button?.textContent || t('import_zip');
     const formData = new FormData();
     const controller = new AbortController();
@@ -375,7 +377,7 @@ async function handlePoolImportArchive(event) {
                 : 'success';
 
         showStatus(data.message || t('import.pool_complete'), variant);
-        showMessageModal(t('pool_import_title'), buildPoolImportResultHtml(data), variant, { html: true });
+        showMessageModal(t('pool_import_title'), buildCredentialImportResultHtml(data), variant, { html: true });
         await AppState.primaryCreds.refresh();
         refreshUsageStats();
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -17,6 +18,8 @@ from config import (
     get_claude_client_id,
     get_claude_oauth_authorize_url,
     get_claude_oauth_token_url,
+    get_claude_platform_api_url,
+    get_claude_platform_user_agent,
     get_claude_user_agent,
 )
 from core.credential_manager import credential_manager
@@ -38,6 +41,9 @@ CLAUDE_OAUTH_BETA = "claude-code-20250219,oauth-2025-04-20"
 CLAUDE_SCOPE = "org:create_api_key user:profile user:inference"
 ANTHROPIC_REDIRECT_URI = "http://localhost:4283/callback"
 CLAUDE_FLOW_TTL_SECONDS = 15 * 60
+CLAUDE_OAUTH_HOSTS = frozenset(
+    {"claude.ai", "api.anthropic.com", "console.anthropic.com", "platform.claude.com"}
+)
 _stream_tool_blocks: Dict[str, Dict[int, Dict[str, Any]]] = {}
 
 
@@ -70,17 +76,21 @@ def normalize_anthropic_api_url(value: str) -> str:
 
 def normalize_claude_oauth_url(value: str, label: str) -> str:
     normalized = str(value or "").strip().rstrip("/")
+    if (
+        not normalized
+        or len(normalized) > 2048
+        or any(character.isspace() or not character.isprintable() for character in normalized)
+        or any(character in normalized for character in ("?", "#", "\\"))
+    ):
+        raise ValueError(f"{label} must be a plain HTTPS endpoint without a query or fragment.")
     parsed = urlparse(normalized)
     hostname = str(parsed.hostname or "").lower()
     if parsed.scheme != "https" or not hostname:
         raise ValueError(f"{label} must use HTTPS.")
-    if (
-        hostname != "anthropic.com"
-        and not hostname.endswith(".anthropic.com")
-        and hostname != "claude.ai"
-        and not hostname.endswith(".claude.ai")
-    ):
-        raise ValueError(f"{label} must use an Anthropic or Claude host.")
+    if parsed.username is not None or parsed.password is not None or parsed.port not in (None, 443):
+        raise ValueError(f"{label} must not contain credentials or a nonstandard port.")
+    if hostname not in CLAUDE_OAUTH_HOSTS:
+        raise ValueError(f"{label} must use a supported official Anthropic or Claude host.")
     return normalized
 
 
@@ -119,7 +129,8 @@ def parse_anthropic_model_ids(payload: Any) -> List[str]:
         raise AnthropicError("Anthropic returned an invalid model response.", 502)
     models: List[str] = []
     for item in payload["data"]:
-        model_id = str(item.get("id") if isinstance(item, dict) else "").strip()
+        raw_id = item.get("id") if isinstance(item, dict) else None
+        model_id = raw_id.strip() if isinstance(raw_id, str) else ""
         if (
             model_id
             and len(model_id) <= MAX_MODEL_ID_LENGTH
@@ -132,16 +143,21 @@ def parse_anthropic_model_ids(payload: Any) -> List[str]:
     return models
 
 
-async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str]:
+async def get_anthropic_connection(credential_data: Dict[str, Any]) -> tuple[str, str]:
+    """Select settings using the same credential discriminator as authentication."""
+    if str(credential_data.get("credential_type") or "").strip().lower() == "oauth":
+        return normalize_anthropic_api_url(
+            await get_anthropic_api_url()
+        ), await get_claude_user_agent()
+    return (
+        normalize_anthropic_api_url(await get_claude_platform_api_url()),
+        await get_claude_platform_user_agent(),
+    )
+
+
+async def _fetch_model_page(url: str, headers: Dict[str, str]) -> Any:
     try:
-        response = await get_async(
-            f"{normalize_anthropic_api_url(await get_anthropic_api_url())}/models",
-            headers=build_anthropic_headers(
-                credential_data,
-                user_agent=await get_claude_user_agent(),
-            ),
-            timeout=30.0,
-        )
+        response = await get_async(url, headers=headers, timeout=30.0)
     except (httpx.HTTPError, OSError) as exc:
         raise AnthropicError(
             "Unable to reach Anthropic. Check outbound network and proxy settings.", 502
@@ -156,9 +172,45 @@ async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str
             502 if response.status_code >= 500 else 400,
         )
     try:
-        model_ids = parse_anthropic_model_ids(response.json())
+        return response.json()
     except ValueError as exc:
         raise AnthropicError("Anthropic returned invalid JSON.", 502) from exc
+
+
+async def fetch_anthropic_model_ids(credential_data: Dict[str, Any]) -> List[str]:
+    base_url, user_agent = await get_anthropic_connection(credential_data)
+    url = f"{base_url}/models"
+    headers = build_anthropic_headers(credential_data, user_agent=user_agent)
+    model_ids: List[str] = []
+    cursors: set[str] = set()
+    cursor = ""
+    try:
+        async with asyncio.timeout(30.0):
+            # https://platform.claude.com/docs/en/api/models/list
+            for _ in range(20):
+                page_url = f"{url}?{urlencode({'after_id': cursor})}" if cursor else url
+                payload = await _fetch_model_page(page_url, headers)
+                model_ids = list(dict.fromkeys([*model_ids, *parse_anthropic_model_ids(payload)]))
+                if len(model_ids) > MAX_DECLARED_MODELS:
+                    raise AnthropicError("Anthropic model catalog is too large.", 502)
+                has_more = payload.get("has_more", False)
+                if not isinstance(has_more, bool):
+                    raise AnthropicError("Anthropic returned invalid pagination.", 502)
+                if not has_more:
+                    break
+                cursor = payload.get("last_id")
+                if (
+                    not isinstance(cursor, str)
+                    or not cursor
+                    or len(cursor) > 4096
+                    or cursor in cursors
+                ):
+                    raise AnthropicError("Anthropic returned invalid pagination.", 502)
+                cursors.add(cursor)
+            else:
+                raise AnthropicError("Anthropic model catalog exceeds the page limit.", 502)
+    except TimeoutError as exc:
+        raise AnthropicError("Anthropic model discovery timed out.", 504) from exc
     if not model_ids:
         raise AnthropicError("The credential is valid, but no Claude models are available.")
     return model_ids
@@ -270,7 +322,10 @@ async def _exchange_claude_token(payload: Dict[str, Any], token_url: str) -> Dic
     except (httpx.HTTPError, OSError) as exc:
         raise AnthropicError("Unable to reach the Claude OAuth token endpoint.", 502) from exc
     if response.status_code != 200:
-        raise AnthropicError("Claude Code did not accept the OAuth authorization response.")
+        status = response.status_code
+        if status not in {400, 401, 403, 429} and not 500 <= status <= 599:
+            status = 502
+        raise AnthropicError("Claude Code did not accept the OAuth authorization response.", status)
     try:
         tokens = response.json()
     except ValueError as exc:
@@ -448,6 +503,9 @@ def _merge_message(
 def gemini_request_to_anthropic(
     payload: Dict[str, Any], model: str, streaming: bool
 ) -> Dict[str, Any]:
+    from core.tool_history import link_tool_history
+
+    payload = link_tool_history(payload)
     messages: List[Dict[str, Any]] = []
     for item in payload.get("contents") or []:
         if not isinstance(item, dict):

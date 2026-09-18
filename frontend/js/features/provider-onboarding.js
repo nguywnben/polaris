@@ -16,7 +16,8 @@ const PROVIDER_SETTINGS_LOADERS = Object.freeze({
 const PROVIDER_SETTINGS_LOADED = Object.freeze({
     antigravity: () => AppState.antigravityConfigLoaded === true,
     'google-ai-studio': () => document.getElementById('googleAiStudioApiUrl')?.dataset.loaded === 'true',
-    xai: () => document.getElementById('xaiSettingsForm')?.dataset.loaded === 'true',
+    xai: () => ['grokSettingsForm', 'xaiConsoleSettingsForm', 'xaiSharedSettingsForm']
+        .every(id => document.getElementById(id)?.dataset.loaded === 'true'),
     openai: () => document.getElementById('openaiPlatformSettingsForm')?.dataset.loaded === 'true',
     anthropic: () => document.getElementById('claudePlatformSettingsForm')?.dataset.loaded === 'true'
 });
@@ -69,9 +70,7 @@ function renderProviderCapabilityBadges() {
         const badges = selector?.querySelector('.provider-capabilities');
         if (!capability || !selector || !badges) return;
 
-        const labels = [getProviderCapabilityLabel(capability.credential_type)];
-        if (capability.operations.includes('test')) labels.push(t('providers.connection_test'));
-        if (capability.operations.includes('model_discovery')) labels.push(t('providers.model_discovery'));
+        const labels = [variantId === 'kiro' ? 'OAuth · API Key' : variantId === 'cloudflare' ? t('provider.auth.token_label') : getProviderCapabilityLabel(capability.credential_type)];
         badges.replaceChildren(...labels.map((label) => {
             const badge = document.createElement('span');
             badge.textContent = label;
@@ -135,17 +134,20 @@ async function loadProviderWorkspaceSettings(providerId) {
     return providerSettingsPromises.get(family);
 }
 
-function presentProviderImportPanel(panel) {
+function presentProviderImportPanel(panel, providerId) {
     if (!panel) return;
     panel.classList.add('provider-import-panel');
     const title = panel.querySelector(':scope > .card-title');
     if (!title) return;
     title.dataset.providerStaticLabel = 'import';
     title.textContent = t('providers.import_credentials');
+    addProviderCredentialExample(panel, providerId);
 }
 
 function createProviderDisclosure(panel, {providerId}) {
-    if (!panel || panel.matches('details')) return panel;
+    // Operator-only configuration stays out of the provider UI, including its
+    // disclosure header. Family loaders may still retain its stored settings.
+    if (!panel || panel.matches('details, [data-operator-only]')) return panel;
     const details = document.createElement('details');
     details.className = `${panel.className} provider-secondary-disclosure`;
     details.dataset.disclosureKind = 'settings';
@@ -165,17 +167,47 @@ function createProviderDisclosure(panel, {providerId}) {
 }
 
 function enhanceProviderWorkspaces() {
+    // Apply the same affordances to legacy HTML and generated workspaces.
+    for (const id of ['xaiCredentialForm', 'googleAiStudioCredentialForm', 'openaiPlatformCredentialForm', 'claudePlatformCredentialForm']) {
+        const form = document.getElementById(id);
+        const button = form?.querySelector('[type="submit"]');
+        if (!button) continue;
+        button.dataset.i18n = 'provider.ui.add_key';
+        button.textContent = t('provider.ui.add_key');
+        const description = form.closest('.tool-panel')?.querySelector('.provider-tool-copy');
+        if (description) {
+            description.dataset.i18n = 'provider.ui.key_intro';
+            description.textContent = t('provider.ui.key_intro');
+        }
+    }
     Object.entries(PROVIDER_ONBOARDING_VARIANTS).forEach(([providerId, definition]) => {
         const workspace = document.getElementById(definition.panelId);
+        const descriptionKey = document.getElementById(definition.selectorId)
+            ?.querySelector('.provider-summary p')?.dataset.i18n;
+        const introduction = workspace?.querySelector('.provider-workspace-heading p');
+        if (descriptionKey && introduction) {
+            introduction.dataset.i18n = descriptionKey;
+            introduction.textContent = t(descriptionKey);
+        }
         const tools = workspace?.querySelector(':scope > .provider-tools-grid');
         const importPanel = tools?.querySelector(':scope > .tool-panel:nth-child(2)');
-        presentProviderImportPanel(importPanel);
+        presentProviderImportPanel(importPanel, providerId);
+        if (tools) {
+            tools.querySelectorAll('.upload-title').forEach(title => {
+                const key = ['google_ai_studio', 'xai_console', 'openai_platform', 'claude_platform'].includes(providerId)
+                    || (!['kiro', 'muse_code'].includes(providerId) && typeof EXTENDED_PROVIDER_UI !== 'undefined' && EXTENDED_PROVIDER_UI[providerId])
+                    ? 'provider.copy.drop_keys' : 'provider.copy.drop_credentials';
+                title.dataset.i18n = key;
+                title.textContent = t(key);
+            });
+        }
 
         const settingsPanel = workspace?.querySelector(
             '.provider-settings-panel, .provider-advanced-panel'
         );
         createProviderDisclosure(settingsPanel, {providerId});
     });
+    prepareProviderKeyEntries();
 }
 
 async function loadProviderOnboarding(options = {}) {

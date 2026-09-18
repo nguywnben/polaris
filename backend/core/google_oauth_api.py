@@ -13,6 +13,10 @@ from config import (
     get_resource_manager_api_url,
     get_service_usage_api_url,
 )
+from core.google_endpoint_validation import (
+    normalize_google_api_base_url,
+    normalize_google_oauth_base_url,
+)
 from core.httpx_client import get_async, post_async
 from log import log
 
@@ -22,19 +26,19 @@ class TokenError(Exception):
 
 
 async def _format_oauth_request_error(action: str, token_url: str, error: Exception) -> str:
-    """Build an actionable OAuth network error without exposing request payloads."""
+    """Keep actionable transport hints without proxy credentials or raw exception text."""
     try:
         proxy_url = await get_proxy_config()
     except Exception:
         proxy_url = None
 
     proxy_hint = (
-        f"Current outbound proxy: {proxy_url}." if proxy_url else "No outbound proxy is configured."
+        "An outbound proxy is configured." if proxy_url else "No outbound proxy is configured."
     )
     return (
         f"{action}: Unable to reach OAuth token endpoint {token_url}. "
         "Check the OAuth API endpoint and configure an outbound proxy if this environment cannot access Google directly. "
-        f"{proxy_hint} Original error: {error}"
+        f"{proxy_hint} Transport error type: {type(error).__name__}."
     )
 
 
@@ -81,10 +85,15 @@ class Credentials:
             "grant_type": "refresh_token",
         }
         try:
-            oauth_base_url = await get_oauth_proxy_url()
+            oauth_base_url = normalize_google_oauth_base_url(
+                await get_oauth_proxy_url(), setting_name="oauth_url"
+            )
             token_url = f"{oauth_base_url.rstrip('/')}/token"
             response = await post_async(
-                token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                follow_redirects=False,
             )
             response.raise_for_status()
             token_data = response.json()
@@ -207,10 +216,15 @@ class Flow:
             "grant_type": "authorization_code",
         }
         try:
-            oauth_base_url = await get_oauth_proxy_url()
+            oauth_base_url = normalize_google_oauth_base_url(
+                await get_oauth_proxy_url(), setting_name="oauth_url"
+            )
             token_url = f"{oauth_base_url.rstrip('/')}/token"
             response = await post_async(
-                token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                follow_redirects=False,
             )
             response.raise_for_status()
             token_data = response.json()
@@ -272,10 +286,15 @@ class ServiceAccount:
         assertion = self.create_jwt()
         data = {"grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer", "assertion": assertion}
         try:
-            oauth_base_url = await get_oauth_proxy_url()
+            oauth_base_url = normalize_google_oauth_base_url(
+                await get_oauth_proxy_url(), setting_name="oauth_url"
+            )
             token_url = f"{oauth_base_url.rstrip('/')}/token"
             response = await post_async(
-                token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                follow_redirects=False,
             )
             response.raise_for_status()
             token_data = response.json()
@@ -308,10 +327,14 @@ class ServiceAccount:
 async def get_user_info(credentials: Credentials) -> Optional[Dict[str, Any]]:
     await credentials.refresh_if_needed()
     try:
-        googleapis_base_url = await get_googleapis_proxy_url()
+        googleapis_base_url = normalize_google_oauth_base_url(
+            await get_googleapis_proxy_url(), setting_name="google_apis_url"
+        )
         userinfo_url = f"{googleapis_base_url.rstrip('/')}/oauth2/v2/userinfo"
         response = await get_async(
-            userinfo_url, headers={"Authorization": f"Bearer {credentials.access_token}"}
+            userinfo_url,
+            headers={"Authorization": f"Bearer {credentials.access_token}"},
+            follow_redirects=False,
         )
         response.raise_for_status()
         return response.json()
@@ -356,9 +379,11 @@ async def fetch_user_email_from_file(cred_data: Dict[str, Any]) -> Optional[str]
 
 async def validate_token(token: str) -> Optional[Dict[str, Any]]:
     try:
-        oauth_base_url = await get_oauth_proxy_url()
+        oauth_base_url = normalize_google_oauth_base_url(
+            await get_oauth_proxy_url(), setting_name="oauth_url"
+        )
         tokeninfo_url = f"{oauth_base_url.rstrip('/')}/tokeninfo?access_token={token}"
-        response = await get_async(tokeninfo_url)
+        response = await get_async(tokeninfo_url, follow_redirects=False)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -378,12 +403,14 @@ async def enable_required_apis(credentials: Credentials, project_id: str) -> boo
         required_services = ["geminicloudassist.googleapis.com", "cloudaicompanion.googleapis.com"]
         for service in required_services:
             log.info(f"Checking API service: {service}")
-            service_usage_base_url = await get_service_usage_api_url()
+            service_usage_base_url = normalize_google_api_base_url(
+                await get_service_usage_api_url(), setting_name="service_usage_url"
+            )
             check_url = (
                 f"{service_usage_base_url.rstrip('/')}/v1/projects/{project_id}/services/{service}"
             )
             try:
-                check_response = await get_async(check_url, headers=headers)
+                check_response = await get_async(check_url, headers=headers, follow_redirects=False)
                 if check_response.status_code == 200:
                     service_data = check_response.json()
                     if service_data.get("state") == "ENABLED":
@@ -393,7 +420,9 @@ async def enable_required_apis(credentials: Credentials, project_id: str) -> boo
                 log.debug(f"Failed to check service status. Attempting to enable it now: {e}")
             enable_url = f"{service_usage_base_url.rstrip('/')}/v1/projects/{project_id}/services/{service}:enable"
             try:
-                enable_response = await post_async(enable_url, headers=headers, json={})
+                enable_response = await post_async(
+                    enable_url, headers=headers, json={}, follow_redirects=False
+                )
                 if enable_response.status_code in [200, 201]:
                     log.info(f"Service {service} enabled.")
                 elif enable_response.status_code == 400:
@@ -422,10 +451,12 @@ async def get_user_projects(credentials: Credentials) -> List[Dict[str, Any]]:
             "Authorization": f"Bearer {credentials.access_token}",
             "User-Agent": "code_assist-oauth/1.0",
         }
-        resource_manager_base_url = await get_resource_manager_api_url()
+        resource_manager_base_url = normalize_google_api_base_url(
+            await get_resource_manager_api_url(), setting_name="resource_manager_url"
+        )
         url = f"{resource_manager_base_url.rstrip('/')}/v1/projects"
         log.info(f"Calling API: {url}")
-        response = await get_async(url, headers=headers)
+        response = await get_async(url, headers=headers, follow_redirects=False)
         log.info(f"API response status code: {response.status_code}")
         if response.status_code != 200:
             log.error(f"API response content: {response.text}")

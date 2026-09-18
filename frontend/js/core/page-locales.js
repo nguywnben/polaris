@@ -358,7 +358,7 @@ const SETTINGS_PAGE_VALUES = {
         'Console Access', 'Change the console password without revealing its current value.', 'Configured', 'Current console password', 'New console password', 'Leave blank to keep unchanged', 'Confirm console password', 'Update password',
         'Failover Policy', 'Define automatic disabling, retries, and alternate credential behavior.', 'Auto-disable credentials for configured error codes', 'Auto-disable error codes', 'Retry failed requests with alternate credentials', 'Maximum retries', 'Retry interval in seconds',
         'Runtime Logs', 'Control server-side verbosity and bounded file retention.', 'Log level', 'Maximum file size in MB', 'Retained backup files', 'Logs rotate automatically when the active file reaches the configured size.',
-        'Storage and Proxy', 'Set credential storage and outbound network routing.', 'Credentials directory', 'Outbound proxy', 'Use the proxy when the server cannot reach OAuth or provider APIs directly.', 'Changing the credentials directory requires an application restart.',
+        'Storage and Connections', 'Set credential storage and outbound network routing.', 'Credentials directory', 'Outbound proxy', 'Use the proxy when the server cannot reach OAuth or provider APIs directly.', 'Changing the credentials directory requires an application restart.',
         'Routing Policy', 'Balance healthy credentials automatically or prefer one provider while retaining fallback.', 'Credential selection', 'Balanced', 'Provider priority', 'Preferred provider', 'Automatic', 'Inference timeout in seconds', 'If the preferred provider is unavailable or incompatible with a model, routing continues through another healthy provider.',
         'Code Assist Compatibility', 'Optional legacy client and endpoint compatibility.', 'Hosted Keep-Alive', 'Optional periodic requests for hosting platforms that suspend idle services.', 'Keep-alive URL', 'Use current URL', 'Keep-alive interval in seconds'
     ],
@@ -369,7 +369,7 @@ const SETTINGS_PAGE_VALUES = {
         'Truy cập bảng điều khiển', 'Đổi mật khẩu bảng điều khiển mà không hiển thị giá trị hiện tại.', 'Đã cấu hình', 'Mật khẩu bảng điều khiển hiện tại', 'Mật khẩu bảng điều khiển mới', 'Để trống nếu không muốn thay đổi', 'Xác nhận mật khẩu bảng điều khiển', 'Cập nhật mật khẩu',
         'Chính sách dự phòng', 'Thiết lập cơ chế tự động vô hiệu hóa, thử lại và chuyển sang thông tin xác thực khác.', 'Tự động tắt thông tin xác thực khi gặp mã lỗi đã cấu hình', 'Mã lỗi dùng để tự động tắt', 'Thử lại yêu cầu thất bại bằng thông tin xác thực khác', 'Số lần thử lại tối đa', 'Khoảng nghỉ giữa các lần thử, tính bằng giây',
         'Nhật ký thời gian chạy', 'Kiểm soát mức độ chi tiết ở phía máy chủ và giới hạn số tệp lưu lại.', 'Mức nhật ký', 'Kích thước tệp tối đa, tính bằng MB', 'Số tệp sao lưu giữ lại', 'Nhật ký tự động luân chuyển khi tệp hiện tại đạt kích thước đã cấu hình.',
-        'Lưu trữ và proxy', 'Thiết lập nơi lưu thông tin xác thực và tuyến mạng đi ra.', 'Thư mục thông tin xác thực', 'Proxy kết nối ra ngoài', 'Dùng proxy khi máy chủ không thể kết nối trực tiếp tới OAuth hoặc API của nhà cung cấp.', 'Thay đổi thư mục thông tin xác thực cần khởi động lại ứng dụng.',
+        'Lưu trữ và kết nối', 'Thiết lập nơi lưu thông tin xác thực và tuyến mạng đi ra.', 'Thư mục thông tin xác thực', 'Proxy kết nối ra ngoài', 'Dùng proxy khi máy chủ không thể kết nối trực tiếp tới OAuth hoặc API của nhà cung cấp.', 'Thay đổi thư mục thông tin xác thực cần khởi động lại ứng dụng.',
         'Chính sách định tuyến', 'Tự động cân bằng các thông tin xác thực khỏe mạnh hoặc ưu tiên một nhà cung cấp nhưng vẫn giữ tuyến dự phòng.', 'Cách chọn thông tin xác thực', 'Cân bằng', 'Ưu tiên nhà cung cấp', 'Nhà cung cấp ưu tiên', 'Tự động', 'Thời gian chờ suy luận, tính bằng giây', 'Nếu nhà cung cấp ưu tiên không khả dụng hoặc không hỗ trợ mô hình, hệ thống tiếp tục định tuyến qua một nhà cung cấp khỏe mạnh khác.',
         'Tương thích Code Assist', 'Khả năng tương thích tùy chọn với ứng dụng khách và endpoint cũ.', 'Duy trì hoạt động trên nền tảng lưu trữ', 'Gửi yêu cầu định kỳ cho các nền tảng tạm dừng dịch vụ khi không hoạt động.', 'URL duy trì hoạt động', 'Dùng URL hiện tại', 'Chu kỳ duy trì hoạt động, tính bằng giây'
     ],
@@ -380,7 +380,7 @@ const SETTINGS_PAGE_VALUES = {
         '控制台访问', '更改控制台密码，但不会显示当前密码。', '已配置', '当前控制台密码', '新控制台密码', '留空则保持不变', '确认控制台密码', '更新密码',
         '故障转移策略', '定义自动停用、重试和备用凭据行为。', '遇到指定错误码时自动停用凭据', '自动停用错误码', '使用其他凭据重试失败的请求', '最大重试次数', '重试间隔（秒）',
         '运行时日志', '控制服务器日志详细程度和保留文件数量。', '日志级别', '最大文件大小（MB）', '保留的备份文件', '当前日志文件达到指定大小后会自动轮换。',
-        '存储与代理', '设置凭据存储位置和出站网络路由。', '凭据目录', '出站代理', '服务器无法直接访问 OAuth 或提供商 API 时使用代理。', '更改凭据目录后必须重启应用。',
+        '存储与连接', '设置凭据存储位置和出站网络路由。', '凭据目录', '出站代理', '服务器无法直接访问 OAuth 或提供商 API 时使用代理。', '更改凭据目录后必须重启应用。',
         '路由策略', '自动平衡健康凭据，或在保留故障转移的同时优先使用某个提供商。', '凭据选择方式', '均衡', '提供商优先级', '首选提供商', '自动', '推理超时（秒）', '如果首选提供商不可用或不支持某个模型，系统会继续通过其他健康的提供商进行路由。',
         'Code Assist 兼容性', '可选的旧版客户端与 endpoint 兼容设置。', '托管平台保活', '为会暂停空闲服务的托管平台定期发送可选请求。', '保活 URL', '使用当前 URL', '保活间隔（秒）'
     ],
@@ -391,7 +391,7 @@ const SETTINGS_PAGE_VALUES = {
         '主控台存取', '變更主控台密碼，但不顯示目前的密碼。', '已設定', '目前的主控台密碼', '新的主控台密碼', '留空則維持不變', '確認主控台密碼', '更新密碼',
         '容錯策略', '設定自動停用、重試與替代憑證行為。', '遇到指定錯誤碼時自動停用憑證', '自動停用錯誤碼', '使用其他憑證重試失敗的請求', '最大重試次數', '重試間隔（秒）',
         '執行階段日誌', '控制伺服器日誌詳細程度與保留檔案數量。', '日誌層級', '檔案大小上限（MB）', '保留的備份檔案', '目前的日誌檔達到指定大小後會自動輪替。',
-        '儲存與 Proxy', '設定憑證儲存位置與對外網路路由。', '憑證目錄', '對外 Proxy', '伺服器無法直接存取 OAuth 或供應商 API 時使用 Proxy。', '變更憑證目錄後必須重新啟動應用程式。',
+        '儲存與連線', '設定憑證儲存位置與對外網路路由。', '憑證目錄', '對外 Proxy', '伺服器無法直接存取 OAuth 或供應商 API 時使用 Proxy。', '變更憑證目錄後必須重新啟動應用程式。',
         '路由策略', '自動平衡健康憑證，或在保留容錯的同時優先使用某個供應商。', '憑證選取方式', '平衡', '供應商優先順序', '偏好的供應商', '自動', '推理逾時（秒）', '如果偏好的供應商無法使用或不支援某個模型，系統會繼續透過其他健康的供應商路由。',
         'Code Assist 相容性', '選用的舊版用戶端與 endpoint 相容設定。', '託管平台保活', '為會暫停閒置服務的託管平台定期傳送選用請求。', '保活 URL', '使用目前 URL', '保活間隔（秒）'
     ],
@@ -402,7 +402,7 @@ const SETTINGS_PAGE_VALUES = {
         'Konsolenzugriff', 'Konsolenpasswort ändern, ohne den aktuellen Wert anzuzeigen.', 'Konfiguriert', 'Aktuelles Konsolenpasswort', 'Neues Konsolenpasswort', 'Leer lassen, um es nicht zu ändern', 'Konsolenpasswort bestätigen', 'Passwort aktualisieren',
         'Failover-Richtlinie', 'Automatische Deaktivierung, Wiederholungen und alternative Zugänge festlegen.', 'Zugänge bei festgelegten Fehlercodes automatisch deaktivieren', 'Fehlercodes für automatische Deaktivierung', 'Fehlgeschlagene Anfragen mit alternativen Zugängen wiederholen', 'Maximale Wiederholungen', 'Wiederholungsintervall in Sekunden',
         'Laufzeitprotokolle', 'Serverseitige Detailtiefe und begrenzte Dateiaufbewahrung steuern.', 'Protokollstufe', 'Maximale Dateigröße in MB', 'Aufbewahrte Sicherungsdateien', 'Protokolle werden automatisch rotiert, sobald die aktive Datei die konfigurierte Größe erreicht.',
-        'Speicher und Proxy', 'Speicherort der Zugangsdaten und ausgehendes Netzwerk-Routing festlegen.', 'Verzeichnis für Zugangsdaten', 'Ausgehender Proxy', 'Proxy verwenden, wenn der Server OAuth- oder Provider-APIs nicht direkt erreichen kann.', 'Eine Änderung des Verzeichnisses erfordert einen Anwendungsneustart.',
+        'Speicher und Verbindungen', 'Speicherort der Zugangsdaten und ausgehendes Netzwerk-Routing festlegen.', 'Verzeichnis für Zugangsdaten', 'Ausgehender Proxy', 'Proxy verwenden, wenn der Server OAuth- oder Provider-APIs nicht direkt erreichen kann.', 'Eine Änderung des Verzeichnisses erfordert einen Anwendungsneustart.',
         'Routing-Richtlinie', 'Gesunde Zugänge automatisch ausgleichen oder einen Provider mit weiterhin aktivem Fallback bevorzugen.', 'Auswahl der Zugangsdaten', 'Ausgewogen', 'Provider-Priorität', 'Bevorzugter Provider', 'Automatisch', 'Zeitlimit für Inferenz in Sekunden', 'Ist der bevorzugte Provider nicht verfügbar oder mit einem Modell inkompatibel, wird über einen anderen gesunden Provider weitergeleitet.',
         'Code-Assist-Kompatibilität', 'Optionale Kompatibilität mit älteren Clients und Endpunkten.', 'Keep-Alive für Hosting', 'Optionale regelmäßige Anfragen für Hosting-Plattformen, die inaktive Dienste anhalten.', 'Keep-Alive-URL', 'Aktuelle URL verwenden', 'Keep-Alive-Intervall in Sekunden'
     ],
@@ -413,7 +413,7 @@ const SETTINGS_PAGE_VALUES = {
         'Acceso a la consola', 'Cambia la contraseña de la consola sin mostrar su valor actual.', 'Configurada', 'Contraseña actual de la consola', 'Nueva contraseña de la consola', 'Déjalo en blanco para no cambiarla', 'Confirmar contraseña de la consola', 'Actualizar contraseña',
         'Política de conmutación', 'Define la desactivación automática, los reintentos y el uso de credenciales alternativas.', 'Desactivar credenciales automáticamente para los códigos de error configurados', 'Códigos de error para desactivación automática', 'Reintentar solicitudes fallidas con credenciales alternativas', 'Máximo de reintentos', 'Intervalo entre reintentos en segundos',
         'Registros de ejecución', 'Controla el nivel de detalle del servidor y la retención limitada de archivos.', 'Nivel de registro', 'Tamaño máximo del archivo en MB', 'Archivos de copia de seguridad conservados', 'Los registros rotan automáticamente cuando el archivo activo alcanza el tamaño configurado.',
-        'Almacenamiento y proxy', 'Configura el almacenamiento de credenciales y el enrutamiento de red saliente.', 'Directorio de credenciales', 'Proxy saliente', 'Usa el proxy cuando el servidor no pueda acceder directamente a OAuth o a las API de los proveedores.', 'Cambiar el directorio de credenciales requiere reiniciar la aplicación.',
+        'Almacenamiento y conexiones', 'Configura el almacenamiento de credenciales y el enrutamiento de red saliente.', 'Directorio de credenciales', 'Proxy saliente', 'Usa el proxy cuando el servidor no pueda acceder directamente a OAuth o a las API de los proveedores.', 'Cambiar el directorio de credenciales requiere reiniciar la aplicación.',
         'Política de enrutamiento', 'Equilibra automáticamente las credenciales disponibles o prioriza un proveedor manteniendo el respaldo.', 'Selección de credenciales', 'Equilibrada', 'Prioridad del proveedor', 'Proveedor preferido', 'Automático', 'Tiempo de espera de inferencia en segundos', 'Si el proveedor preferido no está disponible o no admite un modelo, el enrutamiento continúa mediante otro proveedor disponible.',
         'Compatibilidad con Code Assist', 'Compatibilidad opcional con clientes y endpoints antiguos.', 'Keep-alive para alojamiento', 'Solicitudes periódicas opcionales para plataformas que suspenden servicios inactivos.', 'URL de keep-alive', 'Usar URL actual', 'Intervalo de keep-alive en segundos'
     ],
@@ -424,7 +424,7 @@ const SETTINGS_PAGE_VALUES = {
         'Accès à la console', 'Modifiez le mot de passe de la console sans afficher sa valeur actuelle.', 'Configuré', 'Mot de passe actuel de la console', 'Nouveau mot de passe de la console', 'Laissez vide pour ne pas le modifier', 'Confirmer le mot de passe de la console', 'Mettre à jour le mot de passe',
         'Politique de basculement', 'Définissez la désactivation automatique, les nouvelles tentatives et le recours à d’autres identifiants.', 'Désactiver automatiquement les identifiants pour les codes d’erreur configurés', 'Codes d’erreur de désactivation automatique', 'Relancer les requêtes échouées avec d’autres identifiants', 'Nombre maximal de tentatives', 'Intervalle entre les tentatives en secondes',
         'Journaux d’exécution', 'Contrôlez le niveau de détail côté serveur et la rétention limitée des fichiers.', 'Niveau de journalisation', 'Taille maximale du fichier en Mo', 'Fichiers de sauvegarde conservés', 'Les journaux changent automatiquement de fichier lorsque le fichier actif atteint la taille configurée.',
-        'Stockage et proxy', 'Configurez le stockage des identifiants et le routage réseau sortant.', 'Répertoire des identifiants', 'Proxy sortant', 'Utilisez le proxy lorsque le serveur ne peut pas joindre directement OAuth ou les API des fournisseurs.', 'La modification du répertoire des identifiants nécessite un redémarrage.',
+        'Stockage et connexions', 'Configurez le stockage des identifiants et le routage réseau sortant.', 'Répertoire des identifiants', 'Proxy sortant', 'Utilisez le proxy lorsque le serveur ne peut pas joindre directement OAuth ou les API des fournisseurs.', 'La modification du répertoire des identifiants nécessite un redémarrage.',
         'Politique de routage', 'Répartissez automatiquement la charge entre les identifiants disponibles ou privilégiez un fournisseur tout en conservant le basculement.', 'Sélection des identifiants', 'Équilibrée', 'Priorité du fournisseur', 'Fournisseur privilégié', 'Automatique', 'Délai d’inférence en secondes', 'Si le fournisseur privilégié est indisponible ou incompatible avec un modèle, le routage se poursuit via un autre fournisseur disponible.',
         'Compatibilité Code Assist', 'Compatibilité facultative avec les anciens clients et endpoints.', 'Keep-alive pour l’hébergement', 'Requêtes périodiques facultatives pour les plateformes qui suspendent les services inactifs.', 'URL de keep-alive', 'Utiliser l’URL actuelle', 'Intervalle de keep-alive en secondes'
     ],
@@ -435,7 +435,7 @@ const SETTINGS_PAGE_VALUES = {
         'Akses Konsol', 'Ubah kata sandi konsol tanpa menampilkan nilai saat ini.', 'Sudah dikonfigurasi', 'Kata sandi konsol saat ini', 'Kata sandi konsol baru', 'Biarkan kosong agar tidak berubah', 'Konfirmasi kata sandi konsol', 'Perbarui kata sandi',
         'Kebijakan Failover', 'Atur penonaktifan otomatis, percobaan ulang, dan penggunaan kredensial alternatif.', 'Nonaktifkan kredensial otomatis untuk kode kesalahan yang dikonfigurasi', 'Kode kesalahan penonaktifan otomatis', 'Ulangi permintaan gagal dengan kredensial alternatif', 'Percobaan ulang maksimum', 'Jeda percobaan ulang dalam detik',
         'Log Runtime', 'Atur tingkat detail server dan batas penyimpanan file.', 'Level log', 'Ukuran file maksimum dalam MB', 'File cadangan yang dipertahankan', 'Log dirotasi otomatis saat file aktif mencapai ukuran yang ditetapkan.',
-        'Penyimpanan dan Proxy', 'Atur penyimpanan kredensial dan perutean jaringan keluar.', 'Direktori kredensial', 'Proxy keluar', 'Gunakan proxy saat server tidak dapat menjangkau OAuth atau API penyedia secara langsung.', 'Perubahan direktori kredensial memerlukan mulai ulang aplikasi.',
+        'Penyimpanan dan Koneksi', 'Atur penyimpanan kredensial dan perutean jaringan keluar.', 'Direktori kredensial', 'Proxy keluar', 'Gunakan proxy saat server tidak dapat menjangkau OAuth atau API penyedia secara langsung.', 'Perubahan direktori kredensial memerlukan mulai ulang aplikasi.',
         'Kebijakan Perutean', 'Seimbangkan kredensial sehat secara otomatis atau utamakan satu penyedia sambil tetap mempertahankan fallback.', 'Pemilihan kredensial', 'Seimbang', 'Prioritas penyedia', 'Penyedia pilihan', 'Otomatis', 'Batas waktu inferensi dalam detik', 'Jika penyedia pilihan tidak tersedia atau tidak mendukung model, perutean dilanjutkan melalui penyedia sehat lainnya.',
         'Kompatibilitas Code Assist', 'Kompatibilitas opsional untuk klien dan endpoint lama.', 'Keep-Alive Hosting', 'Permintaan berkala opsional untuk platform hosting yang menangguhkan layanan saat tidak aktif.', 'URL keep-alive', 'Gunakan URL saat ini', 'Interval keep-alive dalam detik'
     ],
@@ -446,7 +446,7 @@ const SETTINGS_PAGE_VALUES = {
         'Accesso alla console', 'Modifica la password della console senza mostrarne il valore attuale.', 'Configurata', 'Password attuale della console', 'Nuova password della console', 'Lascia vuoto per non modificarla', 'Conferma password della console', 'Aggiorna password',
         'Criteri di failover', 'Definisci disattivazione automatica, nuovi tentativi e uso di credenziali alternative.', 'Disattiva automaticamente le credenziali per i codici di errore configurati', 'Codici di errore per la disattivazione automatica', 'Riprova le richieste non riuscite con credenziali alternative', 'Numero massimo di tentativi', 'Intervallo tra i tentativi in secondi',
         'Log di runtime', 'Controlla il livello di dettaglio del server e la conservazione limitata dei file.', 'Livello di log', 'Dimensione massima del file in MB', 'File di backup conservati', 'I log ruotano automaticamente quando il file attivo raggiunge la dimensione configurata.',
-        'Archiviazione e proxy', 'Configura l’archiviazione delle credenziali e il routing di rete in uscita.', 'Directory delle credenziali', 'Proxy in uscita', 'Usa il proxy quando il server non può raggiungere direttamente OAuth o le API dei provider.', 'La modifica della directory richiede il riavvio dell’applicazione.',
+        'Archiviazione e connessioni', 'Configura l’archiviazione delle credenziali e il routing di rete in uscita.', 'Directory delle credenziali', 'Proxy in uscita', 'Usa il proxy quando il server non può raggiungere direttamente OAuth o le API dei provider.', 'La modifica della directory richiede il riavvio dell’applicazione.',
         'Criteri di routing', 'Bilancia automaticamente le credenziali disponibili o privilegia un provider mantenendo il fallback.', 'Selezione delle credenziali', 'Bilanciata', 'Priorità del provider', 'Provider preferito', 'Automatica', 'Timeout di inferenza in secondi', 'Se il provider preferito non è disponibile o non supporta un modello, il routing continua tramite un altro provider disponibile.',
         'Compatibilità Code Assist', 'Compatibilità facoltativa con client ed endpoint meno recenti.', 'Keep-alive per hosting', 'Richieste periodiche facoltative per piattaforme che sospendono i servizi inattivi.', 'URL keep-alive', 'Usa URL attuale', 'Intervallo keep-alive in secondi'
     ],
@@ -457,7 +457,7 @@ const SETTINGS_PAGE_VALUES = {
         'コンソールアクセス', '現在の値を表示せずにコンソールのパスワードを変更します。', '設定済み', '現在のコンソールパスワード', '新しいコンソールパスワード', '変更しない場合は空欄', 'コンソールパスワードの確認', 'パスワードを更新',
         'フェイルオーバーポリシー', '自動無効化、再試行、代替認証情報の動作を設定します。', '指定したエラーコードで認証情報を自動的に無効化する', '自動無効化の対象エラーコード', '失敗したリクエストを別の認証情報で再試行する', '最大再試行回数', '再試行間隔（秒）',
         'ランタイムログ', 'サーバー側のログ詳細度とファイル保持数を設定します。', 'ログレベル', '最大ファイルサイズ（MB）', '保持するバックアップファイル数', '現在のログファイルが指定サイズに達すると自動的にローテーションします。',
-        'ストレージとプロキシ', '認証情報の保存先と外向きネットワーク経路を設定します。', '認証情報ディレクトリ', '外向きプロキシ', 'サーバーから OAuth またはプロバイダー API に直接接続できない場合にプロキシを使用します。', '認証情報ディレクトリの変更にはアプリケーションの再起動が必要です。',
+        'ストレージと接続', '認証情報の保存先と外向きネットワーク経路を設定します。', '認証情報ディレクトリ', '外向きプロキシ', 'サーバーから OAuth またはプロバイダー API に直接接続できない場合にプロキシを使用します。', '認証情報ディレクトリの変更にはアプリケーションの再起動が必要です。',
         'ルーティングポリシー', '正常な認証情報を自動的に分散するか、フォールバックを維持したまま特定のプロバイダーを優先します。', '認証情報の選択方法', '均等', 'プロバイダー優先', '優先プロバイダー', '自動', '推論タイムアウト（秒）', '優先プロバイダーが利用できない、またはモデルに対応していない場合は、別の正常なプロバイダーでルーティングを続行します。',
         'Code Assist 互換性', '旧クライアントおよび endpoint との互換性を必要に応じて有効にします。', 'ホスティング向け Keep-Alive', 'アイドル状態のサービスを停止するホスティング環境に、必要に応じて定期リクエストを送信します。', 'Keep-Alive URL', '現在の URL を使用', 'Keep-Alive 間隔（秒）'
     ],
@@ -468,7 +468,7 @@ const SETTINGS_PAGE_VALUES = {
         '콘솔 접근', '현재 값을 노출하지 않고 콘솔 비밀번호를 변경합니다.', '설정됨', '현재 콘솔 비밀번호', '새 콘솔 비밀번호', '변경하지 않으려면 비워 두세요', '콘솔 비밀번호 확인', '비밀번호 업데이트',
         '장애 조치 정책', '자동 비활성화, 재시도 및 대체 자격 증명 동작을 설정합니다.', '지정한 오류 코드에서 자격 증명 자동 비활성화', '자동 비활성화 오류 코드', '실패한 요청을 다른 자격 증명으로 재시도', '최대 재시도 횟수', '재시도 간격(초)',
         '런타임 로그', '서버 로그의 상세 수준과 제한된 파일 보존을 설정합니다.', '로그 수준', '최대 파일 크기(MB)', '보존할 백업 파일', '활성 로그 파일이 지정 크기에 도달하면 자동으로 순환됩니다.',
-        '저장소 및 프록시', '자격 증명 저장 위치와 외부 네트워크 경로를 설정합니다.', '자격 증명 디렉터리', '외부 프록시', '서버가 OAuth 또는 공급자 API에 직접 연결할 수 없을 때 프록시를 사용합니다.', '자격 증명 디렉터리를 변경하면 애플리케이션을 다시 시작해야 합니다.',
+        '저장소 및 연결', '자격 증명 저장 위치와 외부 네트워크 경로를 설정합니다.', '자격 증명 디렉터리', '외부 프록시', '서버가 OAuth 또는 공급자 API에 직접 연결할 수 없을 때 프록시를 사용합니다.', '자격 증명 디렉터리를 변경하면 애플리케이션을 다시 시작해야 합니다.',
         '라우팅 정책', '정상 자격 증명을 자동으로 분산하거나 장애 조치를 유지하면서 특정 공급자를 우선합니다.', '자격 증명 선택', '균형', '공급자 우선순위', '선호 공급자', '자동', '추론 제한 시간(초)', '선호 공급자를 사용할 수 없거나 모델과 호환되지 않으면 다른 정상 공급자를 통해 계속 라우팅합니다.',
         'Code Assist 호환성', '이전 클라이언트 및 endpoint와의 선택적 호환성입니다.', '호스팅 Keep-Alive', '유휴 서비스를 중단하는 호스팅 플랫폼에 선택적으로 주기적인 요청을 보냅니다.', 'Keep-Alive URL', '현재 URL 사용', 'Keep-Alive 간격(초)'
     ],
@@ -479,7 +479,7 @@ const SETTINGS_PAGE_VALUES = {
         'Acesso ao console', 'Altere a senha do console sem revelar o valor atual.', 'Configurada', 'Senha atual do console', 'Nova senha do console', 'Deixe em branco para não alterar', 'Confirmar senha do console', 'Atualizar senha',
         'Política de failover', 'Defina desativação automática, novas tentativas e uso de credenciais alternativas.', 'Desativar automaticamente credenciais nos códigos de erro configurados', 'Códigos de erro para desativação automática', 'Repetir solicitações com falha usando credenciais alternativas', 'Máximo de tentativas', 'Intervalo entre tentativas em segundos',
         'Logs de execução', 'Controle o nível de detalhes do servidor e a retenção limitada de arquivos.', 'Nível de log', 'Tamanho máximo do arquivo em MB', 'Arquivos de backup mantidos', 'Os logs são alternados automaticamente quando o arquivo ativo atinge o tamanho configurado.',
-        'Armazenamento e proxy', 'Configure o armazenamento de credenciais e o roteamento de rede de saída.', 'Diretório de credenciais', 'Proxy de saída', 'Use o proxy quando o servidor não puder acessar diretamente o OAuth ou as APIs dos provedores.', 'A alteração do diretório exige reiniciar o aplicativo.',
+        'Armazenamento e conexões', 'Configure o armazenamento de credenciais e o roteamento de rede de saída.', 'Diretório de credenciais', 'Proxy de saída', 'Use o proxy quando o servidor não puder acessar diretamente o OAuth ou as APIs dos provedores.', 'A alteração do diretório exige reiniciar o aplicativo.',
         'Política de roteamento', 'Equilibre automaticamente as credenciais disponíveis ou priorize um provedor mantendo o fallback.', 'Seleção de credenciais', 'Equilibrada', 'Prioridade do provedor', 'Provedor preferencial', 'Automático', 'Tempo limite de inferência em segundos', 'Se o provedor preferencial estiver indisponível ou não aceitar um modelo, o roteamento continuará por outro provedor disponível.',
         'Compatibilidade com Code Assist', 'Compatibilidade opcional com clientes e endpoints antigos.', 'Keep-alive de hospedagem', 'Solicitações periódicas opcionais para plataformas que suspendem serviços ociosos.', 'URL de keep-alive', 'Usar URL atual', 'Intervalo de keep-alive em segundos'
     ],
@@ -490,7 +490,7 @@ const SETTINGS_PAGE_VALUES = {
         'Доступ к консоли', 'Измените пароль консоли, не раскрывая его текущее значение.', 'Настроен', 'Текущий пароль консоли', 'Новый пароль консоли', 'Оставьте пустым, чтобы не менять', 'Подтвердите пароль консоли', 'Обновить пароль',
         'Политика отказоустойчивости', 'Настройте автоматическое отключение, повторные попытки и использование других учётных данных.', 'Автоматически отключать учётные данные при указанных кодах ошибок', 'Коды ошибок для автоматического отключения', 'Повторять неудачные запросы с другими учётными данными', 'Максимум повторных попыток', 'Интервал между попытками в секундах',
         'Журналы среды выполнения', 'Настройте подробность серверных журналов и ограниченное хранение файлов.', 'Уровень журналирования', 'Максимальный размер файла в МБ', 'Сохраняемые резервные файлы', 'При достижении заданного размера активный файл журнала автоматически ротируется.',
-        'Хранилище и прокси', 'Настройте хранение учётных данных и исходящую сетевую маршрутизацию.', 'Каталог учётных данных', 'Исходящий прокси', 'Используйте прокси, если сервер не может напрямую обратиться к OAuth или API провайдеров.', 'Изменение каталога требует перезапуска приложения.',
+        'Хранилище и подключения', 'Настройте хранение учётных данных и исходящую сетевую маршрутизацию.', 'Каталог учётных данных', 'Исходящий прокси', 'Используйте прокси, если сервер не может напрямую обратиться к OAuth или API провайдеров.', 'Изменение каталога требует перезапуска приложения.',
         'Политика маршрутизации', 'Автоматически распределяйте запросы между доступными учётными данными или отдавайте приоритет провайдеру, сохраняя резервный маршрут.', 'Выбор учётных данных', 'Сбалансированный', 'Приоритет провайдера', 'Предпочтительный провайдер', 'Автоматически', 'Тайм-аут вывода в секундах', 'Если предпочтительный провайдер недоступен или не поддерживает модель, запрос будет направлен другому доступному провайдеру.',
         'Совместимость с Code Assist', 'Необязательная совместимость со старыми клиентами и endpoint.', 'Keep-Alive для хостинга', 'Необязательные периодические запросы для платформ, приостанавливающих неактивные службы.', 'URL Keep-Alive', 'Использовать текущий URL', 'Интервал Keep-Alive в секундах'
     ],
@@ -501,7 +501,7 @@ const SETTINGS_PAGE_VALUES = {
         'การเข้าถึงคอนโซล', 'เปลี่ยนรหัสผ่านคอนโซลโดยไม่แสดงค่าปัจจุบัน', 'ตั้งค่าแล้ว', 'รหัสผ่านคอนโซลปัจจุบัน', 'รหัสผ่านคอนโซลใหม่', 'เว้นว่างไว้หากไม่ต้องการเปลี่ยน', 'ยืนยันรหัสผ่านคอนโซล', 'อัปเดตรหัสผ่าน',
         'นโยบายสำรอง', 'กำหนดการปิดใช้งานอัตโนมัติ การลองใหม่ และการใช้ข้อมูลรับรองสำรอง', 'ปิดใช้งานข้อมูลรับรองอัตโนมัติเมื่อพบรหัสข้อผิดพลาดที่กำหนด', 'รหัสข้อผิดพลาดสำหรับปิดใช้งานอัตโนมัติ', 'ลองคำขอที่ล้มเหลวใหม่ด้วยข้อมูลรับรองอื่น', 'จำนวนครั้งที่ลองใหม่สูงสุด', 'ช่วงเวลาลองใหม่เป็นวินาที',
         'บันทึกรันไทม์', 'กำหนดระดับรายละเอียดฝั่งเซิร์ฟเวอร์และจำนวนไฟล์ที่เก็บไว้', 'ระดับบันทึก', 'ขนาดไฟล์สูงสุดเป็น MB', 'ไฟล์สำรองที่เก็บไว้', 'ระบบจะหมุนเวียนบันทึกอัตโนมัติเมื่อไฟล์ปัจจุบันถึงขนาดที่กำหนด',
-        'พื้นที่จัดเก็บและพร็อกซี', 'กำหนดที่เก็บข้อมูลรับรองและเส้นทางเครือข่ายขาออก', 'ไดเรกทอรีข้อมูลรับรอง', 'พร็อกซีขาออก', 'ใช้พร็อกซีเมื่อเซิร์ฟเวอร์เข้าถึง OAuth หรือ API ของผู้ให้บริการโดยตรงไม่ได้', 'การเปลี่ยนไดเรกทอรีข้อมูลรับรองต้องเริ่มแอปพลิเคชันใหม่',
+        'พื้นที่จัดเก็บและการเชื่อมต่อ', 'กำหนดที่เก็บข้อมูลรับรองและเส้นทางเครือข่ายขาออก', 'ไดเรกทอรีข้อมูลรับรอง', 'พร็อกซีขาออก', 'ใช้พร็อกซีเมื่อเซิร์ฟเวอร์เข้าถึง OAuth หรือ API ของผู้ให้บริการโดยตรงไม่ได้', 'การเปลี่ยนไดเรกทอรีข้อมูลรับรองต้องเริ่มแอปพลิเคชันใหม่',
         'นโยบายการกำหนดเส้นทาง', 'กระจายคำขอระหว่างข้อมูลรับรองที่พร้อมใช้งานโดยอัตโนมัติ หรือให้ความสำคัญกับผู้ให้บริการหนึ่งรายโดยยังคงเส้นทางสำรอง', 'การเลือกข้อมูลรับรอง', 'สมดุล', 'ลำดับความสำคัญของผู้ให้บริการ', 'ผู้ให้บริการที่ต้องการ', 'อัตโนมัติ', 'เวลาหมดอายุการอนุมานเป็นวินาที', 'หากผู้ให้บริการที่ต้องการใช้ไม่ได้หรือไม่รองรับโมเดล ระบบจะกำหนดเส้นทางผ่านผู้ให้บริการอื่นที่พร้อมใช้งาน',
         'ความเข้ากันได้กับ Code Assist', 'รองรับไคลเอนต์และ endpoint รุ่นเก่าแบบเลือกใช้', 'Keep-Alive สำหรับโฮสติ้ง', 'ส่งคำขอเป็นระยะสำหรับแพลตฟอร์มที่หยุดบริการเมื่อไม่มีการใช้งาน', 'URL Keep-Alive', 'ใช้ URL ปัจจุบัน', 'ช่วงเวลา Keep-Alive เป็นวินาที'
     ],
@@ -512,7 +512,7 @@ const SETTINGS_PAGE_VALUES = {
         'Konsol Erişimi', 'Mevcut değeri göstermeden konsol parolasını değiştirin.', 'Yapılandırıldı', 'Mevcut konsol parolası', 'Yeni konsol parolası', 'Değiştirmemek için boş bırakın', 'Konsol parolasını doğrulayın', 'Parolayı güncelle',
         'Yük Devretme Politikası', 'Otomatik devre dışı bırakma, yeniden deneme ve alternatif kimlik bilgisi davranışını belirleyin.', 'Yapılandırılan hata kodlarında kimlik bilgilerini otomatik devre dışı bırak', 'Otomatik devre dışı bırakma hata kodları', 'Başarısız istekleri alternatif kimlik bilgileriyle yeniden dene', 'En fazla yeniden deneme', 'Saniye cinsinden yeniden deneme aralığı',
         'Çalışma Zamanı Günlükleri', 'Sunucu tarafı ayrıntı düzeyini ve sınırlı dosya saklamayı yönetin.', 'Günlük düzeyi', 'MB cinsinden en büyük dosya boyutu', 'Saklanan yedek dosyalar', 'Etkin dosya yapılandırılan boyuta ulaştığında günlükler otomatik olarak döndürülür.',
-        'Depolama ve Proxy', 'Kimlik bilgisi depolamasını ve dış ağ yönlendirmesini ayarlayın.', 'Kimlik bilgileri dizini', 'Giden proxy', 'Sunucu OAuth veya sağlayıcı API’lerine doğrudan erişemediğinde proxy kullanın.', 'Kimlik bilgileri dizinini değiştirmek uygulamanın yeniden başlatılmasını gerektirir.',
+        'Depolama ve Bağlantılar', 'Kimlik bilgisi depolamasını ve dış ağ yönlendirmesini ayarlayın.', 'Kimlik bilgileri dizini', 'Giden proxy', 'Sunucu OAuth veya sağlayıcı API’lerine doğrudan erişemediğinde proxy kullanın.', 'Kimlik bilgileri dizinini değiştirmek uygulamanın yeniden başlatılmasını gerektirir.',
         'Yönlendirme Politikası', 'Sağlıklı kimlik bilgilerini otomatik dengeleyin veya geri dönüşü korurken bir sağlayıcıyı tercih edin.', 'Kimlik bilgisi seçimi', 'Dengeli', 'Sağlayıcı önceliği', 'Tercih edilen sağlayıcı', 'Otomatik', 'Saniye cinsinden çıkarım zaman aşımı', 'Tercih edilen sağlayıcı kullanılamıyorsa veya modelle uyumlu değilse yönlendirme başka bir sağlıklı sağlayıcı üzerinden devam eder.',
         'Code Assist Uyumluluğu', 'Eski istemci ve endpoint uyumluluğu için isteğe bağlı ayarlar.', 'Barındırma Keep-Alive', 'Boştaki hizmetleri askıya alan platformlar için isteğe bağlı düzenli istekler.', 'Keep-Alive URL’si', 'Geçerli URL’yi kullan', 'Saniye cinsinden Keep-Alive aralığı'
     ]
@@ -1555,7 +1555,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     en: [
         'Provider Health & Status Matrix', 'Real-time status, active credentials, and traffic health across all supported AI providers.',
         'Operational', 'Idle / Ready', 'Issues / Cooldown',
-        'In Cooldown', 'Degraded (<60%)',
+        'In Cooldown', '<60%',
         'Token Consumption & Traffic Distribution', 'Visual breakdown of input, output, cached, and reasoning tokens with estimated cost savings.',
         'Input', 'Output', 'Cached', 'Reasoning',
         'Hourly Traffic Volume', 'Peak', 'Now'
@@ -1563,7 +1563,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     'zh-CN': [
         '提供商健康状态矩阵', '各 AI 提供商的实时状态、有效凭据与流量健康度。',
         '正常运行', '就绪 / 空闲', '异常 / 冷却中',
-        '冷却中', '性能下降 (<60%)',
+        '冷却中', '<60%',
         '令牌消耗与流量分布', '直观展示输入、输出、缓存及推理令牌以及预估成本节约。',
         '输入', '输出', '缓存', '推理',
         '每小时流量分布', '峰值', '现在'
@@ -1571,7 +1571,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     'zh-TW': [
         '供應商健康狀態矩陣', '各 AI 供應商的即時狀態、有效憑證與流量健康度。',
         '正常運作', '就緒 / 閒置', '異常 / 冷卻中',
-        '冷卻中', '效能下降 (<60%)',
+        '冷卻中', '<60%',
         '權杖消耗與流量分佈', '直觀展示輸入、輸出、快取及推理權杖與預估成本節省。',
         '輸入', '輸出', '快取', '推理',
         '每小時流量分佈', '峰值', '現在'
@@ -1579,7 +1579,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     de: [
         'Provider-Zustandsmatrix', 'Echtzeit-Status, aktive Zugangsdaten und Datenverkehrszustand aller KI-Provider.',
         'Betriebsbereit', 'Bereit / Leerlauf', 'Probleme / Wartezeit',
-        'In Wartezeit', 'Beeinträchtigt (<60%)',
+        'In Wartezeit', '<60%',
         'Token-Verbrauch & Verkehrsverteilung', 'Visuelle Aufschlüsselung von Eingabe-, Ausgabe-, Cache- und Reasoning-Token mit geschätzten Einsparungen.',
         'Eingabe', 'Ausgabe', 'Zwischengespeichert', 'Reasoning',
         'Stündliches Verkehrsaufkommen', 'Spitze', 'Jetzt'
@@ -1587,7 +1587,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     es: [
         'Matriz de estado de proveedores', 'Estado en tiempo real, credenciales activas y salud del tráfico en todos los proveedores de IA.',
         'Operativo', 'Inactivo / Listo', 'Problemas / Enfriamiento',
-        'En enfriamiento', 'Degradado (<60%)',
+        'En enfriamiento', '<60%',
         'Consumo de tokens y distribución de tráfico', 'Desglose visual de tokens de entrada, salida, caché y razonamiento con ahorro estimado.',
         'Entrada', 'Salida', 'En caché', 'Razonamiento',
         'Volumen de tráfico por hora', 'Pico', 'Ahora'
@@ -1595,7 +1595,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     fr: [
         'Matrice d’état des fournisseurs', 'État en temps réel, identifiants actifs et flux de trafic sur tous les fournisseurs d’IA.',
         'Opérationnel', 'Prêt / Inactif', 'Problèmes / Refroidissement',
-        'En refroidissement', 'Dégradé (<60%)',
+        'En refroidissement', '<60%',
         'Consommation de tokens et distribution du trafic', 'Répartition visuelle des tokens d’entrée, de sortie, de cache et de raisonnement avec économies estimées.',
         'Entrée', 'Sortie', 'En cache', 'Raisonnement',
         'Volume de trafic horaire', 'Pic', 'Maintenant'
@@ -1603,7 +1603,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     id: [
         'Matriks Kesehatan Penyedia', 'Status waktu nyata, kredensial aktif, dan kesehatan lalu lintas di semua penyedia AI.',
         'Operasional', 'Siap / Menganggur', 'Masalah / Cooldown',
-        'Dalam Cooldown', 'Menurun (<60%)',
+        'Dalam Cooldown', '<60%',
         'Konsumsi Token & Distribusi Trafik', 'Rincian visual token input, output, cache, dan penalaran dengan estimasi penghematan biaya.',
         'Input', 'Output', 'Cache', 'Penalaran',
         'Volume Lalu Lintas Per Jam', 'Puncak', 'Sekarang'
@@ -1611,7 +1611,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     it: [
         'Matrice di salute dei provider', 'Stato in tempo reale, credenziali attive e salute del traffico su tutti i provider IA.',
         'Operativo', 'Pronto / Inattivo', 'Problemi / Cooldown',
-        'In cooldown', 'Degradato (<60%)',
+        'In cooldown', '<60%',
         'Consumo di token e distribuzione del traffico', 'Ripartizione visiva dei token di input, output, cache e ragionamento con risparmi stimati.',
         'Input', 'Output', 'In cache', 'Ragionamento',
         'Volume di traffico orario', 'Picco', 'Ora'
@@ -1619,7 +1619,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     ja: [
         'プロバイダー状態マトリックス', '全 AI プロバイダーのリアルタイム状態、有効な認証情報、トラフィック健全性。',
         '稼働中', '待機中 / 準備完了', '問題 / クールダウン',
-        'クールダウン中', '低下中 (<60%)',
+        'クールダウン中', '<60%',
         'トークン消費とトラフィック分布', '入力、出力、キャッシュ、推論トークンの視覚的内訳と推定コスト削減額。',
         '入力', '出力', 'キャッシュ', '推論',
         '1時間あたりのトラフィック量', 'ピーク', '現在'
@@ -1627,7 +1627,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     ko: [
         '공급자 상태 매트릭스', '모든 지원 AI 공급자의 실시간 상태, 활성 자격 증명 및 트래픽 상태.',
         '정상 작동', '대기 중 / 준비됨', '문제 / 쿨다운',
-        '쿨다운 중', '저하됨 (<60%)',
+        '쿨다운 중', '<60%',
         '토큰 소비 및 트래픽 분포', '입력, 출력, 캐시 및 추론 토큰의 시각적 분석과 예상 비용 절감.',
         '입력', '출력', '캐시됨', '추론',
         '시간별 트래픽 볼륨', '최고치', '지금'
@@ -1635,7 +1635,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     pt: [
         'Matriz de saúde dos provedores', 'Status em tempo real, credenciais ativas e integridade do tráfego em todos os provedores de IA.',
         'Operacional', 'Pronto / Ocioso', 'Problemas / Cooldown',
-        'Em cooldown', 'Degradado (<60%)',
+        'Em cooldown', '<60%',
         'Consumo de tokens e distribuição de tráfego', 'Detalhamento visual de tokens de entrada, saída, cache e raciocínio com economia estimada.',
         'Entrada', 'Saída', 'Em cache', 'Raciocínio',
         'Volume de tráfego por hora', 'Pico', 'Agora'
@@ -1643,7 +1643,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     ru: [
         'Матрица состояния провайдеров', 'Статус в реальном времени, активные учётные данные и состояние трафика по всем провайдерам ИИ.',
         'Работает', 'Готов / Ожидание', 'Проблемы / Охлаждение',
-        'Охлаждение', 'Деградация (<60%)',
+        'Охлаждение', '<60%',
         'Потребление токенов и распределение трафика', 'Наглядная разбивка входных, выходных, кэшированных токенов и токенов рассуждений с оценкой экономии.',
         'Вход', 'Выход', 'Кэш', 'Рассуждения',
         'Почасовой объём трафика', 'Пик', 'Сейчас'
@@ -1651,7 +1651,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     th: [
         'เมทริกซ์สถานะของผู้ให้บริการ', 'สถานะแบบเรียลไทม์ ข้อมูลรับรองที่ใช้งานอยู่ และความสมบูรณ์ของการรับส่งข้อมูลของผู้ให้บริการ AI ทั้งหมด',
         'ทำงานปกติ', 'พร้อมใช้งาน / ว่าง', 'มีปัญหา / คูลดาวน์',
-        'กำลังคูลดาวน์', 'ประสิทธิภาพลดลง (<60%)',
+        'กำลังคูลดาวน์', '<60%',
         'การใช้โทเค็นและการกระจายข้อมูล', 'การแจกแจงแบบเห็นภาพของโทเค็นอินพุต เอาต์พุต แคช และการใช้เหตุผล พร้อมการประหยัดต้นทุนโดยประมาณ',
         'อินพุต', 'เอาต์พุต', 'แคชแล้ว', 'การใช้เหตุผล',
         'ปริมาณทราฟฟิกรายชั่วโมง', 'สูงสุด', 'ตอนนี้'
@@ -1659,7 +1659,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     tr: [
         'Sağlayıcı Sağlık ve Durum Matrisi', 'Tüm yapay zekâ sağlayıcılarında gerçek zamanlı durum, etkin kimlik bilgileri ve trafik sağlığı.',
         'Çalışıyor', 'Hazır / Boşta', 'Sorunlar / Bekleme',
-        'Beklemede', 'Düşük (<%60)',
+        'Beklemede', '<%60',
         'Belirteç Tüketimi ve Trafik Dağılımı', 'Tahmini maliyet tasarrufu ile giriş, çıkış, önbellek ve akıl yürütme belirteçlerinin görsel dökümü.',
         'Giriş', 'Çıkış', 'Önbelleğe Alınan', 'Akıl Yürütme',
         'Saatlik Trafik Hacmi', 'Zirve', 'Şimdi'
@@ -1667,7 +1667,7 @@ const DASHBOARD_METRICS_ENHANCEMENT_COPY = {
     vi: [
         'Ma trận trạng thái & sức khỏe nhà cung cấp', 'Trạng thái thời gian thực, thông tin xác thực hoạt động và sức khỏe lưu lượng của tất cả nhà cung cấp AI.',
         'Hoạt động tốt', 'Sẵn sàng / Chờ', 'Gặp sự cố / Hồi nhiệt',
-        'Đang hồi nhiệt', 'Suy giảm (<60%)',
+        'Đang hồi nhiệt', '<60%',
         'Phân bổ lưu lượng & tiêu thụ Token', 'Trực quan hóa chi tiết token đầu vào, đầu ra, bộ nhớ đệm và suy luận (reasoning) cùng lượng tiết kiệm ước tính.',
         'Đầu vào', 'Đầu ra', 'Bộ nhớ đệm', 'Suy luận',
         'Lưu lượng yêu cầu theo giờ', 'Đỉnh điểm', 'Hiện tại'
@@ -2475,6 +2475,7 @@ const NAVIGATION_ACTIVITY_MESSAGES = {
         'navigation.models_routing': 'Models & Routing',
         'navigation.activity': 'Activity',
         'navigation.team_access': 'Team access',
+        'navigation.identity': 'Identity and sessions',
         'activity.operations': 'Operations',
         'activity.title': 'Activity',
         'activity.description': 'Investigate requests, management changes, security events, and runtime diagnostics from one workspace.',
@@ -2509,6 +2510,7 @@ const NAVIGATION_ACTIVITY_MESSAGES = {
         'navigation.models_routing': 'Mô hình và định tuyến',
         'navigation.activity': 'Hoạt động',
         'navigation.team_access': 'Truy cập nhóm',
+        'navigation.identity': 'Danh tính và phiên',
         'activity.operations': 'Vận hành',
         'activity.title': 'Hoạt động',
         'activity.description': 'Điều tra yêu cầu, thay đổi quản trị, sự kiện bảo mật và chẩn đoán runtime trong cùng một khu vực làm việc.',
@@ -2662,12 +2664,12 @@ const PRODUCTION_DASHBOARD_MESSAGES = {
     vi: {
         'dashboard.period_1d': 'hôm nay',
         'dashboard.metrics': 'Chỉ số gateway',
-        'dashboard.provider_attempts': 'Lần gọi nhà cung cấp',
+        'dashboard.provider_attempts': 'Lần gọi',
         'dashboard.provider_attempts_period': 'Lần gọi nhà cung cấp {period}',
         'dashboard.attempt_success_rate': 'Tỷ lệ gọi nhà cung cấp thành công',
         'dashboard.attempts_successful_failed': '{successful} thành công / {failed} thất bại',
         'dashboard.attempts_succeeded': '{successful} trong tổng số {total} lần gọi đã thành công.',
-        'dashboard.attempts_count': '{count} lần gọi nhà cung cấp',
+        'dashboard.attempts_count': '{count} lần gọi',
         'dashboard.attempts_success_count': '{count} thành công / {failed} thất bại',
         'dashboard.attempts_succeeded_count': '{successful} trong tổng số {total} lần gọi thành công',
         'dashboard.input_output_partial': 'Đầu vào {input} / đầu ra {output} · nhà cung cấp báo usage cho {reported}/{successful} lần gọi thành công',
@@ -2977,6 +2979,11 @@ const SETTINGS_ABOUT_WORKFLOW_MESSAGES = {
         'about.tier_experimental': 'Experimental',
         'about.tier_experimental_description': 'Not part of the R1 production guarantee.',
         'about.tier_status': '{active} active · {available} available · {disabled} disabled · {blocked} blocked',
+        'about.state_active': 'Active',
+        'about.state_available': 'Available',
+        'about.state_disabled': 'Disabled',
+        'about.state_blocked': 'Blocked',
+        'about.no_capabilities': 'No support capabilities were reported by this instance.',
         'about.load_failed': 'Could not load build and support information.',
         'identity.mode_loading': 'Checking optional team access. Local recovery remains available.',
         'identity.mode_ready': 'Team access is enabled. OIDC identities and local-owner recovery are both available.',
@@ -3026,6 +3033,11 @@ const SETTINGS_ABOUT_WORKFLOW_MESSAGES = {
         'about.tier_experimental': 'Thử nghiệm',
         'about.tier_experimental_description': 'Không thuộc cam kết production R1.',
         'about.tier_status': '{active} đang hoạt động · {available} khả dụng · {disabled} đã tắt · {blocked} bị chặn',
+        'about.state_active': 'Đang hoạt động',
+        'about.state_available': 'Khả dụng',
+        'about.state_disabled': 'Đã tắt',
+        'about.state_blocked': 'Bị chặn',
+        'about.no_capabilities': 'Phiên bản này chưa cung cấp thông tin về các khả năng được hỗ trợ.',
         'about.load_failed': 'Không thể tải thông tin bản dựng và phạm vi hỗ trợ.',
         'identity.mode_loading': 'Đang kiểm tra quyền truy cập nhóm tùy chọn. Khôi phục cục bộ vẫn khả dụng.',
         'identity.mode_ready': 'Quyền truy cập nhóm đang bật. Danh tính OIDC và khôi phục bằng chủ sở hữu cục bộ đều khả dụng.',
@@ -3041,4 +3053,261 @@ for (const locale of Object.keys(PAGE_LOCALE_TRANSLATIONS)) {
         SETTINGS_ABOUT_WORKFLOW_MESSAGES.en,
         SETTINGS_ABOUT_WORKFLOW_MESSAGES[locale] || {}
     );
+}
+
+const PROVIDER_OWNERSHIP_MESSAGES = {
+    "en": {
+        "provider.ownership.shared": "Shared settings",
+        "provider.ownership.switch_credentials": "Allow credential switching during retries",
+        "provider.ownership.import_unverified": "Stored, not verified. Test this credential in the credential pool before use."
+    },
+    "zh-CN": {
+        "provider.ownership.shared": "共用设置",
+        "provider.ownership.switch_credentials": "允许重试时切换凭据",
+        "provider.ownership.import_unverified": "已保存，尚未验证。使用前请在凭据池中测试此凭据。"
+    },
+    "zh-TW": {
+        "provider.ownership.shared": "共用設定",
+        "provider.ownership.switch_credentials": "允許重試時切換憑證",
+        "provider.ownership.import_unverified": "已儲存，尚未驗證。使用前請在憑證池中測試此憑證。"
+    },
+    "de": {
+        "provider.ownership.shared": "Gemeinsame Einstellungen",
+        "provider.ownership.switch_credentials": "Wechsel der Zugangsdaten bei Wiederholungen erlauben",
+        "provider.ownership.import_unverified": "Gespeichert, noch nicht geprüft. Testen Sie diese Zugangsdaten vor der Verwendung im Zugangsdaten-Pool."
+    },
+    "es": {
+        "provider.ownership.shared": "Configuración compartida",
+        "provider.ownership.switch_credentials": "Permitir cambiar de credenciales al reintentar",
+        "provider.ownership.import_unverified": "Guardado, sin verificar. Prueba estas credenciales en el grupo de credenciales antes de usarlas."
+    },
+    "fr": {
+        "provider.ownership.shared": "Paramètres partagés",
+        "provider.ownership.switch_credentials": "Autoriser le changement d’identifiants lors des nouvelles tentatives",
+        "provider.ownership.import_unverified": "Enregistré, non vérifié. Testez ces identifiants dans le pool avant de les utiliser."
+    },
+    "id": {
+        "provider.ownership.shared": "Pengaturan bersama",
+        "provider.ownership.switch_credentials": "Izinkan pergantian kredensial saat mencoba ulang",
+        "provider.ownership.import_unverified": "Tersimpan, belum diverifikasi. Uji kredensial ini di kumpulan kredensial sebelum digunakan."
+    },
+    "it": {
+        "provider.ownership.shared": "Impostazioni condivise",
+        "provider.ownership.switch_credentials": "Consenti il cambio di credenziali durante i tentativi",
+        "provider.ownership.import_unverified": "Salvate, non verificate. Prova queste credenziali nel pool prima di utilizzarle."
+    },
+    "ja": {
+        "provider.ownership.shared": "共通設定",
+        "provider.ownership.switch_credentials": "再試行時の認証情報の切り替えを許可",
+        "provider.ownership.import_unverified": "保存済みですが、未検証です。使用前に認証情報プールで接続をテストしてください。"
+    },
+    "ko": {
+        "provider.ownership.shared": "공유 설정",
+        "provider.ownership.switch_credentials": "재시도 시 인증 정보 전환 허용",
+        "provider.ownership.import_unverified": "저장되었지만 검증되지 않았습니다. 사용 전에 인증 정보 풀에서 테스트하세요."
+    },
+    "pt": {
+        "provider.ownership.shared": "Configurações compartilhadas",
+        "provider.ownership.switch_credentials": "Permitir trocar credenciais nas novas tentativas",
+        "provider.ownership.import_unverified": "Salvas, não verificadas. Teste estas credenciais no pool antes de usá-las."
+    },
+    "ru": {
+        "provider.ownership.shared": "Общие настройки",
+        "provider.ownership.switch_credentials": "Разрешить смену учётных данных при повторных попытках",
+        "provider.ownership.import_unverified": "Сохранено, но не проверено. Перед использованием проверьте эти учётные данные в пуле."
+    },
+    "th": {
+        "provider.ownership.shared": "การตั้งค่าที่ใช้ร่วมกัน",
+        "provider.ownership.switch_credentials": "อนุญาตให้สลับข้อมูลรับรองเมื่อลองใหม่",
+        "provider.ownership.import_unverified": "บันทึกแล้ว แต่ยังไม่ได้ตรวจสอบ โปรดทดสอบข้อมูลรับรองนี้ในคลังข้อมูลรับรองก่อนใช้งาน"
+    },
+    "tr": {
+        "provider.ownership.shared": "Paylaşılan ayarlar",
+        "provider.ownership.switch_credentials": "Yeniden denemelerde kimlik bilgilerini değiştirmeye izin ver",
+        "provider.ownership.import_unverified": "Kaydedildi, henüz doğrulanmadı. Kullanmadan önce bu kimlik bilgilerini havuzda test edin."
+    },
+    "vi": {
+        "provider.ownership.shared": "Cài đặt dùng chung",
+        "provider.ownership.switch_credentials": "Cho phép đổi thông tin xác thực khi thử lại",
+        "provider.ownership.import_unverified": "Đã lưu, chưa xác minh. Hãy kiểm tra kết nối của thông tin xác thực này trong kho trước khi sử dụng."
+    }
+};
+for (const [locale, messages] of Object.entries(PROVIDER_OWNERSHIP_MESSAGES)) {
+    Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
+}
+
+const PROVIDER_IMPORT_PROVENANCE = {
+    "en": "Imported without provider verification.",
+    "zh-CN": "导入时未向提供商验证。",
+    "zh-TW": "匯入時未向供應商驗證。",
+    "de": "Ohne Prüfung beim Anbieter importiert.",
+    "es": "Importado sin verificación del proveedor.",
+    "fr": "Importé sans vérification auprès du fournisseur.",
+    "id": "Diimpor tanpa verifikasi penyedia.",
+    "it": "Importato senza verifica del fornitore.",
+    "ja": "プロバイダーでの検証を行わずにインポートしました。",
+    "ko": "제공자 검증 없이 가져왔습니다.",
+    "pt": "Importado sem verificação do provedor.",
+    "ru": "Импортировано без проверки у поставщика.",
+    "th": "นำเข้าโดยไม่ได้ตรวจสอบกับผู้ให้บริการ",
+    "tr": "Sağlayıcı doğrulaması yapılmadan içe aktarıldı.",
+    "vi": "Được nhập mà chưa xác minh với nhà cung cấp."
+};
+for (const [locale, message] of Object.entries(PROVIDER_IMPORT_PROVENANCE)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['provider.ownership.import_unverified_provenance'] = message;
+}
+
+const ANTIGRAVITY_CREDIT_MESSAGES = {
+    "en": {
+        "providers.antigravity.credit_title": "Antigravity credits",
+        "providers.antigravity.credit_description": "Choose an account to enable or disable credit usage. This can incur provider charges.",
+        "providers.antigravity.credit_empty": "No Antigravity accounts yet.",
+        "providers.antigravity.credit_loading": "Loading accounts…",
+        "providers.antigravity.credit_select_label": "Account"
+    },
+    "vi": {
+        "providers.antigravity.credit_title": "Tín dụng Antigravity",
+        "providers.antigravity.credit_description": "Chọn tài khoản để bật hoặc tắt sử dụng tín dụng. Việc này có thể phát sinh phí từ nhà cung cấp.",
+        "providers.antigravity.credit_empty": "Chưa có tài khoản Antigravity.",
+        "providers.antigravity.credit_loading": "Đang tải tài khoản…",
+        "providers.antigravity.credit_select_label": "Tài khoản"
+    },
+    "zh-CN": {
+        "providers.antigravity.credit_title": "Antigravity 信用额度",
+        "providers.antigravity.credit_description": "选择账户以启用或停用信用额度使用。这可能产生提供商费用。",
+        "providers.antigravity.credit_empty": "尚无 Antigravity 账户。",
+        "providers.antigravity.credit_loading": "正在加载账户…",
+        "providers.antigravity.credit_select_label": "账户"
+    },
+    "zh-TW": {
+        "providers.antigravity.credit_title": "Antigravity 額度",
+        "providers.antigravity.credit_description": "選擇帳戶以啟用或停用額度使用。這可能產生供應商費用。",
+        "providers.antigravity.credit_empty": "尚無 Antigravity 帳戶。",
+        "providers.antigravity.credit_loading": "正在載入帳戶…",
+        "providers.antigravity.credit_select_label": "帳戶"
+    },
+    "de": {
+        "providers.antigravity.credit_title": "Antigravity-Guthaben",
+        "providers.antigravity.credit_description": "Wählen Sie ein Konto, um die Guthabennutzung ein- oder auszuschalten. Dabei können Anbietergebühren entstehen.",
+        "providers.antigravity.credit_empty": "Noch keine Antigravity-Konten.",
+        "providers.antigravity.credit_loading": "Konten werden geladen…",
+        "providers.antigravity.credit_select_label": "Konto"
+    },
+    "es": {
+        "providers.antigravity.credit_title": "Créditos de Antigravity",
+        "providers.antigravity.credit_description": "Elige una cuenta para activar o desactivar el uso de créditos. Esto puede generar cargos del proveedor.",
+        "providers.antigravity.credit_empty": "Aún no hay cuentas de Antigravity.",
+        "providers.antigravity.credit_loading": "Cargando cuentas…",
+        "providers.antigravity.credit_select_label": "Cuenta"
+    },
+    "fr": {
+        "providers.antigravity.credit_title": "Crédits Antigravity",
+        "providers.antigravity.credit_description": "Choisissez un compte pour activer ou désactiver l’utilisation des crédits. Des frais du fournisseur peuvent s’appliquer.",
+        "providers.antigravity.credit_empty": "Aucun compte Antigravity pour le moment.",
+        "providers.antigravity.credit_loading": "Chargement des comptes…",
+        "providers.antigravity.credit_select_label": "Compte"
+    },
+    "id": {
+        "providers.antigravity.credit_title": "Kredit Antigravity",
+        "providers.antigravity.credit_description": "Pilih akun untuk mengaktifkan atau menonaktifkan penggunaan kredit. Biaya penyedia mungkin berlaku.",
+        "providers.antigravity.credit_empty": "Belum ada akun Antigravity.",
+        "providers.antigravity.credit_loading": "Memuat akun…",
+        "providers.antigravity.credit_select_label": "Akun"
+    },
+    "it": {
+        "providers.antigravity.credit_title": "Crediti Antigravity",
+        "providers.antigravity.credit_description": "Scegli un account per attivare o disattivare l’uso dei crediti. Il fornitore potrebbe addebitare costi.",
+        "providers.antigravity.credit_empty": "Nessun account Antigravity.",
+        "providers.antigravity.credit_loading": "Caricamento degli account…",
+        "providers.antigravity.credit_select_label": "Account"
+    },
+    "ja": {
+        "providers.antigravity.credit_title": "Antigravity クレジット",
+        "providers.antigravity.credit_description": "アカウントを選択してクレジットの使用を切り替えます。プロバイダーの料金が発生する場合があります。",
+        "providers.antigravity.credit_empty": "Antigravity アカウントはまだありません。",
+        "providers.antigravity.credit_loading": "アカウントを読み込み中…",
+        "providers.antigravity.credit_select_label": "アカウント"
+    },
+    "ko": {
+        "providers.antigravity.credit_title": "Antigravity 크레딧",
+        "providers.antigravity.credit_description": "계정을 선택하여 크레딧 사용을 켜거나 끄세요. 제공자 요금이 발생할 수 있습니다.",
+        "providers.antigravity.credit_empty": "Antigravity 계정이 없습니다.",
+        "providers.antigravity.credit_loading": "계정 불러오는 중…",
+        "providers.antigravity.credit_select_label": "계정"
+    },
+    "pt": {
+        "providers.antigravity.credit_title": "Créditos Antigravity",
+        "providers.antigravity.credit_description": "Escolha uma conta para ativar ou desativar o uso de créditos. Isso pode gerar cobranças do provedor.",
+        "providers.antigravity.credit_empty": "Ainda não há contas Antigravity.",
+        "providers.antigravity.credit_loading": "Carregando contas…",
+        "providers.antigravity.credit_select_label": "Conta"
+    },
+    "ru": {
+        "providers.antigravity.credit_title": "Кредиты Antigravity",
+        "providers.antigravity.credit_description": "Выберите аккаунт, чтобы включить или отключить использование кредитов. Поставщик может взимать плату.",
+        "providers.antigravity.credit_empty": "Аккаунтов Antigravity пока нет.",
+        "providers.antigravity.credit_loading": "Загрузка аккаунтов…",
+        "providers.antigravity.credit_select_label": "Аккаунт"
+    },
+    "th": {
+        "providers.antigravity.credit_title": "เครดิต Antigravity",
+        "providers.antigravity.credit_description": "เลือกบัญชีเพื่อเปิดหรือปิดการใช้เครดิต ผู้ให้บริการอาจเรียกเก็บค่าบริการ",
+        "providers.antigravity.credit_empty": "ยังไม่มีบัญชี Antigravity",
+        "providers.antigravity.credit_loading": "กำลังโหลดบัญชี…",
+        "providers.antigravity.credit_select_label": "บัญชี"
+    },
+    "tr": {
+        "providers.antigravity.credit_title": "Antigravity kredileri",
+        "providers.antigravity.credit_description": "Kredi kullanımını açmak veya kapatmak için bir hesap seçin. Sağlayıcı ücretleri oluşabilir.",
+        "providers.antigravity.credit_empty": "Henüz Antigravity hesabı yok.",
+        "providers.antigravity.credit_loading": "Hesaplar yükleniyor…",
+        "providers.antigravity.credit_select_label": "Hesap"
+    }
+};
+for (const [locale, messages] of Object.entries(ANTIGRAVITY_CREDIT_MESSAGES)) {
+    Object.assign(PAGE_LOCALE_TRANSLATIONS[locale], messages);
+}
+
+const PROVIDER_ARCHIVE_RESULT_MESSAGES = {
+    "en": "The archive was inspected. Review each credential’s import and verification result below.",
+    "vi": "Đã kiểm tra tệp lưu trữ. Xem kết quả nhập và xác minh của từng thông tin xác thực bên dưới.",
+    "zh-CN": "已检查归档文件。请查看下方每项凭据的导入和验证结果。",
+    "zh-TW": "已檢查封存檔。請查看下方各項憑證的匯入及驗證結果。",
+    "de": "Das Archiv wurde geprüft. Prüfen Sie unten die Import- und Verifizierungsergebnisse der einzelnen Zugangsdaten.",
+    "es": "Se inspeccionó el archivo. Revisa los resultados de importación y verificación de cada credencial a continuación.",
+    "fr": "L’archive a été inspectée. Consultez ci-dessous les résultats d’importation et de vérification de chaque identifiant.",
+    "id": "Arsip telah diperiksa. Tinjau hasil impor dan verifikasi setiap kredensial di bawah.",
+    "it": "L’archivio è stato esaminato. Controlla qui sotto i risultati di importazione e verifica di ogni credenziale.",
+    "ja": "アーカイブを確認しました。各認証情報のインポート結果と検証結果を以下で確認してください。",
+    "ko": "보관 파일을 확인했습니다. 아래에서 각 인증 정보의 가져오기 및 검증 결과를 확인하세요.",
+    "pt": "O arquivo foi inspecionado. Confira abaixo os resultados de importação e verificação de cada credencial.",
+    "ru": "Архив проверен. Ниже приведены результаты импорта и проверки каждых учётных данных.",
+    "th": "ตรวจสอบไฟล์เก็บถาวรแล้ว โปรดดูผลการนำเข้าและการตรวจสอบข้อมูลรับรองแต่ละรายการด้านล่าง",
+    "tr": "Arşiv incelendi. Her kimlik bilgisinin içe aktarma ve doğrulama sonucunu aşağıda inceleyin."
+};
+for (const [locale, message] of Object.entries(PROVIDER_ARCHIVE_RESULT_MESSAGES)) {
+    PAGE_LOCALE_TRANSLATIONS[locale]['import.archive_intro'] = message;
+}
+
+const PROVIDER_ADVANCED_DESCRIPTION_VALUES = {
+    en: ['Configure the API endpoint Polaris uses to connect to {provider}.', 'Configure the endpoints and OAuth application used to connect to {provider}.', 'Configure the OAuth application, service endpoints and client identification for {provider}.'],
+    vi: ['Cấu hình endpoint API để Polaris kết nối với {provider}.', 'Cấu hình các endpoint và ứng dụng OAuth dùng để kết nối với {provider}.', 'Cấu hình ứng dụng OAuth, các endpoint dịch vụ và thông tin nhận diện client của {provider}.'],
+    'zh-CN': ['配置 Polaris 连接 {provider} 时使用的 API 端点。', '配置连接 {provider} 时使用的端点和 OAuth 应用。', '配置 {provider} 的 OAuth 应用、服务端点和客户端标识信息。'],
+    'zh-TW': ['設定 Polaris 連線至 {provider} 時使用的 API 端點。', '設定連線至 {provider} 時使用的端點和 OAuth 應用程式。', '設定 {provider} 的 OAuth 應用程式、服務端點和用戶端識別資訊。'],
+    de: ['Konfigurieren Sie den API-Endpunkt, über den Polaris eine Verbindung zu {provider} herstellt.', 'Konfigurieren Sie die Endpunkte und die OAuth-Anwendung für die Verbindung zu {provider}.', 'Konfigurieren Sie die OAuth-Anwendung, Dienstendpunkte und Client-Kennung für {provider}.'],
+    es: ['Configura el endpoint de API que Polaris utiliza para conectarse a {provider}.', 'Configura los endpoints y la aplicación OAuth utilizados para conectarse a {provider}.', 'Configura la aplicación OAuth, los endpoints de servicio y la identificación del cliente de {provider}.'],
+    fr: ['Configurez le point de terminaison API utilisé par Polaris pour se connecter à {provider}.', 'Configurez les points de terminaison et l’application OAuth utilisés pour se connecter à {provider}.', 'Configurez l’application OAuth, les points de terminaison des services et l’identification du client pour {provider}.'],
+    id: ['Konfigurasikan endpoint API yang digunakan Polaris untuk terhubung ke {provider}.', 'Konfigurasikan endpoint dan aplikasi OAuth yang digunakan untuk terhubung ke {provider}.', 'Konfigurasikan aplikasi OAuth, endpoint layanan, dan identitas klien untuk {provider}.'],
+    it: ['Configura l’endpoint API utilizzato da Polaris per connettersi a {provider}.', 'Configura gli endpoint e l’applicazione OAuth utilizzati per connettersi a {provider}.', 'Configura l’applicazione OAuth, gli endpoint dei servizi e l’identificazione del client per {provider}.'],
+    ja: ['Polaris が {provider} への接続に使用する API エンドポイントを設定します。', '{provider} への接続に使用するエンドポイントと OAuth アプリケーションを設定します。', '{provider} の OAuth アプリケーション、サービスエンドポイント、クライアント識別情報を設定します。'],
+    ko: ['Polaris가 {provider}에 연결할 때 사용하는 API 엔드포인트를 설정합니다.', '{provider} 연결에 사용하는 엔드포인트와 OAuth 애플리케이션을 설정합니다.', '{provider}의 OAuth 애플리케이션, 서비스 엔드포인트 및 클라이언트 식별 정보를 설정합니다.'],
+    pt: ['Configure o endpoint de API que o Polaris usa para se conectar a {provider}.', 'Configure os endpoints e o aplicativo OAuth usados para se conectar a {provider}.', 'Configure o aplicativo OAuth, os endpoints de serviço e a identificação do cliente de {provider}.'],
+    ru: ['Настройте конечную точку API, которую Polaris использует для подключения к {provider}.', 'Настройте конечные точки и приложение OAuth для подключения к {provider}.', 'Настройте приложение OAuth, конечные точки сервисов и идентификационные данные клиента для {provider}.'],
+    th: ['กำหนดค่า endpoint API ที่ Polaris ใช้เชื่อมต่อกับ {provider}', 'กำหนดค่า endpoint และแอปพลิเคชัน OAuth ที่ใช้เชื่อมต่อกับ {provider}', 'กำหนดค่าแอปพลิเคชัน OAuth, endpoint ของบริการ และข้อมูลระบุไคลเอนต์ของ {provider}'],
+    tr: ['Polaris’in {provider} bağlantısı için kullandığı API uç noktasını yapılandırın.', '{provider} bağlantısı için kullanılan uç noktaları ve OAuth uygulamasını yapılandırın.', '{provider} için OAuth uygulamasını, hizmet uç noktalarını ve istemci kimlik bilgilerini yapılandırın.']
+};
+for (const [locale, descriptions] of Object.entries(PROVIDER_ADVANCED_DESCRIPTION_VALUES)) {
+    ['api', 'oauth', 'client'].forEach((kind, index) => {
+        PAGE_LOCALE_TRANSLATIONS[locale][`provider.form.advanced_${kind}_description`] = descriptions[index];
+    });
 }

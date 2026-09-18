@@ -153,7 +153,7 @@ class ControlPanelAssetTests(unittest.TestCase):
             "dashboard",
             "quality",
             "access",
-            "pool",
+            "credentials",
             "models",
             "providers",
             "config",
@@ -267,10 +267,14 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("function getCurrentUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("function getHistoricalUsageEntriesWithTraffic()", dashboard_script)
         self.assertIn("Boolean(stats.is_historical || stats.is_deleted)", dashboard_script)
+        usage_renderer = dashboard_script.split("function renderUsageList", 1)[1].split(
+            "function renderUsageProviderSummary", 1
+        )[0]
+        self.assertIn("const entries = getCurrentUsageEntriesWithTraffic();", usage_renderer)
         self.assertIn(
-            "for (const [filename, stats] of getCurrentUsageEntriesWithTraffic())",
-            dashboard_script,
+            "const pagedEntries = UsagePages.current ? entries : entries.slice(", usage_renderer
         )
+        self.assertRegex(usage_renderer, r"renderUsageTableRows\(\s*list,\s*pagedEntries,")
 
     def test_dashboard_time_range_text_does_not_share_select_hover_state(self):
         body = serve_control_panel().body.decode("utf-8")
@@ -307,11 +311,11 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("grid-template-columns: repeat(4, minmax(0, 1fr))", provider_styles)
         self.assertRegex(
             provider_styles,
-            r"(?s)\.provider-catalog \.provider-hero-card\s*\{[^}]*min-height: 154px;[^}]*padding: 14px;",
+            r"(?s)\.provider-catalog \.provider-hero-card\s*\{[^}]*min-height: 0;[^}]*height: 100%;[^}]*padding: 14px;",
         )
         self.assertRegex(
             provider_styles,
-            r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 42px;[^}]*height: 42px;",
+            r"(?s)\.provider-catalog \.provider-logo-frame\s*\{[^}]*width: 32px;[^}]*height: 32px;",
         )
         self.assertIn(".provider-workspace-header", provider_styles)
         self.assertNotIn('class="provider-catalog-search-label"', body)
@@ -358,8 +362,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         )
         upload_script = read_scripts("core/upload-manager.js", "core/state.js")
         provider_assets = BACKEND_DIR.parent / "frontend" / "assets" / "providers"
-        self.assertTrue((provider_assets / "grok-build-logo.png").is_file())
-        self.assertTrue((provider_assets / "spacexai-console-logo.png").is_file())
+        self.assertTrue((provider_assets / "grok-build.png").is_file())
+        self.assertTrue((provider_assets / "spacexai-console.png").is_file())
         for element_id in (
             "providerSelectorGrok",
             "providerWorkspaceGrok",
@@ -371,8 +375,8 @@ class ControlPanelAssetTests(unittest.TestCase):
             "xaiConsoleFileInput",
         ):
             self.assertIn(f'id="{element_id}"', body)
-        self.assertIn("/frontend/assets/providers/grok-build-logo.png", body)
-        self.assertIn("/frontend/assets/providers/spacexai-console-logo.png", body)
+        self.assertIn("/frontend/assets/providers/grok-build.png", body)
+        self.assertIn("/frontend/assets/providers/spacexai-console.png", body)
         self.assertIn('<strong class="provider-name">Grok Build</strong>', body)
         self.assertIn('<strong class="provider-name">SpaceXAI Console</strong>', body)
         self.assertIn(
@@ -403,7 +407,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertNotIn("Open xAI authorization", settings_script)
         self.assertNotIn(">xAI<", body)
         self.assertNotIn("name: 'xAI'", upload_script)
-        self.assertIn('<option value="xai">Grok Build</option>', body)
+        self.assertIn('<option value="grok">Grok Build</option>', body)
+        self.assertIn('<option value="xai_console">SpaceXAI Console</option>', body)
 
     def test_openai_provider_ui_references_existing_assets_and_endpoints(self):
         response = serve_control_panel()
@@ -411,8 +416,8 @@ class ControlPanelAssetTests(unittest.TestCase):
         settings_script = read_scripts("features/openai-settings.js")
         upload_script = read_scripts("core/upload-manager.js", "core/state.js")
         provider_assets = BACKEND_DIR.parent / "frontend" / "assets" / "providers"
-        self.assertTrue((provider_assets / "codex-logo.png").is_file())
-        self.assertTrue((provider_assets / "openai-platform-logo.png").is_file())
+        self.assertTrue((provider_assets / "codex.png").is_file())
+        self.assertTrue((provider_assets / "openai-platform.png").is_file())
         for element_id in (
             "providerCatalogSearch",
             "providerSelectorCodex",
@@ -423,8 +428,8 @@ class ControlPanelAssetTests(unittest.TestCase):
             "openaiPlatformUploadArea",
         ):
             self.assertIn(f'id="{element_id}"', body)
-        self.assertIn("/frontend/assets/providers/codex-logo.png", body)
-        self.assertIn("/frontend/assets/providers/openai-platform-logo.png", body)
+        self.assertIn("/frontend/assets/providers/codex.png", body)
+        self.assertIn("/frontend/assets/providers/openai-platform.png", body)
         self.assertIn('<strong class="provider-name">Codex</strong>', body)
         self.assertIn('<strong class="provider-name">OpenAI Platform</strong>', body)
         self.assertIn(
@@ -575,6 +580,19 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("cached.data?.plan", dialog_script)
         self.assertIn("cardContext.subscriptionPlan", dialog_script)
 
+    def test_root_endpoints_copy_on_click_without_icons(self):
+        html = (
+            Path(__file__).resolve().parents[2] / "frontend/fragments/pages/access.html"
+        ).read_text(encoding="utf-8")
+        for endpoint in ("openaiEndpointUrl", "anthropicEndpointUrl", "googleGenaiEndpointUrl"):
+            self.assertRegex(html, rf'<button[^>]+id="{endpoint}"[^>]+data-ui-action="copy-url"')
+        styles = (Path(__file__).resolve().parents[2] / "frontend/css/access.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn(".endpoint-code-card::after", styles)
+        self.assertIn('id="toggleApiKeyVisibilityBtn"', html)
+        self.assertIn('id="regenerateApiKeyBtn"', html)
+
     def test_all_supported_credentials_have_an_authentication_badge(self):
         card_script = read_scripts("ui/credential-cards.js")
 
@@ -582,7 +600,9 @@ class ControlPanelAssetTests(unittest.TestCase):
         self.assertIn("'google_antigravity', 'grok', 'codex'", card_script)
         self.assertIn("'google_ai_studio', 'xai_console', 'openai_platform'", card_script)
         self.assertIn("renderCredentialAuthenticationBadge", card_script)
-        self.assertIn("${authenticationType}", card_script)
+        self.assertIn("t('credentials.workspace.api_key')", card_script)
+        self.assertIn("t('pool.kind.connection')", card_script)
+        self.assertIn("${escapeHtml(label)}</span>", card_script)
 
 
 if __name__ == "__main__":

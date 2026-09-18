@@ -385,6 +385,7 @@ function updatePlaygroundExample() {
     try {
         const format = document.getElementById('playgroundExampleFormat')?.value || 'curl';
         replacePlaygroundText(target, buildPlaygroundExample(readPlaygroundDraft(), format, window.location.origin));
+        renderPlaygroundValidation('');
     } catch (_error) {
         replacePlaygroundText(target, t('playground.example_incomplete'));
     }
@@ -426,11 +427,48 @@ function readPlaygroundHandoff() {
     return '';
 }
 
+let playgroundCatalogRevision = 0;
+
+async function refreshPlaygroundCatalog() {
+    const host = document.getElementById('playgroundCatalogState');
+    if (!host) return;
+    const revision = ++playgroundCatalogRevision;
+    clearPageState(host);
+    host.hidden = false;
+    setRegionBusy(host, true);
+    try {
+        // Use the normal catalog cache, never force discovery or start inference.
+        const response = await fetch('./api/model-catalog', {
+            headers: getAuthHeaders(), signal: AbortSignal.timeout(10000)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data.catalog)) throw new Error(t('models.catalog_load_failed', {error: t('unknown_error')}));
+        if (revision !== playgroundCatalogRevision) return;
+        clearPageState(host);
+        if (!data.catalog.length) {
+            showPageState(host, {
+                kind: 'empty', title: t('models.empty_title'), message: t('models.empty_copy'),
+                actionLabel: t('models_title'), onAction: () => navigate('/models')
+            });
+        }
+    } catch (_error) {
+        if (revision !== playgroundCatalogRevision) return;
+        showPageState(host, {
+            kind: 'error', title: t('error'),
+            message: t('models.catalog_load_failed', {error: t('unknown_error')}),
+            actionLabel: t('refresh'), onAction: refreshPlaygroundCatalog
+        });
+    } finally {
+        if (revision === playgroundCatalogRevision) setRegionBusy(host, false);
+    }
+}
+
 function initializePlayground() {
     const state = playgroundRuntimeState();
+    const handoffModel = readPlaygroundHandoff();
+    if (handoffModel) document.getElementById('playgroundModel').value = handoffModel;
     if (!state.initialized) {
-        const handoffModel = readPlaygroundHandoff();
-        if (handoffModel) document.getElementById('playgroundModel').value = handoffModel;
         state.initialized = true;
     }
     renderPlaygroundMessages();
@@ -441,6 +479,7 @@ function initializePlayground() {
         replacePlaygroundText(document.getElementById('playgroundOutput'), t('playground.empty_prompt'));
     }
     syncPlaygroundPresentation();
+    void refreshPlaygroundCatalog();
 }
 
 function syncPlaygroundPresentation() {
@@ -453,7 +492,13 @@ function setPlaygroundRunning(running) {
     state.running = running;
     const run = document.getElementById('playgroundRun');
     const cancel = document.getElementById('playgroundCancel');
-    if (run) run.disabled = running;
+    if (run) {
+        run.disabled = running;
+        run.dataset.i18n = running ? 'playground.running' : 'playground.run';
+        run.textContent = t(run.dataset.i18n);
+        if (running) run.setAttribute('aria-busy', 'true');
+        else run.removeAttribute('aria-busy');
+    }
     if (cancel) cancel.disabled = !running;
     document.querySelectorAll('#playgroundForm input, #playgroundForm select, #playgroundForm textarea, #playgroundAddMessage, [data-ui-action="playground-remove-message"]').forEach(control => {
         if (control.id !== 'playgroundCancel' && control.id !== 'playgroundRun') control.disabled = running;
@@ -683,6 +728,9 @@ if (typeof document !== 'undefined') {
         setPlaygroundRunState(state.runStateKey);
         if (!state.hasRun) {
             replacePlaygroundText(document.getElementById('playgroundOutput'), t('playground.empty_prompt'));
+        }
+        if (document.getElementById('playgroundTab')?.classList.contains('active')) {
+            void refreshPlaygroundCatalog();
         }
     });
 }

@@ -8,6 +8,8 @@ import uuid
 from typing import Any, AsyncIterator, Dict, List
 
 from core.httpx_client import MAX_STREAM_LINE_BYTES, UpstreamStreamProtocolError
+from core.meta_responses_models import MetaResponsesRequest
+from core.model_pool import ModelPoolError, resolve_model_request
 from core.models import (
     OpenAIChatCompletionRequest,
     OpenAIResponsesRequest,
@@ -475,11 +477,48 @@ async def _responses_stream(
 
 @router.post("/v1/responses")
 async def create_response(
-    request: OpenAIResponsesRequest,
+    request: OpenAIResponsesRequest | MetaResponsesRequest,
     token: str = Depends(authenticate_bearer),
 ):
     """Create a response using the existing provider translation pipeline."""
     raw_request = model_to_dict(request)
+    if (
+        isinstance(request, MetaResponsesRequest)
+        or request.model.startswith("muse-spark-")
+        or request.model.startswith("muse-code/")
+        or request.model == "polaris"
+    ):
+        from core.meta_model_api import protocol_for_model
+        from core.muse_code import MODEL_PREFIX, upstream_model
+        from core.router.primary.meta_responses import create_meta_response
+
+        try:
+            resolution = await resolve_model_request(request.model)
+        except ModelPoolError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        meta_only = bool(resolution.candidates)
+        for candidate in resolution.candidates:
+            try:
+                protocol_for_model(
+                    {},
+                    upstream_model(candidate) if candidate.startswith(MODEL_PREFIX) else candidate,
+                )
+            except ValueError:
+                meta_only = False
+                break
+        if meta_only:
+            try:
+                native_request = MetaResponsesRequest.model_validate(raw_request)
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=400, detail="Unsupported Meta Responses request."
+                ) from exc
+            return await create_meta_response(native_request, token, resolution=resolution)
+        if isinstance(request, MetaResponsesRequest):
+            raise HTTPException(
+                status_code=400,
+                detail="Native Responses options require exclusively Meta Muse Spark routes.",
+            )
     if raw_request.get("store"):
         raise HTTPException(
             status_code=400,

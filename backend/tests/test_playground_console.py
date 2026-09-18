@@ -15,6 +15,50 @@ STYLES = ROOT / "frontend/css/playground.css"
 
 
 class PlaygroundConsoleTests(unittest.TestCase):
+    def test_first_run_guidance_distinguishes_empty_failed_and_available_catalogs(self) -> None:
+        self._run_contract("""
+(async () => {
+    const host = {hidden: true};
+    global.document = {getElementById: id => id === 'playgroundCatalogState' ? host : null};
+    global.t = key => key;
+    global.getAuthHeaders = () => ({});
+    let shown, busy, path;
+    global.setRegionBusy = (_, value) => {busy = value;};
+    global.clearPageState = () => {shown = null; host.hidden = true;};
+    global.showPageState = (_, value) => {shown = value; host.hidden = false;};
+    global.navigate = value => {path = value;};
+    let resolve;
+    global.fetch = () => new Promise(done => {resolve = done;});
+    const load = refreshPlaygroundCatalog();
+    assert(busy && !host.hidden, 'Initial lookup needs a visible loading state');
+    resolve({ok: true, json: async () => ({catalog: []})});
+    await load;
+    assert(!busy && shown.kind === 'empty', 'Confirmed empty catalog needs next-step guidance');
+    shown.onAction();
+    assert(path === '/models', 'Guidance must open the routing/onboarding page');
+    const failed = refreshPlaygroundCatalog();
+    resolve({ok: false, json: async () => ({})});
+    await failed;
+    assert(!busy && shown.kind === 'error', 'Failure must not claim there are no models');
+    const retry = shown.onAction();
+    resolve({ok: true, json: async () => ({catalog: [{model_id: 'fixture'}]})});
+    await retry;
+    assert(!busy && host.hidden, 'Available catalog removes first-run guidance');
+    const malformed = refreshPlaygroundCatalog();
+    resolve({ok: true, json: async () => ({})});
+    await malformed;
+    assert(shown.kind === 'error', 'Malformed catalog is not proof of an empty instance');
+    const older = refreshPlaygroundCatalog();
+    const finishOlder = resolve;
+    const newer = refreshPlaygroundCatalog();
+    resolve({ok: true, json: async () => ({catalog: [{model_id: 'new'}]})});
+    await newer;
+    finishOlder({ok: true, json: async () => ({catalog: []})});
+    await older;
+    assert(host.hidden && !busy, 'An older response must not replace newer state');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
     def _run_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the Playground UI contract.")
@@ -112,6 +156,27 @@ catch (error) { emptyMessageError = error.message; }
 assert(emptyMessageError === 'playground.error_empty_message', 'empty messages must fail locally');
 """
         )
+
+    def test_run_button_announces_pending_and_restores_its_action(self) -> None:
+        self._run_contract("""
+globalThis.AppState = {};
+globalThis.t = key => key;
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {disabled: false, dataset: {}, textContent: '',
+        setAttribute(name, value) {this[name] = value;}, removeAttribute(name) {delete this[name];}});
+    return elements.get(id);
+}, querySelectorAll: () => []};
+globalThis.renderPlaygroundMessages = () => {};
+setPlaygroundRunning(true);
+const run = elements.get('playgroundRun');
+assert(run.textContent === 'playground.running', 'Pending action must be visible on the button');
+assert(run.disabled && run['aria-busy'] === 'true', 'Pending submit is disabled and announced');
+assert(!elements.get('playgroundCancel').disabled, 'Cancellation remains available');
+setPlaygroundRunning(false);
+assert(run.textContent === 'playground.run' && !run.disabled, 'Submit recovers after completion');
+assert(!run['aria-busy'], 'Busy state cleared');
+""")
 
     def test_copy_examples_are_protocol_accurate_and_never_contain_a_real_key(self) -> None:
         self._run_contract(
@@ -291,17 +356,19 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
             (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8"),
         )
 
-    def test_client_example_format_matches_the_compact_action_height(self) -> None:
+    def test_client_example_format_matches_the_shared_control_height(self) -> None:
         styles = STYLES.read_text(encoding="utf-8")
 
         self.assertRegex(
             styles,
-            r"(?s)\.playground-example-toolbar select\s*\{.*?min-height: 30px.*?height: 30px",
+            r"(?s)\.playground-example-toolbar select\s*\{[^}]*min-height: var\(--control-height\);[^}]*height: var\(--control-height\);",
         )
         self.assertRegex(
             styles,
-            r"(?s)\.playground-example\s*\{[^}]*font-size: 12px",
+            r"(?s)\.playground-example\s*\{[^}]*font-size: var\(--type-meta\)",
         )
+        foundation = (ROOT / "frontend/css/foundation.css").read_text(encoding="utf-8")
+        self.assertIn("--type-meta: .857143rem;", foundation)
 
     def test_message_editor_prioritizes_full_width_content(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -321,7 +388,7 @@ assert(state.runStateKey === 'playground.ready', 'first visit status');
         self.assertIn("width: 100%", styles)
         self.assertRegex(
             styles,
-            r"(?s)\.playground-message \.playground-message-role select\s*\{.*?width: 122px.*?height: 30px",
+            r"(?s)\.playground-message \.playground-message-role select\s*\{[^}]*width: 122px;[^}]*height: var\(--control-height\);",
         )
         self.assertRegex(
             styles,

@@ -176,9 +176,11 @@ class ProductSurfaceInventoryTests(unittest.TestCase):
         self.assertNotIn("quản trị doanh nghiệp", active_copy)
         self.assertNotIn("Virtual API keys let one gateway", readme_vi)
         self.assertNotIn("Polaris records request volume", readme_vi)
-        self.assertIn("Team access", sidebar)
-        self.assertIn('data-conditional-navigation="team-access"', sidebar)
-        self.assertIn("Access &amp; team", identity)
+        self.assertIn("Identity and sessions", sidebar)
+        self.assertIn('data-tab="identity"', sidebar)
+        self.assertNotIn('data-conditional-navigation="team-access"', sidebar)
+        self.assertIn('data-i18n="identity.title">Identity and sessions</h1>', identity)
+        self.assertNotIn('class="page-kicker"', identity)
         self.assertIn(
             '"en": {"identity.already_exists": "An identity with this exact issuer and subject already exists.", "identity.governance": "Access & team"}',
             identity_locales,
@@ -188,11 +190,56 @@ class ProductSurfaceInventoryTests(unittest.TestCase):
             identity_locales,
         )
 
-    def test_only_semantically_reviewed_readmes_are_published(self) -> None:
+    def test_readmes_cover_all_fifteen_languages(self) -> None:
+        locales = {
+            "de",
+            "es",
+            "fr",
+            "id",
+            "it",
+            "ja",
+            "ko",
+            "pt",
+            "ru",
+            "th",
+            "tr",
+            "vi",
+            "zh-CN",
+            "zh-TW",
+        }
         localized_readmes = {
             document.name for document in (ROOT / "docs" / "locales").glob("README.*.md")
         }
-        self.assertEqual(localized_readmes, {"README.vi.md"})
+        self.assertEqual(localized_readmes, {f"README.{locale}.md" for locale in locales})
+        documents = [ROOT / "README.md"] + sorted((ROOT / "docs/locales").glob("README.*.md"))
+        inventory = set(_load_inventory()["active_documents"])
+        reference = documents[0].read_text(encoding="utf-8")
+        config_pattern = r"^\| (`[A-Z][A-Z0-9_]*`) \|"
+        provider_pattern = r'assets/providers/([^"/]+)'
+        config_keys = re.findall(config_pattern, reference, re.MULTILINE)
+        provider_icons = re.findall(provider_pattern, reference)
+        self.assertEqual(len(config_keys), 85)
+        self.assertEqual(len(provider_icons), 23)
+
+        for document in documents:
+            with self.subTest(document=document.name):
+                self.assertIn(document.relative_to(ROOT).as_posix(), inventory)
+                source = document.read_text(encoding="utf-8")
+                self.assertCountEqual(re.findall(config_pattern, source, re.MULTILINE), config_keys)
+                self.assertCountEqual(re.findall(provider_pattern, source), provider_icons)
+                self.assertEqual(len(re.findall(r"^## ", source, re.MULTILINE)), 18)
+                self.assertEqual(len(re.findall(r"^```", source, re.MULTILINE)) % 2, 0)
+                for example in re.findall(r"```json\n(.*?)\n```", source, re.DOTALL):
+                    self.assertIsInstance(json.loads(example), dict)
+                linked_documents = set()
+                for target in re.findall(r'(?:href|src)="([^"]+)"', source):
+                    if "://" in target or target.startswith("#"):
+                        continue
+                    linked = (document.parent / unquote(target)).resolve()
+                    self.assertTrue(linked.is_file(), (document.name, target))
+                    if linked in documents:
+                        linked_documents.add(linked)
+                self.assertEqual(linked_documents, set(documents) - {document})
 
     def test_current_constraints_and_spec_describe_the_balanced_product(self) -> None:
         constraints = (ROOT / "CONSTRAINTS.md").read_text(encoding="utf-8")

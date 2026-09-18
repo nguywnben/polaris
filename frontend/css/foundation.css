@@ -1,13 +1,21 @@
 :root {
     color-scheme: light;
-    --font-sans: "Google Sans", sans-serif;
+    --font-sans: "Google Sans", "Segoe UI", Arial, sans-serif;
+    --type-page: 2rem;
+    --type-workspace: 1.428571rem;
+    --type-section: 1.142857rem;
+    --type-body: 1rem;
+    --type-label: .928571rem;
+    --type-meta: .857143rem;
+    --leading-heading: 1.35;
+    --leading-body: 1.55;
     --bg: #ffffff;
     --bg-subtle: #fafafa;
     --bg-muted: #f6f6f6;
     --surface: #ffffff;
     --text: #111111;
     --text-muted: #666666;
-    --text-soft: #767676;
+    --text-soft: #6b6b6b;
     --border: #e7e7e7;
     --border-strong: #d8d8d8;
     --control-hover: #f4f4f4;
@@ -19,14 +27,21 @@
     --accent-contrast: #ffffff;
     --success: #137333;
     --success-bg: #eef7f0;
+    --success-border: #cce8d2;
     --danger: #b3261e;
     --danger-bg: #fceeee;
+    --danger-border: #f0c9c6;
     --danger-hover: #fae2df;
     --danger-border-hover: #e8aaa4;
     --warning: #9a6700;
     --warning-bg: #fff7df;
-    --info: #1a73e8;
+    --warning-border: #ead28a;
+    --info: #1765cc;
     --info-bg: #eef4ff;
+    --info-border: #cdddfb;
+    --premium: #6941c6;
+    --premium-bg: #f3edff;
+    --premium-border: #ded2fb;
     --skeleton: #ededed;
     --skeleton-strong: #e4e4e4;
     --focus-ring: #1a73e8;
@@ -35,7 +50,10 @@
     --topbar-bg: rgba(255, 255, 255, 0.96);
     --overlay: rgba(0, 0, 0, 0.28);
     --sidebar-width: 248px;
+    --navigation-height: 36px;
     --radius: 8px;
+    --control-height: 32px;
+    --page-action-height: var(--control-height);
     --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.08);
 }
 
@@ -57,14 +75,21 @@
     --accent-contrast: #111111;
     --success: #81c995;
     --success-bg: #173520;
+    --success-border: #365c40;
     --danger: #f28b82;
     --danger-bg: #3c1f1d;
+    --danger-border: #70413e;
     --danger-hover: #4b2421;
     --danger-border-hover: #8c4a45;
     --warning: #fdd663;
     --warning-bg: #3b3014;
+    --warning-border: #675729;
     --info: #8ab4f8;
     --info-bg: #1b2d49;
+    --info-border: #385579;
+    --premium: #c4a5fa;
+    --premium-bg: #281e40;
+    --premium-border: #564577;
     --skeleton: #2b2b2b;
     --skeleton-strong: #363636;
     --focus-ring: #8ab4f8;
@@ -80,10 +105,20 @@
     font-family: var(--font-sans) !important;
 }
 
+/* Only palette changes bypass transitions; normal interactions keep their motion. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after,
+html.theme-switching *::placeholder,
+html.theme-switching *::backdrop {
+    transition: none !important;
+}
+
 html {
     background: var(--bg);
     color: var(--text);
-    font-size: 14px;
+    font-size: 87.5%;
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
     overflow-x: hidden;
@@ -94,6 +129,7 @@ body {
     min-height: 100vh;
     background: var(--bg);
     color: var(--text);
+    line-height: var(--leading-body);
     overflow-x: hidden;
 }
 
@@ -106,6 +142,20 @@ textarea {
 
 button {
     appearance: none;
+    min-height: var(--control-height);
+    height: var(--control-height);
+}
+
+/* Content surfaces are not single-line controls. Keep their natural height. */
+button:is(.provider-selector-button, .upload-area, .endpoint-code-card, .credential-model-item) {
+    height: auto;
+}
+
+input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+select:not([multiple]):not([size]) {
+    height: var(--control-height);
+    min-height: var(--control-height);
+    padding-block: 5px;
 }
 
 :where(button, a, input, select, textarea, summary):focus-visible {
@@ -116,6 +166,19 @@ button {
 a {
     color: var(--accent);
     text-decoration: none;
+    text-underline-offset: 3px;
+}
+
+::selection {
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+input, textarea { caret-color: var(--text); }
+
+:where(h1, h2, h3, h4) {
+    line-height: var(--leading-heading);
+    overflow-wrap: anywhere;
 }
 
 a:hover {
@@ -179,4 +242,8 @@ code {
     height: 80%;
     display: block;
     object-fit: contain;
+}
+
+[data-theme="dark"] .app-mark-image {
+    filter: invert(1);
 }

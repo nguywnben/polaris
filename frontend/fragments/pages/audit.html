@@ -13,7 +13,8 @@
 
                     <div class="audit-layout">
                             <section class="audit-panel" aria-labelledby="auditEventsHeading">
-                                <div class="audit-panel-heading"><div><h2 id="auditEventsHeading" class="card-title" data-i18n="audit.events">Event stream</h2><p class="card-copy" data-i18n="activity.audit_filters_description">Refine audit evidence by action, target, and fingerprints after applying the shared investigation filters.</p></div><span id="auditEventStatus" class="audit-status" role="status" aria-live="polite"></span></div>
+                                <h3 id="auditEventsHeading" class="visually-hidden" data-i18n="audit.events">Event stream</h3>
+                                <p id="auditEventStatus" class="audit-status" role="status" aria-live="polite"></p>
                                 <form id="auditFilterForm" class="audit-filter-grid" data-i18n-aria-label="audit.filters" aria-label="Filters">
                                     <div class="form-group">
                                         <label for="auditAction" data-i18n="audit.action">Action</label>
@@ -38,11 +39,11 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="auditActorFingerprint" data-i18n="audit.actor_fingerprint">Actor fingerprint</label>
-                                        <input id="auditActorFingerprint" name="actor_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off">
+                                        <input id="auditActorFingerprint" name="actor_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off" data-i18n-placeholder="form.fingerprint" placeholder="Enter a fingerprint">
                                     </div>
                                     <div class="form-group">
                                         <label for="auditTargetFingerprint" data-i18n="audit.target_fingerprint">Target fingerprint</label>
-                                        <input id="auditTargetFingerprint" name="target_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off">
+                                        <input id="auditTargetFingerprint" name="target_fingerprints" minlength="20" maxlength="20" pattern="[0-9a-f]{20}" autocomplete="off" data-i18n-placeholder="form.fingerprint" placeholder="Enter a fingerprint">
                                     </div>
                                     <div class="form-group">
                                         <label for="auditPageSize" data-i18n="audit.page_size">Events per page</label>
@@ -50,7 +51,7 @@
                                     </div>
                                     <div class="audit-filter-actions">
                                         <button type="submit" class="btn" data-i18n="audit.apply">Apply filters</button>
-                                        <button type="button" class="btn btn-secondary" data-ui-action="clear-audit-filters" data-i18n="audit.clear">Clear</button>
+                                        <button type="button" class="btn btn-secondary" data-ui-action="clear-audit-filters" data-i18n="activity.reset_filters">Reset filters</button>
                                     </div>
                                 </form>
                                 <ol id="auditEventList" class="audit-event-list" aria-live="polite" aria-busy="false"></ol>

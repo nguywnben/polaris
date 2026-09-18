@@ -1,22 +1,22 @@
 const ANTHROPIC_CONFIG_FIELDS = {
-    anthropicApiUrlCode: 'anthropic_api_url',
-    anthropicApiUrlPlatform: 'anthropic_api_url',
+    anthropicApiUrlPlatform: 'claude_platform_api_url',
     claudeAuthorizeUrl: 'claude_oauth_authorize_url',
     claudeTokenUrl: 'claude_oauth_token_url',
     claudeClientId: 'claude_client_id',
-    claudeUserAgent: 'claude_user_agent'
+    claudeUserAgent: 'claude_platform_user_agent'
 };
 
 const ANTHROPIC_CONFIG_GROUPS = {
     code: {
         label: 'Claude Code',
+        formId: 'claudeCodeSettingsForm',
         resetTitle: 'Reset Claude Code Settings',
-        fieldIds: ['anthropicApiUrlCode', 'claudeAuthorizeUrl', 'claudeTokenUrl', 'claudeClientId', 'claudeUserAgent']
+        fieldIds: ['claudeAuthorizeUrl', 'claudeTokenUrl', 'claudeClientId']
     },
     platform: {
         label: 'Claude Platform',
-        resetTitle: 'Reset Claude Platform Settings',
-        fieldIds: ['anthropicApiUrlPlatform']
+        formId: 'claudePlatformSettingsForm',
+        fieldIds: ['anthropicApiUrlPlatform', 'claudeUserAgent']
     }
 };
 
@@ -28,10 +28,17 @@ async function loadAnthropicSettings(options = {}) {
         (id) => document.getElementById(id)?.dataset.loaded === 'true'
     );
     setProviderSettingsLoading(loadingIds, formIds, true, preserveContent);
+    formIds.forEach(id => {
+        const form = document.getElementById(id);
+        if (form && form.dataset.loaded !== 'true') form.inert = true;
+    });
     try {
         const response = await fetch('./api/providers/anthropic/config', { headers: getAuthHeaders() });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
+        if (!data.config || typeof data.config !== 'object' || Array.isArray(data.config)) {
+            throw new Error(t('unknown_error'));
+        }
         Object.entries(ANTHROPIC_CONFIG_FIELDS).forEach(([fieldId, configKey]) => {
             const field = document.getElementById(fieldId);
             if (!field) return;
@@ -46,12 +53,18 @@ async function loadAnthropicSettings(options = {}) {
         showStatus(t('provider.settings_load_failed', {provider: 'Anthropic', error: error.message}), 'error');
     } finally {
         setProviderSettingsLoading(loadingIds, formIds, false, preserveContent);
+        formIds.forEach(id => {
+            const form = document.getElementById(id);
+            if (form) form.inert = form.dataset.loaded !== 'true';
+        });
     }
 }
 
 async function saveAnthropicSettings(scope) {
     const group = ANTHROPIC_CONFIG_GROUPS[scope];
     if (!group) return;
+    const form = document.getElementById(group.formId);
+    if (form?.dataset.loaded !== 'true' || form.dataset.saving === 'true') return;
     const contractScope = scope === 'platform'
         ? 'claude-platform.settings'
         : 'claude-code.settings';
@@ -61,6 +74,8 @@ async function saveAnthropicSettings(scope) {
         const field = document.getElementById(fieldId);
         if (field && !field.disabled) config[ANTHROPIC_CONFIG_FIELDS[fieldId]] = field.value.trim();
     });
+    form.dataset.saving = 'true';
+    form.inert = true;
     try {
         const response = await fetch('./api/providers/anthropic/config', {
             method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ config })
@@ -68,15 +83,19 @@ async function saveAnthropicSettings(scope) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
         showStatus(t('provider.settings_saved', {provider: group.label}), 'success');
-        await loadAnthropicSettings();
     } catch (error) {
         showStatus(t('provider.settings_save_failed', {provider: group.label, error: error.message}), 'error');
+    } finally {
+        form.inert = false;
+        delete form.dataset.saving;
     }
 }
 
 async function resetAnthropicSettings(scope) {
     const group = ANTHROPIC_CONFIG_GROUPS[scope];
     if (!group) return;
+    const form = document.getElementById(group.formId);
+    if (form?.dataset.loaded !== 'true' || form.dataset.saving === 'true') return;
     const confirmed = await showConfirmModal(
         t('provider.reset_confirm', {provider: group.label}),
         {
@@ -84,7 +103,9 @@ async function resetAnthropicSettings(scope) {
             confirmLabel: t('btn_reset_defaults')
         }
     );
-    if (!confirmed) return;
+    if (!confirmed || form.dataset.saving === 'true') return;
+    form.dataset.saving = 'true';
+    form.inert = true;
     try {
         const response = await fetch(
             `./api/providers/anthropic/config/reset?scope=${encodeURIComponent(scope)}`,
@@ -93,25 +114,23 @@ async function resetAnthropicSettings(scope) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw createProviderRequestError(response, data);
         showStatus(data.message || t('provider.settings_reset', {provider: group.label}), 'success');
-        await loadAnthropicSettings();
+        group.fieldIds.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const key = ANTHROPIC_CONFIG_FIELDS[fieldId];
+            if (field && data.config && Object.hasOwn(data.config, key)) field.value = data.config[key];
+        });
     } catch (error) {
         showStatus(t('provider.settings_reset_failed', {provider: group.label, error: error.message}), 'error');
+    } finally {
+        form.inert = false;
+        delete form.dataset.saving;
     }
 }
 
 function showAnthropicCredentialSaveResult(kind, data) {
     const isCode = kind === 'code';
     const prefix = isCode ? 'claudeOauth' : 'claudePlatform';
-    const title = document.getElementById(`${prefix}SaveResultTitle`);
-    const text = document.getElementById(`${prefix}SaveResultText`);
-    if (title) title.textContent = t(data.credential_action === 'updated'
-        ? 'runtime.credential_updated_title'
-        : 'runtime.credential_added_title');
-    if (text) {
-        const count = Number(data.model_count) || 0;
-        text.textContent = `${data.message} ${t('runtime.models_available', {count: formatConsoleNumber(count)})}`;
-    }
-    document.getElementById(`${prefix}SaveResult`)?.classList.remove('hidden');
+    showProviderCredentialSaveResult(prefix, data);
 }
 
 async function addClaudePlatformCredential(event) {
@@ -131,7 +150,7 @@ async function addClaudePlatformCredential(event) {
         if (!response.ok) throw createProviderRequestError(response, data);
         resetProviderTransientSecrets('claude-platform.credential');
         showAnthropicCredentialSaveResult('platform', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();
@@ -141,7 +160,7 @@ async function addClaudePlatformCredential(event) {
         }), 'error');
     } finally {
         button.disabled = false;
-        button.textContent = t('runtime.validate_add');
+        button.textContent = t('provider.ui.add_key');
     }
 }
 
@@ -200,7 +219,7 @@ async function saveClaudeOauth() {
         delete fields.dataset.oauthState;
         resetProviderTransientSecrets('claude-code.oauth');
         showAnthropicCredentialSaveResult('code', data);
-        showStatus(data.message, 'success');
+        showStatus(providerCredentialResultCopy(data).title, 'success');
         await AppState.primaryCreds.refresh();
         await loadModelCatalog(true);
         await refreshUsageStats();

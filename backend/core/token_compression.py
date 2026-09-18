@@ -156,6 +156,8 @@ def compress_gemini_request(
         return _unchanged_result(request, 0, "estimation_failed", settings)
     if not settings.enabled:
         return _unchanged_result(request, original_estimate, "disabled", settings)
+    if "_polaris_meta_responses" in request:
+        return _unchanged_result(request, original_estimate, "native_reasoning_history", settings)
     if original_estimate <= settings.threshold_tokens:
         return _unchanged_result(request, original_estimate, "below_threshold", settings)
 

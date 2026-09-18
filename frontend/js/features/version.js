@@ -180,7 +180,7 @@ async function initializeConsole() {
 
     window.addEventListener('popstate', () => {
 
-        navigate(window.location.pathname, false);
+        navigate(window.location.pathname + window.location.search + window.location.hash, false);
 
     });
 

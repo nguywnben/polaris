@@ -20,11 +20,95 @@ from core.panel.usage_routes import get_usage_stats, get_usage_stats_page
 ROOT = BACKEND_DIR.parent
 DASHBOARD_FRAGMENT = ROOT / "frontend/fragments/pages/dashboard.html"
 DASHBOARD_SCRIPT = ROOT / "frontend/js/features/dashboard.js"
+USAGE_PAGINATION_SCRIPT = ROOT / "frontend/js/features/usage-pagination.js"
 DASHBOARD_STYLES = ROOT / "frontend/css/observability.css"
 NUMBER_FORMAT_SCRIPT = ROOT / "frontend/js/core/number-format.js"
 
 
 class ProductionDashboardContractTests(unittest.TestCase):
+    def test_health_inventory_survives_a_new_day_without_visiting_credentials(self):
+        self._run_state_contract("""
+const grid = {innerHTML: '', dataset: {}, querySelectorAll: () => []}, legend = {hidden: true};
+globalThis.document = {getElementById: () => grid, querySelector: () => legend, addEventListener() {}};
+globalThis.AppState = {primaryCreds: {data: {}, hasLoaded: false}};
+globalThis.t = key => key;
+globalThis.escapeHtml = globalThis.escapeAttribute = String;
+globalThis.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+globalThis.getUsageCallCount = stats => Number(stats.calls || 0);
+getDashboardSummaryMetric = count => ({text: String(count), attributes: ''});
+UsagePages.current = {provider_totals: [], provider_inventory: [
+    {provider: 'openai_platform', credential_type: 'api_key', credentials: 1},
+    {provider: 'muse_code', credential_type: 'oauth', credentials: 4},
+    {provider: 'cloudflare', credential_type: 'api_key', credentials: 3},
+]};
+renderProviderHealthMatrix();
+assert((grid.innerHTML.match(/class="provider-health-item status-idle"/g) || []).length === 3,
+    'Connected providers disappeared when the selected period had no calls');
+assert(grid.innerHTML.includes('muse_code') && grid.innerHTML.includes('cloudflare'),
+    'New provider variants must also remain visible without traffic');
+assert(!grid.innerHTML.includes('0%'), 'An idle provider must not claim a measured success rate');
+assert(!legend.hidden, 'Connected providers must retain the shared legend');
+UsagePages.current = {provider_totals: [], provider_inventory: []};
+renderProviderHealthMatrix();
+assert(grid.innerHTML.includes('dashboard.provider_status_empty') && legend.hidden,
+    'A genuinely empty installation must retain the connection guidance');
+""")
+
+    def test_provider_health_uses_accessible_dots_without_changing_status_rules(self):
+        self._run_state_contract("""
+const grid = {innerHTML: '', dataset: {}, querySelectorAll: () => []}, legend = {hidden: true};
+globalThis.document = {
+    getElementById: () => grid,
+    querySelector: () => legend,
+    addEventListener: () => {},
+};
+globalThis.AppState = {primaryCreds: {data: {}, hasLoaded: false}};
+UsagePages.current = {provider_inventory: [{provider: 'ollama', credentials: 1}]};
+globalThis.t = key => key;
+globalThis.escapeHtml = globalThis.escapeAttribute = text => String(text)
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+globalThis.getCredentialProviderMeta = cred => ({id: cred.provider, name: cred.provider});
+globalThis.getProviderUsageEntries = () => [
+    ['healthy.json', {provider: 'openai_platform', calls: 10, successful_calls: 6}],
+    ['degraded.json', {provider: 'claude_code', calls: 10, successful_calls: 5}],
+    ['cooldown.json', {provider: 'codex', calls: 10, successful_calls: 10, in_cooldown: true}],
+];
+globalThis.getUsageCallCount = stats => stats.calls;
+getDashboardSummaryMetric = count => ({text: String(count), attributes: ''});
+renderProviderHealthMatrix();
+const rows = grid.innerHTML.split('<div class="provider-health-item ').slice(1);
+assert(rows.length === 4, 'Missing traffic or idle providers');
+for (const [provider, status, text] of [
+    ['OpenAI Platform', 'healthy', 'healthy'],
+    ['Claude Code', 'error', 'degraded'],
+    ['Codex / ChatGPT', 'error', 'cooldown'],
+    ['Ollama', 'idle', 'idle'],
+]) {
+    const row = rows.find(html => html.includes(provider));
+    assert(row.startsWith(`status-${status}`), `Status calculation changed for ${provider}`);
+    assert(row.includes('class="health-status-trigger"'), 'Missing keyboard/touch trigger');
+    assert(row.includes(`aria-label="${provider}"`), 'Missing provider name for assistive technology');
+    const tooltipId = row.match(/aria-describedby="([^"]+)"/)?.[1];
+    assert(tooltipId && row.includes(`id="${tooltipId}"`), 'Status description is not linked');
+    assert(row.includes(`role="tooltip" hidden>dashboard.status_${text}</span>`), 'Missing status hint');
+    assert(row.includes('class="health-status-dot" aria-hidden="true"'), 'Missing decorative dot');
+    assert(!row.includes('health-badge'), 'Repeated text badge remains');
+}
+assert(!legend.hidden, 'Shared legend was hidden');
+assert(grid.innerHTML.includes('60%') && grid.innerHTML.includes('50%'), 'Actual success rates lost');
+""")
+
+    def test_degraded_badge_uses_only_the_threshold_in_every_locale(self):
+        locales = ROOT / "frontend/js/core/page-locales.js"
+        self._run_state_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(locales))}, 'utf8'));
+assert(Object.keys(PAGE_LOCALE_TRANSLATIONS).length === 15, 'Missing interface locales');
+for (const [locale, messages] of Object.entries(PAGE_LOCALE_TRANSLATIONS)) {{
+    const expected = locale === 'tr' ? '<%60' : '<60%';
+    assert(messages['dashboard.status_degraded'] === expected, `Verbose threshold in ${{locale}}`);
+}}
+""")
+
     def _source(self, path: Path) -> str:
         self.assertTrue(path.is_file(), f"Missing dashboard asset: {path}")
         return path.read_text(encoding="utf-8")
@@ -38,7 +122,9 @@ const fs = require('fs');
 const vm = require('vm');
 const numberSource = fs.readFileSync({json.dumps(str(NUMBER_FORMAT_SCRIPT))}, 'utf8');
 const source = fs.readFileSync({json.dumps(str(DASHBOARD_SCRIPT))}, 'utf8');
+const paginationSource = fs.readFileSync({json.dumps(str(USAGE_PAGINATION_SCRIPT))}, 'utf8');
 vm.runInThisContext(numberSource);
+vm.runInThisContext(paginationSource);
 vm.runInThisContext(source + `\n;globalThis.__renderDashboardTimeline = renderTimelineChart;`);
 function assert(condition, message) {{ if (!condition) throw new Error(message); }}
 {assertions}
@@ -80,6 +166,171 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             fragment.index('id="operationalHealthCard"'), fragment.index('id="providerHealthCard"')
         )
 
+    def test_dashboard_separates_always_visible_credential_details(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+
+        self.assertIn('id="tokenDistributionContainer"', fragment)
+        self.assertIn('id="trafficTimelineChart"', fragment)
+        self.assertIn('id="credentialUsageSection"', fragment)
+        self.assertIn('id="credentialUsageDescription"', fragment)
+        self.assertIn('id="usageList"', fragment)
+        self.assertNotIn('id="usageBreakdownDetails"', fragment)
+        self.assertNotIn(
+            'data-i18n="all"', fragment[fragment.index('id="credentialUsageSection"') :]
+        )
+        self.assertLess(
+            fragment.index('id="usageProviderSummary"'),
+            fragment.index('id="credentialUsageSection"'),
+        )
+
+    def test_dashboard_places_usage_trend_before_request_health(self):
+        fragment = self._source(DASHBOARD_FRAGMENT)
+        styles = self._source(DASHBOARD_STYLES)
+
+        self.assertIn('id="trafficChartCard"', fragment)
+        self.assertRegex(styles, r"#dashboardTab #trafficChartCard\s*\{[^}]*order:\s*-1;")
+        self.assertNotIn('class="dashboard-token-summary"', fragment)
+
+    def test_dashboard_places_usage_breakdown_below_request_health(self):
+        styles = self._source(DASHBOARD_STYLES)
+
+        self.assertRegex(styles, r"#dashboardTab #usageBreakdownCard\s*\{[^}]*order:\s*1;")
+        self.assertRegex(styles, r"#dashboardTab #historicalUsageSection\s*\{[^}]*order:\s*1;")
+        self.assertRegex(
+            styles,
+            r"#dashboardTab #recentActivityCard\s*,\s*#dashboardTab #providerHealthCard\s*\{[^}]*order:\s*2;",
+        )
+
+    def test_usage_pagination_shows_pending_button_and_recovers_after_failure(self):
+        self._run_state_contract("""
+function control() {
+    return {disabled: false, attrs: {},
+        setAttribute(name, value) {this.attrs[name] = value;},
+        removeAttribute(name) {delete this.attrs[name];}};
+}
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({});
+getUsagePeriodConfig = () => ({value: 'today'});
+globalThis.AppState = {usagePageSize: 10, historicalUsagePageSize: 10, usagePage: 1, historicalUsagePage: 1};
+let resolveFetch, calls = 0, errors = 0;
+globalThis.fetch = () => {calls++; return new Promise(resolve => {resolveFetch = resolve;});};
+globalThis.showStatus = () => {errors++;};
+renderUsageList = () => {};
+(async () => {
+    for (const group of ['current', 'historical']) {
+        const prefix = group === 'current' ? 'usage' : 'historicalUsage';
+        const prev = control(), next = control(), list = control();
+        prev.disabled = true;
+        globalThis.document = {getElementById: id => ({
+            [prefix + 'PrevPageBtn']: prev, [prefix + 'NextPageBtn']: next,
+            [prefix + 'List']: list,
+        })[id] || null};
+        UsagePages.current = {data: {}, offset: 0, page_size: 10, total_items: 20};
+        UsagePages.historical = {...UsagePages.current};
+        UsagePages.period = 'today';
+        const pending = moveUsagePage(group, 1);
+        assert(next.disabled && prev.disabled, 'Both paging buttons must lock immediately');
+        assert(next.attrs['aria-busy'] === 'true', 'Clicked button must show pending state');
+        assert(!prev.attrs['aria-busy'], 'Only clicked button gets pending styling');
+        const before = calls;
+        await moveUsagePage(group, 1);
+        assert(calls === before, 'Repeated clicks must not issue duplicate requests');
+        resolveFetch({ok: true, json: async () => ({success: true, data: {item: {}}, offset: 10, page_size: 10, total_items: 20})});
+        await pending;
+        assert(!next.attrs['aria-busy'] && !list.attrs['aria-busy'], 'Pending state clears on success');
+        assert(next.disabled && !prev.disabled, 'Last-page controls reflect the new page');
+        const failed = moveUsagePage(group, -1);
+        assert(prev.attrs['aria-busy'] === 'true', 'Previous button also shows pending state');
+        resolveFetch({ok: false});
+        await failed;
+        assert(!prev.attrs['aria-busy'] && !list.attrs['aria-busy'], 'Pending state clears on error');
+        assert(!prev.disabled && next.disabled, 'Failure preserves the current page and enables retry');
+        assert(UsagePages[group].offset === 10, 'Failure must not advance the page');
+    }
+    assert(errors === 2, 'Both failures must show an error');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
+    def test_dashboard_pagination_keeps_provider_summary_mounted(self):
+        source = self._source(DASHBOARD_SCRIPT)
+        body = source.split("function renderUsageList", 1)[1].split(
+            "function renderUsageProviderSummary", 1
+        )[0]
+
+        self.assertRegex(body, r"if \(group === 'all'\)\s+renderUsageProviderSummary\(\);")
+
+    def test_stale_dashboard_refresh_cannot_replace_metrics_or_finish_newer_refresh(self):
+        self._run_state_contract("""
+const elements = new Map(), statuses = [], secondary = [], details = [], renders = [];
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, dataset: {}, textContent: '',
+        innerHTML: '', setAttribute(name, value) {this[name] = value;}, closest() {return this;}});
+    return elements.get(id);
+}};
+globalThis.AppState = {usagePeriod: '1d', usageStatsLoaded: false};
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({});
+globalThis.clearPageState = () => {};
+globalThis.showPageState = () => statuses.push('page-error');
+globalThis.showStatus = () => statuses.push('status');
+updateUsagePeriodLabels = () => {};
+setDashboardTrafficState = () => {};
+setDashboardSummaryMetric = (id, value) => {document.getElementById(id).textContent = String(value);};
+formatUsageNumber = String;
+renderPricingSource = () => {};
+renderTokenDistribution = () => {};
+renderProviderHealthMatrix = () => renders.push('providers');
+renderUsageList = () => renders.push('usage');
+refreshOperationalHealth = async () => secondary.push('health');
+refreshRecentActivity = async () => secondary.push('activity');
+loadUsagePages = async () => {details.push(AppState.usagePeriod); return true;};
+const defer = () => {let resolve, reject; const promise = new Promise((yes, no) => {
+    resolve = yes; reject = no;
+}); return {promise, resolve, reject};};
+const response = calls => ({ok: true, json: async () => ({success: true, data: {total_calls: calls}})});
+(async () => {
+    for (const failure of [false, true]) {
+        AppState.usagePeriod = '1d';
+        const oldResponse = defer();
+        globalThis.fetch = () => oldResponse.promise;
+        const oldRefresh = refreshUsageStats();
+        AppState.usagePeriod = '7d';
+        globalThis.fetch = async () => response(70);
+        await refreshUsageStats();
+        const detailCount = details.length, secondaryCount = secondary.length;
+        const statusCount = statuses.length, renderCount = renders.length;
+        if (failure) oldResponse.reject(new Error('outdated failure'));
+        else oldResponse.resolve(response(1));
+        await oldRefresh;
+        assert(AppState.dashboardAggregate.total_calls === 70, 'Old aggregate overwrote current period');
+        assert(document.getElementById('totalApiCalls').textContent === '70', 'Old metric was rendered');
+        assert(details.length === detailCount, 'Stale aggregate started a detail query');
+        assert(secondary.length === secondaryCount, 'Stale finally launched secondary queries');
+        assert(statuses.length === statusCount, 'Stale failure displayed an error');
+        assert(renders.length === renderCount, 'Stale refresh rendered a table');
+    }
+    // The generation guard also protects overlapping refreshes of the same period.
+    const oldDetails = defer(), detailStarted = defer(), newResponse = defer();
+    loadUsagePages = async () => {detailStarted.resolve(); return oldDetails.promise;};
+    globalThis.fetch = async () => response(70);
+    const oldRefresh = refreshUsageStats({preserveContent: false});
+    await detailStarted.promise;
+    globalThis.fetch = () => newResponse.promise;
+    const newRefresh = refreshUsageStats({preserveContent: false});
+    const secondaryCount = secondary.length, renderCount = renders.length;
+    oldDetails.resolve(true);
+    await oldRefresh;
+    assert(renders.length === renderCount, 'Old detail completion rendered after a newer refresh began');
+    assert(secondary.length === secondaryCount, 'Old detail completion started secondary refresh');
+    assert(document.getElementById('dashboardStats')['aria-busy'] === 'true', 'Old finally cleared newer busy state');
+    assert(!document.getElementById('usageLoading').hidden, 'Old finally hid newer loading indicator');
+    loadUsagePages = async () => true;
+    newResponse.resolve(response(71));
+    await newRefresh;
+    assert(AppState.dashboardAggregate.total_calls === 71, 'Latest refresh did not complete');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
     def test_zero_traffic_uses_a_guided_first_run_state(self):
         fragment = self._source(DASHBOARD_FRAGMENT)
         source = self._source(DASHBOARD_SCRIPT)
@@ -91,13 +342,63 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
 
     def test_dashboard_load_has_a_fixed_request_budget_and_bounded_lists(self):
         source = self._source(DASHBOARD_SCRIPT)
+        pagination = self._source(USAGE_PAGINATION_SCRIPT)
 
-        self.assertEqual(len(re.findall(r"\bfetch\(", source)), 4)
-        self.assertIn("./api/usage/stats/page?", source)
-        self.assertIn("page_size=100", source)
-        self.assertIn("./api/traces?page_size=5", source)
+        self.assertEqual(len(re.findall(r"\bfetch\(", source)), 3)
+        self.assertEqual(len(re.findall(r"\bfetch\(", pagination)), 1)
+        self.assertIn("groups.map", pagination)
+        self.assertIn("requestedGroups", pagination)
+        self.assertIn("./api/usage/stats/page?", pagination)
+        self.assertIn("page_size: size || 10", pagination)
+        self.assertIn("await loadUsagePages()", source)
+        self.assertIn("./api/traces?page_size=6", source)
         self.assertIn("routes.slice(0, 10)", source)
         self.assertIn("traces.slice(0, DASHBOARD_RECENT_ACTIVITY_PAGE_SIZE)", source)
+
+    def test_empty_guidance_prioritizes_provider_connection_only_for_an_empty_pool(self):
+        self._run_state_contract("""
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, dataset: {}, classList: {toggle() {}}, textContent: ''});
+    return elements.get(id);
+}};
+globalThis.t = key => key;
+globalThis.AppState = {dashboardAggregate: {total_files: 0}};
+setDashboardTrafficState(0);
+assert(elements.get('dashboardStartAction').dataset.tab === 'providers', 'Empty pool must start with providers');
+AppState.dashboardAggregate.total_files = 2;
+setDashboardTrafficState(0);
+assert(elements.get('dashboardStartAction').dataset.tab === 'playground', 'Existing credentials must not be described as a fresh install');
+setDashboardTrafficState(4);
+assert(elements.get('dashboardFirstRun').hidden, 'Populated traffic hides guidance');
+""")
+
+    def test_health_without_samples_does_not_claim_zero_latency_or_error_rate(self):
+        self._run_state_contract("""
+const elements = new Map();
+globalThis.document = {getElementById: id => {
+    if (!elements.has(id)) elements.set(id, {hidden: false, textContent: '', dataset: {}, setAttribute() {}, classList: {toggle() {}},
+        querySelector() { return {textContent: ''}; }, replaceChildren() {},
+        insertRow() { return {insertCell() {return {};}, dataset: {}}; }});
+    return elements.get(id);
+}};
+globalThis.AppState = {};
+document.querySelector = () => ({textContent: ''});
+globalThis.getAuthHeaders = () => ({});
+globalThis.t = key => key;
+globalThis.getActiveLocale = () => 'vi-VN';
+globalThis.setDashboardSummaryMetric = (id, value) => { document.getElementById(id).textContent = String(value); };
+globalThis.fetch = async () => ({ok: true, json: async () => ({status: 'no_data', red: {requests: 0, p95_duration_ms: 0}, routes: []})});
+(async () => {
+    await refreshOperationalHealth();
+    assert(elements.get('sloP95').textContent === '—', 'No samples cannot mean 0 ms');
+    assert(elements.get('sloErrorRate').textContent === '—', 'No samples cannot mean 0% errors');
+    assert(!elements.get('operationalHealthEmpty').hidden, 'Show compact no-sample explanation');
+    globalThis.fetch = async () => ({ok: false, status: 503});
+    await refreshOperationalHealth();
+    assert(elements.get('operationalHealthEmpty').textContent === 'slo.load_failed', 'Unavailable is not empty or critical traffic');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+""")
 
     def test_primary_metrics_precede_secondary_dashboard_queries(self):
         source = self._source(DASHBOARD_SCRIPT)
@@ -106,7 +407,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         )[0]
 
         aggregate_fetch = refresh_body.index("const aggregatedResponse = await fetch")
-        detail_fetch = refresh_body.index("const statsResponse = await fetch")
+        detail_fetch = refresh_body.index("await loadUsagePages()")
         self.assertLess(aggregate_fetch, detail_fetch)
         self.assertLess(detail_fetch, refresh_body.index("void refreshOperationalHealth();"))
         self.assertLess(detail_fetch, refresh_body.index("void refreshRecentActivity();"))
@@ -151,6 +452,7 @@ const maxInfo = { textContent: '' };
 globalThis.document = { getElementById: (id) => id === 'timelineBarsWrapper' ? wrapper : maxInfo };
 globalThis.t = (_key, values = {}) => String(values.count ?? '');
 globalThis.escapeHtml = (value) => String(value);
+globalThis.escapeAttribute = (value) => String(value);
 globalThis.getActiveLocale = () => 'en-US';
 globalThis.__renderDashboardTimeline([{ requests: 0, successful_requests: 0, failed_requests: 0, tokens: 0 }]);
 assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textContent}`);
@@ -171,10 +473,13 @@ assert(maxInfo.textContent === '0', `zero traffic peak: received ${maxInfo.textC
     def test_usage_summary_labels_provider_attempts_separately_from_logical_requests(self):
         fragment = self._source(DASHBOARD_FRAGMENT)
         source = self._source(DASHBOARD_SCRIPT)
+        locales = self._source(ROOT / "frontend/js/core/page-locales.js")
 
         self.assertIn('data-i18n="dashboard.attempt_success_rate"', fragment)
         self.assertIn("dashboard.provider_attempts_period", source)
         self.assertIn("aggData.total_upstream_attempts", source)
+        self.assertIn("'dashboard.provider_attempts': 'Lần gọi',", locales)
+        self.assertIn("'dashboard.attempts_count': '{count} lần gọi',", locales)
 
     def test_timeline_uses_browser_timezone_and_fixed_axis_boundaries(self):
         fragment = self._source(DASHBOARD_FRAGMENT)

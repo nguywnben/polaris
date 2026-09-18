@@ -1,6 +1,7 @@
 services:
   app:
-    image: ${IMAGE:-nguywnben/polaris:0.1.0-beta.1}
+    # For an unpublished checkout, build a local IMAGE; see docs/releases/1.0.0-preparation.md.
+    image: ${IMAGE:-nguywnben/polaris:1.0.0}
     pull_policy: missing
     restart: unless-stopped
     init: true

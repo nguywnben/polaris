@@ -50,7 +50,82 @@ function initTabSlider() {
 
 document.addEventListener('DOMContentLoaded', initTabSlider);
 
+function initControlPointerHover() {
+    let hoveredControl = null;
+    const controlAt = (target) => target instanceof Element ? target.closest('input, select, textarea') : null;
+    const setHoveredControl = (control) => {
+        if (control === hoveredControl) return;
+        hoveredControl?.removeAttribute('data-pointer-hover');
+        hoveredControl = control;
+        hoveredControl?.setAttribute('data-pointer-hover', '');
+    };
+    // Native :hover also matches a control when its associated label is hovered.
+    // Pointer targets distinguish the actual control, including dynamically added forms.
+    document.addEventListener('pointerover', (event) => {
+        setHoveredControl(event.pointerType === 'touch' ? null : controlAt(event.target));
+    });
+    document.addEventListener('pointerout', (event) => {
+        setHoveredControl(event.pointerType === 'touch' ? null : controlAt(event.relatedTarget));
+    });
+    document.addEventListener('pointercancel', () => setHoveredControl(null));
+    window.addEventListener('blur', () => setHoveredControl(null));
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) setHoveredControl(null);
+    });
+}
+
+function controlValidationMessage(field) {
+    const validity = field.validity;
+    const reason = validity.customError ? field.validationMessage
+        : validity.valueMissing ? t('validation.required')
+        : validity.tooShort ? t('validation.min_length', {limit: field.minLength})
+        : validity.tooLong ? t('validation.max_length', {limit: field.maxLength})
+        : validity.rangeUnderflow ? t('validation.min', {limit: field.min})
+        : validity.rangeOverflow ? t('validation.max', {limit: field.max})
+        : validity.stepMismatch ? t('validation.step', {step: field.step || '1'})
+        : validity.typeMismatch || validity.patternMismatch ? t('validation.format')
+        : t('validation.invalid');
+    const label = field.labels?.[0]?.cloneNode(true);
+    label?.querySelectorAll('input, select, textarea, button, small').forEach(node => node.remove());
+    const name = (label?.textContent || field.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    return name ? `${name}: ${reason}` : reason;
+}
+
+function initControlValidationFeedback() {
+    let firstInvalid = null;
+    // Cancel only the browser's presentation, not HTML constraint validation.
+    // Capture also covers reportValidity() and forms inserted by dialogs later.
+    document.addEventListener('invalid', (event) => {
+        event.preventDefault();
+        const field = event.target;
+        field.setAttribute('aria-invalid', 'true');
+        field.setAttribute('data-validation-error', '');
+        if (firstInvalid) return;
+        firstInvalid = field;
+        setTimeout(() => {
+            const target = firstInvalid;
+            firstInvalid = null;
+            if (!target.isConnected || target.validity.valid) return;
+            showStatus(controlValidationMessage(target), 'error');
+        }, 0);
+    }, true);
+    const clearEditedError = (event) => {
+        const field = event.target;
+        if (field.hasAttribute('data-validation-error')) {
+            field.removeAttribute('aria-invalid');
+            field.removeAttribute('data-validation-error');
+        }
+    };
+    document.addEventListener('input', clearEditedError);
+    document.addEventListener('change', clearEditedError);
+}
+
 function initStaticUiBindings() {
+    document.addEventListener('click', handleConsoleLinkClick);
+    initControlPointerHover();
+    initControlValidationFeedback();
+    initCredentialBadgeHints();
+    initBackupBindings();
     const clickHandlers = {
         'toggle-mobile-menu': () => toggleMobileMenu(),
         'switch-tab': (element) => switchTab(element.dataset.tab),
@@ -58,8 +133,15 @@ function initStaticUiBindings() {
         'clear-activity-filters': () => clearActivityFilters(),
         'investigate-activity-request': (element) => investigateActivityRequest(element.dataset.requestId, 'traces', {navigateToActivity: true}),
         logout: () => logout(),
-        'copy-api-key': () => copyInputValue('apiKey'),
+        'copy-api-key': (element, event) => {
+            // A label forwards a click to its input; only a direct pointer hit copies.
+            if (event.detail > 0 && document.elementFromPoint(event.clientX, event.clientY) === element) {
+                copyInputValue(element.id);
+            }
+        },
         'toggle-api-key': () => toggleApiKeyVisibility(),
+        'toggle-setup-secret': (element) => toggleSetupSecret(element),
+        'toggle-login-secret': (element) => toggleSetupSecret(element),
         'regenerate-api-key': () => regenerateApiKey(),
         'virtual-key-create': () => openVirtualKeyForm(),
         'virtual-key-refresh': () => loadVirtualKeys({ announce: true }),
@@ -82,9 +164,9 @@ function initStaticUiBindings() {
         'identity-confirm-cancel': () => closeIdentityConfirmation(false),
         'identity-confirm-submit': () => closeIdentityConfirmation(true),
         'copy-url': (element) => cpUrl(element),
-        'refresh-pool': () => refreshPrimaryCredsList(),
-        'select-pool-archive': () => selectPoolImportArchive(),
-        'download-pool': () => downloadAllPrimaryCreds(),
+        'refresh-credentials': () => refreshPrimaryCredsList(),
+        'select-credentials-archive': () => selectCredentialsImportArchive(),
+        'download-credentials': () => downloadAllPrimaryCreds(),
         'batch-primary': (element) => batchPrimaryAction(element.dataset.batchAction),
         'batch-verify-primary': () => batchVerifyProviderCredentials(),
         'select-all-matching-primary': () => selectAllMatchingPrimary(),
@@ -95,6 +177,7 @@ function initStaticUiBindings() {
         'change-historical-usage-page': (element) => changeHistoricalUsagePage(Number(element.dataset.pageDelta)),
         'refresh-model-catalog': () => loadModelCatalog(true),
         'save-model-pool': () => saveModelPool(),
+        'save-model-routing-policy': () => saveModelRoutingSettings(),
         'validate-model-route': () => validateModelRoute({ announce: true }),
         'test-model-route': () => testModelRouteInPlayground(),
         'playground-add-message': () => addPlaygroundMessage(),
@@ -155,7 +238,6 @@ function initStaticUiBindings() {
         'copy-xai-auth-url': () => cpUrl(document.getElementById('xaiAuthorizationUrl')),
         'copy-primary-auth-url': () => cpUrl(document.getElementById('primaryAuthUrl')),
         'get-primary-credentials': () => getPrimaryCredentials(),
-        'download-primary-credentials': () => downloadPrimaryCredentials(),
         'select-primary-files': () => document.getElementById('primaryFileInput')?.click(),
         'upload-primary-files': () => uploadPrimaryFiles(),
         'clear-primary-files': () => clearPrimaryFiles(),
@@ -197,7 +279,7 @@ function initStaticUiBindings() {
         'playground-draft': () => updatePlaygroundExample(),
         'playground-example-format': () => updatePlaygroundExample(),
         'usage-period': (element) => setUsagePeriod(element.value),
-        'pool-archive': (_element, event) => handlePoolImportArchive(event),
+        'credentials-archive': (_element, event) => handleCredentialsImportArchive(event),
         'select-all-primary': () => toggleSelectAllPrimary(),
         'primary-filter': () => applyPrimaryStatusFilter(),
         'primary-page-size': () => changePrimaryPageSize(),
@@ -210,7 +292,6 @@ function initStaticUiBindings() {
         'claude-platform-files': (_element, event) => handleClaudePlatformFileSelect(event),
         'ollama-files': (_element, event) => handleOllamaFileSelect(event),
         'primary-files': (_element, event) => handlePrimaryFileSelect(event),
-        'routing-strategy': () => syncRoutingPolicyControls(),
         'quality-profile': (element) => selectQualityProfile(element.value),
         'virtual-key-status': (element) => updateVirtualKeyStatus(element.value),
         'virtual-key-pricing': (element) => syncVirtualKeyPricingControl(element.form),
@@ -221,6 +302,14 @@ function initStaticUiBindings() {
     };
 
     document.addEventListener('click', (event) => {
+        const label = event.target.closest('label');
+        const labeledField = label?.control;
+        if (labeledField?.matches('input:not([type="checkbox"]):not([type="radio"]), select, textarea')
+            && !event.target.closest('input, select, textarea, button, a, [contenteditable="true"], [role="button"]')) {
+            // Keep the accessible label association, but only direct field interaction
+            // should focus/open it. Checkbox and radio labels retain native activation.
+            event.preventDefault();
+        }
         const element = event.target.closest('[data-ui-action]');
         if (!element) return;
         const handler = clickHandlers[element.dataset.uiAction];
@@ -237,6 +326,8 @@ function initStaticUiBindings() {
     document.addEventListener('input', (event) => {
         if (event.target.matches('[data-quality-control]')) {
             syncQualityPolicyControls();
+        }
+        if (event.target.matches('[data-quality-control], .quality-preview-inputs input')) {
             document.getElementById('qualityPreviewResult')?.classList.add('hidden');
         }
         if (event.target.matches('[data-playground-input], #playgroundForm input')) {
@@ -265,6 +356,27 @@ function initStaticUiBindings() {
     document.getElementById('setupPreflightButton')?.addEventListener('click', () => {
         runSetupPreflight();
     });
+    for (const eventName of ['input', 'change']) {
+        document.getElementById('configForm')?.addEventListener(eventName, (event) => {
+            if (event.target.matches('.setup-secret-field input') && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+        document.getElementById('loginForm')?.addEventListener(eventName, (event) => {
+            if (event.target.id === 'loginPassword' && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+        document.getElementById('setupForm')?.addEventListener(eventName, (event) => {
+            if (event.target.id === 'setupToken') invalidateSetupVerification();
+            if (event.target.matches('#setupPassword, #setupPasswordConfirm')) {
+                renderSetupPasswordChecks();
+            }
+            if (event.target.matches('.setup-secret-field input') && !event.target.value) {
+                setSetupSecretVisibility(event.target, false);
+            }
+        });
+    }
     document.getElementById('googleAiStudioCredentialForm')?.addEventListener('submit', addGoogleAIStudioCredential);
     document.getElementById('xaiCredentialForm')?.addEventListener('submit', addXaiApiKeyCredential);
     document.getElementById('openaiPlatformCredentialForm')?.addEventListener('submit', addOpenAIPlatformCredential);
@@ -280,6 +392,12 @@ function initStaticUiBindings() {
     });
 
     document.getElementById('apiKey')?.addEventListener('mousedown', (event) => event.preventDefault());
+    document.getElementById('apiKey')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            copyInputValue('apiKey', {preserveFocus: true});
+        }
+    });
 
     for (const [areaId, dropHandler] of [
         ['googleAiStudioUploadArea', handleGoogleAiStudioFileDrop],
@@ -369,7 +487,10 @@ const PROVIDER_WORKSPACES = {
         selectorId: 'providerSelectorOllama',
         panelId: 'providerWorkspaceOllama',
         settingsFamily: null
-    }
+    },
+    ...Object.fromEntries(Object.keys(typeof EXTENDED_PROVIDER_UI === 'undefined' ? {} : EXTENDED_PROVIDER_UI).map(id => [id, {
+        selectorId: `providerSelector-${id}`, panelId: `providerWorkspace-${id}`, settingsFamily: null
+    }]))
 };
 
 const PROVIDER_CATALOG_PAGE_SIZE = 8;
@@ -406,11 +527,14 @@ function updateProviderCatalogPagination() {
     const startIndex = (providerCatalogCurrentPage - 1) * PROVIDER_CATALOG_PAGE_SIZE;
     const endIndex = startIndex + PROVIDER_CATALOG_PAGE_SIZE;
     const visibleCards = new Set(filteredCards.slice(startIndex, endIndex));
+    const tabStop = [...visibleCards].find(card => card.getAttribute('aria-selected') === 'true')
+        || visibleCards.values().next().value;
 
     allCards.forEach((card) => {
         const isVisible = visibleCards.has(card);
         card.classList.toggle('hidden', !isVisible);
         card.setAttribute('aria-hidden', String(!isVisible));
+        card.tabIndex = card === tabStop ? 0 : -1;
     });
 
     const emptyElement = document.getElementById('providerCatalogEmpty');
@@ -484,11 +608,6 @@ function selectProviderWorkspace(providerId, focusSelector = false) {
         panel?.classList.toggle('hidden', !isActive);
     });
 
-    const paginationContainer = document.getElementById('providerCatalogPagination');
-    const activeHeader = document.getElementById(selected.panelId)
-        ?.querySelector(':scope > .provider-workspace-header');
-    if (paginationContainer) activeHeader?.append(paginationContainer);
-
     if (focusSelector) {
         const selector = document.getElementById(selected.selectorId);
         selector?.focus();
@@ -532,52 +651,55 @@ function initProviderWorkspaceSelector() {
 document.addEventListener('DOMContentLoaded', initProviderWorkspaceSelector);
 
 const MODEL_PROVIDER_META = {
+    ...Object.fromEntries(Object.entries(typeof EXTENDED_PROVIDER_UI === 'undefined' ? {} : EXTENDED_PROVIDER_UI).map(([id, definition]) => [id, {
+        name: definition.name, logo: `/frontend/assets/providers/${definition.logo}`
+    }])),
     google_antigravity: {
         name: 'Google Antigravity',
-        logo: '/frontend/assets/providers/google-antigravity-logo.png'
+        logo: '/frontend/assets/providers/google-antigravity.png'
     },
     google_ai_studio: {
         name: 'Google AI Studio',
-        logo: '/frontend/assets/providers/google-ai-studio-logo.png'
+        logo: '/frontend/assets/providers/google-ai-studio.png'
     },
     grok: {
         name: 'Grok Build',
-        logo: '/frontend/assets/providers/grok-build-logo.png'
+        logo: '/frontend/assets/providers/grok-build.png'
     },
     xai_console: {
         name: 'SpaceXAI Console',
-        logo: '/frontend/assets/providers/spacexai-console-logo.png'
+        logo: '/frontend/assets/providers/spacexai-console.png'
     },
     codex: {
         name: 'Codex',
-        logo: '/frontend/assets/providers/codex-logo.png'
+        logo: '/frontend/assets/providers/codex.png'
     },
     openai_platform: {
         name: 'OpenAI Platform',
-        logo: '/frontend/assets/providers/openai-platform-logo.png'
+        logo: '/frontend/assets/providers/openai-platform.png'
     },
     claude_code: {
         name: 'Claude Code',
-        logo: '/frontend/assets/providers/claude-code-logo.png'
+        logo: '/frontend/assets/providers/claude-code.png'
     },
     claude_platform: {
         name: 'Claude Platform',
-        logo: '/frontend/assets/providers/claude-platform-logo.png'
+        logo: '/frontend/assets/providers/claude-platform.png'
     },
     anthropic: {
         name: 'Anthropic',
-        logo: '/frontend/assets/providers/claude-platform-logo.png'
+        logo: '/frontend/assets/providers/claude-platform.png'
     },
     ollama: {
         name: 'Ollama',
-        logo: '/frontend/assets/providers/ollama-logo.png'
+        logo: '/frontend/assets/providers/ollama.png'
     },
     xai: {
         name: 'Grok Build',
-        logo: '/frontend/assets/providers/grok-build-logo.png'
+        logo: '/frontend/assets/providers/grok-build.png'
     },
     openai: {
         name: 'OpenAI Platform',
-        logo: '/frontend/assets/providers/openai-platform-logo.png'
+        logo: '/frontend/assets/providers/openai-platform.png'
     }
 };

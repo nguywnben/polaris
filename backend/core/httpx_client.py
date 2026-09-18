@@ -1,7 +1,10 @@
 import asyncio
+import ipaddress
+import os
 from contextlib import asynccontextmanager
 from threading import RLock
 from typing import Any, AsyncGenerator, Dict, Hashable, Optional, Tuple
+from urllib.parse import urlsplit
 
 import httpx
 from config import get_proxy_config
@@ -9,6 +12,78 @@ from log import log
 
 STREAM_READ_CHUNK_BYTES = 64 * 1024
 MAX_STREAM_LINE_BYTES = 1024 * 1024
+
+
+def _bypass_configured_proxy(destination_url: Optional[str]) -> bool:
+    """Honor explicit no_proxy/NO_PROXY only; never resolve names or infer local bypass.
+
+    Comma-separated rules support '*', domain suffixes on a label boundary,
+    host[:port] (brackets for IPv6 with a port), and literal-IP CIDR networks.
+    Lowercase takes precedence, including an explicitly empty value. CIDR rules
+    never resolve a hostname; malformed rules are ignored and retain the proxy.
+    """
+    rules = os.environ.get("no_proxy", os.environ.get("NO_PROXY", ""))
+    if not destination_url or not rules:
+        return False
+    try:
+        destination = urlsplit(str(destination_url))
+        host = (destination.hostname or "").lower().rstrip(".")
+        port = destination.port
+        if port is None:
+            port = {"http": 80, "https": 443}.get(destination.scheme)
+    except ValueError:
+        return False
+    if not host or destination.scheme not in {"http", "https"}:
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    for raw_rule in rules.split(","):
+        rule = raw_rule.strip().lower()
+        if rule == "*":
+            return True
+        if not rule or any(character.isspace() for character in rule):
+            continue
+        if "/" in rule:
+            try:
+                if address is not None and address in ipaddress.ip_network(rule, strict=False):
+                    return True
+            except ValueError:
+                pass
+            continue
+        rule_port = None
+        if rule.startswith("["):
+            closing = rule.find("]")
+            if closing < 0:
+                continue
+            rule_host, suffix = rule[1:closing], rule[closing + 1 :]
+            try:
+                ipaddress.IPv6Address(rule_host)
+            except ValueError:
+                continue
+            if suffix:
+                if not suffix.startswith(":") or not suffix[1:].isdigit() or len(suffix) > 6:
+                    continue
+                rule_port = int(suffix[1:])
+        elif rule.count(":") == 1:
+            rule_host, port_text = rule.rsplit(":", 1)
+            if not port_text.isdigit() or len(port_text) > 5:
+                continue
+            rule_port = int(port_text)
+        else:
+            rule_host = rule
+        if rule_port is not None and (not 1 <= rule_port <= 65535 or rule_port != port):
+            continue
+        try:
+            if address is not None and address == ipaddress.ip_address(rule_host):
+                return True
+        except ValueError:
+            pass
+        rule_host = rule_host.lstrip(".").rstrip(".")
+        if address is None and rule_host and (host == rule_host or host.endswith("." + rule_host)):
+            return True
+    return False
 
 
 class UpstreamStreamProtocolError(RuntimeError):
@@ -57,7 +132,9 @@ class HttpxClientManager:
         self._clients: Dict[Tuple[Hashable, ...], httpx.AsyncClient] = {}
         self._lock = RLock()
 
-    async def get_client_kwargs(self, timeout: float = 30.0, **kwargs) -> Dict[str, Any]:
+    async def get_client_kwargs(
+        self, timeout: float = 30.0, *, destination_url: Optional[str] = None, **kwargs
+    ) -> Dict[str, Any]:
         client_kwargs = {
             "timeout": timeout,
             "trust_env": False,
@@ -68,6 +145,8 @@ class HttpxClientManager:
         current_proxy_config = await get_proxy_config()
         if current_proxy_config:
             client_kwargs["proxy"] = current_proxy_config
+        if _bypass_configured_proxy(destination_url):
+            client_kwargs.pop("proxy", None)
 
         return client_kwargs
 
@@ -118,7 +197,7 @@ http_client = HttpxClientManager()
 async def get_async(
     url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 30.0, **kwargs
 ) -> httpx.Response:
-    async with http_client.get_client(timeout=timeout, **kwargs) as client:
+    async with http_client.get_client(timeout=timeout, destination_url=url, **kwargs) as client:
         return await client.get(url, headers=headers)
 
 
@@ -130,7 +209,7 @@ async def post_async(
     timeout: float = 900.0,
     **kwargs,
 ) -> httpx.Response:
-    async with http_client.get_client(timeout=timeout, **kwargs) as client:
+    async with http_client.get_client(timeout=timeout, destination_url=url, **kwargs) as client:
         return await client.post(url, data=data, json=json, headers=headers)
 
 
@@ -164,7 +243,7 @@ async def stream_post_async(
         )
         return
 
-    async with http_client.get_streaming_client(**kwargs) as client:
+    async with http_client.get_streaming_client(destination_url=url, **kwargs) as client:
         async with client.stream("POST", url, json=body, headers=headers) as r:
             if r.status_code != 200:
                 from fastapi import Response

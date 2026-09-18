@@ -54,7 +54,7 @@ function showConfirmModal(message, options = {}) {
 
             settled = true;
 
-            document.removeEventListener('keydown', escHandler);
+            modal.removeEventListener('keydown', escHandler);
 
             void unmountModal(modal).then(() => resolve(value));
 
@@ -74,11 +74,11 @@ function showConfirmModal(message, options = {}) {
 
         });
 
-        document.addEventListener('keydown', escHandler);
+        modal.addEventListener('keydown', escHandler);
 
         void mountModal(modal);
 
-        modal.querySelector('[data-dialog-confirm]')?.focus();
+        focusModalSurface(modal);
 
     });
 
@@ -100,7 +100,7 @@ function showPromptModal(message, options = {}) {
 
         const initialValue = options.value || '';
 
-        const placeholder = options.placeholder || '';
+        const placeholder = options.placeholder || t('form.value');
 
         modal.innerHTML = `
 
@@ -116,7 +116,7 @@ function showPromptModal(message, options = {}) {
 
                     <div class="message-modal-prompt-copy">${renderDialogMessage(message)}</div>
 
-                    <input type="text" class="message-modal-input">
+                    <input type="text" class="message-modal-input" placeholder="${escapeAttribute(t('form.value'))}" aria-label="${escapeAttribute(title)}">
 
                 </div>
 
@@ -142,7 +142,7 @@ function showPromptModal(message, options = {}) {
 
             settled = true;
 
-            document.removeEventListener('keydown', escHandler);
+            modal.removeEventListener('keydown', escHandler);
 
             void unmountModal(modal).then(() => resolve(value));
 
@@ -168,7 +168,7 @@ function showPromptModal(message, options = {}) {
 
         });
 
-        document.addEventListener('keydown', escHandler);
+        modal.addEventListener('keydown', escHandler);
 
         void mountModal(modal);
 
@@ -180,7 +180,6 @@ function showPromptModal(message, options = {}) {
 
             inputEl.placeholder = placeholder;
 
-            inputEl.focus();
 
         }
 
@@ -238,7 +237,7 @@ function showModelTestModal(message, options = {}) {
             settled = true;
             activeController?.abort();
             activeController = null;
-            document.removeEventListener('keydown', escHandler);
+            modal.removeEventListener('keydown', escHandler);
             void unmountModal(modal).then(() => resolve());
         };
 
@@ -259,7 +258,7 @@ function showModelTestModal(message, options = {}) {
             select?.addEventListener('change', () => {
                 if (confirm) confirm.disabled = !select.value;
             });
-            select?.focus();
+            if (modal.isConnected) focusModalSurface(modal);
         };
 
         const renderResult = (result) => {
@@ -352,7 +351,7 @@ function showModelTestModal(message, options = {}) {
             if (event.target.closest('[data-dialog-confirm]')) runTest();
         });
 
-        document.addEventListener('keydown', escHandler);
+        modal.addEventListener('keydown', escHandler);
         void mountModal(modal);
         renderSelection();
 

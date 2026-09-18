@@ -1,0 +1,382 @@
+"""Smoke provider/settings ownership in an isolated Chromium and runtime.
+
+The test uses the disposable localhost runtime from ``browser_smoke.py``. It
+blocks every non-local browser request, never starts an OAuth/provider action,
+and stores screenshots only as local review evidence.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+import traceback
+from pathlib import Path
+from urllib.parse import urlparse
+
+from browser_smoke import PASSWORD, disposable_runtime
+from playwright.sync_api import Page, Route, expect, sync_playwright
+
+ROOT = Path(__file__).resolve().parents[1]
+WIDTHS = (320, 768, 1024, 1440)
+THEMES = ("light", "dark")
+PROVIDERS = (
+    (
+        "google_antigravity",
+        "providerSelectorGoogleAntigravity",
+        "providerWorkspaceGoogleAntigravity",
+    ),
+    ("google_ai_studio", "providerSelectorGoogleAiStudio", "providerWorkspaceGoogleAiStudio"),
+    ("grok", "providerSelectorGrok", "providerWorkspaceGrok"),
+    ("xai_console", "providerSelectorXaiConsole", "providerWorkspaceXaiConsole"),
+    ("codex", "providerSelectorCodex", "providerWorkspaceCodex"),
+    ("openai_platform", "providerSelectorOpenAiPlatform", "providerWorkspaceOpenAiPlatform"),
+    ("claude_code", "providerSelectorClaudeCode", "providerWorkspaceClaudeCode"),
+    ("claude_platform", "providerSelectorClaudePlatform", "providerWorkspaceClaudePlatform"),
+    ("ollama", "providerSelectorOllama", "providerWorkspaceOllama"),
+)
+
+
+def _install_network_guard(page: Page, unexpected_external: list[str]) -> None:
+    def guard(route: Route) -> None:
+        parsed = urlparse(route.request.url)
+        if parsed.hostname in {"127.0.0.1", "localhost"}:
+            route.fallback()
+            return
+        if parsed.hostname == "fonts.googleapis.com":
+            route.fulfill(status=200, content_type="text/css", body="")
+            return
+        if parsed.hostname == "fonts.gstatic.com":
+            route.fulfill(status=200, content_type="font/woff2", body="")
+            return
+        unexpected_external.append(route.request.url)
+        route.abort("blockedbyclient")
+
+    page.route("**/*", guard)
+
+
+def _complete_setup(page: Page, base_url: str) -> None:
+    page.goto(f"{base_url}/dashboard", wait_until="domcontentloaded")
+    expect(page.locator("#setupSection")).to_be_visible(timeout=15_000)
+    expect(page.locator("#setupOwnerFields")).to_be_enabled(timeout=10_000)
+    page.locator("#setupPassword").fill(PASSWORD)
+    page.locator("#setupPasswordConfirm").fill(PASSWORD)
+    page.locator("#setupSubmitButton").click()
+    expect(page.locator("#dashboardTab")).to_be_visible(timeout=15_000)
+    expect(page.locator("#statusSection")).to_be_hidden(timeout=10_000)
+
+
+def _assert_no_overflow(page: Page, surface: str, width: int, theme: str) -> None:
+    overflow = page.evaluate(
+        "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    if overflow > 1:
+        raise AssertionError(
+            f"{surface} overflows horizontally by {overflow}px at {width}px ({theme})."
+        )
+    protruding = page.locator(".tab-content.active").evaluate(
+        """surface => [...surface.querySelectorAll('*')].filter(element => {
+            const style = getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+            if (!rect.width || !rect.height || style.visibility === 'hidden') return false;
+            if (style.position === 'fixed' || style.position === 'absolute') return false;
+            return rect.left < -1 || rect.right > innerWidth + 1;
+        }).slice(0, 12).map(element => ({
+            tag: element.tagName.toLowerCase(), id: element.id,
+            className: String(element.className).slice(0, 100),
+            left: Math.round(element.getBoundingClientRect().left),
+            right: Math.round(element.getBoundingClientRect().right)
+        }))"""
+    )
+    if protruding:
+        raise AssertionError(
+            f"{surface} has visible elements outside the viewport at {width}px ({theme}): "
+            f"{protruding!r}"
+        )
+
+
+def _assert_surface_hygiene(page: Page, surface: str, width: int, theme: str) -> None:
+    autofocus = page.locator(".tab-content.active [autofocus]").count()
+    if autofocus:
+        raise AssertionError(f"{surface} contains {autofocus} autofocus control(s).")
+    invalid_events = page.evaluate("window.__providerOwnershipInvalidEvents")
+    if invalid_events:
+        raise AssertionError(
+            f"{surface} triggered browser-native validation at {width}px ({theme}): "
+            f"{invalid_events!r}"
+        )
+    _assert_no_overflow(page, surface, width, theme)
+
+
+def _open_providers(page: Page) -> None:
+    page.evaluate("navigate('/providers', false)")
+    expect(page.locator("#providersTab")).to_be_visible()
+
+
+def _select_all_providers(page: Page, output_dir: Path) -> None:
+    for scope in ("shared", "compatibility"):
+        owner = page.locator(f'[data-google-settings="{scope}"]').evaluate(
+            "section => section.closest('.provider-workspace')?.id || null"
+        )
+        if owner != "providerWorkspaceGoogleAntigravity":
+            raise AssertionError(f"Google {scope} settings have the wrong workspace: {owner!r}")
+    expect(page.locator("#providersTab #antigravityCreditSettings")).to_have_count(0)
+    for _provider_id, selector_id, workspace_id in PROVIDERS:
+        selector = page.locator(f"#{selector_id}")
+        if not selector.is_visible():
+            if selector_id == "providerSelectorOllama":
+                page.locator("#providerCatalogNextBtn").click()
+            else:
+                page.locator("#providerCatalogPrevBtn").click()
+        expect(selector).to_be_visible()
+        selector.click()
+        expect(selector).to_have_attribute("aria-selected", "true")
+        expect(page.locator(f"#{workspace_id}")).to_be_visible()
+        for scope in ("shared", "compatibility"):
+            settings = page.locator(f'[data-google-settings="{scope}"]')
+            expect(settings).to_be_hidden()
+        workspace = page.locator(f"#{workspace_id}")
+        advanced = workspace.locator('details[data-disclosure-kind="settings"]:visible')
+        if advanced.count():
+            if not advanced.evaluate("details => details.open"):
+                advanced.locator("summary").click()
+            expect(advanced).to_have_attribute("open", "")
+            description = advanced.locator(".provider-settings-header p[data-provider-form-copy]")
+            expect(description).to_be_visible()
+            expect(description).not_to_have_text("")
+            assert "{provider}" not in description.inner_text()
+            assert not description.inner_text().startswith("provider.form.")
+            assert (
+                int(description.evaluate("element => getComputedStyle(element).fontWeight")) < 600
+            )
+            fields = advanced.locator('input:not([type="checkbox"]):not([type="radio"]):visible')
+            panel_width = advanced.bounding_box()["width"]
+            columns = 2 if page.viewport_size["width"] > 1080 else 1
+            minimum_width = (panel_width - 64) / columns - 24
+            for field in fields.all():
+                assert field.bounding_box()["width"] >= minimum_width, (
+                    workspace_id,
+                    field.get_attribute("id"),
+                    field.bounding_box(),
+                    minimum_width,
+                )
+            if page.viewport_size["width"] in (320, 1440):
+                theme = page.locator("html").get_attribute("data-theme")
+                advanced.screenshot(
+                    path=output_dir
+                    / f"advanced-{_provider_id}-{theme}-{page.viewport_size['width']}.png"
+                )
+        for shared in page.locator(
+            "[data-provider-owned-link], #xaiSharedSettingsForm, [data-google-settings]"
+        ).all():
+            expect(shared).to_be_hidden()
+
+    page.locator("#providerCatalogPrevBtn").click()
+    page.locator("#providerSelectorGoogleAntigravity").click()
+    expect(page.locator("#providerWorkspaceGoogleAntigravity")).to_be_visible()
+
+
+def _verify_private_settings_draft(page: Page) -> None:
+    advanced = page.locator(
+        '#providerWorkspaceGoogleAntigravity details[data-disclosure-kind="settings"]'
+    )
+    if not advanced.evaluate("details => details.open"):
+        advanced.locator("summary").click()
+    endpoint = page.locator("#antigravityApiUrl")
+    expect(endpoint).to_be_visible()
+    expect(endpoint).to_be_enabled()
+    # Switching providers hides the existing editors, rather than recreating
+    # them or reloading their data and discarding an unsaved draft.
+    original = endpoint.input_value()
+    draft = "https://daily-cloudcode-pa.googleapis.com/unsaved-draft"
+    endpoint.fill(draft)
+    page.locator("#providerSelectorCodex").click()
+    expect(advanced).to_be_hidden()
+    page.locator("#providerSelectorGoogleAntigravity").click()
+    expect(endpoint).to_have_value(draft)
+    expect(advanced).to_have_attribute("open", "")
+    endpoint.fill(original)
+
+
+def _verify_settings_ownership(page: Page) -> None:
+    page.evaluate("navigate('/config', false)")
+    settings = page.locator("#configTab")
+    expect(settings).to_be_visible()
+    expect(settings.locator("#switchCredentialEnabled")).to_be_visible()
+    expect(settings.locator("#streamToNonstream")).to_be_visible()
+    if settings.locator(
+        "#codeAssistEndpoint, #codeAssistClientId, #codeAssistClientSecret, "
+        "[data-google-config], [data-google-settings]"
+    ).count():
+        raise AssertionError("Settings still owns Google/Code Assist controls.")
+    if "Code Assist" in settings.inner_text():
+        raise AssertionError("Settings still renders Code Assist copy.")
+    save_bar = settings.locator(".settings-save-bar")
+    save_bar_layout = save_bar.evaluate(
+        """bar => {
+            const barRect = bar.getBoundingClientRect();
+            const overlaps = [...document.querySelectorAll('#configTab .config-group')]
+                .filter(group => {
+                    const rect = group.getBoundingClientRect();
+                    return rect.bottom > barRect.top && rect.top < barRect.bottom
+                        && rect.right > barRect.left && rect.left < barRect.right;
+                })
+                .map(group => group.querySelector('h2')?.textContent?.trim() || group.className);
+            return {position: getComputedStyle(bar).position, overlaps};
+        }"""
+    )
+    if save_bar_layout["position"] in {"absolute", "fixed", "sticky"}:
+        raise AssertionError(f"Settings save bar is overlay-positioned: {save_bar_layout!r}")
+    if save_bar_layout["overlaps"]:
+        raise AssertionError(f"Settings save bar overlaps content: {save_bar_layout!r}")
+
+
+def _verify_claude_platform_isolation(page: Page) -> None:
+    """Save/reset against the disposable backend, never the user's installation."""
+    _open_providers(page)
+    page.locator("#providerSelectorClaudeCode").click()
+    code_advanced = page.locator(
+        '#providerWorkspaceClaudeCode details[data-disclosure-kind="settings"]'
+    )
+    code_advanced.locator("summary").click()
+    code_field = page.locator("#claudeClientId")
+    expect(code_field).to_be_visible()
+    expect(code_field).to_be_enabled()
+    code_field.fill("unsaved-code-client")
+    page.locator("#providerSelectorClaudePlatform").click()
+    advanced = page.locator(
+        '#providerWorkspaceClaudePlatform details[data-disclosure-kind="settings"]'
+    )
+    advanced.locator("summary").click()
+    endpoint = page.locator("#anthropicApiUrlPlatform")
+    agent = page.locator("#claudeUserAgent")
+    expect(endpoint).to_be_visible()
+    expect(endpoint).to_be_enabled()
+    assert page.evaluate("document.activeElement?.tagName") not in ("INPUT", "TEXTAREA", "SELECT")
+    endpoint.fill("https://platform.example/v1")
+    agent.fill("polaris/platform-browser-test")
+    with page.expect_response(
+        lambda response: (
+            response.url.endswith("/api/providers/anthropic/config")
+            and response.request.method == "POST"
+        )
+    ) as saved:
+        advanced.locator('[data-ui-action="save-anthropic-settings"]').click()
+    assert saved.value.ok
+    body = saved.value.request.post_data_json["config"]
+    assert set(body) == {"claude_platform_api_url", "claude_platform_user_agent"}
+    assert (
+        saved.value.json()["config"]["claude_platform_user_agent"]
+        == "polaris/platform-browser-test"
+    )
+    before_reset = saved.value.json()["config"]
+    page.locator("#providerSelectorClaudeCode").click()
+    expect(code_field).to_have_value("unsaved-code-client")
+    page.locator("#providerSelectorClaudePlatform").click()
+    expect(agent).to_have_value("polaris/platform-browser-test")
+    advanced.locator('[data-ui-action="reset-anthropic-settings"]').click()
+    with page.expect_response(
+        lambda response: "/api/providers/anthropic/config/reset?scope=platform" in response.url
+    ) as reset:
+        page.locator("[data-dialog-confirm]").click()
+    assert reset.value.ok
+    after_reset = reset.value.json()["config"]
+    for key, value in before_reset.items():
+        if not key.startswith("claude_platform_"):
+            assert after_reset[key] == value, key
+    expect(agent).to_have_value("polaris/claude-platform")
+    expect(endpoint).to_have_value("https://api.anthropic.com/v1")
+    page.locator("#providerSelectorClaudeCode").click()
+    expect(code_field).to_have_value("unsaved-code-client")
+    code_field.fill(after_reset["claude_client_id"])
+    print("[provider-ownership-smoke] Claude Platform save/reset isolation passed", flush=True)
+
+
+def _capture_matrix(page: Page, output_dir: Path) -> None:
+    for theme in THEMES:
+        page.evaluate("theme => window.PolarisTheme.setPreference(theme)", theme)
+        expect(page.locator("html")).to_have_attribute("data-theme", theme)
+        for width in WIDTHS:
+            page.set_viewport_size({"width": width, "height": 1000})
+            _open_providers(page)
+            _select_all_providers(page, output_dir)
+            _verify_private_settings_draft(page)
+            _assert_surface_hygiene(page, "Providers", width, theme)
+            page.screenshot(
+                path=output_dir / f"providers-{theme}-{width}.png",
+                full_page=True,
+            )
+
+            _verify_settings_ownership(page)
+            _assert_surface_hygiene(page, "Settings", width, theme)
+            page.screenshot(
+                path=output_dir / f"settings-{theme}-{width}.png",
+                full_page=True,
+            )
+            print(
+                f"[provider-ownership-smoke] passed: {theme} {width}px",
+                flush=True,
+            )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=ROOT / "temp" / "provider-ownership-smoke",
+        help="Directory for the 16 local review screenshots.",
+    )
+    args = parser.parse_args()
+    output_dir = args.output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    console_errors: list[str] = []
+    unexpected_external: list[str] = []
+    try:
+        with disposable_runtime() as base_url, sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context(
+                viewport={"width": 1440, "height": 1000},
+                reduced_motion="reduce",
+            )
+            page = context.new_page()
+            page.add_init_script(
+                """window.__providerOwnershipInvalidEvents = [];
+                document.addEventListener('invalid', event => {
+                    window.__providerOwnershipInvalidEvents.push(
+                        event.target.id || event.target.name || event.target.tagName
+                    );
+                }, true);"""
+            )
+            page.on(
+                "console",
+                lambda message: (
+                    console_errors.append(message.text) if message.type == "error" else None
+                ),
+            )
+            page.on("pageerror", lambda error: console_errors.append(str(error)))
+            _install_network_guard(page, unexpected_external)
+            _complete_setup(page, base_url)
+            _verify_claude_platform_isolation(page)
+            _capture_matrix(page, output_dir)
+            context.close()
+            browser.close()
+
+        if console_errors:
+            raise AssertionError("Browser errors:\n- " + "\n- ".join(console_errors))
+        if unexpected_external:
+            raise AssertionError(
+                "Unexpected external browser requests were blocked:\n- "
+                + "\n- ".join(sorted(set(unexpected_external)))
+            )
+    except Exception as exc:
+        print(f"Provider ownership smoke failed: {exc}", file=sys.stderr)
+        traceback.print_exc()
+        return 1
+
+    print(f"Provider ownership smoke passed. Screenshots: {output_dir}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

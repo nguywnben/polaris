@@ -69,6 +69,41 @@ class _NestedStandardFieldParser(HTMLParser):
 
 
 class UiFeedbackContractTests(unittest.TestCase):
+    def test_summary_stat_grids_have_complete_outer_borders(self) -> None:
+        observability = (FRONTEND / "css/observability.css").read_text(encoding="utf-8")
+        providers = (FRONTEND / "css/providers-and-models.css").read_text(encoding="utf-8")
+        self.assertRegex(
+            observability,
+            r"(?s)#dashboardTab \.stats-container\s*\{[^}]*border: 1px solid var\(--border\);[^}]*border-radius: var\(--radius\);",
+        )
+        self.assertRegex(
+            providers,
+            r"(?s)#modelsTab > \.stats-container\s*\{[^}]*border: 1px solid var\(--border\);[^}]*border-radius: var\(--radius\);",
+        )
+
+    def test_dashboard_range_uses_the_global_compact_size(self) -> None:
+        shell = (FRONTEND / "css/shell.css").read_text(encoding="utf-8")
+        self.assertNotRegex(shell, r"#usagePeriodSelect\s*\{[^}]*--control-height:")
+        foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
+        self.assertIn("--control-height: 32px;", foundation)
+
+    def test_controls_share_the_approved_compact_height_at_all_widths(self) -> None:
+        foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
+        responsive = (FRONTEND / "css/responsive.css").read_text(encoding="utf-8")
+        components = (FRONTEND / "css/components.css").read_text(encoding="utf-8")
+        self.assertIn("--control-height: 32px;", foundation)
+        self.assertIn("--page-action-height: var(--control-height);", foundation)
+        self.assertNotIn("--control-height:", responsive)
+        self.assertRegex(foundation, r"(?s)button\s*\{[^}]*height: var\(--control-height\);")
+        self.assertRegex(
+            components, r"(?s)\.btn-small\s*\{[^}]*min-height: var\(--control-height\);"
+        )
+        self.assertIn("select:not([multiple]):not([size])", foundation)
+        self.assertIn(
+            "button:is(.provider-selector-button, .upload-area, .endpoint-code-card, .credential-model-item)",
+            foundation,
+        )
+
     def _run_javascript_contract(self, source: str) -> None:
         node = shutil.which("node")
         if node is None:
@@ -236,9 +271,9 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
         markup = serve_control_panel().body.decode("utf-8")
         credential_source = (FRONTEND / "js/core/credential-manager.js").read_text(encoding="utf-8")
 
-        self.assertIn('id="poolFirstRun"', markup)
+        self.assertIn('id="credentialsFirstRun"', markup)
         self.assertIn("updateFirstRunState", credential_source)
-        self.assertIn("pool-data-only", markup)
+        self.assertIn("credentials-data-only", markup)
 
     def test_select_controls_balance_text_and_chevron_spacing(self) -> None:
         foundation = (FRONTEND / "css/foundation.css").read_text(encoding="utf-8")
@@ -266,12 +301,13 @@ assert(host.hidden === true && host.children.length === 0, 'state did not clear'
             "input:not([type])",
             'input[type="datetime-local"]',
             "select:open",
-            ":user-invalid",
+            '[aria-invalid="true"]',
             ":focus-visible",
         ):
             self.assertIn(selector, styles)
 
         self.assertIn("background-image: var(--select-chevron-open)", styles)
+        self.assertNotIn(":user-invalid", styles)
         self.assertIn(":is(\n    input:not([type]),", styles)
         self.assertNotIn(":where(\n    input:not([type]),", styles)
         self.assertNotIn("box-shadow: 0 0 0 3px var(--field-focus-ring)", styles)

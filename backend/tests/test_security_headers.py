@@ -36,6 +36,39 @@ def build_request(path: str, *, forwarded_proto: str = "", method: str = "GET") 
 
 
 class SecurityHeaderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_google_config_writes_emit_correlated_redacted_audit_outcomes(self):
+        for path in ("/api/providers/google/config", "/api/providers/google/config/reset"):
+            for status, outcome in (
+                (200, "succeeded"),
+                (400, "invalid"),
+                (403, "denied"),
+                (500, "failed"),
+            ):
+                with self.subTest(path=path, status=status):
+                    service = AsyncMock()
+
+                    async def next_handler(_request):
+                        return JSONResponse(
+                            {"detail": "test-only-sensitive-value"}, status_code=status
+                        )
+
+                    with patch("core.audit_service.get_audit_service", return_value=service):
+                        response = await add_security_headers(
+                            build_request(path, method="POST"), next_handler
+                        )
+
+                    self.assertEqual(response.status_code, status)
+                    service.record.assert_awaited_once()
+                    mutation = service.record.await_args.args[0]
+                    evidence = service.record.await_args.kwargs
+                    self.assertEqual(mutation.action, "provider.update")
+                    self.assertEqual(mutation.target_type, "provider")
+                    self.assertEqual(mutation.target_identifier, "google")
+                    self.assertEqual(mutation.change_codes, ("settings_changed",))
+                    self.assertEqual(evidence["outcome"], outcome)
+                    self.assertEqual(evidence["request_id"], response.headers["x-request-id"])
+                    self.assertNotIn("test-only-sensitive-value", repr(service.record.await_args))
+
     async def test_management_mutation_is_correlated_after_response(self):
         async def next_handler(_request):
             return JSONResponse({"ok": False}, status_code=409)

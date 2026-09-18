@@ -159,6 +159,18 @@ def _derive_quota_state(
     return "available"
 
 
+def _masked_api_key_hint(value: Any) -> str | None:
+    """Expose only a bounded identifier, never a complete or nearly complete key."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    if not value or not value.isascii() or not value.isprintable():
+        return None
+    if len(value) < 20:
+        return "••••"
+    return f"{value[:6]}…{value[-4:]}"
+
+
 def enrich_credential_summary(
     summary: dict[str, Any],
     credential_data: dict[str, Any],
@@ -191,6 +203,11 @@ def enrich_credential_summary(
         "user_email": summary.get("user_email"),
         "credential_label": credential_data.get("credential_label"),
         "credential_type": credential_kind,
+        "api_key_hint": (
+            _masked_api_key_hint(credential_data.get("api_key"))
+            if credential_kind == "api_key"
+            else None
+        ),
         "credential_kind": credential_kind,
         "provider": provider,
         "provider_variant": get_credential_provider_variant(credential_data),
@@ -214,6 +231,8 @@ def enrich_credential_summary(
         ),
         "source": source,
     }
+    if credential_data.get("validation_status") == "unverified":
+        item["validation_status"] = "unverified"
     if mode == "code_assist":
         item["preview"] = bool(summary.get("preview", True))
     else:

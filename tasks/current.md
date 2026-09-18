@@ -1,5 +1,43 @@
 # Polaris — Current State
 
+## Publication authorized — 2026-09-18
+
+The owner approved merge, `v1.0.0` tagging and publication after refreshing README
+previews. Replace the outdated shared image with actual Dashboard/Credentials captures
+in light/dark themes, using a new offline synthetic database. Verify and commit this
+documentation-only update, run exact-SHA CI, then publish through the existing guarded
+workflow and verify the published digest in an isolated container. Never reuse operator
+data or bypass a failed release gate. Earlier checkpoints below retain their original
+authorization boundaries.
+
+## Candidate prepared and verified — 2026-09-18
+
+The owner authorized committing the reviewed repairs, pushing only
+`codex/release-1.0.0-readiness`, and running CI. No main merge, stable tag, registry
+publication or GitHub release publication is authorized. RR5/RR6 evidence is in
+[the existing release plan](release-readiness-2026-09-18.md#authorized-candidate-closure--2026-09-18).
+Target image names are available in both registries; beta rollback digests are recorded.
+Candidate `bafe7b6` passed the complete local release gate and all required GitHub CI
+jobs, with both publication jobs skipped. See the [readiness record](../docs/releases/1.0.0-readiness.md)
+for exact evidence, scope and publication steps. The documentation-only handoff commit
+must also have green CI and an exact-commit reliability confirmation before delivery.
+The sections below preserve earlier checkpoints, not the current release verdict.
+
+## Local release preparation completed — 2026-09-18
+
+The owner requested a whole-product audit and preparation of the new Polaris `1.0.0`
+line. See [the scoped plan](release-readiness-2026-09-18.md) and
+[current evidence](../docs/audits/release-readiness-2026-09-18.md).
+The final local release gate, nine browser journeys and isolated Docker rehearsal passed.
+The working tree remains uncommitted; registry-image collisions and immutable-commit
+CI/sign-off still block publication. This is not a ready-to-tag declaration.
+The owner separately authorized a historical tag/release migration on 2026-09-18:
+14 Omni Gateway tags now use `omni-gateway/`; Polaris beta is `v0.1.0-beta` at its
+original commit. [Migration evidence](../docs/releases/tag-migration-2026-09-18.md)
+records the preserved releases and backup. No code commit, branch push, new `v1.0.0`
+tag or image publication was performed or authorized by that migration. R1/R2 remain completed
+historical work; their candidates and test results do not certify the current tree.
+
 ## Completed Production Balance Workstream
 
 - Completed plan: `PROD-BALANCE-R2` in `tasks/production-balance-r2.md`.

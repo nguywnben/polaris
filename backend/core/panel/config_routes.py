@@ -1,5 +1,6 @@
 import asyncio
 import os
+from typing import Annotated, Literal
 
 import config
 from core.auth import verify_password
@@ -21,7 +22,7 @@ from core.utils import (
     set_panel_session_cookie,
     verify_panel_token,
 )
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from log import configure_logging, log
 
 from .utils import get_env_locked_keys, internal_server_error
@@ -63,10 +64,6 @@ ALLOWED_CONFIG_KEYS = {
     for field in CONFIGURATION_FIELDS
     if field.config_key and field.surface == "system"
 }
-DEFAULT_BACKED_CONFIG_KEYS = {
-    "code_assist_client_id",
-    "code_assist_client_secret",
-}
 RESETTABLE_CONFIG_KEYS = set(ALLOWED_CONFIG_KEYS)
 PRESERVED_RESET_KEYS = {
     "api_key",
@@ -98,16 +95,11 @@ async def get_config(token: str = Depends(verify_panel_token)):
     try:
         current_config = {}
 
-        current_config["code_assist_endpoint"] = await config.get_code_assist_endpoint()
         current_config["credentials_dir"] = await config.get_credentials_dir()
         current_config["proxy"] = await config.get_proxy_config() or ""
 
-        (
-            code_assist_client_id,
-            code_assist_client_secret,
-        ) = await config.get_code_assist_oauth_client_config()
-        current_config["code_assist_client_id"] = code_assist_client_id
-        current_config["code_assist_client_secret"] = code_assist_client_secret
+        current_config["stream_to_nonstream"] = await config.get_stream_to_nonstream()
+        current_config["switch_credential_enabled"] = await config.get_switch_credential_enabled()
 
         current_config["auto_disable_enabled"] = await config.get_auto_disable_enabled()
         current_config["auto_disable_error_codes"] = await config.get_auto_disable_error_codes()
@@ -157,10 +149,6 @@ async def get_config(token: str = Depends(verify_panel_token)):
         env_locked_keys = get_env_locked_keys()
 
         for key, value in storage_config.items():
-            if key in DEFAULT_BACKED_CONFIG_KEYS and (
-                value is None or (isinstance(value, str) and not value.strip())
-            ):
-                continue
             if key in ALLOWED_CONFIG_KEYS and key not in env_locked_keys:
                 current_config[key] = value
 
@@ -326,11 +314,16 @@ async def update_access_credentials(
 
 
 @router.post("/reset")
-async def reset_config(token: str = Depends(verify_panel_token)):
+async def reset_config(
+    token: str = Depends(verify_panel_token),
+    scope: Annotated[Literal["all", "system"], Query()] = "all",
+):
     """Reset global configuration overrides while preserving access secrets."""
     try:
         env_locked_keys = get_env_locked_keys()
         resettable_keys = RESETTABLE_CONFIG_KEYS - env_locked_keys
+        if scope == "system":
+            resettable_keys -= {"routing_strategy", "preferred_provider"}
 
         storage_adapter = await get_storage_adapter()
         deleted_keys = []

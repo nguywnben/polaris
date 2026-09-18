@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any, Dict, List
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import httpx
 from config import get_google_ai_studio_api_url
 from core.httpx_client import get_async
-from core.provider_registry import GOOGLE_AI_STUDIO, normalize_provider_id
+from core.provider_registry import GOOGLE_AI_STUDIO, MAX_DECLARED_MODELS, normalize_provider_id
 
 
 class GoogleAIStudioError(RuntimeError):
@@ -125,19 +126,9 @@ def parse_model_ids(payload: Any) -> List[str]:
     return model_ids
 
 
-async def validate_api_key(api_key: str) -> GoogleAIStudioValidation:
-    """Validate a key and return models available to generateContent."""
-    normalized_key = str(api_key or "").strip()
-    if len(normalized_key) < 16 or len(normalized_key) > 512:
-        raise GoogleAIStudioError("Enter a valid Google AI Studio API key.")
-
+async def _fetch_model_page(url: str, headers: Dict[str, str]) -> Any:
     try:
-        api_base_url = await get_google_ai_studio_api_url()
-        response = await get_async(
-            build_models_url(api_base_url),
-            headers=build_api_key_headers(normalized_key),
-            timeout=30.0,
-        )
+        response = await get_async(url, headers=headers, timeout=30.0)
     except (httpx.HTTPError, OSError) as exc:
         raise GoogleAIStudioError(
             "Unable to reach Google AI Studio. Check outbound network and proxy settings.",
@@ -155,12 +146,44 @@ async def validate_api_key(api_key: str) -> GoogleAIStudioValidation:
         )
 
     try:
-        model_ids = parse_model_ids(response.json())
+        return response.json()
     except ValueError as exc:
         raise GoogleAIStudioError(
             "Google AI Studio returned an invalid JSON response.", status_code=502
         ) from exc
 
+
+async def validate_api_key(api_key: str) -> GoogleAIStudioValidation:
+    """Discover every catalog page, without treating a partial catalog as success."""
+    normalized_key = str(api_key or "").strip()
+    if len(normalized_key) < 16 or len(normalized_key) > 512:
+        raise GoogleAIStudioError("Enter a valid Google AI Studio API key.")
+    url = build_models_url(await get_google_ai_studio_api_url())
+    headers = build_api_key_headers(normalized_key)
+    model_ids: List[str] = []
+    cursors: set[str] = set()
+    cursor = ""
+    try:
+        async with asyncio.timeout(30.0):
+            # https://ai.google.dev/api/models#method:-models.list
+            for _ in range(20):
+                page_url = f"{url}?{urlencode({'pageToken': cursor})}" if cursor else url
+                payload = await _fetch_model_page(page_url, headers)
+                model_ids = list(dict.fromkeys([*model_ids, *parse_model_ids(payload)]))
+                if len(model_ids) > MAX_DECLARED_MODELS:
+                    raise GoogleAIStudioError("Google AI Studio model catalog is too large.", 502)
+                cursor = payload.get("nextPageToken", "")
+                if cursor == "":
+                    break
+                if not isinstance(cursor, str) or len(cursor) > 4096 or cursor in cursors:
+                    raise GoogleAIStudioError("Google AI Studio returned invalid pagination.", 502)
+                cursors.add(cursor)
+            else:
+                raise GoogleAIStudioError(
+                    "Google AI Studio model catalog exceeds the page limit.", 502
+                )
+    except TimeoutError as exc:
+        raise GoogleAIStudioError("Google AI Studio model discovery timed out.", 504) from exc
     if not model_ids:
         raise GoogleAIStudioError(
             "The API key is valid, but no generate-content models are available."

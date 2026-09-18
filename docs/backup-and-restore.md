@@ -41,10 +41,27 @@ Store backup files away from the Polaris data volume and apply the same access c
 provider credentials. A strong, unique passphrase and an encrypted operator password manager are
 recommended.
 
+## Settings workflow
+
+Open **Settings → Backup and restore**. The console checks the current session's
+`backup.export` and `backup.restore` permissions independently; the server remains authoritative.
+
+1. Enter and confirm a new 12–256-character passphrase, then download the encrypted archive.
+2. Choose an archive, enter its passphrase, and select the conflict policy. The default stops if
+   this instance already contains data.
+3. Validate the archive. This is a dry run, not a restore. Review the record count and policy.
+4. Restore requires a separate confirmation. Changing the file, passphrase, or policy invalidates
+   validation. Revalidating is also required after an uncertain response; do not blindly retry.
+5. After success, use **Sign in** to end the current session and authenticate again. Verify the
+   restored instance before resuming client traffic.
+
+Leaving Settings clears the selected file and passphrases, including during a pending request.
+It does not cancel a restore already submitted to the server. The sanitized download is clearly
+separate and cannot be used for recovery. On other storage backends, use database-native recovery.
+
 ## Authenticated API workflow
 
-The Settings UI entry point is delivered by P4.6. Until then, authenticated operators use these
-management endpoints:
+The console uses the same management endpoints available to authenticated operators:
 
 | Operation | Endpoint | Body | Result |
 | --- | --- | --- | --- |

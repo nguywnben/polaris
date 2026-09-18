@@ -38,13 +38,10 @@ async function startPrimaryAuth() {
 
             document.getElementById('primaryAuthUrlSection').classList.remove('hidden');
             document.getElementById('primarySaveResult')?.classList.add('hidden');
-            document.getElementById('primaryCredsSection')?.classList.add('hidden');
             const primaryCallbackUrlInput = document.getElementById('primaryCallbackUrlInput');
             if (primaryCallbackUrlInput) primaryCallbackUrlInput.value = '';
             updatePrimaryCallbackUrlPlaceholder(data.callback_url);
             setPrimaryCallbackUrlSectionVisible(true);
-            const primaryCredsContent = document.getElementById('primaryCredsContent');
-            if (primaryCredsContent) primaryCredsContent.textContent = '';
 
             showStatus(t('primary_authentication_link_gen'), 'success');
 
@@ -113,48 +110,14 @@ function validateCallbackUrl(callbackUrl) {
 }
 
 async function completePrimaryCredentialSave(data) {
-    const credentialSaved = data.credential_saved !== false;
-    const credentialAction = data.credential_action || 'created';
-    const resultTitle = credentialAction === 'skipped'
-        ? t('provider_credential_skipped_title')
-        : credentialAction === 'replaced'
-            ? t('provider_credential_replaced_title')
-            : t('provider_credential_saved_title');
-    const fileSuffix = data.file_path ? ` File: ${data.file_path}.` : '';
-    const resultBody = data.message
-        ? `${data.message}${data.message.endsWith('.') ? '' : '.'}${fileSuffix}`
-        : credentialSaved
-            ? t('provider_credential_saved_body', {data_file_path: data.file_path})
-            : t('provider_credential_skipped_body', {data_file_path: data.file_path});
-
-    const primaryCredsSection = document.getElementById('primaryCredsSection');
-    const primaryCredsContent = document.getElementById('primaryCredsContent');
-    const primaryCredsDownloadBtn = document.getElementById('primaryCredsDownloadBtn');
-
-    if (credentialSaved) {
-        primaryCredsContent.textContent = JSON.stringify(data.credentials, null, 2);
-        primaryCredsSection.classList.remove('hidden');
-        primaryCredsDownloadBtn?.classList.remove('hidden');
-        AppState.primaryCredentialFilename = getDownloadFilename(data.file_path, `primary-credential-${Date.now()}.json`);
-    } else {
-        primaryCredsContent.textContent = '';
-        primaryCredsSection.classList.add('hidden');
-        primaryCredsDownloadBtn?.classList.add('hidden');
-        AppState.primaryCredentialFilename = '';
-    }
-
+    const resultCopy = providerCredentialResultCopy(data);
+    AppState.primaryCredentialFilename = '';
+    AppState.primaryAuthState = '';
     AppState.primaryAuthInProgress = false;
     setPrimaryCallbackUrlSectionVisible(false);
     resetProviderTransientSecrets('antigravity.oauth');
 
-    const saveResult = document.getElementById('primarySaveResult');
-    const saveResultTitle = document.getElementById('primarySaveResultTitle');
-    const saveResultText = document.getElementById('primarySaveResultText');
-    if (saveResult && saveResultText) {
-        if (saveResultTitle) saveResultTitle.textContent = resultTitle;
-        saveResultText.textContent = resultBody;
-        saveResult.classList.remove('hidden');
-    }
+    showProviderCredentialSaveResult('primary', data);
 
     try {
         await AppState.primaryCreds.refresh();
@@ -163,7 +126,7 @@ async function completePrimaryCredentialSave(data) {
         console.warn('Credential flow completed, but pool refresh failed:', refreshError);
     }
 
-    showStatus(resultBody, credentialSaved ? 'success' : 'info');
+    showStatus(resultCopy.title, resultCopy.variant);
 }
 
 async function getPrimaryCredentials() {
@@ -211,7 +174,7 @@ async function getPrimaryCredentials() {
         }
 
         if (statusData.status !== 'completed') {
-            setPrimaryCallbackUrlSectionVisible(true, true);
+            setPrimaryCallbackUrlSectionVisible(true);
             showStatus(t('provider_authorization_pending'), 'info');
             return;
         }
@@ -290,26 +253,6 @@ function getDownloadFilename(filePath, fallback) {
     const rawName = String(filePath || '').split(/[\\/]/).pop().trim();
 
     return rawName || fallback;
-
-}
-
-function downloadPrimaryCredentials() {
-
-    const content = document.getElementById('primaryCredsContent').textContent;
-
-    const blob = new Blob([content], { type: 'application/json' });
-
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-
-    a.href = url;
-
-    a.download = getDownloadFilename(AppState.primaryCredentialFilename, `primary-credential-${Date.now()}.json`);
-
-    a.click();
-
-    window.URL.revokeObjectURL(url);
 
 }
 

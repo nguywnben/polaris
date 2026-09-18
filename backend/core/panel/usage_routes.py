@@ -1,4 +1,5 @@
 import asyncio
+from typing import Annotated, Literal
 
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.pricing import get_pricing_table_status
@@ -47,6 +48,9 @@ async def get_usage_stats_page(
     timezone_offset_minutes: int = Query(0, ge=-840, le=840),
     page_size: int = Query(100, ge=1, le=200),
     token: str = Depends(verify_panel_token),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    group: Literal["all", "current", "historical"] = "all",
+    order: Literal["calls", "name"] = "calls",
 ):
     result = await get_usage_stats(
         period=period,
@@ -55,16 +59,68 @@ async def get_usage_stats_page(
     )
     if isinstance(result, JSONResponse):
         return result
+
+    def historical(filename, stats):
+        return filename != UNASSIGNED_USAGE_FILENAME and bool(
+            stats.get("is_historical") or stats.get("is_deleted")
+        )
+
+    entries = list(result["data"].items())
+    providers = {}
+    inventory = {}
+    for filename, stats in entries:
+        if filename == UNASSIGNED_USAGE_FILENAME or historical(filename, stats):
+            continue
+        provider = stats.get("provider") or stats.get("provider_name") or ""
+        credential_type = stats.get("credential_type") or ""
+        connected = inventory.setdefault(
+            (provider, credential_type),
+            dict(provider=provider, credential_type=credential_type, credentials=0),
+        )
+        connected["credentials"] += 1
+        if not stats.get("calls", 0):
+            continue
+        totals = providers.setdefault(
+            (provider, credential_type),
+            dict(
+                provider=provider,
+                credential_type=credential_type,
+                credentials=0,
+                calls=0,
+                successful_calls=0,
+                failed_calls=0,
+                total_tokens=0,
+                in_cooldown=False,
+            ),
+        )
+        totals["credentials"] += 1
+        for metric in ("calls", "successful_calls", "failed_calls", "total_tokens"):
+            totals[metric] += int(stats.get(metric, 0))
+        totals["in_cooldown"] |= bool(stats.get("in_cooldown") or stats.get("cooldown_until"))
+    if group != "all":
+        entries = [
+            (filename, stats)
+            for filename, stats in entries
+            if stats.get("calls", 0) > 0 and historical(filename, stats) == (group == "historical")
+        ]
     ordered = sorted(
-        result["data"].items(),
-        key=lambda item: (-int(item[1].get("calls", 0)), item[0]),
+        entries,
+        key=(
+            (lambda item: item[0])
+            if order == "name"
+            else (lambda item: (-int(item[1].get("calls", 0)), item[0]))
+        ),
     )
     return {
         **result,
-        "data": dict(ordered[:page_size]),
+        "data": dict(ordered[offset : offset + page_size]),
         "page_size": page_size,
+        "offset": offset,
+        "group": group,
         "total_items": len(ordered),
-        "has_more": len(ordered) > page_size,
+        "has_more": len(ordered) > offset + page_size,
+        "provider_totals": list(providers.values()),
+        "provider_inventory": list(inventory.values()),
     }
 
 

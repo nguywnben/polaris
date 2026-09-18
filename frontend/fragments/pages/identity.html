@@ -1,12 +1,11 @@
                 <div id="identityTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="identity.governance">Access &amp; team</div>
                             <h1 class="page-title" data-i18n="identity.title">Identity and sessions</h1>
                             <p class="page-description" data-i18n="identity.description">Review effective authority, direct OIDC identities, active management sessions, and recovery readiness.</p>
                         </div>
                         <div class="page-actions">
-                            <button type="button" class="btn" data-ui-action="identity-refresh" data-i18n="identity.refresh">Refresh identity state</button>
+                            <button id="identityRefreshButton" type="button" class="btn btn-secondary" data-ui-action="identity-refresh" data-i18n="refresh">Refresh</button>
                         </div>
                     </header>
 
@@ -14,7 +13,7 @@
                     <p id="identityModeNotice" class="identity-mode-notice" role="status" aria-live="polite" data-i18n="identity.mode_loading">Checking optional team access. Local recovery remains available.</p>
 
                     <div class="identity-summary-grid">
-                        <section class="identity-panel identity-summary" aria-labelledby="identityPrincipalHeading">
+                        <section class="identity-panel identity-summary identity-principal" aria-labelledby="identityPrincipalHeading">
                             <div class="identity-panel-heading">
                                 <div>
                                     <h2 id="identityPrincipalHeading" class="card-title" data-i18n="identity.current_principal">Current principal</h2>
@@ -34,6 +33,12 @@
                                 <span id="identityOidcBadge" class="status-badge muted" data-i18n="identity.unavailable">Unavailable</span>
                             </div>
                             <dl id="identityOidcSummary" class="identity-fact-list" aria-busy="true"></dl>
+                            <details class="identity-summary-action">
+                                <summary data-i18n="oidc_entry.setup_title">Set up team sign-in</summary>
+                                <p class="card-copy" data-i18n="oidc_entry.setup_help">Configure OIDC in the deployment environment using the guide, then restart Polaris. Keep your local-owner password for recovery.</p>
+                                <p class="card-copy" data-i18n="oidc_entry.access_help">Grant access through an exact issuer and subject binding below, or an explicit role mapping. Verify readiness after restarting.</p>
+                                <p><a href="https://github.com/nguywnben/polaris/blob/main/docs/oidc-foundation.md" target="_blank" rel="noopener noreferrer" data-i18n="oidc_entry.setup_guide">OIDC setup guide</a></p>
+                            </details>
                             <button id="identityOidcAdvance" type="button" class="btn btn-secondary identity-summary-action hidden" data-ui-action="identity-oidc-advance" data-i18n="identity.advance_oidc">Invalidate OIDC sessions</button>
                         </section>
 
@@ -56,7 +61,7 @@
                                     <h2 id="identityInventoryHeading" class="card-title" data-i18n="identity.identities">Direct identities</h2>
                                     <p class="card-copy" data-i18n="identity.identities_description">Exact issuer and subject bindings with durable role revisions.</p>
                                 </div>
-                                <button id="identityCreateButton" type="button" class="btn hidden" data-ui-action="identity-create" data-i18n="identity.create_identity">Create identity</button>
+                                <button id="identityCreateButton" type="button" class="btn btn-small hidden" data-ui-action="identity-create" data-i18n="identity.create_identity">Create identity</button>
                             </div>
                             <p id="identityListStatus" class="identity-section-status" role="status" aria-live="polite"></p>
                             <div id="identityList" class="identity-record-list" role="list" aria-busy="true"></div>
@@ -88,14 +93,13 @@
                         <form id="identityCreateForm">
                             <div class="identity-dialog-header">
                                 <div>
-                                    <h2 id="identityCreateTitle" data-i18n="identity.create_identity">Create identity</h2>
+                                    <h2 id="identityCreateTitle" tabindex="-1" autofocus data-i18n="identity.create_identity">Create identity</h2>
                                     <p data-i18n="identity.create_description">Bind one exact OIDC issuer and subject to a direct management role.</p>
                                 </div>
-                                <button type="button" class="icon-button" data-ui-action="identity-create-close" data-i18n-aria-label="identity.close" aria-label="Close">×</button>
                             </div>
                             <div class="identity-dialog-body">
-                                <div class="form-group"><label for="identityCreateIssuer" data-i18n="identity.issuer">Issuer</label><input id="identityCreateIssuer" name="issuer" type="url" required maxlength="2048" autocomplete="off"></div>
-                                <div class="form-group"><label for="identityCreateSubject" data-i18n="identity.subject">Subject</label><input id="identityCreateSubject" name="subject" required maxlength="255" autocomplete="off"></div>
+                                <div class="form-group"><label for="identityCreateIssuer" data-i18n="identity.issuer">Issuer</label><input id="identityCreateIssuer" name="issuer" type="url" required maxlength="2048" autocomplete="off" placeholder="https://login.example.com"></div>
+                                <div class="form-group"><label for="identityCreateSubject" data-i18n="identity.subject">Subject</label><input id="identityCreateSubject" name="subject" required maxlength="255" autocomplete="off" data-i18n-placeholder="form.subject" placeholder="Enter the exact subject identifier"></div>
                                 <div class="form-group"><label for="identityCreateRole" data-i18n="identity.role">Role</label><select id="identityCreateRole" name="role" required><option value="viewer" data-i18n-technical>viewer</option><option value="operator" data-i18n-technical>operator</option><option value="security_admin" data-i18n-technical>security_admin</option><option id="identityCreateOwnerOption" value="owner" data-i18n-technical>owner</option></select></div>
                                 <p id="identityCreateStatus" class="identity-section-status" role="status" aria-live="polite"></p>
                             </div>

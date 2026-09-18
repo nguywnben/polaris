@@ -81,14 +81,14 @@ function credentialEditField(configuration, field) {
         && configuration.editable_fields.includes(field);
 }
 
-async function showCredentialEditModal(pathId) {
+async function showCredentialEditModal(pathId, options = {}) {
     const context = getCredentialModalContext(pathId, AppState.primaryCreds);
     if (!context.filename || context.manager?.type !== 'primary') return;
 
-    showStatus(t('status_loading_file_content'), 'info');
+    if (!options.container) showStatus(t('status_loading_file_content'), 'info');
     try {
         const endpoint = `./api/credentials/configuration/${encodeURIComponent(context.filename)}?mode=provider`;
-        const response = await fetch(endpoint, {headers: getAuthHeaders()});
+        const response = await fetch(endpoint, {headers: getAuthHeaders(), signal: options.signal});
         const configuration = await response.json().catch(() => ({}));
         if (!response.ok || !configuration.editable) {
             throw new Error(configuration.detail || configuration.error || t('unknown_error'));
@@ -105,12 +105,12 @@ async function showCredentialEditModal(pathId) {
                         ${credentialEditField(configuration, 'credential_label') ? `
                             <label class="message-modal-field">
                                 <span class="message-modal-field-label">${escapeHtml(t('credential_display_name'))}</span>
-                                <input class="message-modal-input" name="credential_label" maxlength="128" required value="${escapeAttribute(configuration.credential_label || '')}">
+                                <input class="message-modal-input" name="credential_label" maxlength="128" required placeholder="${escapeAttribute(t('form.credential_name'))}" value="${escapeAttribute(configuration.credential_label || '')}">
                             </label>` : ''}
                         ${credentialEditField(configuration, 'base_url') ? `
                             <label class="message-modal-field">
                                 <span class="message-modal-field-label">${escapeHtml(t('provider.form.endpoint_label'))}</span>
-                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" required value="${escapeAttribute(configuration.base_url || '')}">
+                                <input class="message-modal-input" name="base_url" type="url" maxlength="2048" ${configuration.provider === 'ollama' ? 'required' : ''} placeholder="https://api.example.com" value="${escapeAttribute(configuration.base_url || '')}">
                             </label>` : ''}
                         ${credentialEditField(configuration, 'api_key') ? `
                             <label class="message-modal-field">
@@ -127,12 +127,22 @@ async function showCredentialEditModal(pathId) {
             </div>`;
 
         const form = modal.querySelector('[data-credential-edit-form]');
-        const error = modal.querySelector('[data-credential-edit-error]');
+        if (typeof appendExtendedCredentialFields === 'function') appendExtendedCredentialFields(form, configuration);
+        if (options.container) {
+            if (options.signal?.aborted) return;
+            options.container.replaceChildren(form);
+        }
+        const error = form.querySelector('[data-credential-edit-error]');
         const submit = form.querySelector('button[type="submit"]');
         let saving = false;
         const close = () => {
-            if (!saving) void unmountModal(modal);
+            if (saving) return;
+            if (options.container) {
+                form.reset();
+                error.classList.add('hidden');
+            } else void unmountModal(modal);
         };
+        if (options.container) form.querySelector('[data-credential-edit-cancel]').addEventListener('click', close);
         modal.addEventListener('click', (event) => {
             if (event.target === modal || event.target.closest('[data-credential-edit-cancel]')) close();
         });
@@ -141,6 +151,7 @@ async function showCredentialEditModal(pathId) {
         });
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (saving || options.isBusy?.()) return;
             const values = new FormData(form);
             const payload = {};
             const label = String(values.get('credential_label') || '').trim();
@@ -151,13 +162,21 @@ async function showCredentialEditModal(pathId) {
             if (credentialEditField(configuration, 'base_url')
                 && baseUrl !== String(configuration.base_url || '')) payload.base_url = baseUrl;
             if (credentialEditField(configuration, 'api_key') && apiKey) payload.api_key = apiKey;
+            for (const field of ['account_id', 'organization_id', 'plan', 'region', 'profile_arn']) {
+                const value = String(values.get(field) || '').trim();
+                if (credentialEditField(configuration, field) && value !== String(configuration[field] || '')) {
+                    payload[field] = value;
+                }
+            }
             if (!Object.keys(payload).length) {
-                void unmountModal(modal);
+                if (!options.container) void unmountModal(modal);
                 return;
             }
 
             saving = true;
-            submit.disabled = true;
+            options.onSaving?.(true);
+            const enabledControls = Array.from(form.querySelectorAll('input, select, textarea, button')).filter(control => !control.disabled);
+            enabledControls.forEach(control => { control.disabled = true; });
             form.setAttribute('aria-busy', 'true');
             error.classList.add('hidden');
             try {
@@ -169,31 +188,42 @@ async function showCredentialEditModal(pathId) {
                 const result = await saveResponse.json().catch(() => ({}));
                 if (!saveResponse.ok) throw new Error(result.detail || result.error || t('unknown_error'));
                 saving = false;
-                await unmountModal(modal);
+                if (!options.container) await unmountModal(modal);
+                else {
+                    Object.assign(configuration, payload);
+                    const keyInput = form.elements.api_key;
+                    if (keyInput) keyInput.value = '';
+                    delete configuration.api_key;
+                    form.querySelectorAll('input:not([type="password"])').forEach(input => { input.defaultValue = input.value; });
+                    form.querySelectorAll('select').forEach(select => Array.from(select.options).forEach(option => { option.defaultSelected = option.selected; }));
+                }
                 showStatus(t('status_action_success', {action: t('credential_edit_action')}), 'success');
                 await context.manager.refresh({preserveContent: true});
+                options.onSaved?.();
             } catch (saveError) {
                 saving = false;
                 submit.disabled = false;
                 form.removeAttribute('aria-busy');
                 error.textContent = saveError.message || t('unknown_error');
                 error.classList.remove('hidden');
+            } finally {
+                saving = false;
+                enabledControls.forEach(control => { control.disabled = false; });
+                form.removeAttribute('aria-busy');
+                options.onSaving?.(false);
             }
         });
-        await mountModal(modal);
-        form.querySelector('input')?.focus();
+        if (!options.container) await mountModal(modal);
     } catch (error) {
+        if (options.signal?.aborted) return;
+        if (options.container) throw error;
         showStatus(t('status_action_failed', {error: error.message || t('unknown_error')}), 'error');
     }
 }
 
 function reauthenticateCredential(pathId) {
     const context = getCredentialModalContext(pathId, AppState.primaryCreds);
-    if (!context.providerVariant || context.credentialSource === 'environment') return;
-    selectProviderWorkspace(context.providerVariant);
-    navigate('/providers', true);
-    document.getElementById(PROVIDER_WORKSPACES[context.providerVariant]?.panelId)
-        ?.scrollIntoView({block: 'start'});
+    reauthenticateCredentialByContext(context);
 }
 
 async function showCredentialModels(pathId) {
@@ -316,7 +346,8 @@ function quotaLevelFromUsedPercentage(usedPercentage) {
 
 function formatQuotaNumber(value) {
 
-    const number = Number(value);
+    const number = credentialQuotaNumber(value);
+    if (number === null) return t('modal.unavailable');
     return Number.isFinite(number) ? formatConsoleNumber(number) : t('modal.unavailable');
 
 }
@@ -340,9 +371,10 @@ function buildAccountBillingQuotaHtml(filename, data, context = {}) {
     const periods = [
         data.monthly ? { id: 'monthly', label: t('modal.monthly_credits'), ...data.monthly } : null,
         data.weekly ? { id: 'weekly', label: t('modal.weekly_usage'), ...data.weekly } : null,
+        ...(Array.isArray(data.windows) ? data.windows : []),
     ].filter(Boolean);
     const remainingPercentages = periods
-        .map((period) => Number(period.remaining_percentage))
+        .map((period) => credentialQuotaNumber(period.remaining_percentage))
         .filter(Number.isFinite);
     const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
     const rows = renderMessageResultRows([
@@ -353,30 +385,7 @@ function buildAccountBillingQuotaHtml(filename, data, context = {}) {
         lowestRemaining !== null ? [t('modal.lowest_remaining'), `${lowestRemaining}%`] : null,
     ].filter(Boolean));
 
-    const cards = periods.map((period) => {
-        const usedPercentage = Math.max(0, Math.min(100, Number(period.used_percentage) || 0));
-        const remainingPercentage = Math.max(0, Math.min(100, Number(period.remaining_percentage) || 0));
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-        const usageText = period.id === 'monthly'
-            ? t('modal.credits_used', { used: formatQuotaNumber(period.used), limit: formatQuotaNumber(period.limit) })
-            : t('modal.percent_used', { value: usedPercentage });
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model">${escapeHtml(period.label)}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(usageText)}</span>
-                    <span>${escapeHtml(t('quota.resets_at', { time: formatQuotaResetTime(period.reset_time) }))}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const cards = periods.map(renderCredentialQuotaWindow).join('');
 
     return `
         <div class="message-result-panel">
@@ -400,17 +409,23 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
     const isClaudeCode = data.provider_variant === 'claude_code'
         || context.providerVariant === 'claude_code';
     const remainingPercentages = windows
-        .map((windowData) => Number(windowData.remaining_percentage))
+        .map((windowData) => credentialQuotaNumber(windowData.remaining_percentage))
         .filter(Number.isFinite);
     const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
-    const rawPlan = String(data.plan || 'unknown').trim().replace(/[_-]+/g, ' ');
+    const rawPlan = String(data.plan || '').trim().replace(/[_-]+/g, ' ');
     const plan = rawPlan.replace(/\b\w/g, (character) => character.toUpperCase());
-    const availableResetCredits = Number(data.reset_credits?.available_count);
+    const isMuseCode = data.provider === 'muse_code' || context.providerVariant === 'muse_code';
+    const providerTier = isMuseCode
+        ? normalizeCredentialSubscriptionPlan(data.subscription_tier, 'provider_tier') : null;
+    const providerPlan = isMuseCode
+        ? normalizeCredentialSubscriptionPlan(data.plan, 'provider_plan') : null;
+    const availableResetCredits = credentialQuotaNumber(data.reset_credits?.available_count);
     const hasReviewWindows = windows.some((windowData) => String(windowData.id || '').startsWith('review_'));
     const rows = renderMessageResultRows([
         [t('modal.provider'), context.providerName || (isClaudeCode ? 'Claude Code' : 'Codex')],
         context.accountLabel ? [t('modal.account'), context.accountLabel] : [t('modal.credential'), filename],
-        [t('modal.plan'), plan || t('modal.unknown')],
+        providerPlan ? [t('modal.plan'), providerPlan.label] : providerTier ? [t('tier'), providerTier.label]
+            : isMuseCode ? null : [t('modal.plan'), plan || t('modal.unknown')],
         [t('modal.usage_windows'), windows.length],
         lowestRemaining !== null ? [t('modal.lowest_remaining'), `${lowestRemaining}%`] : null,
         Number.isFinite(availableResetCredits)
@@ -424,42 +439,18 @@ function buildAccountRateLimitQuotaHtml(filename, data, context = {}) {
             : null,
     ].filter(Boolean));
 
-    const cards = windows.map((windowData) => {
-        const usedPercentage = Math.max(0, Math.min(100, Number(windowData.used_percentage) || 0));
-        const remainingPercentage = Math.max(
-            0,
-            Math.min(100, Number(windowData.remaining_percentage) || 0)
-        );
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-        const resetTime = formatQuotaResetTime(windowData.reset_time);
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model">${escapeHtml(windowData.label || t('modal.usage_limit'))}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(t('modal.percent_used', { value: usedPercentage }))}</span>
-                    <span>${escapeHtml(windowData.reset_time ? t('quota.resets_at', { time: resetTime }) : resetTime)}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const cards = windows.map(renderCredentialQuotaWindow).join('');
 
     return `
         <div class="message-result-panel">
-            <div class="message-result-intro">${escapeHtml(t(isClaudeCode ? 'modal.claude_quota_intro' : 'modal.codex_quota_intro'))}</div>
+            <div class="message-result-intro">${escapeHtml(t(isMuseCode ? 'modal.quota_summary' : isClaudeCode ? 'modal.claude_quota_intro' : 'modal.codex_quota_intro'))}</div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.quota_summary'))}</div>
                 <div class="message-result-summary">${rows}</div>
             </div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.usage_windows'))}</div>
-                <div class="modal-quota-grid">${cards}</div>
+                ${windows.length ? `<div class="modal-quota-grid">${cards}</div>` : `<div class="modal-empty-state">${escapeHtml(t('status_no_quota_info'))}</div>`}
             </div>
         </div>
     `;
@@ -478,6 +469,7 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 
     const models = data.models || {};
     const entries = Object.entries(models);
+    const windows = Array.isArray(data.windows) ? data.windows : [];
     const summary = summarizeCredentialQuota(data);
     const resetTimes = entries
         .map(([, quotaData]) => quotaData?.resetTime)
@@ -487,11 +479,11 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
         [t('modal.provider'), context.providerName || t('provider_antigravity')],
         context.email ? [t('modal.account'), context.email] : [t('modal.credential'), filename],
         [t('modal.tracked_models'), entries.length],
-        summary.label ? [t('modal.average_remaining'), summary.label] : null,
-        nextReset ? [t('quota.next_reset'), nextReset] : null,
+        summary.label ? [t(windows.length ? 'modal.usage_limit' : 'modal.average_remaining'), summary.label] : null,
+        nextReset ? [t('quota.next_reset'), formatQuotaResetTime(nextReset)] : null,
     ].filter(Boolean));
 
-    if (entries.length === 0) {
+    if (entries.length === 0 && windows.length === 0) {
 
         return `
             <div class="message-result-panel">
@@ -508,27 +500,11 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 
     const cards = entries.map(([modelName, quotaData]) => {
 
-        const remainingFraction = Number(quotaData.remaining || 0);
-        const resetTime = quotaData.resetTime || 'N/A';
-        const usedPercentage = Math.max(0, Math.min(100, Math.round((1 - remainingFraction) * 100)));
-        const remainingPercentage = Math.max(0, Math.min(100, Math.round(remainingFraction * 100)));
-        const level = quotaLevelFromUsedPercentage(usedPercentage);
-
-        return `
-            <div class="modal-quota-card ${level}">
-                <div class="modal-quota-head">
-                    <div class="modal-quota-model" title="${escapeAttribute(modelName)}">${escapeHtml(modelName)}</div>
-                    <div class="modal-quota-percent">${escapeHtml(t('modal.percent_left', { value: remainingPercentage }))}</div>
-                </div>
-                <div class="modal-quota-bar">
-                    <div class="modal-quota-bar-value" style="width: ${remainingPercentage}%;"></div>
-                </div>
-                <div class="modal-quota-foot">
-                    <span>${escapeHtml(t('modal.percent_used', { value: usedPercentage }))}</span>
-                    <span>${escapeHtml(resetTime !== 'N/A' ? t('quota.reset_at', { time: resetTime }) : t('quota.reset_unavailable'))}</span>
-                </div>
-            </div>
-        `;
+        const fraction = credentialQuotaNumber(quotaData?.remaining);
+        const remaining = fraction === null ? null : Math.min(100, Math.round(fraction * 100));
+        return renderCredentialQuotaWindow({label: modelName, remaining_percentage: remaining,
+            used_percentage: remaining === null ? null : 100 - remaining,
+            reset_time: quotaData?.resetTimeRaw || quotaData?.resetTime});
 
     }).join('');
 
@@ -541,7 +517,7 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
             </div>
             <div class="message-result-section">
                 <div class="message-result-section-title">${escapeHtml(t('modal.model_quota'))}</div>
-                <div class="modal-quota-grid">${cards}</div>
+                <div class="modal-quota-grid">${cards}${windows.map(renderCredentialQuotaWindow).join('')}</div>
             </div>
         </div>
     `;
@@ -550,10 +526,14 @@ function buildCredentialQuotaHtml(filename, data, context = {}) {
 
 function summarizeCredentialQuota(data) {
 
+    if (data?.quota_status === 'unavailable') {
+        return { level: 'muted', label: t('quota_unavailable') };
+    }
+
     if (data?.quota_type === 'account_billing') {
-        const periods = [data.monthly, data.weekly].filter(Boolean);
+        const periods = [data.monthly, data.weekly, ...(Array.isArray(data.windows) ? data.windows : [])].filter(Boolean);
         const remainingValues = periods
-            .map((period) => Number(period.remaining_percentage))
+            .map((period) => credentialQuotaNumber(period.remaining_percentage))
             .filter(Number.isFinite);
         if (!remainingValues.length) return { level: 'muted', label: t('modal.no_quota') };
         const remainingPercentage = Math.min(...remainingValues);
@@ -566,8 +546,13 @@ function summarizeCredentialQuota(data) {
 
     if (data?.quota_type === 'account_rate_limits') {
         const windows = Array.isArray(data.windows) ? data.windows : [];
+        if (data.summary_mode === 'resource_balances') {
+            const remaining = credentialQuotaNumber(data.summary_remaining_percentage);
+            return remaining === null ? {level: 'muted', label: t('quota_unavailable')}
+                : {level: quotaLevelFromUsedPercentage(100 - remaining), label: t('modal.percent_left', {value: remaining})};
+        }
         const remainingValues = windows
-            .map((windowData) => Number(windowData.remaining_percentage))
+            .map((windowData) => credentialQuotaNumber(windowData.remaining_percentage))
             .filter(Number.isFinite);
         if (!remainingValues.length) return { level: 'muted', label: t('modal.no_quota') };
         const remainingPercentage = Math.min(...remainingValues);
@@ -581,6 +566,19 @@ function summarizeCredentialQuota(data) {
     const models = data?.models || {};
     const entries = Object.entries(models);
 
+    const windows = Array.isArray(data?.windows) ? data.windows : [];
+    if (windows.length) {
+        const values = [...windows.map(window => credentialQuotaNumber(window.remaining_percentage)),
+            ...entries.map(([, quota]) => {
+                const fraction = credentialQuotaNumber(quota?.remaining);
+                return fraction === null ? null : Math.min(1, fraction) * 100;
+            })].filter(Number.isFinite);
+        if (!values.length) return {level: 'muted', label: t('quota_unavailable')};
+        const remaining = Math.round(Math.min(...values));
+        return {level: quotaLevelFromUsedPercentage(100 - remaining),
+            label: t('modal.percent_left', {value: remaining}), windowCount: values.length};
+    }
+
     if (!entries.length) {
 
         return {
@@ -590,25 +588,16 @@ function summarizeCredentialQuota(data) {
 
     }
 
-    let remainingTotal = 0;
-
-    entries.forEach(([, quotaData]) => {
-
-        const remainingFraction = Number(quotaData?.remaining || 0);
-        const remainingPercentage = Math.max(0, Math.min(100, Math.round(remainingFraction * 100)));
-
-        remainingTotal += remainingPercentage;
-
-    });
-
-    const averageRemaining = Math.round(remainingTotal / entries.length);
+    const fractions = entries.map(([, quota]) => credentialQuotaNumber(quota?.remaining)).filter(Number.isFinite);
+    if (!fractions.length) return {level: 'muted', label: t('quota_unavailable')};
+    const averageRemaining = Math.round(fractions.reduce((total, fraction) => total + Math.min(1, fraction) * 100, 0) / fractions.length);
     const usedPercentage = 100 - averageRemaining;
     const level = quotaLevelFromUsedPercentage(usedPercentage);
 
     return {
         level,
         label: t('modal.percent_left', { value: averageRemaining }),
-        modelCount: entries.length,
+        modelCount: fractions.length,
     };
 
 }
@@ -687,6 +676,13 @@ function updateCredentialSubscriptionBadge(pathId, filename) {
 
     const cached = AppState.quotaPreviewCache[filename] || {};
     const cardContext = AppState.credentialCardIndex[pathId] || {};
+    if (cardContext.providerVariant === 'muse_code') {
+        badge.outerHTML = renderCredentialSubscriptionBadge(
+            pathId, cached.data?.plan || cached.data?.subscription_tier,
+            cached.data?.plan ? 'provider_plan' : 'provider_tier'
+        );
+        return;
+    }
     const plan = cached.data?.plan || cardContext.subscriptionPlan;
     const kind = cached.data?.plan ? 'plan' : (cardContext.subscriptionKind || 'plan');
     badge.outerHTML = renderCredentialSubscriptionBadge(pathId, plan, kind);

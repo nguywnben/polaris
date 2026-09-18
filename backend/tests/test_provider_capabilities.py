@@ -42,6 +42,19 @@ from core.provider_registry import (
 
 
 class ProviderCapabilityTests(unittest.TestCase):
+    def test_kiro_reauthentication_only_applies_to_oauth(self):
+        self.assertTrue(
+            credential_supports_operation(
+                {"provider": "kiro", "credential_type": "oauth"}, "reauthenticate"
+            )
+        )
+        self.assertFalse(
+            credential_supports_operation(
+                {"provider": "kiro", "credential_type": "api_key", "api_key": "synthetic"},
+                "reauthenticate",
+            )
+        )
+
     def test_every_advertised_variant_matches_the_production_capability_matrix(self):
         common = {
             "add",
@@ -56,7 +69,27 @@ class ProviderCapabilityTests(unittest.TestCase):
         }
         oauth = common | {"refresh", "reauthenticate"}
         expected_operations = {
+            **dict.fromkeys(
+                (
+                    "kimi",
+                    "cloudflare",
+                    "nvidia",
+                    "poolside",
+                    "kimchi",
+                    "kilo",
+                    "opencode",
+                    "kiro",
+                    "meta",
+                    "groq",
+                    "deepseek",
+                    "mistral",
+                    "cerebras",
+                ),
+                common,
+            ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
+            "muse_code": oauth | {"quota"},
+            "kiro": common | {"reauthenticate", "quota"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
             XAI_CONSOLE: common,
@@ -93,6 +126,20 @@ class ProviderCapabilityTests(unittest.TestCase):
                 CLAUDE_CODE,
                 CLAUDE_PLATFORM,
                 OLLAMA,
+                "kimi",
+                "cloudflare",
+                "nvidia",
+                "poolside",
+                "kimchi",
+                "kilo",
+                "opencode",
+                "kiro",
+                "meta",
+                "muse_code",
+                "groq",
+                "deepseek",
+                "mistral",
+                "cerebras",
             },
         )
         self.assertTrue(all(variant["operations"] for variant in variants))
@@ -114,7 +161,27 @@ class ProviderCapabilityTests(unittest.TestCase):
         }
         oauth = common | {"refresh", "reauthenticate"}
         expected = {
+            **dict.fromkeys(
+                (
+                    "kimi",
+                    "cloudflare",
+                    "nvidia",
+                    "poolside",
+                    "kimchi",
+                    "kilo",
+                    "opencode",
+                    "kiro",
+                    "meta",
+                    "groq",
+                    "deepseek",
+                    "mistral",
+                    "cerebras",
+                ),
+                common,
+            ),
             GOOGLE_ANTIGRAVITY: oauth | {"quota", "credit_mode"},
+            "muse_code": oauth | {"quota"},
+            "kiro": common | {"reauthenticate", "quota"},
             GOOGLE_AI_STUDIO: common,
             GROK: oauth | {"quota"},
             XAI_CONSOLE: common,
@@ -183,7 +250,28 @@ class ProviderCapabilityTests(unittest.TestCase):
 
         self.assertEqual(
             {provider["provider_id"] for provider in providers},
-            {ANTHROPIC, GOOGLE_ANTIGRAVITY, GOOGLE_AI_STUDIO, OLLAMA, OPENAI, XAI},
+            {
+                ANTHROPIC,
+                GOOGLE_ANTIGRAVITY,
+                GOOGLE_AI_STUDIO,
+                OLLAMA,
+                OPENAI,
+                XAI,
+                "kimi",
+                "cloudflare",
+                "nvidia",
+                "poolside",
+                "kimchi",
+                "kilo",
+                "opencode",
+                "kiro",
+                "meta",
+                "muse_code",
+                "groq",
+                "deepseek",
+                "mistral",
+                "cerebras",
+            },
         )
 
     def test_anthropic_credentials_use_precise_user_facing_provider_names(self):

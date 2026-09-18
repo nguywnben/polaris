@@ -51,6 +51,50 @@
 }
 
 @media (max-width: 960px) {
+    /* Keep the approved compact height on phones and tablets too. */
+    .btn,
+    .batch-btn,
+    .pagination-btn,
+    .cred-btn,
+    .remove-btn,
+    .message-modal-btn,
+    .mobile-menu-btn,
+    button.endpoint-code-card {
+        min-height: var(--control-height);
+        touch-action: manipulation;
+    }
+
+    input:not([type]),
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    input[type="email"],
+    input[type="search"],
+    input[type="datetime-local"],
+    select,
+    textarea,
+    .filter-select,
+    .page-size-select {
+        min-height: var(--control-height);
+        font-size: var(--type-section);
+    }
+
+    .access-secret-input #apiKey {
+        padding-right: 52px;
+    }
+
+    .access-secret-input #toggleApiKeyVisibilityBtn {
+        width: var(--control-height);
+        height: var(--control-height);
+        min-height: var(--control-height);
+    }
+
+    .setup-secret-toggle {
+        width: var(--control-height);
+        height: var(--control-height);
+    }
+
     .provider-catalog {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -96,15 +140,15 @@
         grid-template-columns: 1fr;
     }
 
-    .message-result-summary.pool-import-summary {
+    .message-result-summary.credentials-import-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .pool-import-provider-summary .usage-provider-item {
+    .credentials-import-provider-summary .usage-provider-item {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .pool-import-provider-summary .usage-provider-metrics {
+    .credentials-import-provider-summary .usage-provider-metrics {
         max-width: none;
     }
 
@@ -120,9 +164,8 @@
         left: 0;
     }
 
-    .dashboard-sidebar .tab,
     .dashboard-sidebar .btn {
-        min-height: 44px;
+        min-height: var(--control-height);
     }
 
     .dashboard-main {
@@ -143,8 +186,8 @@
     }
 
     .mobile-menu-btn {
-        width: 44px;
-        height: 44px;
+        width: var(--control-height);
+        height: var(--control-height);
     }
 
     .dashboard-content-container {
@@ -170,7 +213,7 @@
         justify-content: flex-start;
     }
 
-    #poolTab .filter-container {
+    #credentialsTab .filter-container {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
@@ -180,7 +223,7 @@
         grid-template-columns: 1fr;
     }
 
-    #poolTab .filter-container {
+    #credentialsTab .filter-container {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -195,7 +238,7 @@
     }
 
     .mobile-topbar-brand {
-        font-size: 16px;
+        font-size: var(--type-section);
         line-height: 1.15;
     }
 
@@ -215,14 +258,14 @@
     }
 
     .page-title {
-        font-size: 26px;
-        line-height: 1.14;
+        font-size: 1.714286rem;
+        line-height: 1.25;
         overflow-wrap: break-word;
     }
 
     .page-description {
         max-width: none;
-        font-size: 13px;
+        font-size: var(--type-label);
         line-height: 1.55;
     }
 
@@ -264,30 +307,6 @@
     .dashboard-range-control .filter-select {
         width: 112px;
         min-width: 112px;
-    }
-
-    .btn,
-    .batch-btn,
-    .pagination-btn,
-    .cred-btn,
-    .remove-btn,
-    .message-modal-btn,
-    .mobile-menu-btn {
-        min-height: 44px;
-        touch-action: manipulation;
-    }
-
-    input:not([type]),
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    input[type="url"],
-    input[type="search"],
-    input[type="datetime-local"],
-    select,
-    textarea {
-        min-height: 44px;
-        font-size: 16px;
     }
 
     .card,
@@ -340,7 +359,7 @@
         margin-bottom: 12px;
     }
 
-    #poolTab .stats-container {
+    #credentialsTab .stats-container {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         margin-bottom: 12px;
@@ -365,15 +384,15 @@
     }
 
     .stat-label {
-        font-size: 12px;
+        font-size: var(--type-meta);
     }
 
-    #poolTab .stat-item {
+    #credentialsTab .stat-item {
         min-height: 90px;
         padding: 12px;
     }
 
-    #poolTab .stat-number {
+    #credentialsTab .stat-number {
         font-size: 26px;
     }
 
@@ -496,11 +515,6 @@
         gap: 12px;
     }
 
-    .provider-workspace-header .provider-catalog-pagination {
-        width: 100%;
-        justify-content: flex-end;
-    }
-
     .provider-workspace-heading {
         align-items: flex-start;
     }
@@ -525,7 +539,7 @@
 
     .cred-actions .cred-btn,
     .cred-actions-secondary summary {
-        min-height: 44px;
+        min-height: var(--control-height);
     }
 
     .credential-model-list {
@@ -533,7 +547,7 @@
     }
 
     .credential-model-item {
-        min-height: 44px;
+        min-height: var(--control-height);
     }
 
     .cred-email {
@@ -606,7 +620,7 @@
     }
 
     .page-title {
-        font-size: 24px;
+        font-size: 1.714286rem;
     }
 
     .mobile-topbar {
@@ -621,7 +635,7 @@
         padding: 14px;
     }
 
-    #poolTab .stat-item {
+    #credentialsTab .stat-item {
         padding: 10px;
     }
 }
@@ -640,5 +654,10 @@
 
     #dashboardTab.has-no-traffic #dashboardStats {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    #dashboardTab.has-no-traffic #dashboardStats .stat-item + .stat-item {
+        border-inline-start: 0;
+        border-top: 1px solid var(--border);
     }
 }

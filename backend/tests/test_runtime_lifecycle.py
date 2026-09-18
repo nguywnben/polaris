@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -11,7 +12,13 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.credential_manager import _CredentialManagerSingleton
-from core.identity import configure_oidc_transaction_coordination
+from core.identity import ManagementPrincipal, configure_oidc_transaction_coordination
+from core.identity.sessions import (
+    CoordinatedSessionStore,
+    SessionAuthenticationMethod,
+    SessionExpired,
+    SessionPolicy,
+)
 from core.panel.auth_support import reset_authentication_attempt_service
 from core.response_cache import response_cache, response_cache_coordinator
 from core.runtime_lifecycle import RuntimeLifecycle, RuntimeState, close_runtime, initialize_runtime
@@ -41,6 +48,36 @@ class RuntimePolicyTests(unittest.TestCase):
 
 
 class RuntimeLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_default_session_clock_has_calendar_dates_and_monotonic_expiry(self) -> None:
+        wall = 1_800_000_000.0
+        elapsed = 100.0
+        clock = SimpleNamespace(time=lambda: wall, monotonic=lambda: elapsed)
+        with patch("core.runtime_lifecycle.time", clock, create=True):
+            backend = RuntimeLifecycle(policy=RuntimePolicy.from_environment({}))._store_factory()
+            sessions = CoordinatedSessionStore(
+                backend,
+                hmac_key=b"c" * 32,
+                policy=SessionPolicy(idle_ttl_seconds=300, absolute_ttl_seconds=900),
+            )
+            issued = await sessions.issue(
+                principal=ManagementPrincipal.local_owner(),
+                authentication_method=SessionAuthenticationMethod.LOCAL_PASSWORD,
+                authorization_epoch=1,
+                now=wall,
+            )
+            self.assertAlmostEqual(issued.session.issued_at, 1_800_000_000.0)
+            self.assertAlmostEqual(issued.session.idle_expires_at, 1_800_000_300.0)
+            wall += 86_400
+            elapsed += 10
+            resolved = await sessions.resolve(issued.token, current_authorization_epoch=1, now=wall)
+            self.assertAlmostEqual(resolved.last_seen_at, 1_800_000_010.0)
+            # A backwards system-clock correction cannot extend idle expiry.
+            wall -= 172_800
+            elapsed += 301
+            with self.assertRaises(SessionExpired):
+                await sessions.resolve(issued.token, current_authorization_epoch=1, now=wall)
+            await backend.close()
+
     async def asyncTearDown(self) -> None:
         await close_runtime()
 
@@ -140,10 +177,15 @@ class RuntimeLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await lifecycle.check_ready())
 
     async def test_close_restores_a_usable_process_local_response_cache(self) -> None:
-        with patch.dict(os.environ, {}, clear=True):
+        # Other test modules can initialize the process-wide credential manager.
+        # Exercise this lifecycle with its own manager, just like the injection test.
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("core.runtime_lifecycle.credential_manager", _CredentialManagerSingleton()),
+        ):
             await initialize_runtime()
 
-        await close_runtime()
+            await close_runtime()
         response_cache.clear()
         self.assertTrue(
             await response_cache_coordinator.set(

@@ -130,14 +130,19 @@ function updateModelPoolSummary() {
 function updateModelFirstRunState() {
     const tab = document.getElementById('modelsTab');
     const firstRun = document.getElementById('modelFirstRun');
-    const isEmpty = Boolean(AppState.modelCatalogLoaded) && AppState.modelCatalog.length === 0;
+    const isEmpty = Boolean(AppState.modelCatalogLoaded)
+        && AppState.modelCatalog.length === 0
+        && !AppState.modelPoolConfigured
+        && !AppState.selectedModels?.length
+        && !AppState.modelBlacklist?.length;
     tab?.classList.toggle('is-pristine-empty', isEmpty);
     if (firstRun) firstRun.hidden = !isEmpty;
+    const policyPanel = document.getElementById('modelRoutingPolicyPanel');
+    if (policyPanel) policyPanel.hidden = !AppState.modelCatalogLoaded || isEmpty;
 }
 
 function modelRouteHasUnsavedChanges() {
-    return JSON.stringify(AppState.selectedModels) !== JSON.stringify(AppState.savedModelSelection)
-        || Object.keys(modelRoutingPolicyChanges()).length > 0;
+    return JSON.stringify(AppState.selectedModels) !== JSON.stringify(AppState.savedModelSelection);
 }
 
 function formatModelBlacklistTime(timestamp) {
@@ -276,13 +281,26 @@ async function clearModelBlacklist() {
     }
 }
 
-function createModelOrderButton(label, symbol, disabled, handler) {
+function createModelOrderButton(label, iconPath, disabled, handler) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'model-order-button';
     button.setAttribute('aria-label', label);
     button.title = label;
-    button.textContent = symbol;
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('width', '16');
+    icon.setAttribute('height', '16');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('stroke', 'currentColor');
+    icon.setAttribute('stroke-width', '1.8');
+    icon.setAttribute('stroke-linecap', 'round');
+    icon.setAttribute('stroke-linejoin', 'round');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconPath);
+    icon.appendChild(path);
+    button.appendChild(icon);
     button.disabled = disabled;
     button.addEventListener('click', handler);
     return button;
@@ -329,9 +347,9 @@ function renderSelectedModels() {
         const actions = document.createElement('div');
         actions.className = 'model-order-actions';
         actions.append(
-            createModelOrderButton(t('models.move_up'), '↑', index === 0, () => moveSelectedModel(index, -1)),
-            createModelOrderButton(t('models.move_down'), '↓', index === AppState.selectedModels.length - 1, () => moveSelectedModel(index, 1)),
-            createModelOrderButton(t('models.remove_selected'), '×', false, () => removeSelectedModel(modelId))
+            createModelOrderButton(t('models.move_up'), 'M12 19V5m-6 6 6-6 6 6', index === 0, () => moveSelectedModel(index, -1)),
+            createModelOrderButton(t('models.move_down'), 'M12 5v14m-6-6 6 6 6-6', index === AppState.selectedModels.length - 1, () => moveSelectedModel(index, 1)),
+            createModelOrderButton(t('models.remove_selected'), 'm6 6 12 12M6 18 18 6', false, () => removeSelectedModel(modelId))
         );
 
         item.append(order, details, actions);
@@ -474,6 +492,8 @@ function syncModelRoutingPolicyControls() {
         'hidden',
         !policy.strategy_locked && !policy.preferred_provider_locked
     );
+    const saveButton = document.getElementById('saveModelRoutingPolicyBtn');
+    if (saveButton) saveButton.disabled = Object.keys(modelRoutingPolicyChanges()).length === 0;
     updateModelPoolSummary();
 }
 
@@ -510,6 +530,21 @@ async function saveModelRoutingPolicy() {
     };
 }
 
+async function saveModelRoutingSettings() {
+    const panel = document.getElementById('modelRoutingPolicyPanel');
+    if (panel?.inert || Object.keys(modelRoutingPolicyChanges()).length === 0) return;
+    if (panel) panel.inert = true;
+    try {
+        await saveModelRoutingPolicy();
+        showStatus(t('configuration_saved_successfully'), 'success');
+    } catch (error) {
+        showStatus(t('failed_to_save_config_datadetail_da', {data_detail____data_error: error.message}), 'error');
+    } finally {
+        if (panel) panel.inert = false;
+        syncModelRoutingPolicyControls();
+    }
+}
+
 function modelRouteError(data, fallback) {
     const detail = data?.detail;
     if (detail && typeof detail === 'object') return {...detail, message: detail.message || fallback};
@@ -517,6 +552,9 @@ function modelRouteError(data, fallback) {
 }
 
 async function loadModelCatalog(forceRefresh = false, options = {}) {
+    const policyPanel = document.getElementById('modelRoutingPolicyPanel');
+    if (policyPanel?.inert) return;
+    if (policyPanel) policyPanel.inert = true;
     const loading = document.getElementById('modelCatalogLoading');
     const workspace = document.getElementById('modelPoolWorkspace');
     const refreshButton = document.getElementById('refreshModelCatalogBtn');
@@ -562,6 +600,7 @@ async function loadModelCatalog(forceRefresh = false, options = {}) {
         });
         showStatus(message, 'error');
     } finally {
+        if (policyPanel) policyPanel.inert = false;
         if (loading && !preserveContent) loading.classList.add('hidden');
         if (refreshButton) refreshButton.disabled = false;
     }
@@ -605,7 +644,6 @@ async function saveModelPool() {
     const workspace = document.getElementById('modelPoolWorkspace');
     if (workspace?.inert) return;
     if (workspace) workspace.inert = true;
-    let routeSaved = false;
     if (button) button.disabled = true;
     try {
         const validation = await validateModelRoute();
@@ -638,14 +676,12 @@ async function saveModelPool() {
         AppState.modelPoolEnabled = data.pool?.enabled !== false;
         AppState.modelPoolConfigured = Boolean(data.pool?.configured);
         AppState.modelPoolRevision = data.pool?.revision || '';
-        routeSaved = true;
         renderSelectedModels();
         renderModelCatalog();
-        await saveModelRoutingPolicy();
         updateModelPoolSummary();
         showStatus(t(creating ? 'models.route_created' : 'models.route_saved'), 'success');
     } catch (error) {
-        showStatus(t(routeSaved ? 'models.policy_save_failed' : 'models.virtual_save_failed', {error: error.message}), 'error');
+        showStatus(t('models.virtual_save_failed', {error: error.message}), 'error');
     } finally {
         if (button) button.disabled = false;
         if (workspace) workspace.inert = false;
@@ -716,7 +752,7 @@ async function testModelRouteInPlayground() {
     }
     document.dispatchEvent(new CustomEvent('polaris:playground-handoff', {detail: handoff}));
     if (typeof TAB_MAP === 'object' && TAB_MAP.playground) {
-        window.location.assign(`${TAB_MAP.playground}?model=${encodeURIComponent(handoff.model)}&source=models`);
+        navigate(`${TAB_MAP.playground}?model=${encodeURIComponent(handoff.model)}&source=models`);
         return;
     }
     showStatus(t('models.playground_handoff_ready'), 'success');

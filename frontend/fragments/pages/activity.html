@@ -1,7 +1,6 @@
                 <div id="activityTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="activity.operations">Operations</div>
                             <h1 class="page-title" data-i18n="activity.title">Activity</h1>
                             <p class="page-description" data-i18n="activity.description">Investigate requests, management changes, security events, and runtime diagnostics from one workspace.</p>
                         </div>
@@ -9,7 +8,7 @@
 
                     <section class="activity-filter-panel" aria-labelledby="activityFilterHeading">
                         <h2 id="activityFilterHeading" class="card-title" data-i18n="activity.shared_filters">Shared investigation filters</h2>
-                        <form id="activityFilterForm" class="activity-filter-grid">
+                        <form id="activityFilterForm" class="activity-filter-grid" aria-describedby="activityFilterHint">
                             <div class="form-group activity-filter-time"><label for="activityStartedAfter" data-i18n="activity.from_time">From</label><input type="datetime-local" id="activityStartedAfter" name="started_after"></div>
                             <div class="form-group activity-filter-time"><label for="activityStartedBefore" data-i18n="activity.to_time">To</label><input type="datetime-local" id="activityStartedBefore" name="started_before"></div>
                             <div class="form-group activity-filter-outcome">
@@ -22,9 +21,10 @@
                                 <select id="activityActorType" name="actor_type" data-i18n-technical><option value="" data-i18n="trace.all">All</option><option value="local_owner">local_owner</option><option value="oidc_user">oidc_user</option><option value="panel_session">panel_session</option><option value="root_key">root_key</option><option value="virtual_key">virtual_key</option><option value="system">system</option></select>
                             </div>
                             <div class="form-group activity-filter-request"><label for="activityRequestId" data-i18n="trace.request_id">Request ID</label><input id="activityRequestId" name="request_id" maxlength="128" pattern="[A-Za-z0-9._:\-]{1,128}" autocomplete="off" placeholder="req-…"></div>
-                            <div class="activity-filter-actions"><button type="submit" class="btn" data-i18n="activity.apply_filters">Apply to Activity</button><button type="button" class="btn btn-secondary" data-ui-action="clear-activity-filters" data-i18n="trace.clear">Clear</button></div>
+                            <div class="activity-filter-actions"><button type="submit" class="btn btn-compact" data-i18n="activity.apply_short">Apply</button><button type="button" class="btn btn-secondary" data-ui-action="clear-activity-filters" data-i18n="activity.reset_filters">Reset</button></div>
                             <p id="activityFilterStatus" class="activity-filter-status" role="status" aria-live="polite"></p>
                         </form>
+                        <p id="activityFilterHint" class="card-copy" data-i18n="activity.filter_hint_traces">Actor type applies to audit events, not request traces.</p>
                     </section>
 
                     <div class="activity-tabs" role="tablist" data-i18n-aria-label="activity.views" aria-label="Activity views">

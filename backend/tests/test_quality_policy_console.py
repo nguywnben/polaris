@@ -15,6 +15,27 @@ STYLES = ROOT / "frontend/css/quality-policy.css"
 
 
 class QualityPolicyConsoleTests(unittest.TestCase):
+    def test_preview_discards_response_after_inputs_change(self) -> None:
+        self._run_contract("""
+(async () => {
+    global.document = {getElementById: () => ({checkValidity: () => true, classList: {add() {}}})};
+    global.getAuthHeaders = () => ({});
+    global.validateQualityDraft = () => true;
+    global.buildQualityPolicyPayload = () => ({profile: 'balanced'});
+    let tokens = 40000;
+    global.qualityPreviewDescriptor = () => ({estimated_input_tokens: tokens});
+    let rendered = false;
+    global.renderQualityPreview = () => {rendered = true;};
+    let finish;
+    global.fetch = () => new Promise(resolve => {finish = resolve;});
+    const request = previewQualityPolicy();
+    tokens = 50000;
+    finish({ok: true, json: async () => ({preview: {}})});
+    await request;
+    assert(!rendered, 'A preview for outdated inputs must not render');
+})().catch(error => {console.error(error); process.exit(1);});
+""")
+
     def _run_contract(self, assertions: str) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node.js is required for the AI Quality DOM contract.")
@@ -138,7 +159,7 @@ assert(warnings({
         )
         self.assertRegex(
             styles,
-            r"(?s)\.quality-policy-grid > \.config-group > \.switch-row \+ \.form-group\s*\{"
+            r"(?s)\.quality-policy-grid \.config-group > \.switch-row \+ \.form-group\s*\{"
             r".*?margin-top:\s*16px",
         )
         self.assertRegex(

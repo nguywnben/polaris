@@ -10,6 +10,7 @@ from core.model_blacklist import (
     get_credential_model_blacklist_pairs,
     get_model_blacklist_pairs,
 )
+from core.provider_connection_diagnostics import classify_provider_response
 from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
@@ -210,9 +211,13 @@ class CredentialManager:
         log.info(f"Credential pool write result: {result.get('action')} ({result.get('filename')})")
         return result
 
-    async def add_primary_credential(self, credential_name: str, credential_data: Dict[str, Any]):
+    async def add_primary_credential(
+        self, credential_name: str, credential_data: Dict[str, Any], *, skip_existing: bool = False
+    ):
         await self._ensure_initialized()
-        result = await upsert_credential_by_email(credential_name, credential_data, mode="primary")
+        result = await upsert_credential_by_email(
+            credential_name, credential_data, mode="primary", skip_existing=skip_existing
+        )
         log.info(
             f"Provider credential pool write result: {result.get('action')} ({result.get('filename')})"
         )
@@ -288,7 +293,7 @@ class CredentialManager:
         self, credential_name: str, state_updates: Dict[str, Any], mode: str = "code_assist"
     ):
         log.debug(
-            f"[CredMgr] update_credential_state Start: credential_name = {credential_name}, state_updates = {state_updates}, mode = {mode}"
+            f"[CredMgr] update_credential_state Start: credential_name = {credential_name}, mode = {mode}"
         )
         log.debug("[credential-manager] Ensuring storage is initialized.")
         await self._ensure_initialized()
@@ -418,7 +423,13 @@ class CredentialManager:
             elif error_code:
                 error_messages = {}
                 if error_message:
-                    error_messages[str(error_code)] = error_message
+                    diagnostic = classify_provider_response(error_code, error_message)
+                    # Inference does not share the connection test's fixed deadline.
+                    error_messages[str(error_code)] = (
+                        f"HTTP {diagnostic.provider_status}"
+                        if diagnostic.category in {"upstream", "timeout"}
+                        else diagnostic.message
+                    )
 
                 state_updates = {
                     "error_codes": [error_code],
@@ -467,6 +478,10 @@ class CredentialManager:
 
     async def _should_refresh_token(self, credential_data: Dict[str, Any]) -> bool:
         try:
+            if get_credential_provider(credential_data) == "muse_code":
+                # Re-mint/check eligibility, not an invented OAuth refresh grant.
+                # Imported account/key pairs must be checked before dispatch.
+                return True
             if is_api_key_credential(credential_data):
                 return False
             if get_credential_provider(credential_data) == OLLAMA:
@@ -478,6 +493,12 @@ class CredentialManager:
 
             expiry_str = credential_data.get("expiry")
             if not expiry_str:
+                if get_credential_provider(credential_data) == "kiro" and not credential_data.get(
+                    "refresh_token"
+                ):
+                    # Access-only exports have no renewal material. Let the provider
+                    # validate the token; an expired token requires another sign-in.
+                    return False
                 log.debug("No expiration time found, refresh required")
                 return True
 
@@ -528,6 +549,22 @@ class CredentialManager:
         await self._ensure_initialized()
         try:
             provider_id = get_credential_provider(credential_data)
+            if provider_id == "muse_code":
+                from core.muse_code import refresh_credential
+                from core.muse_oauth import MuseOAuthError
+
+                refreshed_data = await refresh_credential(credential_data)
+                if not await self._storage_adapter.store_credential(
+                    filename, refreshed_data, mode=mode
+                ):
+                    raise MuseOAuthError("Unable to save Muse Code credentials.", 503)
+                return refreshed_data
+            if provider_id == "kiro" and credential_data.get("credential_type") == "oauth":
+                from core.kiro_oauth import refresh_credential
+
+                refreshed_data = await refresh_credential(credential_data)
+                await self._storage_adapter.store_credential(filename, refreshed_data, mode=mode)
+                return refreshed_data
             if provider_id == XAI:
                 from core.xai import refresh_xai_oauth_credential
 

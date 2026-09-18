@@ -989,6 +989,11 @@ class CredentialUpdateRequest(BaseModel):
     credential_label: Optional[str] = Field(default=None, min_length=1, max_length=128)
     api_key: Optional[SecretStr] = Field(default=None, min_length=1, max_length=4096)
     base_url: Optional[str] = Field(default=None, min_length=1, max_length=2048)
+    account_id: Optional[str] = Field(default=None, max_length=64)
+    organization_id: Optional[str] = Field(default=None, max_length=128)
+    plan: Optional[Literal["zen", "go"]] = None
+    region: Optional[str] = Field(default=None, max_length=32)
+    profile_arn: Optional[str] = Field(default=None, max_length=512)
 
     @model_validator(mode="after")
     def require_at_least_one_change(self) -> "CredentialUpdateRequest":

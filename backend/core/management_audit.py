@@ -109,6 +109,12 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/providers/antigravity/config/reset"): _mutation(
         "provider.update", "provider", "settings_changed"
     ),
+    ("POST", "/api/providers/google/config"): _mutation(
+        "provider.update", "provider", "settings_changed"
+    ),
+    ("POST", "/api/providers/google/config/reset"): _mutation(
+        "provider.update", "provider", "settings_changed"
+    ),
     ("POST", "/api/providers/google-ai-studio/config"): _mutation(
         "provider.update", "provider", "settings_changed"
     ),
@@ -148,6 +154,9 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ("POST", "/api/providers/openai/codex/oauth/complete"): _mutation(
         "credential.create", "credential", "created"
     ),
+    ("POST", "/api/providers/kiro/oauth/complete"): _mutation(
+        "credential.create", "credential", "created"
+    ),
     ("POST", "/api/providers/openai/credentials/import"): _mutation(
         "credential.import", "credential", "created"
     ),
@@ -168,6 +177,12 @@ MANAGEMENT_MUTATIONS: dict[tuple[str, str], ManagementMutation] = {
     ),
     ("POST", "/api/providers/ollama/credentials"): _mutation(
         "credential.create", "credential", "created"
+    ),
+    ("POST", "/api/providers/extended/{provider_id}/credentials"): _mutation(
+        "credential.create", "credential", "created"
+    ),
+    ("POST", "/api/providers/extended/{provider_id}/credentials/import"): _mutation(
+        "credential.import", "credential", "created"
     ),
     ("POST", "/api/providers/ollama/credentials/import"): _mutation(
         "credential.import", "credential", "created"
@@ -209,6 +224,27 @@ MANAGEMENT_AUDIT_EXCLUSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/auth/start"): "OAuth handshake only; no durable state mutation.",
     ("POST", "/api/providers/xai/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/providers/openai/codex/oauth/start"): "OAuth handshake only.",
+    ("POST", "/api/providers/kiro/oauth/start"): "Ephemeral OAuth device handshake only.",
+    ("POST", "/api/providers/muse-code/oauth/start"): "Ephemeral OAuth device handshake only.",
+    ("POST", "/api/providers/muse-code/oauth/cancel"): "Cancels an ephemeral device grant only.",
+    (
+        "POST",
+        "/api/providers/muse-code/oauth/complete",
+    ): "The route records successful credential saving explicitly; pending checks make no durable change.",
+    ("POST", "/api/providers/kiro/browser/start"): "Ephemeral PKCE handshake only.",
+    (
+        "POST",
+        "/api/providers/kiro/browser/callback",
+    ): "Captures an ephemeral code; cannot save credentials.",
+    ("POST", "/api/providers/kiro/browser/cancel"): "Cancels an ephemeral PKCE handshake only.",
+    (
+        "POST",
+        "/api/providers/kiro/browser/complete",
+    ): "The route records successful credential saving explicitly; pending polls make no durable change.",
+    (
+        "POST",
+        "/api/providers/kiro/oauth/cancel",
+    ): "Cancels an ephemeral device grant; no stored credential is changed.",
     ("POST", "/api/providers/anthropic/claude-code/oauth/start"): "OAuth handshake only.",
     ("POST", "/api/quality-policy/preview"): "Side-effect-free policy preview.",
     ("POST", "/api/model-routes/polaris/validate"): ("Side-effect-free model route validation."),

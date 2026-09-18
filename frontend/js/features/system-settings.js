@@ -3,16 +3,13 @@ const SYSTEM_CONFIG_FIELD_KEYS = Object.freeze({
     port: 'port',
     credentialsDir: 'credentials_dir',
     proxy: 'proxy',
-    codeAssistClientId: 'code_assist_client_id',
-    codeAssistClientSecret: 'code_assist_client_secret',
-    codeAssistEndpoint: 'code_assist_endpoint',
+    streamToNonstream: 'stream_to_nonstream',
+    switchCredentialEnabled: 'switch_credential_enabled',
     autoBanEnabled: 'auto_disable_enabled',
     autoBanErrorCodes: 'auto_disable_error_codes',
     retry429Enabled: 'retry_429_enabled',
     retry429MaxRetries: 'retry_429_max_retries',
     retry429Interval: 'retry_429_interval',
-    routingStrategy: 'routing_strategy',
-    preferredProvider: 'preferred_provider',
     upstreamTimeoutSeconds: 'upstream_timeout_seconds',
     runtimeLogLevel: 'log_level',
     runtimeLogMaxMb: 'log_max_mb',
@@ -166,16 +163,8 @@ function populateConfigForm() {
 
     setConfigField('proxy', c.proxy || '');
 
-    setConfigField('codeAssistClientId', c.code_assist_client_id || '');
-
-    setConfigField('codeAssistClientSecret', '');
-
-    const codeAssistSecret = document.getElementById('codeAssistClientSecret');
-    if (codeAssistSecret) {
-        codeAssistSecret.dataset.configured = String(Boolean(c.code_assist_client_secret_configured));
-    }
-
-    setConfigField('codeAssistEndpoint', c.code_assist_endpoint || '');
+    setConfigCheckbox('streamToNonstream', c.stream_to_nonstream !== false);
+    setConfigCheckbox('switchCredentialEnabled', c.switch_credential_enabled !== false);
 
     setConfigCheckbox('autoBanEnabled', Boolean(c.auto_disable_enabled));
 
@@ -187,10 +176,6 @@ function populateConfigForm() {
 
     setConfigField('retry429Interval', c.retry_429_interval ?? 1);
 
-    setConfigField('routingStrategy', c.routing_strategy || 'balanced');
-
-    setConfigField('preferredProvider', c.preferred_provider || '');
-
     setConfigField('upstreamTimeoutSeconds', c.upstream_timeout_seconds ?? 300);
 
     setConfigField('runtimeLogLevel', c.log_level || 'info');
@@ -198,8 +183,6 @@ function populateConfigForm() {
     setConfigField('runtimeLogMaxMb', c.log_max_mb ?? 10);
 
     setConfigField('runtimeLogBackupCount', c.log_backup_count ?? 3);
-
-    syncRoutingPolicyControls();
 
     setConfigField('keepaliveUrl', c.keepalive_url || '');
 
@@ -271,13 +254,12 @@ function collectSystemConfigForm() {
 
             port: getNumber('port', 4283, Number.parseInt),
 
-            code_assist_endpoint: getValue('codeAssistEndpoint'),
 
             credentials_dir: getValue('credentialsDir'),
 
             proxy: getValue('proxy'),
-
-            code_assist_client_id: getValue('codeAssistClientId'),
+            stream_to_nonstream: getChecked('streamToNonstream'),
+            switch_credential_enabled: getChecked('switchCredentialEnabled'),
 
             auto_disable_enabled: getChecked('autoBanEnabled'),
 
@@ -290,10 +272,6 @@ function collectSystemConfigForm() {
             retry_429_max_retries: getNumber('retry429MaxRetries', 5, Number.parseInt),
 
             retry_429_interval: getNumber('retry429Interval', 1, Number.parseFloat),
-
-            routing_strategy: getValue('routingStrategy', 'balanced'),
-
-            preferred_provider: getValue('preferredProvider'),
 
             upstream_timeout_seconds: getNumber('upstreamTimeoutSeconds', 300, Number.parseFloat),
 
@@ -308,9 +286,7 @@ function collectSystemConfigForm() {
             keepalive_interval: getNumber('keepaliveInterval', 60, Number.parseInt)
 
         };
-    const replacementSecret = getValue('codeAssistClientSecret');
-    if (replacementSecret) config.code_assist_client_secret = replacementSecret;
-    const locked = globalThis.AppState?.envLockedFields;
+    const locked = typeof AppState !== 'undefined' ? AppState.envLockedFields : undefined;
     if (locked instanceof Set) {
         for (const key of locked) delete config[key];
     }
@@ -318,6 +294,10 @@ function collectSystemConfigForm() {
 }
 
 async function saveConfig() {
+
+    for (const field of document.querySelectorAll('#configForm input[data-config-key], #configForm select[data-config-key], #configForm textarea[data-config-key]')) {
+        if (!field.disabled && !field.reportValidity()) return;
+    }
 
     try {
 
@@ -358,16 +338,6 @@ async function saveConfig() {
 
 }
 
-function syncRoutingPolicyControls() {
-    const strategy = document.getElementById('routingStrategy');
-    const provider = document.getElementById('preferredProvider');
-    if (!strategy || !provider) return;
-
-    const isEnvironmentLocked = AppState.envLockedFields.has('preferred_provider');
-    provider.disabled = strategy.value !== 'priority' || isEnvironmentLocked;
-    provider.classList.toggle('env-locked', isEnvironmentLocked);
-}
-
 function populateAccessCredentialStatus(config) {
     const panelLocked = AppState.envLockedFields.has('panel_password');
     const panelStatus = document.getElementById('panelPasswordStatus');
@@ -391,7 +361,6 @@ async function saveAccessCredentials() {
 
     if (!currentPassword) {
         showStatus(t('settings.current_password_required'), 'error');
-        document.getElementById('currentConsolePassword')?.focus();
         return;
     }
     if (!panelPassword) {
@@ -424,7 +393,10 @@ async function saveAccessCredentials() {
             'confirmPanelPassword'
         ]) {
             const field = document.getElementById(id);
-            if (field) field.value = '';
+            if (field) {
+                field.value = '';
+                setSetupSecretVisibility(field, false);
+            }
         }
         showStatus(data.message || t('configuration_saved_successfully'), 'success');
         await loadConfig();
@@ -449,7 +421,7 @@ async function resetConfig() {
 
     try {
 
-        const response = await fetch('./api/config/reset', {
+        const response = await fetch('./api/config/reset?scope=system', {
             method: 'POST',
             headers: getAuthHeaders()
         });

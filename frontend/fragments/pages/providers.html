@@ -1,7 +1,6 @@
                 <div id="providersTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="providers">Providers</div>
                             <h1 class="page-title" data-i18n="providers_title">Add Provider Credentials</h1>
                             <p class="page-description" data-i18n="providers_description">Choose a supported provider, authorize an account, or import credential files into the shared routing pool.</p>
                         </div>
@@ -9,8 +8,7 @@
 
                     <div class="provider-catalog-toolbar" role="search">
                         <div>
-                            <strong id="providerCatalogTitle" data-i18n="providers.catalog">Provider Catalog</strong>
-                            <p data-i18n="providers.catalog_description">Choose a connection type, then add credentials to the shared routing pool.</p>
+                            <h2 id="providerCatalogTitle" data-i18n="providers.catalog">Provider Catalog</h2>
                         </div>
                         <div class="provider-catalog-search-group">
                             <input type="search" id="providerCatalogSearch" class="provider-catalog-search" aria-label="Find a provider" data-i18n-aria-label="providers.find" placeholder="Search providers" data-i18n-placeholder="providers.search" autocomplete="off" data-ui-input="provider-catalog-search">
@@ -20,131 +18,115 @@
                     <div id="providerCatalog" class="provider-catalog" role="tablist" data-i18n-aria-label="available_providers" aria-label="Available providers">
                         <button type="button" class="provider-hero-card provider-selector-button active" id="providerSelectorGoogleAntigravity" role="tab" aria-label="Google Antigravity" aria-selected="true" aria-controls="providerWorkspaceGoogleAntigravity" data-ui-action="select-provider" data-provider="google_antigravity">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/google-antigravity-logo.png" alt="Google Antigravity" data-i18n-technical>
+                                <img src="/frontend/assets/providers/google-antigravity.png" alt="Google Antigravity" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Google Antigravity</strong>
-                                <p data-i18n="providers.antigravity_description">Connect Google Antigravity accounts through OAuth or import existing credential archives.</p>
+                                <p data-i18n="providers.antigravity_description">Google’s AI development environment, bringing agents into the editor and terminal to help build and test software.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="Google Antigravity" data-i18n-technical>
                                 <span>OAuth</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorGoogleAiStudio" role="tab" aria-label="Google AI Studio" aria-selected="false" aria-controls="providerWorkspaceGoogleAiStudio" data-ui-action="select-provider" data-provider="google_ai_studio">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/google-ai-studio-logo.png" alt="Google AI Studio" data-i18n-technical>
+                                <img src="/frontend/assets/providers/google-ai-studio.png" alt="Google AI Studio" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">Google AI Studio</strong>
-                                <p data-i18n="providers.ai_studio_description">Add Gemini API keys for native Google model access and automatic provider fallback.</p>
+                                <p data-i18n="providers.ai_studio_description">Google’s workspace for experimenting with Gemini models, refining prompts and prototyping AI applications.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="Google AI Studio" data-i18n-technical>
                                 <span>API Key</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorGrok" role="tab" aria-label="Grok Build" aria-selected="false" aria-controls="providerWorkspaceGrok" data-ui-action="select-provider" data-provider="grok">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/grok-build-logo.png" alt="Grok Build" data-i18n-technical>
+                                <img src="/frontend/assets/providers/grok-build.png" alt="Grok Build" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Grok Build</strong>
-                                <p data-i18n="providers.grok_description">Connect a Grok Build account through OAuth and route its available models through the shared pool.</p>
+                                <p data-i18n="providers.grok_description">SpaceXAI’s coding agent, using Grok to explore codebases, edit files and automate development tasks in the terminal.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="Grok Build" data-i18n-technical>
                                 <span>OAuth</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorXaiConsole" role="tab" aria-label="SpaceXAI Console" aria-selected="false" aria-controls="providerWorkspaceXaiConsole" data-ui-action="select-provider" data-provider="xai_console">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/spacexai-console-logo.png" alt="SpaceXAI Console" data-i18n-technical>
+                                <img src="/frontend/assets/providers/spacexai-console.png" alt="SpaceXAI Console" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">SpaceXAI Console</strong>
-                                <p data-i18n="providers.spacexai_description">Add SpaceXAI Console API keys for direct Grok Build model access and automatic provider fallback.</p>
+                                <p data-i18n="providers.spacexai_description">SpaceXAI’s developer platform for building applications with Grok models for conversation, reasoning and coding.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="SpaceXAI Console" data-i18n-technical>
                                 <span>API Key</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorCodex" role="tab" aria-label="Codex" aria-selected="false" aria-controls="providerWorkspaceCodex" data-ui-action="select-provider" data-provider="codex" data-provider-name="Codex">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/codex-logo.png" alt="Codex" data-i18n-technical>
+                                <img src="/frontend/assets/providers/codex.png" alt="Codex" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Codex</strong>
-                                <p data-i18n="providers.codex_description">Authorize a ChatGPT account with the OpenAI device flow and route Codex models through the pool.</p>
+                                <p data-i18n="providers.codex_description">OpenAI’s coding agent for understanding repositories, implementing changes and reviewing code across development workflows.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="Codex" data-i18n-technical>
                                 <span>OAuth</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorOpenAiPlatform" role="tab" aria-label="OpenAI Platform" aria-selected="false" aria-controls="providerWorkspaceOpenAiPlatform" data-ui-action="select-provider" data-provider="openai_platform" data-provider-name="OpenAI Platform">
                             <div class="provider-logo-frame">
-                                <img src="/frontend/assets/providers/openai-platform-logo.png" alt="OpenAI Platform" data-i18n-technical>
+                                <img src="/frontend/assets/providers/openai-platform.png" alt="OpenAI Platform" data-i18n-technical>
                             </div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">OpenAI Platform</strong>
-                                <p data-i18n="providers.openai_description">Validate OpenAI API keys, discover available models, and route requests through the shared pool.</p>
+                                <p data-i18n="providers.openai_description">OpenAI’s developer platform for building applications and agents with GPT and reasoning models.</p>
                             </div>
                             <div class="provider-capabilities" aria-label="OpenAI Platform" data-i18n-technical>
                                 <span>API Key</span>
-                                <span>JSON</span>
-                                <span>ZIP</span>
                             </div>
                         </button>
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorClaudeCode" role="tab" aria-label="Claude Code" aria-selected="false" aria-controls="providerWorkspaceClaudeCode" data-ui-action="select-provider" data-provider="claude_code" data-provider-name="Claude Code">
-                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-code-logo.png" alt="Claude Code" data-i18n-technical></div>
+                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-code.png" alt="Claude Code" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.account_provider">Account Provider</div>
                                 <strong class="provider-name">Claude Code</strong>
-                                <p data-i18n="providers.claude_code_description">Authorize an Anthropic account and route its available Claude models through the shared pool.</p>
+                                <p data-i18n="providers.claude_code_description">Anthropic’s coding assistant for exploring projects, editing files, fixing bugs and running development commands.</p>
                             </div>
-                            <div class="provider-capabilities" aria-label="Claude Code" data-i18n-technical><span>OAuth</span><span>JSON</span><span>ZIP</span></div>
+                            <div class="provider-capabilities" aria-label="Claude Code" data-i18n-technical><span>OAuth</span></div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorClaudePlatform" role="tab" aria-label="Claude Platform" aria-selected="false" aria-controls="providerWorkspaceClaudePlatform" data-ui-action="select-provider" data-provider="claude_platform" data-provider-name="Claude Platform">
-                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-platform-logo.png" alt="Claude Platform" data-i18n-technical></div>
+                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/claude-platform.png" alt="Claude Platform" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.api_key_provider">API Key Provider</div>
                                 <strong class="provider-name">Claude Platform</strong>
-                                <p data-i18n="providers.claude_platform_description">Add Anthropic API keys, discover available Claude models, and route requests through the pool.</p>
+                                <p data-i18n="providers.claude_platform_description">Anthropic’s developer platform for using Claude in applications that need language understanding, reasoning and code generation.</p>
                             </div>
-                            <div class="provider-capabilities" aria-label="Claude Platform" data-i18n-technical><span>API Key</span><span>JSON</span><span>ZIP</span></div>
+                            <div class="provider-capabilities" aria-label="Claude Platform" data-i18n-technical><span>API Key</span></div>
                         </button>
 
                         <button type="button" class="provider-hero-card provider-selector-button" id="providerSelectorOllama" role="tab" aria-label="Ollama" aria-selected="false" aria-controls="providerWorkspaceOllama" data-ui-action="select-provider" data-provider="ollama" data-provider-name="Ollama">
-                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/ollama-logo.png" alt="Ollama" data-i18n-technical></div>
+                            <div class="provider-logo-frame"><img src="/frontend/assets/providers/ollama.png" alt="Ollama" data-i18n-technical></div>
                             <div class="provider-summary">
-                                <div class="provider-eyebrow" data-i18n="providers.model_server">Model Server</div>
                                 <strong class="provider-name">Ollama</strong>
-                                <p data-i18n="providers.ollama_description">Connect local, remote, or cloud Ollama endpoints and route every model they expose.</p>
+                                <p data-i18n="providers.ollama_description">A tool for running open models locally or in the cloud, with a model library for chat and coding.</p>
                             </div>
-                            <div class="provider-capabilities" aria-label="Ollama" data-i18n-technical><span>Endpoint</span><span>JSON</span><span>ZIP</span></div>
+                            <div class="provider-capabilities" aria-label="Ollama" data-i18n-technical><span>Endpoint</span></div>
                         </button>
                     </div>
 
                     <p id="providerCatalogEmpty" class="provider-catalog-empty hidden" aria-live="polite" data-i18n="providers.no_matches">No providers match your search.</p>
+                    <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
+                        <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
+                        <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
+                        <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
+                    </div>
                     <div class="provider-capability-status" id="providerCapabilityStatus" data-state="loading" role="status" aria-live="polite">
                         <span id="providerCapabilityStatusText" data-i18n="providers.capabilities_loading">Loading supported connection capabilities...</span>
                         <button type="button" class="btn btn-secondary btn-small hidden" id="providerCapabilityRetryBtn" data-ui-action="retry-provider-capabilities" data-i18n="providers.retry">Retry</button>
@@ -152,7 +134,7 @@
                     <section class="provider-workspace hidden" id="providerWorkspaceGrok" role="tabpanel" aria-labelledby="providerSelectorGrok">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/grok-build-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/grok-build.png" alt=""></div>
                                 <div>
                                     <h2>Grok Build</h2>
                                     <p>Add OAuth accounts and route their available Grok Build models through the shared pool.</p>
@@ -189,14 +171,14 @@
                                             <strong id="xaiOauthSaveResultTitle">Grok Build OAuth credential added to pool</strong>
                                             <p id="xaiOauthSaveResultText"></p>
                                         </div>
-                                        <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                        <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                                     </div>
                                 </div>
                             </section>
 
                             <section class="tool-panel">
                                 <h2 class="card-title">Batch Import</h2>
-                                <p class="card-copy provider-tool-copy">Import Grok Build OAuth credentials from JSON files or ZIP archives. Every credential is validated before it enters the pool.</p>
+                                <p data-i18n="provider.copy.grok_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                                 <button type="button" class="upload-area" id="grokUploadArea" aria-describedby="grokUploadHelp" data-ui-action="select-grok-files">
                                     <div>
                                         <div class="upload-title">Drop OAuth credential files here</div>
@@ -225,7 +207,7 @@
                                         <p id="grokUploadResultText"></p>
                                         <div id="grokUploadResultDetails" class="upload-result-details"></div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                                 </div>
                             </section>
                         </div>
@@ -233,8 +215,8 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build">Grok Build Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the public OAuth client and authorization issuer used for Grok Build accounts.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_oauth_description" data-provider-name="Grok Build">Configure the endpoints and OAuth application used to connect to Grok Build.</p>
+                                    <button type="button" hidden inert data-operator-only class="btn btn-secondary btn-small" data-provider-owned-link="xai_console"><span data-i18n="provider.ownership.shared">Shared settings</span> — Grok Build / SpaceXAI Console</button>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-grok-settings">Save</button>
@@ -246,8 +228,9 @@
                                 <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div>
                             </div>
                             <div id="grokSettingsForm" class="config-grid provider-config-grid hidden">
-                                <div class="form-group"><label for="xaiClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="xaiClientId" autocomplete="off"></div>
-                                <div class="form-group"><label for="xaiOauthIssuer" data-provider-form-copy="oauth_issuer">OAuth issuer</label><input type="url" id="xaiOauthIssuer" autocomplete="off"></div>
+                                <div class="form-group"><label for="grokApiUrl" data-provider-form-copy="upstream_endpoints">Upstream endpoint</label><input type="url" id="grokApiUrl" autocomplete="url" placeholder="https://grok.com"></div>
+                                <div class="form-group"><label for="xaiClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="xaiClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
+                                <div class="form-group"><label for="xaiOauthIssuer" data-provider-form-copy="oauth_issuer">OAuth issuer</label><input type="url" id="xaiOauthIssuer" autocomplete="off" placeholder="https://login.example.com"></div>
                             </div>
                         </section>
                     </section>
@@ -255,11 +238,11 @@
                     <section class="provider-workspace hidden" id="providerWorkspaceXaiConsole" role="tabpanel" aria-labelledby="providerSelectorXaiConsole">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/spacexai-console-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/spacexai-console.png" alt=""></div>
                                 <div>
                                     <h2>SpaceXAI Console</h2>
                                     <p>Add API keys and route their available Grok Build models through the shared pool.</p>
-                                    <a class="provider-site-link" href="https://console.x.ai/" target="_blank" rel="noreferrer">https://console.x.ai/</a>
+                                    <a class="provider-site-link" href="https://console.x.ai/" target="_blank" rel="noreferrer">https://console.x.ai</a>
                                 </div>
                             </div>
                         </div>
@@ -280,13 +263,13 @@
                                         <strong id="xaiApiKeySaveResultTitle">API key added to pool</strong>
                                         <p id="xaiApiKeySaveResultText"></p>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                                 </div>
                             </section>
 
                             <section class="tool-panel">
                                 <h2 class="card-title">Batch Import</h2>
-                                <p class="card-copy provider-tool-copy">Import SpaceXAI Console API keys from JSON files or ZIP archives. Every key is validated before it enters the pool.</p>
+                                <p data-i18n="provider.copy.xai_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                                 <button type="button" class="upload-area" id="xaiConsoleUploadArea" aria-describedby="xaiConsoleUploadHelp" data-ui-action="select-xai-console-files">
                                     <div>
                                         <div class="upload-title">Drop API key files here</div>
@@ -315,7 +298,7 @@
                                         <p id="xaiConsoleUploadResultText"></p>
                                         <div id="xaiConsoleUploadResultDetails" class="upload-result-details"></div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                                 </div>
                             </section>
                         </div>
@@ -323,8 +306,8 @@
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Grok Build / SpaceXAI Console">Grok Build and SpaceXAI Console Transport Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the API endpoint and HTTP identity shared by Grok Build OAuth accounts and SpaceXAI Console API keys.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="SpaceXAI Console">Configure the API endpoint Polaris uses to connect to SpaceXAI Console.</p>
+
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-xai-console-settings">Save</button>
@@ -336,20 +319,20 @@
                                 <div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div>
                             </div>
                             <div id="xaiConsoleSettingsForm" class="config-grid provider-config-grid hidden">
-                                <div class="form-group"><label for="xaiApiUrl">xAI API endpoint</label><input type="url" id="xaiApiUrl" autocomplete="off"></div>
-                                <div class="form-group"><label for="xaiUserAgent">HTTP User-Agent</label><input type="text" id="xaiUserAgent" autocomplete="off"></div>
+                                <div class="form-group"><label for="xaiApiUrl">xAI API endpoint</label><input type="url" id="xaiApiUrl" autocomplete="off" placeholder="https://api.example.com"></div>
+
                             </div>
-                        </section>
+                        <div hidden inert data-operator-only id="xaiSharedSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group"><h3><span data-i18n="provider.ownership.shared">Shared settings</span> — Grok Build / SpaceXAI Console</h3><div class="form-group"><label for="xaiUserAgent">HTTP User-Agent</label><input type="text" id="xaiUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div><div class="page-actions"><button type="button" class="btn btn-small" data-provider-owned-action="save-xai-shared" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-xai-shared" data-i18n="reset_defaults">Reset defaults</button></div></section></div></section>
                     </section>
 
                     <section class="provider-workspace hidden" id="providerWorkspaceGoogleAiStudio" role="tabpanel" aria-labelledby="providerSelectorGoogleAiStudio">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/google-ai-studio-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/google-ai-studio.png" alt=""></div>
                                 <div>
                                     <h2>Google AI Studio</h2>
                                     <p>Add and configure API key credentials for native Gemini model access.</p>
-                                    <a class="provider-site-link" href="https://aistudio.google.com/" target="_blank" rel="noreferrer">https://aistudio.google.com/</a>
+                                    <a class="provider-site-link" href="https://aistudio.google.com/" target="_blank" rel="noreferrer">https://aistudio.google.com</a>
                                 </div>
                             </div>
                         </div>
@@ -372,14 +355,14 @@
                                     <strong id="googleAiStudioSaveResultTitle">API key added to pool</strong>
                                     <p id="googleAiStudioSaveResultText"></p>
                                 </div>
-                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                             </div>
 
                         </section>
 
                         <section class="tool-panel">
                             <h2 class="card-title">Batch Import</h2>
-                            <p class="card-copy provider-tool-copy">Import Google AI Studio API keys from JSON files or ZIP archives. Every key is validated before it enters the pool.</p>
+                            <p data-i18n="provider.copy.gemini_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                             <button type="button" class="upload-area" id="googleAiStudioUploadArea" aria-describedby="googleAiStudioUploadHelp" data-ui-action="select-ai-studio-files">
                                 <div>
                                     <div class="upload-title">Drop API key files here</div>
@@ -408,15 +391,16 @@
                                     <p id="googleAiStudioUploadResultText"></p>
                                     <div id="googleAiStudioUploadResultDetails" class="upload-result-details"></div>
                                 </div>
-                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                             </div>
                         </section>
+
+
 
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google AI Studio">Google AI Studio Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the upstream endpoint used to validate API keys and route Google AI Studio requests.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="Google AI Studio">Configure the API endpoint Polaris uses to connect to Google AI Studio.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-ai-studio-settings">Save</button>
@@ -443,7 +427,7 @@
                     <section class="provider-workspace hidden" id="providerWorkspaceCodex" role="tabpanel" aria-labelledby="providerSelectorCodex">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/codex-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/codex.png" alt=""></div>
                                 <div>
                                     <h2>Codex</h2>
                                     <p>Authorize a ChatGPT account and route its Codex models through the shared pool.</p>
@@ -474,25 +458,24 @@
                                     <p class="card-copy provider-tool-copy">Open the verification page, enter the device code, complete sign-in, then check the authorization status.</p>
                                     <div class="page-actions"><button type="button" class="btn" id="completeCodexOauthBtn" data-ui-action="complete-codex-oauth">Check authorization</button></div>
                                 </div>
-                                <div id="codexOauthSaveResult" class="save-result provider-save-result hidden" style="margin-top: 14px;"><div><strong id="codexOauthSaveResultTitle">Codex credential added to pool</strong><p id="codexOauthSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                <div id="codexOauthSaveResult" class="save-result provider-save-result hidden" style="margin-top: 14px;"><div><strong id="codexOauthSaveResultTitle">Codex credential added to pool</strong><p id="codexOauthSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                             </section>
 
                             <section class="tool-panel">
                                 <h2 class="card-title">Batch Import</h2>
-                                <p class="card-copy provider-tool-copy">Import Codex OAuth JSON files or ZIP archives. Imported tokens remain in local credential storage.</p>
+                                <p data-i18n="provider.copy.codex_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                                 <button type="button" class="upload-area" id="codexUploadArea" aria-describedby="codexUploadHelp" data-ui-action="select-codex-files"><div><div class="upload-title">Drop Codex credential files here</div><p class="upload-copy" id="codexUploadHelp">Supports JSON and ZIP archives.</p></div></button>
                                 <input type="file" id="codexFileInput" multiple accept=".json,.zip" style="display: none;" data-ui-change="codex-files">
                                 <div id="codexFileListSection" class="hidden" style="margin-top: 16px;"><label>Pending files</label><div class="file-list" id="codexFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-codex-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-codex-files">Clear</button></div></div>
                                 <div id="codexUploadProgressSection" class="hidden" style="margin-top: 16px;"><div class="progress-bar"><div class="progress-fill" id="codexProgressFill"></div></div><p id="codexProgressText" class="page-description" style="margin-top: 8px;">0%</p></div>
-                                <div id="codexUploadResult" class="save-result upload-result hidden" style="margin-top: 14px;"><div><strong id="codexUploadResultTitle">Import complete</strong><p id="codexUploadResultText"></p><div id="codexUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                <div id="codexUploadResult" class="save-result upload-result hidden" style="margin-top: 14px;"><div><strong id="codexUploadResultTitle">Import complete</strong><p id="codexUploadResultText"></p><div id="codexUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                             </section>
                         </div>
 
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Codex">Codex Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure authorization, inference, model discovery, and account quota services for Codex credentials.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_client_description" data-provider-name="Codex">Configure the OAuth application, service endpoints and client identification for Codex.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-openai-settings" data-openai-scope="codex">Save</button>
@@ -505,11 +488,11 @@
                             </div>
                             <div id="codexSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden">
                                 <section class="provider-settings-group config-two-column">
-                                    <div class="form-group"><label for="codexApiUrl">Codex API</label><input type="url" id="codexApiUrl" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexUsageUrl" data-provider-form-copy="usage_api">Usage API</label><input type="url" id="codexUsageUrl" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexAuthBase" data-provider-form-copy="authorization_service">Authorization service</label><input type="url" id="codexAuthBase" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="codexClientId" autocomplete="off"></div>
-                                    <div class="form-group"><label for="codexUserAgent">HTTP User-Agent</label><input type="text" id="codexUserAgent" autocomplete="off"></div>
+                                    <div class="form-group"><label for="codexApiUrl">Codex API</label><input type="url" id="codexApiUrl" autocomplete="off" placeholder="https://api.example.com"></div>
+                                    <div class="form-group"><label for="codexUsageUrl" data-provider-form-copy="usage_api">Usage API</label><input type="url" id="codexUsageUrl" autocomplete="off" placeholder="https://api.example.com"></div>
+                                    <div class="form-group"><label for="codexAuthBase" data-provider-form-copy="authorization_service">Authorization service</label><input type="url" id="codexAuthBase" autocomplete="off" placeholder="https://login.example.com"></div>
+                                    <div class="form-group"><label for="codexClientId" data-provider-form-copy="oauth_client_id">OAuth client ID</label><input type="text" id="codexClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
+                                    <div class="form-group"><label for="codexUserAgent">HTTP User-Agent</label><input type="text" id="codexUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
                                 </section>
                             </div>
                         </section>
@@ -518,8 +501,8 @@
                     <section class="provider-workspace hidden" id="providerWorkspaceOpenAiPlatform" role="tabpanel" aria-labelledby="providerSelectorOpenAiPlatform">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/openai-platform-logo.png" alt=""></div>
-                                <div><h2>OpenAI Platform</h2><p>Add API keys, discover enabled models, and route OpenAI Platform requests through the shared pool.</p><a class="provider-site-link" href="https://platform.openai.com/" target="_blank" rel="noreferrer">https://platform.openai.com/</a></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/openai-platform.png" alt=""></div>
+                                <div><h2>OpenAI Platform</h2><p>Add API keys, discover enabled models, and route OpenAI Platform requests through the shared pool.</p><a class="provider-site-link" href="https://platform.openai.com/" target="_blank" rel="noreferrer">https://platform.openai.com</a></div>
                             </div>
                         </div>
 
@@ -528,25 +511,24 @@
                                 <h2 class="card-title" data-provider-form-copy="api_key_title" data-provider-name="OpenAI Platform">OpenAI Platform API Key</h2>
                                 <p class="card-copy provider-tool-copy">Validate an API key against the model catalog, then add it to the active pool.</p>
                                 <form id="openaiPlatformCredentialForm" autocomplete="off"><div class="form-group"><label for="openaiPlatformApiKey">API key</label><input type="password" id="openaiPlatformApiKey" name="openai-platform-api-key" placeholder="Enter an OpenAI API key" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false" required></div><button type="submit" class="btn" id="addOpenaiPlatformKeyBtn">Validate and add</button></form>
-                                <div id="openaiPlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="openaiPlatformSaveResultTitle">API key added to pool</strong><p id="openaiPlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                <div id="openaiPlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="openaiPlatformSaveResultTitle">API key added to pool</strong><p id="openaiPlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                             </section>
 
                             <section class="tool-panel">
                                 <h2 class="card-title">Batch Import</h2>
-                                <p class="card-copy provider-tool-copy">Import OpenAI Platform API key JSON files or ZIP archives. Each key is validated before it enters the pool.</p>
+                                <p data-i18n="provider.copy.openai_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                                 <button type="button" class="upload-area" id="openaiPlatformUploadArea" aria-describedby="openaiPlatformUploadHelp" data-ui-action="select-openai-platform-files"><div><div class="upload-title">Drop API key files here</div><p class="upload-copy" id="openaiPlatformUploadHelp">Supports JSON and ZIP archives.</p></div></button>
                                 <input type="file" id="openaiPlatformFileInput" multiple accept=".json,.zip" style="display: none;" data-ui-change="openai-platform-files">
                                 <div id="openaiPlatformFileListSection" class="hidden" style="margin-top: 16px;"><label>Pending files</label><div class="file-list" id="openaiPlatformFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-openai-platform-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-openai-platform-files">Clear</button></div></div>
                                 <div id="openaiPlatformUploadProgressSection" class="hidden" style="margin-top: 16px;"><div class="progress-bar"><div class="progress-fill" id="openaiPlatformProgressFill"></div></div><p id="openaiPlatformProgressText" class="page-description" style="margin-top: 8px;">0%</p></div>
-                                <div id="openaiPlatformUploadResult" class="save-result upload-result hidden" style="margin-top: 14px;"><div><strong id="openaiPlatformUploadResultTitle">Import complete</strong><p id="openaiPlatformUploadResultText"></p><div id="openaiPlatformUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                <div id="openaiPlatformUploadResult" class="save-result upload-result hidden" style="margin-top: 14px;"><div><strong id="openaiPlatformUploadResultTitle">Import complete</strong><p id="openaiPlatformUploadResultText"></p><div id="openaiPlatformUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                             </section>
                         </div>
 
                         <section class="tool-panel provider-settings-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="OpenAI Platform">OpenAI Platform Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the API endpoint used for key validation, model discovery, and inference.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="OpenAI Platform">Configure the API endpoint Polaris uses to connect to OpenAI Platform.</p>
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-openai-settings" data-openai-scope="platform">Save</button>
@@ -558,7 +540,7 @@
                             </div>
                             <div id="openaiPlatformSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden">
                                 <section class="provider-settings-group">
-                                    <div class="form-group"><label for="openaiApiUrl">OpenAI Platform API</label><input type="url" id="openaiApiUrl" autocomplete="off"></div>
+                                    <div class="form-group"><label for="openaiApiUrl">OpenAI Platform API</label><input type="url" id="openaiApiUrl" autocomplete="off" placeholder="https://api.example.com"></div>
                                 </section>
                             </div>
                         </section>
@@ -567,7 +549,7 @@
                     <section class="provider-workspace hidden" id="providerWorkspaceClaudeCode" role="tabpanel" aria-labelledby="providerSelectorClaudeCode">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/claude-code-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/claude-code.png" alt=""></div>
                                 <div><h2>Claude Code</h2><p>Authorize Anthropic accounts and route their available Claude models through the shared pool.</p><a class="provider-site-link" href="https://claude.com/product/claude-code" target="_blank" rel="noreferrer">https://claude.com/product/claude-code</a></div>
                             </div>
                         </div>
@@ -581,66 +563,76 @@
                                     <div class="endpoint-code-card auth-link-card"><a id="claudeAuthorizationUrl" href="#" target="_blank" rel="noreferrer">Authorization unavailable</a></div>
                                     <div class="oauth-completion-panel"><label for="claudeAuthorizationCode">Authorization code</label><p class="card-copy provider-tool-copy">Copy the code shown after authorization and paste it here.</p><input type="text" id="claudeAuthorizationCode" placeholder="Paste the Claude authorization code" autocomplete="off" spellcheck="false"></div>
                                     <div class="page-actions provider-action-gap"><button type="button" class="btn" id="saveClaudeOauthBtn" data-ui-action="save-claude-oauth">Save credential</button></div>
-                                    <div id="claudeOauthSaveResult" class="save-result provider-save-result hidden"><div><strong id="claudeOauthSaveResultTitle">Claude Code credential added to pool</strong><p id="claudeOauthSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                    <div id="claudeOauthSaveResult" class="save-result provider-save-result hidden"><div><strong id="claudeOauthSaveResultTitle">Claude Code credential added to pool</strong><p id="claudeOauthSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                                 </div>
                             </section>
                             <section class="tool-panel">
-                                <h2 class="card-title">Batch Import</h2><p class="card-copy provider-tool-copy">Import Claude Code OAuth credential JSON files or ZIP archives.</p>
+                                <h2 class="card-title">Batch Import</h2><p data-i18n="provider.copy.claude_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                                 <button type="button" class="upload-area" id="claudeCodeUploadArea" aria-describedby="claudeCodeUploadHelp" data-ui-action="select-claude-code-files"><div><div class="upload-title">Drop OAuth credential files here</div><p class="upload-copy" id="claudeCodeUploadHelp">Supports JSON and ZIP archives.</p></div></button>
                                 <input type="file" id="claudeCodeFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="claude-code-files">
                                 <div id="claudeCodeFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="claudeCodeFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-claude-code-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-claude-code-files">Clear</button></div></div>
                                 <div id="claudeCodeUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="claudeCodeProgressFill"></div></div><p id="claudeCodeProgressText" class="page-description provider-progress-copy">0%</p></div>
-                                <div id="claudeCodeUploadResult" class="save-result upload-result hidden"><div><strong id="claudeCodeUploadResultTitle">Import complete</strong><p id="claudeCodeUploadResultText"></p><div id="claudeCodeUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div>
+                                <div id="claudeCodeUploadResult" class="save-result upload-result hidden"><div><strong id="claudeCodeUploadResultTitle">Import complete</strong><p id="claudeCodeUploadResultText"></p><div id="claudeCodeUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div>
                             </section>
                         </div>
                         <section class="tool-panel provider-settings-panel">
-                            <div class="provider-settings-header"><div><h2 class="card-title">Claude Code Advanced Settings</h2><p class="card-copy provider-tool-copy">Configure Anthropic OAuth, API, and protocol identity used by Claude Code.</p></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
+                            <div class="provider-settings-header"><div><p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_oauth_description" data-provider-name="Claude Code">Configure the endpoints and OAuth application used to connect to Claude Code.</p><button type="button" hidden inert data-operator-only class="btn btn-secondary btn-small" data-provider-owned-link="claude_platform"><span data-i18n="provider.ownership.shared">Shared settings</span> — Claude Code / Claude Platform</button></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="code">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="code">Reset defaults</button></div></div>
                             <div id="claudeCodeSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Code settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div>
-                            <div id="claudeCodeSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group config-two-column"><div class="form-group"><label for="anthropicApiUrlCode">Anthropic API</label><input type="url" id="anthropicApiUrlCode" autocomplete="off"></div><div class="form-group"><label for="claudeAuthorizeUrl">Authorization service</label><input type="url" id="claudeAuthorizeUrl" autocomplete="off"></div><div class="form-group"><label for="claudeTokenUrl">Token service</label><input type="url" id="claudeTokenUrl" autocomplete="off"></div><div class="form-group"><label for="claudeClientId">OAuth client ID</label><input type="text" id="claudeClientId" autocomplete="off"></div><div class="form-group"><label for="claudeUserAgent">HTTP User-Agent</label><input type="text" id="claudeUserAgent" autocomplete="off"></div></section></div>
+                            <div id="claudeCodeSettingsForm" class="provider-settings-grid hidden"><section class="provider-settings-group config-two-column"><div class="form-group"><label for="claudeAuthorizeUrl">Authorization service</label><input type="url" id="claudeAuthorizeUrl" autocomplete="off" placeholder="https://login.example.com/authorize"></div><div class="form-group"><label for="claudeTokenUrl">Token service</label><input type="url" id="claudeTokenUrl" autocomplete="off" placeholder="https://login.example.com/token"></div><div class="form-group"><label for="claudeClientId">OAuth client ID</label><input type="text" id="claudeClientId" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div></section></div>
                         </section>
                     </section>
 
                     <section class="provider-workspace hidden" id="providerWorkspaceClaudePlatform" role="tabpanel" aria-labelledby="providerSelectorClaudePlatform">
                         <div class="provider-workspace-header">
-                            <div class="provider-workspace-heading"><div class="provider-workspace-logo"><img src="/frontend/assets/providers/claude-platform-logo.png" alt=""></div><div><h2>Claude Platform</h2><p>Add API keys and route their available Claude models through the shared pool.</p><a class="provider-site-link" href="https://platform.claude.com/" target="_blank" rel="noreferrer">https://platform.claude.com/</a></div></div>
+                            <div class="provider-workspace-heading"><div class="provider-workspace-logo"><img src="/frontend/assets/providers/claude-platform.png" alt=""></div><div><h2>Claude Platform</h2><p>Add API keys and route their available Claude models through the shared pool.</p><a class="provider-site-link" href="https://platform.claude.com/" target="_blank" rel="noreferrer">https://platform.claude.com</a></div></div>
                         </div>
                         <div class="provider-tools-grid">
-                            <section class="tool-panel"><h2 class="card-title">Claude Platform API Key</h2><p class="card-copy provider-tool-copy">Validate an Anthropic API key, discover its models, and add it to the active pool.</p><form id="claudePlatformCredentialForm" autocomplete="off"><div class="form-group"><label for="claudePlatformApiKey">API key</label><input type="password" id="claudePlatformApiKey" name="claude-platform-api-key" placeholder="Enter an Anthropic API key" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false" required></div><button type="submit" class="btn" id="addClaudePlatformKeyBtn">Validate and add</button></form><div id="claudePlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="claudePlatformSaveResultTitle">API key added to pool</strong><p id="claudePlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
-                            <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p class="card-copy provider-tool-copy">Import Claude Platform API key JSON files or ZIP archives.</p><button type="button" class="upload-area" id="claudePlatformUploadArea" aria-describedby="claudePlatformUploadHelp" data-ui-action="select-claude-platform-files"><div><div class="upload-title">Drop API key files here</div><p class="upload-copy" id="claudePlatformUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="claudePlatformFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="claude-platform-files"><div id="claudePlatformFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="claudePlatformFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-claude-platform-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-claude-platform-files">Clear</button></div></div><div id="claudePlatformUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="claudePlatformProgressFill"></div></div><p id="claudePlatformProgressText" class="page-description provider-progress-copy">0%</p></div><div id="claudePlatformUploadResult" class="save-result upload-result hidden"><div><strong id="claudePlatformUploadResultTitle">Import complete</strong><p id="claudePlatformUploadResultText"></p><div id="claudePlatformUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
+                            <section class="tool-panel"><h2 class="card-title">Claude Platform API Key</h2><p class="card-copy provider-tool-copy">Validate an Anthropic API key, discover its models, and add it to the active pool.</p><form id="claudePlatformCredentialForm" autocomplete="off"><div class="form-group"><label for="claudePlatformApiKey">API key</label><input type="password" id="claudePlatformApiKey" name="claude-platform-api-key" placeholder="Enter an Anthropic API key" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false" required></div><button type="submit" class="btn" id="addClaudePlatformKeyBtn">Validate and add</button></form><div id="claudePlatformSaveResult" class="save-result provider-save-result hidden"><div><strong id="claudePlatformSaveResultTitle">API key added to pool</strong><p id="claudePlatformSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div></section>
+                            <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p data-i18n="provider.copy.anthropic_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p><button type="button" class="upload-area" id="claudePlatformUploadArea" aria-describedby="claudePlatformUploadHelp" data-ui-action="select-claude-platform-files"><div><div class="upload-title">Drop API key files here</div><p class="upload-copy" id="claudePlatformUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="claudePlatformFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="claude-platform-files"><div id="claudePlatformFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="claudePlatformFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-claude-platform-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-claude-platform-files">Clear</button></div></div><div id="claudePlatformUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="claudePlatformProgressFill"></div></div><p id="claudePlatformProgressText" class="page-description provider-progress-copy">0%</p></div><div id="claudePlatformUploadResult" class="save-result upload-result hidden"><div><strong id="claudePlatformUploadResultTitle">Import complete</strong><p id="claudePlatformUploadResultText"></p><div id="claudePlatformUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div></section>
                         </div>
-                        <section class="tool-panel provider-settings-panel"><div class="provider-settings-header"><div><h2 class="card-title">Claude Platform Advanced Settings</h2><p class="card-copy provider-tool-copy">Configure the Anthropic API endpoint used for validation, discovery, and inference.</p></div><div class="page-actions"><button type="button" class="btn" data-ui-action="save-anthropic-settings" data-anthropic-scope="platform">Save</button><button type="button" class="btn btn-secondary" data-ui-action="reset-anthropic-settings" data-anthropic-scope="platform">Reset defaults</button></div></div><div id="claudePlatformSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Platform settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div><div id="claudePlatformSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden"><section class="provider-settings-group"><div class="form-group"><label for="anthropicApiUrlPlatform">Anthropic API</label><input type="url" id="anthropicApiUrlPlatform" autocomplete="off"></div></section></div></section>
+                        <section class="tool-panel provider-settings-panel">
+                            <div class="provider-settings-header">
+                                <div><p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_api_description" data-provider-name="Claude Platform">Configure the API endpoint Polaris uses to connect to Claude Platform.</p></div>
+                                <div class="page-actions">
+                                    <button type="button" class="btn btn-small" data-ui-action="save-anthropic-settings" data-anthropic-scope="platform">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-small" data-ui-action="reset-anthropic-settings" data-anthropic-scope="platform">Reset defaults</button>
+                                </div>
+                            </div>
+                            <div id="claudePlatformSettingsLoading" class="skeleton-config provider-settings-skeleton" role="status" aria-label="Loading Claude Platform settings" aria-busy="true"><div class="skeleton-config-group"><div class="skeleton-line title"></div><div class="skeleton-line field"></div></div></div>
+                            <div id="claudePlatformSettingsForm" class="provider-settings-grid provider-settings-grid-single hidden">
+                                <section class="provider-settings-group">
+                                    <div class="form-group"><label for="anthropicApiUrlPlatform">Anthropic API</label><input type="url" id="anthropicApiUrlPlatform" autocomplete="off" placeholder="https://api.anthropic.com/v1"></div>
+                                    <div class="form-group"><label for="claudeUserAgent">HTTP User-Agent</label><input type="text" id="claudeUserAgent" autocomplete="off" data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
+                                </section>
+                            </div>
+                        </section>
                     </section>
 
                     <section class="provider-workspace hidden" id="providerWorkspaceOllama" role="tabpanel" aria-labelledby="providerSelectorOllama">
                         <div class="provider-workspace-header">
-                            <div class="provider-workspace-heading"><div class="provider-workspace-logo"><img src="/frontend/assets/providers/ollama-logo.png" alt=""></div><div><h2>Ollama</h2><p>Connect local, remote, or cloud model servers and route every model they expose.</p><a class="provider-site-link" href="https://ollama.com/" target="_blank" rel="noreferrer">https://ollama.com/</a></div></div>
+                            <div class="provider-workspace-heading"><div class="provider-workspace-logo"><img src="/frontend/assets/providers/ollama.png" alt=""></div><div><h2>Ollama</h2><p>Connect local, remote, or cloud model servers and route every model they expose.</p><a class="provider-site-link" href="https://ollama.com/" target="_blank" rel="noreferrer">https://ollama.com</a></div></div>
                         </div>
                         <div class="provider-tools-grid">
-                            <section class="tool-panel"><h2 class="card-title">Ollama Connection</h2><p class="card-copy provider-tool-copy">Validate an Ollama endpoint, discover its models, and add it to the active pool.</p><form id="ollamaCredentialForm" autocomplete="off"><div class="form-group"><label for="ollamaBaseUrl">Endpoint</label><input type="url" id="ollamaBaseUrl" value="http://localhost:11434" placeholder="http://localhost:11434" autocomplete="off" required></div><div class="form-group"><label for="ollamaApiKey">API key <span class="field-optional">Optional</span></label><input type="password" id="ollamaApiKey" name="ollama-api-key" placeholder="Required only by protected or cloud endpoints" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false"></div><button type="submit" class="btn" id="addOllamaBtn">Validate and add</button></form><div id="ollamaSaveResult" class="save-result provider-save-result hidden"><div><strong id="ollamaSaveResultTitle">Ollama connection added to pool</strong><p id="ollamaSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
-                            <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p class="card-copy provider-tool-copy">Import Ollama connection JSON files or ZIP archives.</p><button type="button" class="upload-area" id="ollamaUploadArea" aria-describedby="ollamaUploadHelp" data-ui-action="select-ollama-files"><div><div class="upload-title">Drop connection files here</div><p class="upload-copy" id="ollamaUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="ollamaFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="ollama-files"><div id="ollamaFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="ollamaFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-ollama-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-ollama-files">Clear</button></div></div><div id="ollamaUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="ollamaProgressFill"></div></div><p id="ollamaProgressText" class="page-description provider-progress-copy">0%</p></div><div id="ollamaUploadResult" class="save-result upload-result hidden"><div><strong id="ollamaUploadResultTitle">Import complete</strong><p id="ollamaUploadResultText"></p><div id="ollamaUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button></div></section>
+                            <section class="tool-panel"><h2 class="card-title">Ollama Connection</h2><p class="card-copy provider-tool-copy">Validate an Ollama endpoint, discover its models, and add it to the active pool.</p><form id="ollamaCredentialForm" autocomplete="off"><div class="form-group"><label for="ollamaBaseUrl">Endpoint</label><input type="url" id="ollamaBaseUrl" value="http://localhost:11434" placeholder="http://localhost:11434" autocomplete="off" required></div><div class="form-group"><label for="ollamaApiKey">API key <span class="field-optional">Optional</span></label><input type="password" id="ollamaApiKey" name="ollama-api-key" placeholder="Required only by protected or cloud endpoints" autocomplete="one-time-code" data-1p-ignore data-lpignore="true" data-bwignore="true" autocapitalize="none" spellcheck="false"></div><button type="submit" class="btn" id="addOllamaBtn">Validate and add</button></form><div id="ollamaSaveResult" class="save-result provider-save-result hidden"><div><strong id="ollamaSaveResultTitle">Ollama connection added to pool</strong><p id="ollamaSaveResultText"></p></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div></section>
+                            <section class="tool-panel"><h2 class="card-title">Batch Import</h2><p data-i18n="provider.copy.ollama_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p><button type="button" class="upload-area" id="ollamaUploadArea" aria-describedby="ollamaUploadHelp" data-ui-action="select-ollama-files"><div><div class="upload-title">Drop connection files here</div><p class="upload-copy" id="ollamaUploadHelp">Supports JSON and ZIP archives.</p></div></button><input type="file" id="ollamaFileInput" multiple accept=".json,.zip" class="hidden" data-ui-change="ollama-files"><div id="ollamaFileListSection" class="hidden provider-upload-section"><label>Pending files</label><div class="file-list" id="ollamaFileList"></div><div class="page-actions"><button type="button" class="btn btn-small" data-ui-action="upload-ollama-files">Import</button><button type="button" class="btn btn-secondary btn-small" data-ui-action="clear-ollama-files">Clear</button></div></div><div id="ollamaUploadProgressSection" class="hidden provider-upload-section"><div class="progress-bar"><div class="progress-fill" id="ollamaProgressFill"></div></div><p id="ollamaProgressText" class="page-description provider-progress-copy">0%</p></div><div id="ollamaUploadResult" class="save-result upload-result hidden"><div><strong id="ollamaUploadResultTitle">Import complete</strong><p id="ollamaUploadResultText"></p><div id="ollamaUploadResultDetails" class="upload-result-details"></div></div><button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button></div></section>
                         </div>
                     </section>
 
                     <section class="provider-workspace" id="providerWorkspaceGoogleAntigravity" role="tabpanel" aria-labelledby="providerSelectorGoogleAntigravity">
                         <div class="provider-workspace-header">
                             <div class="provider-workspace-heading">
-                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/google-antigravity-logo.png" alt=""></div>
+                                <div class="provider-workspace-logo"><img src="/frontend/assets/providers/google-antigravity.png" alt=""></div>
                                 <div>
                                     <h2>Google Antigravity</h2>
                                     <p>Authorize accounts, import credential archives, and manage provider-specific behavior.</p>
-                                    <a class="provider-site-link" href="https://antigravity.google/" target="_blank" rel="noreferrer">https://antigravity.google/</a>
+                                    <a class="provider-site-link" href="https://antigravity.google/" target="_blank" rel="noreferrer">https://antigravity.google</a>
                                 </div>
-                            </div>
-                            <div class="pagination-container provider-catalog-pagination" id="providerCatalogPagination" role="navigation" aria-labelledby="providerCatalogTitle" style="display: none;">
-                                <button type="button" class="pagination-btn" id="providerCatalogPrevBtn" data-ui-action="change-provider-catalog-page" data-page-delta="-1" data-i18n-title="previous" title="Previous" data-i18n-aria-label="previous" aria-label="Previous" data-i18n="previous">Previous</button>
-                                <div class="pagination-info" id="providerCatalogPaginationInfo" aria-live="polite" data-i18n-runtime>Page 1 of 2</div>
-                                <button type="button" class="pagination-btn" id="providerCatalogNextBtn" data-ui-action="change-provider-catalog-page" data-page-delta="1" data-i18n-title="next" title="Next" data-i18n-aria-label="next" aria-label="Next" data-i18n="next">Next</button>
                             </div>
                         </div>
                         <div class="provider-tools-grid">
                         <section class="tool-panel">
                             <h2 class="card-title">Google Antigravity OAuth</h2>
-                            <p class="card-copy provider-tool-copy">Generate an authorization link and save the account directly into the active pool.</p>
+                            <p class="card-copy provider-tool-copy" data-i18n="providers.oauth_intro">Generate an authorization link and save the account directly into the active pool.</p>
                             <div class="page-actions">
                                 <button type="button" class="btn" id="getPrimaryAuthBtn">Get provider authentication link</button>
                             </div>
@@ -669,22 +661,15 @@
                                         <strong id="primarySaveResultTitle">Credential saved to pool</strong>
                                         <p id="primarySaveResultText"></p>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                    <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                                 </div>
 
-                                <div id="primaryCredsSection" class="hidden" style="margin-top: 14px;">
-                                    <label>Saved credential payload</label>
-                                    <div class="credentials">
-                                        <pre id="primaryCredsContent"></pre>
-                                    </div>
-                                    <button type="button" class="btn btn-secondary" id="primaryCredsDownloadBtn" style="margin-top: 10px;" data-ui-action="download-primary-credentials">Download credential</button>
-                                </div>
                             </div>
                         </section>
 
                         <section class="tool-panel">
                             <h2 class="card-title">Batch Import</h2>
-                            <p class="card-copy provider-tool-copy">Import Google Antigravity credentials from JSON files or ZIP archives. Credentials are deduplicated by account email and expiry.</p>
+                            <p data-i18n="provider.copy.antigravity_import" class="card-copy provider-tool-copy">Import JSON or ZIP credentials. Importing does not verify access; check the credential and test a model in the pool.</p>
                             <button type="button" class="upload-area" id="primaryUploadArea" aria-describedby="primaryUploadHelp" data-ui-action="select-primary-files">
                                 <div>
                                     <div class="upload-title">Drop credential files here</div>
@@ -713,15 +698,16 @@
                                     <p id="primaryUploadResultText"></p>
                                     <div id="primaryUploadResultDetails" class="upload-result-details"></div>
                                 </div>
-                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="pool">View</button>
+                                <button type="button" class="btn btn-secondary" data-ui-action="switch-tab" data-tab="credentials">View</button>
                             </div>
                         </section>
+
 
                         <section class="tool-panel provider-advanced-panel">
                             <div class="provider-settings-header">
                                 <div>
-                                    <h2 class="card-title" data-provider-form-copy="advanced_settings" data-provider-name="Google Antigravity">Google Antigravity Advanced Settings</h2>
-                                    <p class="card-copy provider-tool-copy">Configure the OAuth client, upstream endpoints, protocol headers, and runtime behavior used by the Google Antigravity provider.</p>
+                                    <p class="card-copy provider-tool-copy" data-provider-form-copy="advanced_client_description" data-provider-name="Google Antigravity">Configure the OAuth application, service endpoints and client identification for Google Antigravity.</p>
+
                                 </div>
                                 <div class="page-actions">
                                     <button type="button" class="btn" data-ui-action="save-antigravity-settings">Save</button>
@@ -738,31 +724,42 @@
                             <div id="antigravitySettingsForm" class="provider-settings-grid hidden">
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="oauth_client">OAuth Client</h3>
-                                    <p class="card-copy provider-tool-copy">Manage the OAuth application used for Google Antigravity authorization.</p>
-                                    <div class="form-group"><label for="antigravityOauthClientId">Client ID</label><input type="text" id="antigravityOauthClientId" autocomplete="off" required></div>
-                                    <div class="form-group"><label for="antigravityOauthClientSecret">Client secret</label><input type="password" id="antigravityOauthClientSecret" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-bwignore="true" required></div>
+                                    <p class="card-copy provider-tool-copy" data-i18n="providers.oauth_client_hint">Manage the OAuth application used for Google Antigravity authorization.</p>
+                                    <div class="form-group"><label for="antigravityOauthClientId">Client ID</label><input type="text" id="antigravityOauthClientId" autocomplete="off" required data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
+                                    <div class="form-group"><label for="antigravityOauthClientSecret">Client secret</label><input type="password" id="antigravityOauthClientSecret" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-bwignore="true" required data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"></div>
                                 </section>
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="upstream_endpoints">Upstream Endpoints</h3>
-                                    <p class="card-copy provider-tool-copy">Configure provider and Google API hosts used by Google Antigravity requests.</p>
-                                    <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="url" id="antigravityApiUrl" autocomplete="url" required></div>
-                                    <div class="form-group"><label for="antigravityOauthUrl">OAuth API</label><input type="url" id="antigravityOauthUrl" autocomplete="url" required></div>
-                                    <div class="form-group"><label for="antigravityGoogleApisUrl">Google APIs</label><input type="url" id="antigravityGoogleApisUrl" autocomplete="url" required></div>
-                                    <div class="form-group"><label for="antigravityResourceManagerUrl">Resource Manager API</label><input type="url" id="antigravityResourceManagerUrl" autocomplete="url" required></div>
-                                    <div class="form-group"><label for="antigravityServiceUsageUrl">Service Usage API</label><input type="url" id="antigravityServiceUsageUrl" autocomplete="url" required></div>
+
+                                    <div class="form-group"><label for="antigravityApiUrl">Google Antigravity API</label><input type="url" id="antigravityApiUrl" autocomplete="url" required placeholder="https://api.example.com"></div>
                                 </section>
 
                                 <section class="provider-settings-group">
                                     <h3 data-provider-form-copy="protocol_behavior">Protocol Behavior</h3>
-                                    <p class="card-copy provider-tool-copy">Tune headers, streaming conversion, and retry credential switching.</p>
-                                    <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
-                                    <div class="form-group"><label for="antigravityPayloadUserAgent" data-provider-form-copy="payload_user_agent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
-                                    <label class="switch-row"><input type="checkbox" id="antigravityStreamToNonstream" class="config-checkbox"><span data-provider-form-copy="stream_to_nonstream">Collect streaming responses for non-stream clients</span></label>
-                                    <label class="switch-row" style="margin-top: 12px;"><input type="checkbox" id="antigravitySwitchCredential" class="config-checkbox"><span data-provider-form-copy="switch_credential">Switch Google Antigravity credentials during retries</span></label>
+
+                                    <div class="form-group"><label for="antigravityUserAgent">HTTP User-Agent</label><input type="text" id="antigravityUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
+                                    <div class="form-group"><label for="antigravityPayloadUserAgent" data-provider-form-copy="payload_user_agent">Payload user agent</label><input type="text" id="antigravityPayloadUserAgent" autocomplete="off" autocapitalize="none" spellcheck="false" required data-i18n-placeholder="form.user_agent" placeholder="Enter the client identifier"></div>
                                 </section>
                             </div>
                         </section>
                     </div>
+                <details hidden inert data-operator-only class="tool-panel provider-secondary-disclosure" data-google-settings="shared">
+<summary class="provider-disclosure-summary"><span><span data-i18n="provider.ownership.shared">Shared settings</span> <span data-i18n-technical>— Google OAuth / Code Assist</span></span></summary>
+<form id="googleSharedSettingsForm" class="provider-config-grid" data-google-scope="shared" novalidate>
+<div class="form-group"><label for="googleOauthUrl" data-i18n-technical>Google OAuth API</label><input id="googleOauthUrl" type="url" data-google-config="oauth_url" placeholder="https://oauth2.googleapis.com" required autocomplete="url"></div>
+<div class="form-group"><label for="googleUserinfoUrl" data-i18n-technical>Google APIs</label><input id="googleUserinfoUrl" type="url" data-google-config="google_apis_url" placeholder="https://www.googleapis.com" required autocomplete="url"></div>
+<div class="page-actions"><button type="submit" class="btn btn-small" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-google" data-i18n="reset_defaults">Reset defaults</button></div>
+</form></details>
+<details hidden inert data-operator-only class="tool-panel provider-secondary-disclosure" data-google-settings="compatibility"><summary class="provider-disclosure-summary" data-i18n="settings.code_assist">Code Assist Compatibility</summary><form id="googleCompatibilitySettingsForm" class="provider-config-grid" data-google-scope="compatibility" novalidate>
+
+                                    <p class="card-copy card-title-copy" data-i18n="settings.code_assist_description">Optional legacy client and endpoint compatibility.</p>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistEndpoint">Code Assist API</label><input type="url" required id="codeAssistEndpoint" data-google-config="code_assist_endpoint" placeholder="https://cloudcode-pa.googleapis.com"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientId">Code Assist client ID</label><input type="text" id="codeAssistClientId" data-google-config="code_assist_client_id" autocomplete="off" data-i18n-placeholder="form.oauth_client_id" placeholder="Enter the OAuth client ID"></div>
+                                    <div class="form-group" data-i18n-technical><label for="codeAssistClientSecret">Code Assist client secret</label><div class="setup-secret-field"><input type="password" id="codeAssistClientSecret" data-google-config="code_assist_client_secret" autocomplete="new-password" data-i18n-placeholder="settings.secret_unchanged" placeholder="Leave blank to keep the configured secret"><button id="codeAssistClientSecretToggle" type="button" class="setup-secret-toggle" data-ui-action="toggle-setup-secret" aria-controls="codeAssistClientSecret" aria-pressed="false" data-i18n-aria-label="setup_show_secret" aria-label="Show content"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle><path class="setup-eye-slash" d="m3 3 18 18"></path></svg></button></div></div>
+
+<div class="form-group"><label for="codeAssistResourceManager" data-i18n-technical>Resource Manager API</label><input type="url" id="codeAssistResourceManager" data-google-config="resource_manager_url" required placeholder="https://cloudresourcemanager.googleapis.com"></div>
+<div class="form-group"><label for="codeAssistServiceUsage" data-i18n-technical>Service Usage API</label><input type="url" id="codeAssistServiceUsage" data-google-config="service_usage_url" required placeholder="https://serviceusage.googleapis.com"></div>
+<div class="page-actions"><button type="submit" class="btn btn-small" data-i18n="save">Save</button><button type="button" class="btn btn-secondary btn-small" data-provider-owned-action="reset-google" data-i18n="reset_defaults">Reset defaults</button></div></form></details>
                     </section>
-                </div>
+</div>

@@ -14,7 +14,7 @@ const TRACE_EXPORT_FILENAME_PATTERN = /^polaris-traces-\d{8}T\d{6}Z\.(?:jsonl|cs
 
 const TraceConsoleState = {
     traces: [], filters: {}, cursor: null, cursorStack: [], nextCursor: null,
-    loaded: false, loading: false, requestId: 0, abortController: null,
+    loaded: false, loading: false, loadError: false, requestId: 0, abortController: null,
     exporting: false, selectedTrace: null, detailReturnFocus: null, retention: null,
     detailRequestId: 0, detailAbortController: null
 };
@@ -174,9 +174,15 @@ function renderTraces() {
         button.type = 'button'; button.dataset.uiAction = 'view-trace-detail'; button.dataset.traceId = trace.trace_id;
         card.append(primary, metadata, button); item.append(card); list.append(item);
     }
-    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded) list.append(traceText('li', 'trace-empty', t('trace.empty')));
+    if (!TraceConsoleState.traces.length && TraceConsoleState.loaded && !TraceConsoleState.loading && !TraceConsoleState.loadError) {
+        const filters = TraceConsoleState.filters;
+        const filtered = ['protocols', 'outcomes', 'providers', 'models'].some(key => filters[key]?.length)
+            || ['request_id', 'started_after', 'started_before'].some(key => filters[key])
+            || TraceConsoleState.cursor || TraceConsoleState.cursorStack.length;
+        list.append(traceText('li', 'trace-empty', t(filtered ? 'trace.empty' : 'dashboard.recent_empty')));
+    }
     const pagination = traceElement('tracePreviousPage')?.closest('.trace-pagination');
-    if (pagination) pagination.hidden = !TraceConsoleState.traces.length;
+    if (pagination) pagination.hidden = !TraceConsoleState.traces.length && !TraceConsoleState.cursorStack.length;
     if (traceElement('tracePreviousPage')) traceElement('tracePreviousPage').disabled = TraceConsoleState.loading || !TraceConsoleState.cursorStack.length;
     if (traceElement('traceNextPage')) traceElement('traceNextPage').disabled = TraceConsoleState.loading || !TraceConsoleState.nextCursor;
     if (traceElement('tracePageNumber')) traceElement('tracePageNumber').textContent = t('trace.page', { page: TraceConsoleState.cursorStack.length + 1 });
@@ -187,7 +193,9 @@ async function loadTraces() {
     const requestId = ++TraceConsoleState.requestId;
     const controller = new AbortController();
     TraceConsoleState.abortController = controller; TraceConsoleState.loading = true;
-    traceElement('traceList')?.setAttribute('aria-busy', 'true'); setTraceStatus('trace.loading'); renderTraces();
+    TraceConsoleState.loadError = false;
+    setTraceStatus('trace.loading'); renderTraces();
+    setRegionBusy('traceList', true);
     try {
         const response = await fetch(`./api/traces?${buildTraceParams(TraceConsoleState.filters)}`, { signal: controller.signal });
         if (!response.ok) throw new Error('trace-request');
@@ -197,10 +205,11 @@ async function loadTraces() {
         TraceConsoleState.traces = page.traces; TraceConsoleState.nextCursor = page.nextCursor; TraceConsoleState.loaded = true; setTraceStatus('');
     } catch (_error) {
         if (requestId !== TraceConsoleState.requestId || controller.signal.aborted) return;
+        TraceConsoleState.loadError = true;
         TraceConsoleState.traces = []; TraceConsoleState.nextCursor = null; TraceConsoleState.loaded = true; setTraceStatus('trace.load_failed');
     } finally {
         if (requestId !== TraceConsoleState.requestId) return;
-        TraceConsoleState.loading = false; TraceConsoleState.abortController = null; traceElement('traceList')?.setAttribute('aria-busy', 'false'); renderTraces();
+        TraceConsoleState.loading = false; TraceConsoleState.abortController = null; setRegionBusy('traceList', false); renderTraces();
     }
 }
 
@@ -294,6 +303,8 @@ async function openTraceDetail(element) {
     TraceConsoleState.detailAbortController = controller;
     TraceConsoleState.selectedTrace = null;
     clearTraceDetail();
+    dialog.setAttribute('aria-busy', 'true');
+    setRegionBusy('traceDecisionList', true);
     TraceConsoleState.detailReturnFocus = element; if (traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.loading'); dialog.showModal();
     try {
         const response = await fetch(`./api/traces/${encodeURIComponent(traceId)}`, { signal: controller.signal }); if (!response.ok) throw new Error('trace-detail');
@@ -303,7 +314,11 @@ async function openTraceDetail(element) {
     } catch (_error) {
         if (detailRequestId === TraceConsoleState.detailRequestId && !controller.signal.aborted && traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.detail_failed');
     } finally {
-        if (detailRequestId === TraceConsoleState.detailRequestId) TraceConsoleState.detailAbortController = null;
+        if (detailRequestId === TraceConsoleState.detailRequestId) {
+            TraceConsoleState.detailAbortController = null;
+            dialog.setAttribute('aria-busy', 'false');
+            setRegionBusy('traceDecisionList', false);
+        }
     }
 }
 

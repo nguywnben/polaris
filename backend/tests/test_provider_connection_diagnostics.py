@@ -142,6 +142,52 @@ class ProviderConnectionDiagnosticContractTests(unittest.TestCase):
 
 
 class BoundedConnectionTestTests(unittest.IsolatedAsyncioTestCase):
+    async def test_inference_failure_persists_only_safe_diagnostic_not_upstream_body(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+
+        from core.credential_manager import CredentialManager
+
+        manager = CredentialManager()
+        manager._storage_adapter = SimpleNamespace(
+            _backend=object(), update_credential_state=AsyncMock(return_value=True)
+        )
+        secret = "arbitrary-private-provider-payload"
+        with (
+            patch.object(manager, "_ensure_initialized", AsyncMock()),
+            patch.object(manager._routing, "complete", AsyncMock()),
+            patch("core.credential_manager.log.debug") as debug,
+        ):
+            await manager.record_api_call_result(
+                "fixture.json", False, 503, error_message=secret, mode="primary"
+            )
+        update = manager._storage_adapter.update_credential_state.call_args.args[1]
+        self.assertEqual(update["error_codes"], [503])
+        self.assertTrue(update["error_messages"]["503"])
+        self.assertNotIn(secret, json.dumps(update))
+        self.assertNotIn(secret, str(debug.call_args_list))
+
+    async def test_inference_diagnostics_do_not_claim_a_thirty_second_connection_test(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+
+        from core.credential_manager import CredentialManager
+
+        manager = CredentialManager()
+        manager._storage_adapter = SimpleNamespace(
+            _backend=object(), update_credential_state=AsyncMock(return_value=True)
+        )
+        with (
+            patch.object(manager, "_ensure_initialized", AsyncMock()),
+            patch.object(manager._routing, "complete", AsyncMock()),
+        ):
+            for status in (400, 408, 500, 503, 504):
+                await manager.record_api_call_result(
+                    "fixture.json", False, status, error_message="private upstream content"
+                )
+                update = manager._storage_adapter.update_credential_state.call_args.args[1]
+                self.assertEqual(update["error_messages"][str(status)], f"HTTP {status}")
+
     async def test_timeout_cancels_the_provider_operation(self) -> None:
         cancelled = asyncio.Event()
 

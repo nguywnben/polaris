@@ -15,7 +15,14 @@ function identitySetStatus(elementId, message = '', type = '') {
 }
 
 function identitySetBusy(elementId, busy) {
-    document.getElementById(elementId)?.setAttribute('aria-busy', String(Boolean(busy)));
+    setRegionBusy(elementId, Boolean(busy));
+}
+
+function identitySetRefreshBusy(busy) {
+    const button = document.getElementById('identityRefreshButton');
+    if (!button) return;
+    button.disabled = busy;
+    button.setAttribute('aria-busy', String(busy));
 }
 
 function identityFocus(selector, fallbackId) {
@@ -35,6 +42,7 @@ function resetIdentityConsoleState() {
     if (createDialog?.open) createDialog.close();
     if (confirmResolver) confirmResolver(false);
     identityResetState();
+    identitySetRefreshBusy(false);
     if (AppState.tabLoadTimes) delete AppState.tabLoadTimes.identity;
     for (const elementId of (
         ['identityPrincipalSummary', 'identityOidcSummary', 'identityRecoverySummary',
@@ -130,15 +138,28 @@ function renderIdentityPrincipal() {
     const container = document.getElementById('identityPrincipalSummary');
     if (!container || !IdentityConsoleState.principal) return;
     const principal = IdentityConsoleState.principal;
+    const permissionFact = identityFact('identity.permissions', '');
+    permissionFact.className = 'identity-permission-fact';
+    permissionFact.children[0].className = 'visually-hidden';
+    const permissions = identityElement('details', 'identity-permissions');
+    permissions.appendChild(identityElement('summary', '', t('identity.permissions')));
+    permissionFact.children[1].appendChild(permissions);
+    if (principal.permissions.length) {
+        const list = identityElement('ul', 'identity-permission-list');
+        for (const permission of principal.permissions) {
+            list.appendChild(identityElement('li', 'identity-technical-value', permission));
+        }
+        permissions.appendChild(list);
+    } else {
+        permissions.appendChild(identityElement('p', '', t('identity.none')));
+    }
     container.replaceChildren(
         identityFact('identity.identity_id', principal.identityId, { technical: true }),
         identityFact('identity.principal_type', identityProtocolLabel(principal.principalType), { technical: true }),
         identityFact('identity.role', identityRoleLabel(principal.role)),
         identityFact('identity.role_source', identityProtocolLabel(principal.roleSource), { technical: true }),
         identityFact('identity.authentication', identityProtocolLabel(principal.authenticationContext), { technical: true }),
-        identityFact('identity.permissions', principal.permissions.length
-            ? principal.permissions.join(', ')
-            : t('identity.none'), { technical: true })
+        permissionFact
     );
     container.setAttribute('aria-busy', 'false');
     identityStatusBadge('identityPrincipalBadge', 'identity.authorized', 'success');
@@ -275,6 +296,10 @@ function renderIdentityRecord(record) {
     const mutable = record.identityId !== 'local-owner';
     const ownerAllowed = record.role !== 'owner' || identityCan('owners.manage');
     const editable = mutable && ownerAllowed && identityCan('identity.manage');
+    if (!editable) {
+        facts.appendChild(identityFact('identity.role', identityRoleLabel(record.role)));
+        return article;
+    }
     const actions = identityElement('div', 'identity-record-actions');
     const roleSelect = identityRoleSelect(record, editable);
     actions.appendChild(roleSelect);
@@ -312,6 +337,9 @@ function renderIdentityList() {
 
 function renderIdentityPagination() {
     const busy = IdentityConsoleState.identityPageLoading;
+    const pagination = document.getElementById('identityPreviousPage')?.closest('.identity-pagination');
+    if (pagination) pagination.hidden = !IdentityConsoleState.identityCursorStack.length
+        && !IdentityConsoleState.identityNextCursor;
     document.getElementById('identityPreviousPage').disabled =
         busy || IdentityConsoleState.identityCursorStack.length === 0;
     document.getElementById('identityNextPage').disabled =
@@ -370,6 +398,9 @@ function renderIdentitySessions() {
 
 function renderIdentitySessionPagination() {
     const busy = IdentityConsoleState.sessionPageLoading;
+    const pagination = document.getElementById('identitySessionPreviousPage')?.closest('.identity-pagination');
+    if (pagination) pagination.hidden = !IdentityConsoleState.sessionCursorStack.length
+        && !IdentityConsoleState.sessionNextCursor;
     document.getElementById('identitySessionPreviousPage').disabled =
         busy || IdentityConsoleState.sessionCursorStack.length === 0;
     document.getElementById('identitySessionNextPage').disabled =
@@ -410,6 +441,7 @@ async function loadIdentityPage({
         identitySetStatus(
             'identityListStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
+        return false;
     }
 }
 
@@ -446,6 +478,7 @@ async function loadIdentitySessions({
         identitySetStatus(
             'identitySessionStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
+        return false;
     }
 }
 
@@ -468,6 +501,8 @@ async function loadIdentityOidc({
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
         IdentityConsoleState.oidcPolicy = null;
+        renderIdentityOidc();
+        return false;
     }
     renderIdentityOidc();
 }
@@ -489,6 +524,8 @@ async function loadIdentityRecovery({
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
         IdentityConsoleState.recovery = null;
+        renderIdentityRecovery();
+        return false;
     }
     renderIdentityRecovery();
 }
@@ -500,7 +537,11 @@ async function loadIdentityConsole({ announce = false } = {}) {
     IdentityConsoleState.controller = new AbortController();
     const controller = IdentityConsoleState.controller;
     const generation = ++IdentityConsoleState.generation;
-    identitySetStatus('identityPageStatus', t('identity.loading'));
+    identitySetRefreshBusy(true);
+    for (const id of ['identityPrincipalSummary', 'identityOidcSummary', 'identityRecoverySummary', 'identityList', 'identitySessionList']) {
+        identitySetBusy(id, true);
+    }
+    identitySetStatus('identityPageStatus', announce ? '' : t('identity.loading'));
     try {
         const current = await identityApi('/session', {
             signal: controller.signal
@@ -509,7 +550,7 @@ async function loadIdentityConsole({ announce = false } = {}) {
         IdentityConsoleState.principal = identityValidatePrincipal(current);
         IdentityConsoleState.permissions = new Set(IdentityConsoleState.principal.permissions);
         renderIdentityPrincipal();
-        await Promise.all([
+        const results = await Promise.all([
             loadIdentityPage({ signal: controller.signal, generation }),
             loadIdentitySessions({ signal: controller.signal, generation }),
             loadIdentityOidc({ signal: controller.signal, generation }),
@@ -517,9 +558,12 @@ async function loadIdentityConsole({ announce = false } = {}) {
         ]);
         if (!identityLoadIsCurrent(generation, controller.signal)) return;
         IdentityConsoleState.loaded = true;
-        identitySetStatus(
-            'identityPageStatus', announce ? t('identity.refreshed') : '', announce ? 'success' : ''
-        );
+        identitySetStatus('identityPageStatus');
+        if (announce) {
+            const failed = results.includes(false);
+            showStatus(t(failed ? 'identity.request_failed' : 'identity.refreshed'),
+                failed ? 'error' : 'success');
+        }
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, controller.signal)) {
             return;
@@ -532,12 +576,17 @@ async function loadIdentityConsole({ announce = false } = {}) {
         renderIdentityRecovery();
         renderIdentityList();
         renderIdentitySessions();
-        identitySetStatus(
-            'identityPageStatus', identityErrorMessage(error, 'identity.load_failed'), 'error'
-        );
+        const message = identityErrorMessage(error, 'identity.load_failed');
+        if (announce) {
+            identitySetStatus('identityPageStatus');
+            showStatus(message, 'error');
+        } else {
+            identitySetStatus('identityPageStatus', message, 'error');
+        }
     } finally {
         if (generation === IdentityConsoleState.generation) {
             IdentityConsoleState.loading = false;
+            identitySetRefreshBusy(false);
         }
     }
 }
@@ -577,7 +626,6 @@ function openIdentityCreateDialog(draft = IdentityConsoleState.createDraft) {
     }
     identitySetStatus('identityCreateStatus');
     dialog.showModal();
-    form.elements.issuer.focus();
 }
 
 function closeIdentityCreateDialog({ clear = false } = {}) {

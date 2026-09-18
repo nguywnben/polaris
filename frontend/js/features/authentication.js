@@ -1,5 +1,51 @@
 // Polaris management console: console.
 
+function setSetupSecretVisibility(input, visible) {
+    if (!input) return;
+    input.type = visible ? 'text' : 'password';
+    document.getElementById(`${input.id}Toggle`)?.setAttribute('aria-pressed', String(visible));
+}
+
+function toggleSetupSecret(button) {
+    const input = document.getElementById(button.getAttribute('aria-controls'));
+    if (!input || input.matches(':disabled')) return;
+    setSetupSecretVisibility(input, input.type === 'password');
+}
+
+function setupPasswordChecks(password, confirmation) {
+    // Mirrors validate_owner_password; parity is guarded by test_password_checklist.py.
+    const common = ['administrator', 'letmein123456', 'polaris', 'password1234', 'qwerty123456'];
+    const characters = Array.from(password);
+    // Case-fold variants that can map to characters in the server's ASCII blocklist.
+    const folded = password.toLowerCase().replace(/ſ/g, 's').replace(/ß/g, 'ss');
+    return {
+        length: characters.length >= 12 && characters.length <= 256,
+        variety: new Set(characters).size >= 4,
+        uncommon: characters.length > 0 && !common.includes(folded),
+        match: characters.length > 0 && password === confirmation
+    };
+}
+
+function renderSetupPasswordChecks() {
+    const password = document.getElementById('setupPassword')?.value || '';
+    const confirmation = document.getElementById('setupPasswordConfirm')?.value || '';
+    const checks = setupPasswordChecks(password, confirmation);
+    if (checks.match) {
+        const confirmInput = document.getElementById('setupPasswordConfirm');
+        confirmInput.removeAttribute('aria-invalid');
+        confirmInput.removeAttribute('data-validation-error');
+    }
+    document.querySelectorAll('[data-password-check]').forEach(item => {
+        const met = String(checks[item.dataset.passwordCheck]);
+        if (item.dataset.met === met) return;
+        item.dataset.met = met;
+        const state = item.querySelector('[data-password-check-state]');
+        state.dataset.i18n = met === 'true' ? 'password_check_met' : 'password_check_pending';
+        state.textContent = t(state.dataset.i18n);
+    });
+    return checks;
+}
+
 const SETUP_CHECK_ELEMENTS = {
 
     data: 'setupCheckData',
@@ -22,7 +68,43 @@ function setSetupText(id, value) {
 
 }
 
-function renderSetupStatus(data) {
+let setupVerificationRevision = 0;
+
+function setSetupAction(action) {
+    const message = document.getElementById('setupPreflightAction');
+    if (!message) return;
+    message.dataset.i18n = `setup_action_${action || 'loading'}`;
+    message.textContent = t(message.dataset.i18n);
+    message.classList.remove('hidden');
+}
+
+function invalidateSetupVerification() {
+    setupVerificationRevision += 1;
+    const ownerFields = document.getElementById('setupOwnerFields');
+    if (ownerFields) ownerFields.disabled = true;
+    ['setupPassword', 'setupPasswordConfirm'].forEach(id => {
+        setSetupSecretVisibility(document.getElementById(id), false);
+    });
+    const tokenCheck = document.getElementById('setupCheckSetupToken');
+    if (tokenCheck && tokenCheck.dataset.status !== 'fail'
+        && !document.getElementById('setupTokenGroup')?.classList.contains('hidden')) {
+        tokenCheck.dataset.status = 'pending';
+        tokenCheck.querySelector('[data-setup-check-message]').textContent = t('setup_token_entry_required');
+        setSetupAction('enter_setup_token');
+    }
+}
+
+function renderLoginOidcEntry(data) {
+    const entry = document.getElementById('loginOidcEntry');
+    if (!entry) return;
+    const enabled = data?.oidc_enabled === true && data?.setup_required === false;
+    entry.hidden = !enabled;
+    entry.classList.toggle('hidden', !enabled);
+}
+
+function renderSetupStatus(data, {tokenVerified = false} = {}) {
+
+    renderLoginOidcEntry(data);
 
     if (!data || typeof data !== 'object') return;
 
@@ -42,7 +124,10 @@ function renderSetupStatus(data) {
 
     setSetupText('setupListener', data.listener);
 
-    setSetupText('setupPreflightAction', t(`setup_action_${data.next_action || 'loading'}`));
+    const tokenReady = !data.setup_token_required || tokenVerified;
+    const nextAction = data.next_action === 'create_owner' && !tokenReady
+        ? 'enter_setup_token' : data.next_action;
+    setSetupAction(nextAction);
 
     for (const [checkName, elementId] of Object.entries(SETUP_CHECK_ELEMENTS)) {
 
@@ -66,7 +151,10 @@ function renderSetupStatus(data) {
 
     const ownerFields = document.getElementById('setupOwnerFields');
 
-    if (ownerFields) ownerFields.disabled = data.state !== 'resumed' || data.next_action !== 'create_owner';
+    // A persisted installation checkpoint is not proof of the current token.
+    if (ownerFields) ownerFields.disabled = data.state !== 'resumed'
+        || data.next_action !== 'create_owner' || !tokenReady;
+    renderSetupPasswordChecks();
 
     if (AppState.setupRequired) AppState.authenticated = false;
 
@@ -77,11 +165,20 @@ function renderSetupStatus(data) {
 
 }
 
-async function runSetupPreflight({focusOwner = true} = {}) {
+async function runSetupPreflight({announce = true} = {}) {
 
     const setupTokenInput = document.getElementById('setupToken');
 
     const preflightButton = document.getElementById('setupPreflightButton');
+
+    const tokenRequired = document.getElementById('setupTokenGroup')?.classList.contains('hidden') === false;
+    const tokenConfigurationFailed = document.getElementById('setupCheckSetupToken')?.dataset.status === 'fail';
+    invalidateSetupVerification();
+    const verificationRevision = setupVerificationRevision;
+    if (tokenRequired && !tokenConfigurationFailed && !setupTokenInput?.value.trim()) {
+        showStatus(t('setup_action_enter_setup_token'), 'warning');
+        return false;
+    }
 
     if (preflightButton) {
 
@@ -105,11 +202,14 @@ async function runSetupPreflight({focusOwner = true} = {}) {
 
         const data = await response.json();
 
-        if (data && data.state) renderSetupStatus(data);
+        // Ignore a response for a token edited while the check was in flight.
+        if (verificationRevision !== setupVerificationRevision) return false;
+
+        const tokenVerified = response.ok && data.checks?.setup_token?.status === 'pass'
+            && data.checks?.setup_token?.code === 'setup_token_verified';
+        if (data && data.state) renderSetupStatus(data, {tokenVerified});
 
         if (!response.ok) {
-
-            if (!data?.state && setupTokenInput) setupTokenInput.value = '';
 
             showStatus(data.detail || data.error || t('setup_preflight_failed'), 'error');
 
@@ -127,9 +227,9 @@ async function runSetupPreflight({focusOwner = true} = {}) {
 
         }
 
-        if (data.state === 'resumed' && focusOwner) {
+        if (data.state === 'resumed' && data.next_action === 'create_owner' && announce) {
 
-            document.getElementById('setupPassword')?.focus();
+            showStatus(t('setup_action_create_owner'), 'success');
 
         }
 
@@ -169,7 +269,7 @@ async function refreshSetupStatus() {
 
         if (data.state === 'fresh' && data.next_action === 'run_preflight') {
 
-            await runSetupPreflight({focusOwner: false});
+            await runSetupPreflight({announce: false});
 
         }
 
@@ -223,16 +323,27 @@ async function completeInitialSetup() {
 
     const setupToken = setupTokenInput?.value || '';
 
-    if (password.length < 12) {
+    const checks = renderSetupPasswordChecks();
 
-        showStatus(t('password_min_error'), 'error');
+    if (!checks.length) {
+
+        showStatus(t('password_check_length'), 'error');
 
         return;
 
     }
 
+    if (!checks.variety || !checks.uncommon) {
+        passwordInput.setAttribute('aria-invalid', 'true');
+        passwordInput.setAttribute('data-validation-error', '');
+        showStatus(t(!checks.variety ? 'password_check_variety' : 'password_check_uncommon'), 'error');
+        return;
+    }
+
     if (password !== confirmPassword) {
 
+        confirmInput.setAttribute('aria-invalid', 'true');
+        confirmInput.setAttribute('data-validation-error', '');
         showStatus(t('password_match_error'), 'error');
 
         return;
@@ -297,13 +408,26 @@ async function completeInitialSetup() {
 
         if (setupTokenInput) setupTokenInput.value = '';
 
+        [passwordInput, confirmInput, setupTokenInput].forEach(input => {
+            setSetupSecretVisibility(input, false);
+            input?.removeAttribute('aria-invalid');
+            input?.removeAttribute('data-validation-error');
+        });
+        renderSetupPasswordChecks();
+        invalidateSetupVerification();
+
     }
 
 }
 
-async function login() {
+let loginInProgress = false;
 
-    const password = document.getElementById('loginPassword').value;
+async function login() {
+    if (loginInProgress) return;
+    const passwordInput = document.getElementById('loginPassword');
+    const submitButton = document.getElementById('loginSubmitButton');
+    const toggleButton = document.getElementById('loginPasswordToggle');
+    const password = passwordInput.value;
 
     if (!password) {
 
@@ -312,6 +436,14 @@ async function login() {
         return;
 
     }
+
+    loginInProgress = true;
+    passwordInput.readOnly = true;
+    toggleButton.disabled = true;
+    submitButton.disabled = true;
+    submitButton.setAttribute('aria-busy', 'true');
+    submitButton.dataset.i18n = 'login_pending';
+    submitButton.textContent = t('login_pending');
 
     try {
 
@@ -336,6 +468,7 @@ async function login() {
             showStatus(t('login_successful_dup'), 'success');
 
             navigate('/dashboard');
+            passwordInput.value = '';
 
             await refreshTeamAccessNavigation();
 
@@ -355,6 +488,8 @@ async function login() {
 
             if (response.status === 401) {
 
+                passwordInput.setAttribute('aria-invalid', 'true');
+                passwordInput.setAttribute('data-validation-error', '');
                 showStatus(t('login_failed_incorrect_password'), 'error');
 
                 return;
@@ -369,6 +504,15 @@ async function login() {
 
         showStatus(t('status_net_error', {error: error.message}), 'error');
 
+    } finally {
+        loginInProgress = false;
+        passwordInput.readOnly = false;
+        setSetupSecretVisibility(passwordInput, false);
+        toggleButton.disabled = false;
+        submitButton.disabled = false;
+        submitButton.removeAttribute('aria-busy');
+        submitButton.dataset.i18n = 'login_submit';
+        submitButton.textContent = t('login_submit');
     }
 
 }
@@ -385,7 +529,7 @@ async function autoLogin() {
 
     if (AppState.authenticated) {
 
-        navigate(window.location.pathname, false);
+        navigate(window.location.pathname + window.location.search + window.location.hash, false);
 
         await refreshTeamAccessNavigation();
 

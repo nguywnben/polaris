@@ -568,6 +568,13 @@ async def normalize_gemini_request(
 
     result = request.copy()
     model = result.get("model", "")
+    if (
+        mode == "primary"
+        and isinstance(model, str)
+        and model.startswith(("muse-spark-", "muse-code/"))
+    ):
+        # Meta validates its own capabilities; Google defaults are not portable.
+        return result
     generation_config = (result.get("generationConfig") or {}).copy()
 
     log.debug(

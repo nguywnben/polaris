@@ -1,4 +1,5 @@
 function createUploadManager(type, options = {}) {
+    options = {preserveFailedFiles: true, ...options};
 
     const modeParam = type === 'primary' ? 'mode=provider' : 'mode=code_assist';
 
@@ -11,6 +12,7 @@ function createUploadManager(type, options = {}) {
         type: type,
 
         selectedFiles: [],
+        uploading: false,
 
         getElementId: (suffix) => {
 
@@ -45,13 +47,14 @@ function createUploadManager(type, options = {}) {
             const savedCount = Number(data.uploaded_count || data.loaded_count || 0);
             const skippedCount = Number(data.skipped_count || 0);
             const errorCount = results.filter(item => item.status === 'error').length;
+            const hasUnverifiedImport = results.some(item => item.status === 'success' && item.validation_status === 'unverified');
 
             let variant = 'success';
             if (fallbackVariant === 'error' || (errorCount > 0 && savedCount === 0 && skippedCount === 0)) {
                 variant = 'error';
             } else if (skippedCount > 0 && savedCount === 0 && errorCount === 0) {
                 variant = 'info';
-            } else if (skippedCount > 0 || errorCount > 0) {
+            } else if (skippedCount > 0 || errorCount > 0 || hasUnverifiedImport) {
                 variant = 'warning';
             }
 
@@ -68,8 +71,14 @@ function createUploadManager(type, options = {}) {
 
             title.textContent = titleText;
             const savedLabel = t('runtime.credentials_imported', {count: savedCount});
+            if (hasUnverifiedImport) text.setAttribute('data-i18n', 'provider.ownership.import_unverified');
+            else text.removeAttribute('data-i18n');
             text.textContent = ensureTerminalPunctuation(
-                data.message || t('status_upload_success', {credentials: savedLabel})
+                hasUnverifiedImport
+                    ? t('provider.ownership.import_unverified')
+                    : options.preserveFailedFiles && variant === 'error'
+                        ? titleText
+                        : data.message || t('status_upload_success', {credentials: savedLabel})
             );
             details.replaceChildren();
 
@@ -94,7 +103,14 @@ function createUploadManager(type, options = {}) {
 
                 const messageLine = document.createElement('div');
                 messageLine.className = 'upload-result-message';
-                messageLine.textContent = ensureTerminalPunctuation(item.message || data.message || '');
+                if (item.status === 'success' && item.validation_status === 'unverified') {
+                    messageLine.setAttribute('data-i18n', 'provider.ownership.import_unverified');
+                }
+                messageLine.textContent = ensureTerminalPunctuation(
+                    item.status === 'success' && item.validation_status === 'unverified'
+                        ? t('provider.ownership.import_unverified')
+                        : item.message || data.message || ''
+                );
 
                 detailItem.append(fileLine, messageLine);
                 details.appendChild(detailItem);
@@ -117,6 +133,7 @@ function createUploadManager(type, options = {}) {
         },
 
         addFiles(files) {
+            if (this.uploading) return;
 
             this.hideUploadResult();
 
@@ -210,6 +227,7 @@ function createUploadManager(type, options = {}) {
         },
 
         removeFile(index) {
+            if (this.uploading) return;
 
             this.selectedFiles.splice(index, 1);
 
@@ -218,6 +236,7 @@ function createUploadManager(type, options = {}) {
         },
 
         clearFiles(hideResult = true) {
+            if (this.uploading && hideResult) return;
 
             this.selectedFiles = [];
 
@@ -232,6 +251,7 @@ function createUploadManager(type, options = {}) {
         },
 
         async upload() {
+            if (this.uploading) return;
 
             if (this.selectedFiles.length === 0) {
 
@@ -248,6 +268,15 @@ function createUploadManager(type, options = {}) {
             const progressText = document.getElementById(this.getElementId('ProgressText'));
 
             progressSection.classList.remove('hidden');
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            this.uploading = true;
+            options.onBusyChange?.(true);
+            const finish = () => {
+                this.uploading = false;
+                progressSection.classList.add('hidden');
+                options.onBusyChange?.(false);
+            };
 
             const formData = new FormData();
 
@@ -264,6 +293,7 @@ function createUploadManager(type, options = {}) {
                 const xhr = new XMLHttpRequest();
 
                 xhr.timeout = options.timeoutMs || 300000;
+                xhr.onloadend = finish;
 
                 xhr.upload.onprogress = (event) => {
 
@@ -289,14 +319,20 @@ function createUploadManager(type, options = {}) {
 
                             const savedCount = Number(data.uploaded_count || 0);
                             const savedLabel = t('runtime.credentials_imported', {count: savedCount});
-                            const message = data.message || t('status_upload_success', {credentials: savedLabel});
+                            const message = options.preserveFailedFiles
+                                ? data.error_count > 0
+                                    ? t(data.uploaded_count > 0 ? 'upload_result_mixed_title' : 'upload_result_error_title')
+                                    : data.skipped_count > 0 && !data.uploaded_count
+                                        ? t('upload_result_skipped_title')
+                                        : t('status_upload_success', {credentials: savedLabel})
+                                : data.message || t('status_upload_success', {credentials: savedLabel});
                             const uploadStatus = data.uploaded_count > 0
                                 ? (data.error_count > 0 ? 'warning' : 'success')
                                 : (data.error_count > 0 ? 'error' : 'info');
                             showStatus(message, uploadStatus);
                             this.renderUploadResult(data);
 
-                            this.clearFiles(false);
+                            if (!options.preserveFailedFiles || !data.error_count) this.clearFiles(false);
 
                             if (options.onComplete) Promise.resolve(options.onComplete(data));
 
@@ -354,6 +390,7 @@ function createUploadManager(type, options = {}) {
                 xhr.send(formData);
 
             } catch (error) {
+                finish();
 
                 showStatus(t('status_upload_failed_details', {error: error.message}), 'error');
                 this.renderUploadResult({message: error.message, results: []}, 'error');

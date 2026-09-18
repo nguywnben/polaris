@@ -36,6 +36,8 @@ async function updateEndpointUrls() {
     } catch (e) {
         console.error("Failed to fetch API key", e);
     } finally {
+        const visibilityButton = document.getElementById('toggleApiKeyVisibilityBtn');
+        if (visibilityButton) visibilityButton.hidden = !apiKeyEl?.value;
         if (apiKeyEl) {
             apiKeyEl.classList.remove('skeleton', 'skeleton-control');
             apiKeyEl.setAttribute('aria-busy', 'false');
@@ -122,10 +124,10 @@ function cpUrl(element) {
     copyTextWithStatus(text.trim());
 }
 
-function copyInputValue(inputId) {
+function copyInputValue(inputId, {preserveFocus = false} = {}) {
     const input = document.getElementById(inputId);
     if (!input || !input.value || input.value === '...') return;
-    if (document.activeElement === input) {
+    if (!preserveFocus && document.activeElement === input) {
         input.blur();
     }
     copyTextWithStatus(input.value);

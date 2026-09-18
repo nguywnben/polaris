@@ -1,25 +1,26 @@
                 <div id="accessTab" class="tab-content">
                     <header class="page-header">
                         <div>
-                            <div class="page-kicker" data-i18n="access.label">Access</div>
                             <h1 class="page-title" data-i18n="access.title">API Access</h1>
                             <p class="page-description" data-i18n="access.description">Issue restricted virtual keys for clients and copy a protocol-ready example.</p>
                         </div>
                     </header>
 
-                    <div class="dashboard-grid">
-                        <section class="card span-6">
+                    <div class="dashboard-grid access-workspace">
+                        <section class="card span-6 access-root-card">
                             <h2 class="card-title" data-i18n="access.root_key">Root integration key</h2>
                             <p class="card-copy card-title-copy" data-i18n="access.root_key_description">Keep this unrestricted deployment key for owner recovery. Use virtual keys for normal clients and automation.</p>
                             <div class="metric-row">
                                 <div class="copy-field">
                                     <label for="apiKey" data-i18n="api_key">API key</label>
-                                    <div class="secret-field">
-                                        <input type="password" id="apiKey" value="" class="skeleton skeleton-control" readonly data-i18n-title="copy_api_key" title="Copy API key" data-i18n-aria-label="loading_api_key" aria-label="Loading API key" aria-busy="true" data-ui-action="copy-api-key">
-                                        <button type="button" id="toggleApiKeyVisibilityBtn" class="btn btn-secondary icon-btn" data-ui-action="toggle-api-key" data-i18n-title="show_api_key" title="Show API key" data-i18n-aria-label="show_api_key" aria-label="Show API key">
+                                    <div class="secret-field access-root-secret">
+                                        <div class="access-secret-input">
+                                        <input type="password" id="apiKey" value="" class="skeleton skeleton-control" readonly data-i18n-title="copy_api_key" title="Copy API key" data-i18n-aria-label="loading_api_key" aria-label="Loading API key" aria-busy="true" data-ui-action="copy-api-key" data-i18n-placeholder="form.secret" placeholder="The key will appear here">
+                                        <button type="button" id="toggleApiKeyVisibilityBtn" class="btn btn-secondary icon-btn" hidden data-ui-action="toggle-api-key" data-i18n-title="show_api_key" title="Show API key" data-i18n-aria-label="show_api_key" aria-label="Show API key">
                                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                         </button>
-                                        <button type="button" id="regenerateApiKeyBtn" class="btn btn-secondary icon-btn" data-ui-action="regenerate-api-key" data-i18n-title="regenerate_api_key" title="Regenerate API key">
+                                        </div>
+                                        <button type="button" id="regenerateApiKeyBtn" class="btn btn-secondary icon-btn" data-ui-action="regenerate-api-key" data-i18n-title="regenerate_api_key" title="Regenerate API key" data-i18n-aria-label="regenerate_api_key" aria-label="Regenerate API key">
                                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.8-3"></path><path d="M4 5v4h4"></path><path d="M4 13a8 8 0 0 0 14.8 3"></path><path d="M20 19v-4h-4"></path></svg>
                                         </button>
                                     </div>
@@ -74,7 +75,6 @@
                     <section class="card virtual-key-section" id="virtualKeySection" aria-labelledby="virtualKeyHeading">
                         <div class="virtual-key-header">
                             <div>
-                                <div class="page-kicker" data-i18n="access.virtual_keys_label">Governed access</div>
                                 <h2 class="card-title" id="virtualKeyHeading" data-i18n="access.virtual_keys">Virtual API keys</h2>
                                 <p class="card-copy card-title-copy" data-i18n="access.virtual_keys_description">Issue least-privilege client keys with independent scopes, model access, rate limits, budgets, and expiry.</p>
                             </div>
@@ -104,9 +104,14 @@
                         <div id="virtualKeyState" data-page-state-host hidden></div>
                         <div id="virtualKeyList" class="virtual-key-list" aria-live="polite" aria-busy="true"></div>
                         <div id="virtualKeyEmptyState" class="virtual-key-empty hidden" role="status">
-                            <strong data-i18n="access.no_keys">No virtual keys found</strong>
-                            <span data-i18n="access.no_keys_description">Create a least-privilege key or adjust the filters.</span>
-                            <button type="button" class="btn btn-compact" data-ui-action="virtual-key-create" data-i18n="access.create_key">Create key</button>
+                            <div class="virtual-key-pristine-copy">
+                                <strong data-i18n="access.empty_title">No virtual keys yet</strong>
+                                <p data-i18n="access.empty_hint">Create a separate key for each client and set only the permissions it needs.</p>
+                            </div>
+                            <div class="virtual-key-filtered-copy">
+                                <strong data-i18n="access.no_keys">No virtual keys found</strong>
+                                <p data-i18n="access.filtered_hint">Try another name or change the status filter.</p>
+                            </div>
                         </div>
                     </section>
                 </div>

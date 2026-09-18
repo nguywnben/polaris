@@ -1,0 +1,39 @@
+/* Keep the recovery workflow aligned with Settings without crowding its two forms. */
+#backupControls .operational-retention-grid {
+    margin-top: 20px;
+}
+
+#backupControls .operational-retention-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    min-width: 0;
+}
+
+#backupControls .form-group,
+#backupPlan {
+    width: 100%;
+    min-width: 0;
+}
+
+#backupControls .form-group,
+#backupControls h3,
+#backupControls .field-hint {
+    margin: 0;
+}
+
+#backupSelectedArchive {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+#backupStatus:not(:empty),
+#backupReauthenticate:not([hidden]) {
+    margin-top: 16px;
+}
+
+#backupPlan:empty,
+#backupStatus:empty {
+    display: none;
+}

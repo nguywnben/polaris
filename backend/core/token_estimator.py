@@ -64,4 +64,6 @@ def _estimate_value(value: Any) -> int:
 
 def estimate_input_tokens(payload: Dict[str, Any]) -> int:
     """Estimate serialized prompt tokens without a provider tokenizer dependency."""
+    if isinstance(payload.get("_polaris_meta_responses"), dict):
+        payload = payload["_polaris_meta_responses"]
     return max(1, _estimate_value(payload))

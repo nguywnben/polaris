@@ -12,13 +12,13 @@ const ROUTE_MAP = {
 
     '/identity': 'identity',
 
-    '/pool': 'pool',
+    '/credentials': 'credentials',
 
     '/models': 'models',
 
     '/playground': 'playground',
 
-    '/provider': 'pool',
+    '/provider': 'credentials',
 
     '/providers': 'providers',
 
@@ -43,7 +43,7 @@ const TAB_MAP = {
     quality: '/ai-quality',
     access: '/access',
     identity: '/identity',
-    pool: '/pool',
+    credentials: '/credentials',
     models: '/models',
     playground: '/playground',
     providers: '/providers',
@@ -56,9 +56,27 @@ const TAB_MAP = {
 
 const TAB_DATA_CACHE_MS = 30000;
 
+function handleConsoleLinkClick(event) {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey
+        || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a[href]');
+    if (!link || link.hasAttribute('download') || link.hasAttribute('data-ui-action')
+        || (link.target && link.target !== '_self') || link.getAttribute('href').startsWith('#')) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || !Object.hasOwn(ROUTE_MAP, url.pathname)) return;
+    event.preventDefault();
+    navigate(url.pathname + url.search + url.hash);
+}
+
 function navigate(path, pushState = true) {
 
-    let targetPath = path || '/dashboard';
+    const destination = new URL(path || '/dashboard', window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    let targetPath = destination.pathname;
+    let suffix = destination.search + destination.hash;
+    if (targetPath !== '/config' || !AppState.authenticated || AppState.setupRequired) {
+        if (typeof leaveBackupConsole === 'function') leaveBackupConsole();
+    }
 
     if (targetPath === '/' || targetPath === '') {
 
@@ -121,12 +139,14 @@ function navigate(path, pushState = true) {
         if (targetPath === '/login') {
 
             targetPath = '/dashboard';
+            suffix = '';
 
         }
 
         if (targetPath === '/setup') {
 
             targetPath = '/dashboard';
+            suffix = '';
 
         }
 
@@ -145,16 +165,17 @@ function navigate(path, pushState = true) {
     const canonicalPath = compatibilityActivityPath ? targetPath : TAB_MAP[tabName] || '/dashboard';
 
     targetPath = canonicalPath;
+    const targetUrl = targetPath + suffix;
 
-    if (window.location.pathname !== targetPath) {
+    if (window.location.pathname + window.location.search + window.location.hash !== targetUrl) {
 
         if (pushState) {
 
-            history.pushState(null, '', targetPath);
+            history.pushState(null, '', targetUrl);
 
         } else {
 
-            history.replaceState(null, '', targetPath);
+            history.replaceState(null, '', targetUrl);
 
         }
 
@@ -173,6 +194,9 @@ function navigate(path, pushState = true) {
     const targetContent = document.getElementById(tabName + 'Tab');
 
     const shouldResetScroll = !currentContent || currentContent !== targetContent;
+
+    // Permission/secret lifecycle belongs to each visit, not the cached config request.
+    if (tabName === 'config' && typeof loadBackupConsole === 'function') void loadBackupConsole();
 
     if (!shouldResetScroll) {
 
@@ -244,7 +268,7 @@ function getTabDataLoader(tabName) {
 
         identity: () => loadIdentityConsole(),
 
-        pool: () => AppState.primaryCreds.refresh(),
+        credentials: () => AppState.primaryCreds.refresh(),
 
         models: () => loadModelCatalog(),
 
@@ -282,7 +306,7 @@ async function triggerTabDataLoad(tabName, options = {}) {
 
     const isFresh = Date.now() - loadedAt < TAB_DATA_CACHE_MS;
 
-    if (!force && isFresh) return;
+    if (!force && isFresh && !['config', 'playground'].includes(tabName)) return;
 
     if (AppState.tabLoadPromises[tabName]) {
 
@@ -290,9 +314,22 @@ async function triggerTabDataLoad(tabName, options = {}) {
 
     }
 
-    const loadPromise = Promise.resolve()
-
-        .then(loader)
+    // Let the newly selected tab paint before a loader starts DOM-heavy work.
+    // This keeps navigation responsive while the page refreshes data in the background.
+    const loadPromise = new Promise((resolve, reject) => {
+        const start = () => Promise.resolve()
+            .then(loader)
+            .then(resolve, reject);
+        const afterPaint = () => {
+            if (typeof setTimeout === 'function') setTimeout(start, 0);
+            else start();
+        };
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(afterPaint);
+        } else {
+            afterPaint();
+        }
+    })
 
         .then(() => {
 

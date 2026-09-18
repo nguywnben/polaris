@@ -518,7 +518,12 @@ def _xai_tool_choice(payload: Dict[str, Any]) -> Any:
     return "auto" if mode else None
 
 
-def gemini_request_to_xai(payload: Dict[str, Any], model: str, streaming: bool) -> Dict[str, Any]:
+def gemini_request_to_xai(
+    payload: Dict[str, Any], model: str, streaming: bool, *, preserve_reasoning: bool = False
+) -> Dict[str, Any]:
+    from core.tool_history import link_tool_history
+
+    payload = link_tool_history(payload)
     messages: List[Dict[str, Any]] = []
     system = payload.get("systemInstruction") or {}
     system_content = _openai_message_content(system.get("parts") or [])
@@ -567,10 +572,20 @@ def gemini_request_to_xai(payload: Dict[str, Any], model: str, streaming: bool) 
                     }
                 )
 
-        if message_content is not None or tool_calls:
+        reasoning = "".join(
+            part["text"]
+            for part in parts
+            if preserve_reasoning
+            and role == "assistant"
+            and part.get("thought") is True
+            and isinstance(part.get("text"), str)
+        )
+        if message_content is not None or tool_calls or reasoning:
             message: Dict[str, Any] = {"role": role, "content": message_content}
             if tool_calls:
                 message["tool_calls"] = tool_calls
+            if reasoning:
+                message["reasoning_content"] = reasoning
             messages.append(message)
         messages.extend(tool_results)
 

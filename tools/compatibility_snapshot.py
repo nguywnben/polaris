@@ -21,6 +21,24 @@ NON_SEMANTIC_OPENAPI_KEYS = frozenset(
 # Adding the optional bounded timezone offset preserves every existing request shape. Keep the
 # exact before/after fingerprints explicit so unrelated changes to these operations still fail.
 COMPATIBLE_OPERATION_EVOLUTIONS = {
+    # ADR-014 adds a separate native Meta branch while retaining the exact legacy
+    # Responses schema. HTTP/legacy regression tests cover dispatch and rejection;
+    # the fixed pair still detects every subsequent contract change.
+    ("POST", "/v1/responses"): {
+        (
+            "250ef7feb1b25caf10b5dc22fbb7fd3c078c7a3f61cec725ee8909b9d29c2f1a",
+            "c97da5d6f21619854cde9d63bfff79aa7c6a96cc7fa70208baffe2d7adcf0247",
+        )
+    },
+    # Optional scope defaults to the original reset. Exact evolution, not a route exemption:
+    # test_config_reset proves default behavior and secret/environment preservation;
+    # docs/audits/page-completion-2026-09-15.md records the approved Settings ownership change.
+    ("POST", "/api/config/reset"): {
+        (
+            "d65b29bf9cea9ec3ea65a5946b9bbcac8f273f58af3fa5aee1d00f120dfe55cd",
+            "f487b1e95130ad2170997da96ec23e6f4c3dec11400c74582751d657a1d4f87f",
+        )
+    },
     ("GET", "/api/usage/aggregated"): {
         (
             "64b2af52f77a274f4829f1f395e8102884f6024e10a743a0bc0a01f37619e871",
@@ -265,7 +283,7 @@ def build_snapshot() -> dict[str, object]:
             "tab_map": _javascript_map(navigation, "TAB_MAP"),
             "compatibility_aliases": {
                 "/oauth": "/providers",
-                "/provider": "/pool",
+                "/provider": "/credentials",
                 "/upload": "/providers",
             },
         },
@@ -318,7 +336,24 @@ def compare_snapshots(baseline: dict[str, object], current: dict[str, object]) -
     if baseline["database_schema_versions"] != current["database_schema_versions"]:
         differences.append("changed database_schema_versions")
 
-    expected_routes = baseline["console_routes"]
+    # User-approved page rename (2026-09-16), deliberately without a /pool alias.
+    # Keep the historical R1 fixture intact and require the entire replacement contract.
+    expected_routes = json.loads(json.dumps(baseline["console_routes"]))
+    expected_routes["server_paths"] = [
+        "/credentials" if path == "/pool" else path for path in expected_routes["server_paths"]
+    ]
+    expected_routes["route_map"] = {
+        ("/credentials" if path == "/pool" else path): ("credentials" if tab == "pool" else tab)
+        for path, tab in expected_routes["route_map"].items()
+    }
+    expected_routes["tab_map"] = {
+        ("credentials" if tab == "pool" else tab): ("/credentials" if path == "/pool" else path)
+        for tab, path in expected_routes["tab_map"].items()
+    }
+    expected_routes["compatibility_aliases"] = {
+        alias: "/credentials" if path == "/pool" else path
+        for alias, path in expected_routes["compatibility_aliases"].items()
+    }
     actual_routes = current["console_routes"]
     for name in ("server_paths", "route_map", "tab_map", "compatibility_aliases"):
         expected = expected_routes[name]

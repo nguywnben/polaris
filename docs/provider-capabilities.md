@@ -6,6 +6,90 @@ must use this matrix instead of provider-name conditionals.
 
 ## API
 
+### Settings ownership
+
+Provider-specific configuration is edited on **Providers**, never in System Settings.
+Existing storage keys and environment overrides are preserved; moving an editor does not
+reset credentials or configuration.
+
+- Antigravity owns its OAuth client, inference endpoint and client identity headers.
+  Per-account credit-use policy is edited in the credential management dialog with
+  explicit confirmation; provider onboarding does not duplicate it. This does not buy credits.
+- Grok Build owns `xai_oauth_api_url` and its OAuth issuer/client. SpaceXAI Console owns
+  `xai_api_url`. Their shared HTTP User-Agent is operator-only configuration.
+- Claude Code owns its OAuth settings (`code` reset scope). Its legacy API endpoint
+  and User-Agent overrides remain operator-only (`shared` reset scope, retained for
+  API compatibility). Claude Platform owns `claude_platform_api_url` and
+  `claude_platform_user_agent` with a separate `platform` reset scope. Validation,
+  imports, model discovery and inference all use these private Platform values.
+  Saving or resetting either provider does not modify the other provider's values.
+  Platform now defaults to the official API and `polaris/claude-platform`; deployments
+  that previously customized the shared endpoint must set the Platform override
+  explicitly. Old settings and credentials are retained, but no longer inherited.
+- Shared Google OAuth/user-info endpoints and the separate legacy Code Assist settings
+  are operator-only, not visible provider settings. `GET/POST /api/providers/google/config` uses the existing config
+  keys. Reset requires `?scope=shared` or `?scope=compatibility`; blank client secrets
+  preserve the configured secret. This is not a new advertised provider variant.
+- `stream_to_nonstream` and `switch_credential_enabled` affect the primary routing pool,
+  not just Antigravity, and are edited once in System Settings.
+
+### Operator-only settings
+
+The console hides shared Google, xAI and Claude editors and their navigation links.
+Legacy Code Assist controls are also hidden; they are not Antigravity-specific settings.
+Only provider-specific advanced controls are presented. A provider with no separate
+advanced controls has no empty advanced-settings disclosure.
+
+This is a presentation change, not deletion or a security boundary. Stored values,
+runtime defaults, environment overrides and authenticated management APIs are retained.
+Hidden editors remain inert to user interaction, even after family configuration loads.
+Shared Google configuration saves and resets are audited as `provider.update` against
+the `google` target, with the request outcome and correlation ID but no configuration
+values or secrets. Hiding an editor does not exempt its management API from auditing.
+There is no new Code Assist enable/disable switch: `COMPATIBILITY_MODE` controls AI
+quality behavior and must not be used to expose the legacy editor.
+
+For exceptional deployments, set these variables in the application's environment
+(for Docker Compose, explicitly forward them in the app service's `environment`):
+
+| Scope | Environment variables |
+| --- | --- |
+| Shared Google OAuth/account lookup | `OAUTH_URL`, `GOOGLE_APIS_URL` |
+| Legacy Code Assist | `CODE_ASSIST_ENDPOINT`, `CODE_ASSIST_CLIENT_ID`, `CODE_ASSIST_CLIENT_SECRET`, `RESOURCE_MANAGER_URL`, `SERVICE_USAGE_URL` |
+| Grok Build / SpaceXAI Console | `XAI_USER_AGENT` |
+| Claude Code only | `ANTHROPIC_API_URL`, `CLAUDE_USER_AGENT` |
+
+Restart/recreate the process or container after changing its environment. Normal
+deployments should keep defaults. Existing saved values remain effective when no
+environment override is supplied; do not reset them just because the editor is hidden.
+
+Google OAuth/user-info destinations are restricted to the trusted Google origins before
+credentials can be sent; redirects are not followed. Claude authorization/token URLs use
+the same validation at save and runtime. Claude token responses preserve 429/5xx as
+transient errors instead of classifying them as invalid credentials.
+
+If an older deployment customized Google OAuth/user-info hosts, restore their official
+Google origins before authorization or refresh. Use the outbound proxy setting for network
+access instead. Existing values are not silently rewritten, but unsafe destinations are now
+rejected. This is an intentional security tightening in the pre-1.0 configuration contract.
+
+### Native imports and proxy bypass
+
+The importer recognizes native Codex `tokens`, Claude Code `claudeAiOauth`, and Grok
+account containers, as well as canonical Polaris credentials and supported CLIProxy xAI
+exports. Ambiguous provider/type declarations are rejected. JWT claims are unverified
+metadata hints only, not proof of identity. Existing size and ZIP-entry limits still apply.
+Offline imports are marked as imported without provider verification; use the
+Credentials page's explicit verification/model test before relying on them. The provenance notice
+describes the import, not the outcome of a later test, and does not change routing eligibility.
+
+The shared HTTP client honors explicitly configured `no_proxy` (preferred) or `NO_PROXY`
+for GET, POST and streaming requests. Supported rules include comma-separated exact
+hosts/domain suffixes, optional ports, literal IP/CIDR and `*`. There is no implicit local
+network bypass or DNS lookup. For local Ollama, set a precise rule such as
+`NO_PROXY=localhost,127.0.0.1,host.docker.internal` in the runtime environment if needed.
+Direct and proxied requests keep separate connection pools.
+
 `GET /api/providers/capabilities` returns schema version 2. The authenticated response contains:
 
 - `providers`: routing-provider metadata retained from the provider catalog;
@@ -31,6 +115,33 @@ infer support from provider names, credential fields, or another variant of the 
 | Claude Code | OAuth | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | All | Yes | Yes | Yes |
 | Claude Platform | API key | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
 | Ollama | Connection | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
+
+The original nine rows above remain supported. The current catalog additionally contains:
+
+| Provider workspace | Authentication | Quota/account facts | Settings / transport contract |
+| --- | --- | --- | --- |
+| Kimi API Platform | API key | Not provided | Moonshot vendor endpoint / Chat |
+| Kiro | Browser or AWS device OAuth; optional API key | Regional resource/trial/bonus/overage facts when returned | Region and auth-specific fields / AWS EventStream |
+| Cloudflare Workers AI | API token + Account ID | Not provided | Account ID and vendor endpoint / Chat |
+| NVIDIA NIM | API key | Not provided | Hosted vendor endpoint / Chat |
+| OpenCode | API key | Explicit Zen/Go connection plan, not inferred billing | Plan and matching endpoint / known model-family protocols |
+| Poolside Platform | API key | Not provided | Vendor endpoint / Chat |
+| Kimchi Coding | API or service key | Not provided | Vendor endpoint / Chat |
+| Kilo | API key | Not provided | Vendor endpoint and optional organization / Chat |
+| Muse Code | Meta device OAuth | Returned plan, session/weekly usage and resets | Optional label; fixed auth/inference origins / Responses |
+| Meta Model API | API key | Not provided | Fixed origin / stateless Responses |
+| GroqCloud | API key | Not provided | Vendor endpoint / Chat |
+| DeepSeek Platform | API key | Not provided | Vendor endpoint / Chat |
+| Mistral AI Studio | API key | Not provided | Vendor endpoint / Chat |
+| Cerebras Cloud | API key | Not provided | Vendor endpoint / Chat |
+
+All 23 support add, verify, explicit model test, model discovery, managed editing,
+enable/disable, export and delete, subject to permission and environment ownership.
+Muse supports refresh and reauthentication. Kiro reauthentication is OAuth-only;
+its key mode never becomes OAuth merely because usage is available. The runtime registry
+and `/api/providers/capabilities` are authoritative for operation eligibility, while
+the [provider guides](providers/credential-fidelity-audit-2026-09-16.md) describe
+provider-specific facts. Missing quota/plan is not zero use, full allowance or unlimited usage.
 
 `All` means the current normalized ingress families: `openai_chat_completions`,
 `openai_responses`, `anthropic_messages`, `gemini_native`, and `vertex`. This declares routing

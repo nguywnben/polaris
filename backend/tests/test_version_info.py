@@ -111,6 +111,7 @@ class VersionInfoTests(unittest.IsolatedAsyncioTestCase):
                 "core.httpx_client.get_async",
                 new=AsyncMock(side_effect=RuntimeError("proxy password leaked")),
             ),
+            patch("core.panel.version.log.debug") as debug,
         ):
             response = await get_version_info(check_update=True)
 
@@ -118,6 +119,7 @@ class VersionInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(body["check_update"])
         self.assertEqual(body["update_error"], "Unable to check for updates.")
         self.assertNotIn("proxy password leaked", response.body.decode())
+        self.assertNotIn("proxy password leaked", str(debug.call_args_list))
 
 
 if __name__ == "__main__":

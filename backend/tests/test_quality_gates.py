@@ -6,6 +6,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.quality_gate import OPTIONAL_SUITES, build_gate_plan
 
@@ -13,6 +14,60 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class QualityGatePlanTests(unittest.TestCase):
+    def test_working_tree_release_plan_measures_uncommitted_snapshot(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/quality_gate.py"),
+                "release",
+                "--working-tree",
+                "--dry-run",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--working-tree", result.stdout)
+        self.assertIn("source snapshot", result.stdout)
+
+    def test_browser_runtime_never_inherits_operator_configuration(self) -> None:
+        from tools.runtime_isolation import isolated_runtime_environment
+
+        inherited = {
+            "PATH": "system-path",
+            "SYSTEMROOT": "system-root",
+            "PANEL_PASSWORD": "operator-password",
+            "API_KEY": "operator-key",
+            "CREDENTIALS_JSON": "operator-credentials",
+            "OIDC_CLIENT_SECRET": "idp-secret",
+            "LANGFUSE_SECRET_KEY": "export-secret",
+            "PROXY": "operator-proxy",
+            "HTTP_PROXY": "system-proxy",
+            "POLARIS_REPLICA_COUNT": "2",
+            "PRICING_SYNC_ENABLED": "true",
+            "PYTHONPATH": "untrusted-imports",
+        }
+        with patch.dict("os.environ", inherited, clear=True):
+            result = isolated_runtime_environment(ROOT / "temp/test-isolation", 4321)
+        self.assertEqual(result["PATH"], "system-path")
+        self.assertEqual(result["HOST"], "127.0.0.1")
+        self.assertEqual(result["PORT"], "4321")
+        self.assertEqual(result["PANEL_PASSWORD"], "")
+        self.assertEqual(result["PYTHON_DOTENV_DISABLED"], "1")
+        self.assertEqual(result["PRICING_SYNC_ENABLED"], "false")
+        self.assertEqual(result["WORKERS"], "1")
+        self.assertEqual(result["POLARIS_REPLICA_COUNT"], "1")
+        for key in set(inherited) - {
+            "PATH",
+            "SYSTEMROOT",
+            "PANEL_PASSWORD",
+            "PRICING_SYNC_ENABLED",
+            "POLARIS_REPLICA_COUNT",
+        }:
+            self.assertNotIn(key, result)
+
     def test_fast_gate_is_static_and_does_not_run_the_complete_core_suite(self) -> None:
         step_ids = {step.id for step in build_gate_plan("fast")}
 
