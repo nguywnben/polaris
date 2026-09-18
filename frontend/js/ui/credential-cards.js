@@ -305,6 +305,15 @@ function getCredentialAccountLabel(credInfo) {
     return String(credInfo.filename || '').replace(/\.json$/i, '') || t('credential_details_title');
 }
 
+function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
+    const kind = getCredentialAuthenticationType(providerMeta, credInfo);
+    const subtitle = kind === 'API key' ? credInfo.api_key_hint
+        : kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
+            ? credInfo.user_email : '';
+    if (!subtitle) return '';
+    return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
+}
+
 function createCredCard(credInfo, manager) {
 
     const div = document.createElement('div');
@@ -511,7 +520,7 @@ function createCredCard(credInfo, manager) {
                 <div class="cred-identity" title="${escapeAttribute(filename)}">
                     <div class="cred-identity-copy">
                         <h3 class="cred-account-name" title="${escapeAttribute(accountLabel)}">${escapeHtml(accountLabel)}</h3>
-                        ${credInfo.credential_label && getCredentialAuthenticationType(providerMeta, credInfo) === 'OAuth' && credInfo.user_email && credInfo.user_email !== accountLabel ? `<div class="cred-email" title="${escapeAttribute(credInfo.user_email)}">${escapeHtml(credInfo.user_email)}</div>` : ''}
+                        ${renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel)}
                     </div>
                 </div>
 

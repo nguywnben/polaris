@@ -17,6 +17,22 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_identity_subtitle_uses_only_masked_key_or_oauth_email(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
+const provider = {{id: 'openai_platform'}};
+const key = {{credential_type: 'api_key', api_key_hint: 'sample…last', api_key: 'never-render-this'}};
+assert(renderCredentialIdentitySubtitle(provider, key, 'Work').includes('sample…last'), 'Show masked key beneath the name');
+assert(!renderCredentialIdentitySubtitle(provider, key, 'Work').includes('never-render'), 'Never derive preview from a full client-side key');
+assert(renderCredentialIdentitySubtitle(provider, {{api_key: 'secret'}}, 'Work') === '', 'Missing hint must not fall back to the full key');
+assert(!renderCredentialIdentitySubtitle(provider, {{...key, api_key_hint: '<img src=x>'}}, 'Work').includes('<img'), 'Escape the hint');
+const oauth = {{credential_type: 'oauth', credential_label: 'Work', user_email: 'user@example.test', api_key_hint: 'not-for-oauth'}};
+assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('user@example.test'), 'Keep OAuth email under a label');
+assert(!renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('not-for-oauth'), 'OAuth must not show key hints');
+assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'user@example.test') === '', 'Do not repeat the email when it is the main title');
+""")
+
     def test_compact_badges_keep_full_plan_and_oauth_in_management(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
