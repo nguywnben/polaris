@@ -13,9 +13,9 @@ use Docker; if Docker requires sudo, run the saved script with `sudo bash polari
 ARM64 is not a published image target. Windows/macOS users retain the
 [Compose installation path](installation.md).
 
-The script validates the Docker engine, not a host-OS certification. A local Docker Desktop
-Linux engine can also execute it from a compatible Bash shell, but this does not establish
-native Linux/VPS, macOS, or ARM64 verification. See the recorded test environment in
+The script validates the Docker engine, not every host configuration. Verification covers
+Docker Desktop's Linux/amd64 engine and an owner-authorized Ubuntu 24.04 x86_64 VPS,
+not macOS or ARM64. See the recorded test environment in
 [installer verification](evidence/guided-docker-install-2026-09-18.md).
 
 After the matching installer and updated image are published, run this on the machine where

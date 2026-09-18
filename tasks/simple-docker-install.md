@@ -1,7 +1,8 @@
 # Simple Docker installation — 2026-09-18
 
 Owner approved implementation and this separate plan location. Existing plans stay intact.
-Contract: `docs/specs/simple-docker-install.md`. Local work only; no push or release.
+Contract: `docs/specs/simple-docker-install.md`. Local work and the subsequently authorized
+test-VPS rehearsal only; no push or release.
 
 ## Design and risks
 
@@ -42,5 +43,23 @@ automatic cloud firewall changes, or Compose updater support for Docker-run depl
 Verified: 2,327-test core run OK (22 existing conditional skips), latest 11 installer and
 18 support/inventory tests passed, fast quality gate passed, isolated Docker smoke and
 HTTP runtime smoke passed. Independent rereview found no remaining blockers. Fresh native
-Linux/VPS interactive installation and public reachability remain pre-publication checks,
-not permission to modify the existing VPS. See the evidence document for exact scope.
+Linux/VPS interactive installation and public reachability were still pending at that
+checkpoint. The owner subsequently authorized the selected test VPS; see the latest
+evidence below rather than treating that earlier limitation as current.
+
+## Final verification checkpoint
+
+- [x] Harden setup transport against remote clients spoofing a loopback Host header;
+  preserve guided local Docker with explicit opt-in coupled to a loopback-only bind.
+- [x] Verify `fec0388`: full release gate, 2,330 core tests (22 optional skips),
+  9/9 browser journeys, 600/600 routine requests, setup UI and Docker recovery smoke.
+- [x] Update the authorized native Ubuntu VPS from copied data, retain original
+  container/volume/archive, preserve setup code and leave owner creation to the user.
+- [x] Independent final code review: no unresolved blocking findings.
+- [ ] Owner confirms the two reported interactions on the physical Android device.
+- [ ] After renewed push/publication approval: run CI on the exact final source,
+  recheck existing tag/image ownership and verify installation from the published digest.
+
+These remaining publication actions do not authorize a push or release now. Evidence:
+`docs/evidence/guided-docker-install-2026-09-18.md` and
+`docs/releases/1.0.0-readiness.md`.

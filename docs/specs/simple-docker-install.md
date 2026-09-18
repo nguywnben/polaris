@@ -1,7 +1,8 @@
 # Simple Docker installation
 
 Status: implementation approved by the owner on 2026-09-18.
-Version target: 1.0.0, local preparation only. No publication or VPS migration authorized.
+Version target: 1.0.0. Initially local preparation only; the owner subsequently authorized
+installation and final verification on the selected test VPS. Publication remains on hold.
 
 ## Objective
 
@@ -93,7 +94,8 @@ Do not use the published 1.0.0 image to claim the unpublished HTTP option works.
   type before advertising it as the default. Do not imply Compose rollback supports it.
 - Ask before changing authentication architecture, adding dependencies, or migrating
   an existing installation. This proposal automates the existing configuration policy.
-- Never publish, push, retag, change the version, or modify the user's VPS in this task.
+- Never publish, push, retag or change the version without renewed approval. The later
+  test-VPS authorization allows a backed-up rehearsal only, not changes to unrelated services.
 - Never remove failing tests. The prior HTTP change has three known inventory/contract
   failures to reconcile and rerun before claiming the full suite passes.
 
