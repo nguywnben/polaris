@@ -107,6 +107,7 @@ class InstallSupportContractTests(unittest.TestCase):
                 "API_KEY",
                 "PANEL_PASSWORD",
                 "SETUP_TOKEN",
+                "SETUP_ALLOW_INSECURE_HTTP",
             },
         )
         self.assertRegex(
@@ -119,6 +120,7 @@ class InstallSupportContractTests(unittest.TestCase):
         self.assertEqual(values["API_KEY"], "")
         self.assertEqual(values["PANEL_PASSWORD"], "")
         self.assertEqual(values["SETUP_TOKEN"], "")
+        self.assertEqual(values["SETUP_ALLOW_INSECURE_HTTP"], "false")
 
     def test_install_guide_is_one_ordered_path_to_authenticated_health(self):
         guide = GUIDE_PATH.read_text(encoding="utf-8")
