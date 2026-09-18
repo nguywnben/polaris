@@ -57,6 +57,13 @@ async function moveUsagePage(group, delta) {
     const next = Math.min(last, Math.max(1, page + delta));
     if (next === page) return;
     const section = document.getElementById(group === 'current' ? 'usageList' : 'historicalUsageList');
+    const prefix = group === 'current' ? 'usage' : 'historicalUsage';
+    const prevButton = document.getElementById(`${prefix}PrevPageBtn`);
+    const nextButton = document.getElementById(`${prefix}NextPageBtn`);
+    const pressedButton = delta < 0 ? prevButton : nextButton;
+    if (prevButton) prevButton.disabled = true;
+    if (nextButton) nextButton.disabled = true;
+    pressedButton?.setAttribute('aria-busy', 'true');
     section?.setAttribute('aria-busy', 'true');
     try {
         if (await loadUsagePages({[group]: next})) {
@@ -66,6 +73,10 @@ async function moveUsagePage(group, delta) {
         showStatus(t('failed_to_load_usage_statistics'), 'error');
     } finally {
         section?.removeAttribute('aria-busy');
+        pressedButton?.removeAttribute('aria-busy');
+        const current = UsagePages[group] || payload;
+        if (prevButton) prevButton.disabled = current.offset <= 0;
+        if (nextButton) nextButton.disabled = current.offset + current.page_size >= current.total_items;
     }
 }
 

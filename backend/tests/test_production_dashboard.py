@@ -201,6 +201,56 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
             r"#dashboardTab #recentActivityCard\s*,\s*#dashboardTab #providerHealthCard\s*\{[^}]*order:\s*2;",
         )
 
+    def test_usage_pagination_shows_pending_button_and_recovers_after_failure(self):
+        self._run_state_contract("""
+function control() {
+    return {disabled: false, attrs: {},
+        setAttribute(name, value) {this.attrs[name] = value;},
+        removeAttribute(name) {delete this.attrs[name];}};
+}
+globalThis.t = key => key;
+globalThis.getAuthHeaders = () => ({});
+getUsagePeriodConfig = () => ({value: 'today'});
+globalThis.AppState = {usagePageSize: 10, historicalUsagePageSize: 10, usagePage: 1, historicalUsagePage: 1};
+let resolveFetch, calls = 0, errors = 0;
+globalThis.fetch = () => {calls++; return new Promise(resolve => {resolveFetch = resolve;});};
+globalThis.showStatus = () => {errors++;};
+renderUsageList = () => {};
+(async () => {
+    for (const group of ['current', 'historical']) {
+        const prefix = group === 'current' ? 'usage' : 'historicalUsage';
+        const prev = control(), next = control(), list = control();
+        prev.disabled = true;
+        globalThis.document = {getElementById: id => ({
+            [prefix + 'PrevPageBtn']: prev, [prefix + 'NextPageBtn']: next,
+            [prefix + 'List']: list,
+        })[id] || null};
+        UsagePages.current = {data: {}, offset: 0, page_size: 10, total_items: 20};
+        UsagePages.historical = {...UsagePages.current};
+        UsagePages.period = 'today';
+        const pending = moveUsagePage(group, 1);
+        assert(next.disabled && prev.disabled, 'Both paging buttons must lock immediately');
+        assert(next.attrs['aria-busy'] === 'true', 'Clicked button must show pending state');
+        assert(!prev.attrs['aria-busy'], 'Only clicked button gets pending styling');
+        const before = calls;
+        await moveUsagePage(group, 1);
+        assert(calls === before, 'Repeated clicks must not issue duplicate requests');
+        resolveFetch({ok: true, json: async () => ({success: true, data: {item: {}}, offset: 10, page_size: 10, total_items: 20})});
+        await pending;
+        assert(!next.attrs['aria-busy'] && !list.attrs['aria-busy'], 'Pending state clears on success');
+        assert(next.disabled && !prev.disabled, 'Last-page controls reflect the new page');
+        const failed = moveUsagePage(group, -1);
+        assert(prev.attrs['aria-busy'] === 'true', 'Previous button also shows pending state');
+        resolveFetch({ok: false});
+        await failed;
+        assert(!prev.attrs['aria-busy'] && !list.attrs['aria-busy'], 'Pending state clears on error');
+        assert(!prev.disabled && next.disabled, 'Failure preserves the current page and enables retry');
+        assert(UsagePages[group].offset === 10, 'Failure must not advance the page');
+    }
+    assert(errors === 2, 'Both failures must show an error');
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+
     def test_dashboard_pagination_keeps_provider_summary_mounted(self):
         source = self._source(DASHBOARD_SCRIPT)
         body = source.split("function renderUsageList", 1)[1].split(
