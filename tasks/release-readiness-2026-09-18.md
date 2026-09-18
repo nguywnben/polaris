@@ -73,10 +73,19 @@ Branch: `codex/release-1.0.0-readiness`.
   Both publication regressions failed before the fix and passed afterwards. A bounded
   independent release-pipeline review found no Critical/Required issues. Fast gate and
   focused contracts passed after distinguishing Windows sandbox permission failures.
-- [ ] RR6: review and commit the existing audited repairs in coherent groups, then run
+- [x] RR6: review and commit the existing audited repairs in coherent groups, then run
   the canonical local release gate on the committed candidate (not a working-tree snapshot).
-- [ ] RR6: push only this branch and dispatch CI on it. Require both Python versions,
+- [x] RR6: push only this branch and dispatch CI on it. Require both Python versions,
   application, browser and container jobs to pass for the exact candidate SHA, with
   both publication jobs skipped. Fix actual failures; do not lower quality gates.
-- [ ] RR6: record final SHA, CI run, local evidence, registry inventory and remaining
+- [x] RR6: record verified SHA, CI run, local evidence, registry inventory and remaining
   operator publication steps. No claim of publication or live-provider certification.
+
+Committed runtime candidate: `bafe7b67d31f99b31d8639aa83beda4d5d18ca70`.
+The complete local gate passed: 2,311 tests (22 existing optional storage skips),
+9/9 browser journeys, and 600/600 routine reliability requests. Required GitHub CI
+[35312546089](https://github.com/nguywnben/polaris/actions/runs/35312546089) passed
+on that exact SHA; container and release publication were skipped. The
+[readiness record](../docs/releases/1.0.0-readiness.md) records scope and remaining
+publication steps. The final documentation-only handoff receives another exact-SHA
+CI run and reliability confirmation; preserve those generated results under `temp/`.

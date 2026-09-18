@@ -2,10 +2,10 @@
 
 ## Supported Versions
 
-This checkout prepares Polaris `1.0.0`, not a published security-supported release.
-The legacy tag with the same name is a different generation; follow the
-[publication checklist](docs/releases/1.0.0-preparation.md) before deploying it.
-The following policy applies to the new Polaris line once published, not to older
+This policy covers the Polaris `1.0.0` release line. Development checkouts are not
+security-supported releases; follow the [publication checklist](docs/releases/1.0.0-preparation.md)
+before deploying an unpublished candidate. The following policy applies to published
+Polaris releases, not to older
 pre-rename tags merely because their numeric version starts with `1`.
 
 | Version | Supported |

@@ -127,7 +127,7 @@ docs/          アーキテクチャ設計書およびプロジェクト保守�
 
 単一マシン・単一 worker の Docker Compose が推奨経路です。[インストール](../installation.md)と[対応表](../installation.md#support-matrix)に従ってください。
 
-基本構成は外部サービス不要で、データを `polaris-data` に保存します。テンプレートは未公開の `1.0.0` に向けた準備版です。インストール前に[リリースチェックリスト](../releases/1.0.0-preparation.md)に従い、同名の旧タグ・イメージとの競合を解消してください。[更新・ロールバック手順](../updating.md)を参照し、高度な機能は `deploy/compose.advanced.yml` で任意に追加します。
+基本構成は外部サービス不要で、データを `polaris-data` に保存します。テンプレートの対象は `1.0.0` です。公開済みの同一バージョンの Polaris タグとイメージでインストールしてください。未公開のソースを使う場合は、[リリースチェックリスト](../releases/1.0.0-preparation.md)に従って別のローカルイメージをビルドしてください。[更新・ロールバック手順](../updating.md)を参照し、高度な機能は `deploy/compose.advanced.yml` で任意に追加します。
 
 [識別子の契約](../migrations/polaris.md)と[トラブルシューティング](../troubleshooting.md)も参照してください。ネイティブスクリプト、`docker run`、Render、Zeabur は互換経路であり、同等の導入・復旧検証対象ではありません。公開イメージは `linux/amd64` 用で、`linux/arm64` の公開は停止中です。
 

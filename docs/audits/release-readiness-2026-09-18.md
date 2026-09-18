@@ -275,3 +275,20 @@ This resolves the Git/GitHub name collision only: no new `v1.0.0`, code commit, 
 push or Docker image publication occurred. Registry provenance/collisions and current
 immutable-commit release checks remain outstanding. Earlier statements describe the
 audit-time state; its recorded source snapshot predates these documentation updates.
+
+## Subsequent committed candidate verification — 2026-09-18
+
+The owner then authorized committing, pushing the preparation branch and running CI,
+but not merging main, tagging or publishing. Runtime candidate
+`bafe7b67d31f99b31d8639aa83beda4d5d18ca70` passed the canonical local release gate
+(2,311 tests, 22 existing optional storage skips; 9/9 browser journeys; 600/600
+routine load requests). GitHub CI [35312546089](https://github.com/nguywnben/polaris/actions/runs/35312546089)
+passed Python 3.12/3.14, dependency, application, browser and container gates on that
+same SHA; both publication jobs were skipped. Registry inventory confirms that the
+target version names are available and records beta rollback digests. Dated release
+notes and verification-only manual CI resolve the remaining preparation defects.
+
+The [readiness record](../releases/1.0.0-readiness.md) supersedes the earlier
+uncommitted-source, missing-CI and collision verdicts. Optional/live scope exclusions
+remain; no test result certifies actual vendor accounts or an untested operator
+deployment. Final documentation-only changes require their own green CI before handoff.

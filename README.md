@@ -141,8 +141,9 @@ checks through the first authenticated Dashboard; its
 Linux, macOS, and architecture status without implying unsupported ARM64 coverage.
 
 The default profile needs no external service and stores all application data in the
-`polaris-data` named volume. Its minimal environment template targets `1.0.0` (not yet published);
-resolve the legacy tag/image collision using the [release preparation checklist](docs/releases/1.0.0-preparation.md) before installation. Production
+`polaris-data` named volume. Its minimal environment template targets `1.0.0`. Install using
+matching published Polaris tags and images; for an unpublished source checkout, follow the
+[release preparation checklist](docs/releases/1.0.0-preparation.md) and build a separate local image. Production
 updates use the encrypted, health-checked [Compose update and rollback guide](docs/updating.md).
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.

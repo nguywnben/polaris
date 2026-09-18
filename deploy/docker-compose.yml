@@ -1,6 +1,6 @@
 services:
   app:
-    # Prepared target, not yet published. See docs/releases/1.0.0-preparation.md.
+    # For an unpublished checkout, build a local IMAGE; see docs/releases/1.0.0-preparation.md.
     image: ${IMAGE:-nguywnben/polaris:1.0.0}
     pull_policy: missing
     restart: unless-stopped

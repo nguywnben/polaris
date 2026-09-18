@@ -4,16 +4,18 @@ All notable user-facing changes are documented in this file. Polaris follows
 [Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta` after the
 project-wide rename (formerly `0.1.0-beta.1`); Omni Gateway tags are archived under
 `omni-gateway/`. See the [tag migration record](docs/releases/tag-migration-2026-09-18.md). Breaking
-changes were permitted throughout the Polaris `0.x` beta series. The next target is Polaris
-`1.0.0`; it is not published. The legacy release with the same number is labeled separately
+changes were permitted throughout the Polaris `0.x` beta series. This source targets Polaris
+`1.0.0`; verify matching release/tag/image publication before installing from a development
+checkout. The legacy release with the same number is labeled separately
 below. See the [publication collision checklist](docs/releases/1.0.0-preparation.md).
 
 ## [Unreleased]
 
 ## [1.0.0] - 2026-09-18
 
-Prepared release candidate; publication has not occurred. Reconfirm this date when
-the owner authorizes publication. The historical Omni Gateway 1.0.0 is separate.
+Candidate prepared on this date; publication status is determined by the matching
+Polaris release/tag/image. Reconfirm the date when publication is authorized.
+The historical Omni Gateway 1.0.0 is separate.
 
 ### Release preparation
 

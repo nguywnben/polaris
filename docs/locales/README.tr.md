@@ -127,7 +127,7 @@ Modül sınırları, istek akışı, durum sahipliği ve mevcut sürüm kısıtl
 
 Tek makine ve tek worker için ana yol Docker Compose'dur. [Kurulum](../installation.md) ve [destek tablosunu](../installation.md#support-matrix) izleyin.
 
-Temel profil dış hizmet gerektirmez; veriler `polaris-data` içinde saklanır. Şablon henüz yayımlanmamış `1.0.0` sürümünü hazırlar. Kurulumdan önce eski aynı adlı etiket/imaj çakışmalarını [yayın kontrol listesine](../releases/1.0.0-preparation.md) göre çözün. [Güncelleme ve geri dönüş](../updating.md) sürecini izleyin; gelişmiş özellikler `deploy/compose.advanced.yml` ile isteğe bağlıdır.
+Temel profil dış hizmet gerektirmez; veriler `polaris-data` içinde saklanır. Şablon `1.0.0` sürümünü hedefler. Yalnızca aynı sürümün yayımlanmış Polaris etiket ve imajlarıyla kurulum yapın; yayımlanmamış kaynak kod için [yayın kontrol listesine](../releases/1.0.0-preparation.md) göre ayrı bir yerel imaj oluşturun. [Güncelleme ve geri dönüş](../updating.md) sürecini izleyin; gelişmiş özellikler `deploy/compose.advanced.yml` ile isteğe bağlıdır.
 
 [Adlandırma sözleşmesi](../migrations/polaris.md) ve [sorun giderme](../troubleshooting.md) kılavuzlarına bakın. Yerel betikler, `docker run`, Render ve Zeabur eşdeğer kurulum/kurtarma doğrulamasına sahip olmayan uyumluluk yollarıdır. İmajlar `linux/amd64` için yayımlanır; `linux/arm64` yayını duraklatılmıştır.
 

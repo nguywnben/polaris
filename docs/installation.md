@@ -5,13 +5,12 @@ standalone topology—one application worker and one replica—through Docker Co
 one named volume. Do not add Redis, an external database, or the advanced override during the
 first installation.
 
-This checkout prepares `1.0.0`; it is **not a published release**. **Do not run the release download/pull commands yet**:
-the stable Polaris tag and images have not been published. Historical tags have been
-archived separately; the owner must complete the
-[1.0.0 publication checklist](releases/1.0.0-preparation.md) first. For a local rehearsal,
-build this checkout into a unique local image and override `IMAGE`; never pull the old tag
-as evidence for this candidate. After publication, use matching `v1.0.0`/`1.0.0` versions below,
-not `latest` or `edge`.
+This guide targets `1.0.0`. Run the release download/pull commands only after the
+matching Polaris tag and images are published. For an unpublished source checkout,
+follow the [1.0.0 publication checklist](releases/1.0.0-preparation.md), build a unique
+local image and override `IMAGE`. Historical tags are archived separately and are not
+substitutes for the new release. Use matching `v1.0.0`/`1.0.0` versions below, not
+`latest` or `edge`.
 
 ## 1. Check the host
 

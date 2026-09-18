@@ -127,7 +127,7 @@ Siehe [Architektur](../architecture.md) für Modulgrenzen, Anfragefluss, Zustand
 
 Docker Compose ist der Standard für eine Maschine mit einem Worker. Folgen Sie der [Installationsanleitung](../installation.md) und ihrer [Supportmatrix](../installation.md#support-matrix) bis zum authentifizierten Dashboard; daraus ergibt sich keine zusätzliche ARM64-Unterstützung.
 
-Das Standardprofil benötigt keine externen Dienste und speichert Daten im Volume `polaris-data`. Die Vorlage bereitet `1.0.0` vor; diese Version ist noch nicht veröffentlicht. Klären Sie vor der Installation die alten gleichnamigen Tags/Images anhand der [Freigabe-Checkliste](../releases/1.0.0-preparation.md). Nutzen Sie den [Update- und Rollback-Ablauf](../updating.md); erweiterte Optionen werden über `deploy/compose.advanced.yml` aktiviert.
+Das Standardprofil benötigt keine externen Dienste und speichert Daten im Volume `polaris-data`. Die Vorlage zielt auf `1.0.0`. Installieren Sie nur mit veröffentlichten Polaris-Tags und Images derselben Version; erstellen Sie bei unveröffentlichtem Quellcode ein separates lokales Image gemäß der [Freigabe-Checkliste](../releases/1.0.0-preparation.md). Nutzen Sie den [Update- und Rollback-Ablauf](../updating.md); erweiterte Optionen werden über `deploy/compose.advanced.yml` aktiviert.
 
 Beachten Sie den [Bezeichnervertrag](../migrations/polaris.md) und die [Fehlerbehebung](../troubleshooting.md). Native Skripte, direktes `docker run`, Render und Zeabur sind Kompatibilitätswege ohne dieselben Installations-/Wiederherstellungsnachweise. Das Produktionsimage wird für `linux/amd64` veröffentlicht; `linux/arm64` bleibt ausgesetzt.
 

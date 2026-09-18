@@ -1,14 +1,17 @@
 # Polaris — Current State
 
-## Candidate closure in progress — 2026-09-18
+## Candidate prepared and verified — 2026-09-18
 
 The owner authorized committing the reviewed repairs, pushing only
 `codex/release-1.0.0-readiness`, and running CI. No main merge, stable tag, registry
-publication or GitHub release publication is authorized. RR5/RR6 continue in
+publication or GitHub release publication is authorized. RR5/RR6 evidence is in
 [the existing release plan](release-readiness-2026-09-18.md#authorized-candidate-closure--2026-09-18).
 Target image names are available in both registries; beta rollback digests are recorded.
-Candidate notes are dated, and manual CI is verification-only. Final committed-source
-local and GitHub CI evidence must pass before the candidate can be called ready.
+Candidate `bafe7b6` passed the complete local release gate and all required GitHub CI
+jobs, with both publication jobs skipped. See the [readiness record](../docs/releases/1.0.0-readiness.md)
+for exact evidence, scope and publication steps. The documentation-only handoff commit
+must also have green CI and an exact-commit reliability confirmation before delivery.
+The sections below preserve earlier checkpoints, not the current release verdict.
 
 ## Local release preparation completed — 2026-09-18
 

@@ -127,7 +127,7 @@ docs/          架構設計說明與專案維護文檔
 
 單機、單 worker 的 Docker Compose 是主要部署方式。請遵循[安裝指南](../installation.md)與[支援矩陣](../installation.md#support-matrix)。
 
-基本設定不需外部服務，資料保存在 `polaris-data`。範本面向尚未發布的 `1.0.0`；安裝前須依[發布清單](../releases/1.0.0-preparation.md)處理舊標籤/映像的同名衝突。升級或回復請遵循[更新指南](../updating.md)，進階功能可透過 `deploy/compose.advanced.yml` 選用。
+基本設定不需外部服務，資料保存在 `polaris-data`。範本面向 `1.0.0`。僅使用已發布且版本一致的 Polaris 標籤和映像安裝；若使用尚未發布的原始碼，請依[發布清單](../releases/1.0.0-preparation.md)建置獨立的本機映像。升級或回復請遵循[更新指南](../updating.md)，進階功能可透過 `deploy/compose.advanced.yml` 選用。
 
 參閱[識別名稱約定](../migrations/polaris.md)及[疑難排解](../troubleshooting.md)。原生指令碼、`docker run`、Render 與 Zeabur 屬相容路徑，未具備同等安裝及復原驗證。映像發布支援 `linux/amd64`；`linux/arm64` 仍暫停發布。
 

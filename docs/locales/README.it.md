@@ -127,7 +127,7 @@ Consultare [Architettura](../architecture.md) per i confini dei moduli, il fluss
 
 Docker Compose è il percorso principale su una macchina con un worker. Seguire [installazione](../installation.md) e [matrice di supporto](../installation.md#support-matrix).
 
-Il profilo base non richiede servizi esterni e conserva i dati in `polaris-data`. Il modello prepara `1.0.0`, non ancora pubblicata. Prima dell’installazione, risolvere i conflitti con i vecchi tag/immagini seguendo la [checklist di rilascio](../releases/1.0.0-preparation.md). Consultare [aggiornamento e rollback](../updating.md); le opzioni avanzate si attivano tramite `deploy/compose.advanced.yml`.
+Il profilo base non richiede servizi esterni e conserva i dati in `polaris-data`. Il modello è destinato a `1.0.0`. Installare solo tag e immagini Polaris pubblicati della stessa versione; per codice non ancora pubblicato, creare un’immagine locale separata seguendo la [checklist di rilascio](../releases/1.0.0-preparation.md). Consultare [aggiornamento e rollback](../updating.md); le opzioni avanzate si attivano tramite `deploy/compose.advanced.yml`.
 
 Consultare [identificatori](../migrations/polaris.md) e [risoluzione dei problemi](../troubleshooting.md). Script nativi, `docker run`, Render e Zeabur sono percorsi di compatibilità senza le stesse garanzie di verifica. Immagini pubblicate per `linux/amd64`; `linux/arm64` è sospeso.
 

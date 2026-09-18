@@ -127,7 +127,7 @@ Consulte [Arquitectura](../architecture.md) para conocer más sobre los límites
 
 Docker Compose es la vía principal para una máquina y un worker. Siga la [instalación](../installation.md) y su [matriz de soporte](../installation.md#support-matrix) hasta el panel autenticado, sin asumir soporte ARM64 adicional.
 
-El perfil básico no requiere servicios externos y guarda datos en `polaris-data`. La plantilla prepara `1.0.0`, todavía sin publicar. Antes de instalar, resuelva la colisión con etiquetas/imágenes antiguas siguiendo la [lista de publicación](../releases/1.0.0-preparation.md). Utilice el [procedimiento de actualización y reversión](../updating.md); las opciones avanzadas se activan mediante `deploy/compose.advanced.yml`.
+El perfil básico no requiere servicios externos y guarda datos en `polaris-data`. La plantilla está orientada a `1.0.0`. Instale solo con etiquetas e imágenes publicadas de Polaris de la misma versión; para código aún no publicado, cree una imagen local independiente siguiendo la [lista de publicación](../releases/1.0.0-preparation.md). Utilice el [procedimiento de actualización y reversión](../updating.md); las opciones avanzadas se activan mediante `deploy/compose.advanced.yml`.
 
 Consulte el [contrato de identificadores](../migrations/polaris.md) y la [resolución de problemas](../troubleshooting.md). Scripts nativos, `docker run`, Render y Zeabur son alternativas de compatibilidad sin las mismas pruebas de instalación/recuperación. La imagen se publica para `linux/amd64`; `linux/arm64` sigue suspendida.
 

@@ -127,7 +127,7 @@ docs/          아키텍처 설계 문서 및 프로젝트 유지 관리 가이�
 
 단일 머신·단일 worker의 Docker Compose가 기본 배포 경로입니다. [설치](../installation.md) 및 [지원 표](../installation.md#support-matrix)를 따르세요.
 
-기본 구성은 외부 서비스가 필요 없으며 `polaris-data`에 데이터를 보관합니다. 템플릿은 아직 출시되지 않은 `1.0.0`을 준비합니다. 설치 전에 [출시 체크리스트](../releases/1.0.0-preparation.md)에 따라 기존 동명 태그/이미지 충돌을 해결하세요. [업데이트·롤백](../updating.md) 절차를 따르고 고급 옵션은 `deploy/compose.advanced.yml`로 활성화합니다.
+기본 구성은 외부 서비스가 필요 없으며 `polaris-data`에 데이터를 보관합니다. 템플릿은 `1.0.0`을 대상으로 합니다. 공개된 동일 버전의 Polaris 태그와 이미지로만 설치하세요. 미공개 소스를 사용하는 경우 [출시 체크리스트](../releases/1.0.0-preparation.md)에 따라 별도의 로컬 이미지를 빌드하세요. [업데이트·롤백](../updating.md) 절차를 따르고 고급 옵션은 `deploy/compose.advanced.yml`로 활성화합니다.
 
 [식별자 규약](../migrations/polaris.md)과 [문제 해결](../troubleshooting.md)을 참고하세요. 네이티브 스크립트, `docker run`, Render, Zeabur는 호환 경로로, 동일한 설치·복구 검증 범위가 아닙니다. 이미지는 `linux/amd64`로 게시하며 `linux/arm64` 게시는 중단 상태입니다.
 

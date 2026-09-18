@@ -44,8 +44,9 @@ class ReleaseCandidateContractTests(unittest.TestCase):
         self.assertIn(f"IMAGE=nguywnben/polaris:{RELEASE_VERSION}", compose_environment)
 
         installation = (ROOT / "docs" / "installation.md").read_text(encoding="utf-8")
-        self.assertIn(f"prepares `{RELEASE_VERSION}`", installation)
-        self.assertIn("Do not run the release download/pull commands yet", installation)
+        self.assertIn(f"targets `{RELEASE_VERSION}`", installation)
+        self.assertIn("matching Polaris tag and images are published", installation)
+        self.assertIn("For an unpublished source checkout", installation)
         self.assertIn(f"--branch v{RELEASE_VERSION}", installation)
         self.assertNotIn("1.4.0", installation)
 

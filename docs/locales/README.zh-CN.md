@@ -127,7 +127,7 @@ docs/          架构设计说明与项目维护文档
 
 单机、单 worker 的 Docker Compose 是主要部署路径。请按照[安装指南](../installation.md)及[支持矩阵](../installation.md#support-matrix)操作。
 
-基础配置不依赖外部服务，数据保存在 `polaris-data`。模板面向尚未发布的 `1.0.0`；安装前须按[发布清单](../releases/1.0.0-preparation.md)解决旧标签/镜像的同名冲突。升级或回滚遵循[更新指南](../updating.md)，通过 `deploy/compose.advanced.yml` 按需启用高级选项。
+基础配置不依赖外部服务，数据保存在 `polaris-data`。模板面向 `1.0.0`。仅使用已发布且版本一致的 Polaris 标签和镜像安装；若使用尚未发布的源码，请按[发布清单](../releases/1.0.0-preparation.md)构建独立的本地镜像。升级或回滚遵循[更新指南](../updating.md)，通过 `deploy/compose.advanced.yml` 按需启用高级选项。
 
 参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、`docker run`、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
 

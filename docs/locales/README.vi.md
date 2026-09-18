@@ -140,7 +140,7 @@ xác thực. [Ma trận hỗ trợ cài đặt](../installation.md#support-matri
 Linux, macOS và kiến trúc CPU; tài liệu không ngầm tuyên bố hỗ trợ ARM64.
 
 Profile mặc định không cần dịch vụ bên ngoài, đồng thời lưu toàn bộ dữ liệu ứng dụng trong volume
-`polaris-data`. Mẫu môi trường hướng tới `1.0.0`, **chưa phát hành**; cần xử lý tag/image cũ trùng tên theo [checklist phát hành](../releases/1.0.0-preparation.md) trước khi cài đặt. Việc cập nhật
+`polaris-data`. Mẫu môi trường hướng tới `1.0.0`. Chỉ cài bằng tag và image Polaris đã phát hành, cùng phiên bản; nếu dùng mã nguồn chưa phát hành, hãy theo [checklist phát hành](../releases/1.0.0-preparation.md) và build image local riêng. Việc cập nhật
 production phải theo [quy trình cập nhật và rollback Compose](../updating.md). Chỉ bật lưu trữ ngoài,
 Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanced.yml` sau khi bản cài
 đặt cơ bản đã hoạt động tốt.
