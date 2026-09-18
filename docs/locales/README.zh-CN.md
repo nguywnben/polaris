@@ -139,11 +139,13 @@ docs/          架构设计说明与项目维护文档
 
 ## 部署
 
+Linux/amd64 的[简易 Docker 安装](../docker-install.md)无需克隆仓库或手动编辑 `.env`：运行一条命令，使用 VPS HTTP 时明确确认风险，然后在网页创建密码。**目前仅在本地准备，须先发布配套的新安装脚本和镜像。** 手动 Docker、Compose 和源码运行方式仍然保留。Docker-run 使用[独立的备份与更新流程](../docker-maintenance.md)，不使用 Compose 更新工具。
+
 单机、单 worker 的 Docker Compose 是主要部署路径。请按照[安装指南](../installation.md)及[支持矩阵](../installation.md#support-matrix)操作。
 
 基础配置不依赖外部服务，数据保存在 `polaris-data`。模板面向 `1.0.0`。仅使用已发布且版本一致的 Polaris 标签和镜像安装；若使用尚未发布的源码，请按[发布清单](../releases/1.0.0-preparation.md)构建独立的本地镜像。升级或回滚遵循[更新指南](../updating.md)，通过 `deploy/compose.advanced.yml` 按需启用高级选项。
 
-参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、`docker run`、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
+参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
 
 ### 本地开发或排查：
 
@@ -192,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自动生成 | 客户端 API 密钥，前缀为 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 设置前为空 | Web 控制面板的访问密码。 |
 | `SETUP_TOKEN` | 空 | 远程首次设置所需的唯一令牌，至少 24 字符；不自动生成或记录。直接 localhost 访问不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 仅在接受凭据和会话未加密的风险后，才启用远程 HTTP 设置。建议使用 HTTPS；仍然需要强设置令牌。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台会话有效期（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自动 | 设为 `true` 强制仅在 HTTPS 下传输 Cookie。留空时通过 `X-Forwarded-Proto` 自动检测。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登录频率限制时间窗口（秒）。 |
@@ -460,7 +463,7 @@ Google Antigravity 凭据命名为 `google-antigravity-{account_fingerprint}.jso
 
 ## 数据存储
 
-推荐使用 SQLite。Compose 将 `/app/backend/data` 保存在 `polaris-data`；直接使用 Docker 时，将 `/app/backend/data/creds` 和 `/app/backend/data/logs` 挂载到 `/opt/polaris/creds`、`/opt/polaris/logs` 等持久目录。
+推荐使用 SQLite。Compose 和 Docker 安装脚本将整个 `/app/backend/data` 保存在 `polaris-data` 中。手动运行 Docker 时也必须挂载完整的数据目录：仅保存 `creds` 和 `logs` 无法保留 SQLite 数据库和配置。
 
 PostgreSQL 为可选项；MongoDB 保留兼容支持，直接工作，无需 Redis。二者只配置一个。初始化失败会阻止启动，不会静默回退 SQLite。外部数据库不提供横向扩容：仍仅支持一个 worker、一个副本。可移植加密备份仅支持 SQLite，不支持后端间在线迁移。
 

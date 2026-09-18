@@ -139,11 +139,13 @@ Consulte [Arquitectura](../architecture.md) para conocer más sobre los límites
 
 ## Despliegue
 
+La [instalación sencilla con Docker](../docker-install.md) para Linux/amd64 no requiere clonar el repositorio ni editar `.env`: un comando, consentimiento explícito para HTTP en un VPS y creación de la contraseña en la web. **Preparada localmente; primero deben publicarse el instalador y la imagen actualizados correspondientes.** Se conservan Docker manual, Compose y la ejecución desde el código fuente. Docker-run tiene su [propia guía de copias y actualización](../docker-maintenance.md), sin el actualizador de Compose.
+
 Docker Compose es la vía principal para una máquina y un worker. Siga la [instalación](../installation.md) y su [matriz de soporte](../installation.md#support-matrix) hasta el panel autenticado, sin asumir soporte ARM64 adicional.
 
 El perfil básico no requiere servicios externos y guarda datos en `polaris-data`. La plantilla está orientada a `1.0.0`. Instale solo con etiquetas e imágenes publicadas de Polaris de la misma versión; para código aún no publicado, cree una imagen local independiente siguiendo la [lista de publicación](../releases/1.0.0-preparation.md). Utilice el [procedimiento de actualización y reversión](../updating.md); las opciones avanzadas se activan mediante `deploy/compose.advanced.yml`.
 
-Consulte el [contrato de identificadores](../migrations/polaris.md) y la [resolución de problemas](../troubleshooting.md). Scripts nativos, `docker run`, Render y Zeabur son alternativas de compatibilidad sin las mismas pruebas de instalación/recuperación. La imagen se publica para `linux/amd64`; `linux/arm64` sigue suspendida.
+Consulte el [contrato de identificadores](../migrations/polaris.md) y la [resolución de problemas](../troubleshooting.md). Scripts nativos, Render y Zeabur son alternativas de compatibilidad sin las mismas pruebas de instalación/recuperación. La imagen se publica para `linux/amd64`; `linux/arm64` sigue suspendida.
 
 ### Para desarrollo o diagnóstico local:
 
@@ -192,6 +194,7 @@ Prioridad: variables de entorno, configuración guardada y valores predeterminad
 | `API_KEY` | generada automáticamente | Clave API del cliente con prefijo `sk-polaris-`. |
 | `PANEL_PASSWORD` | vacío hasta configurar | Contraseña de acceso al panel de control web. |
 | `SETUP_TOKEN` | vacío | Configuración remota inicial: valor único de al menos 24 caracteres, no generado ni registrado. No requerido en localhost directo. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Permite la configuración remota por HTTP solo si aceptas credenciales y sesiones sin cifrar. Se recomienda HTTPS; sigue siendo obligatorio un token de configuración seguro. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Tiempo de vida de la sesión del panel de control web en segundos. |
 | `PANEL_COOKIE_SECURE` | automático | Establezca en `true` para forzar cookies solo a través de HTTPS. Vacío para autodetección mediante `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Ventana de límite de tasa de inicio de sesión en segundos. |
@@ -460,7 +463,7 @@ Nombres de modo de credencial:
 
 ## Almacenamiento de datos
 
-SQLite es el almacenamiento recomendado. Compose conserva `/app/backend/data` en `polaris-data`; con Docker directo monte `/app/backend/data/creds` y `/app/backend/data/logs` en rutas duraderas como `/opt/polaris/creds` y `/opt/polaris/logs`.
+SQLite es el almacenamiento recomendado. Compose y el instalador Docker conservan todo `/app/backend/data` en `polaris-data`. Con Docker manual también debe montar el directorio completo: guardar solo `creds` y `logs` no conserva SQLite ni la configuración.
 
 PostgreSQL es opcional; MongoDB se mantiene por compatibilidad y funciona directamente sin Redis. Configure solo uno. Un fallo de inicialización detiene el arranque sin volver silenciosamente a SQLite. El almacenamiento externo no permite escalar horizontalmente: un worker y una réplica. El respaldo portátil cifrado solo admite SQLite; no hay migración en vivo entre backends admitida.
 

@@ -1,5 +1,9 @@
 # Polaris Production Self-Hosted R1 — Fixed Checklist
 
+Latest guided-install/mobile verification and publication hold:
+`docs/releases/1.0.0-readiness.md`, runtime candidate `fec0388`.
+The sections below retain earlier audit history, not exact-source CI for that candidate.
+
 ## Polaris 1.0.0 pre-release review (PB4/PB5/PB7)
 
 - [x] Baseline inventory: pages, provider workspaces, modal families, workflows, data and release checks.

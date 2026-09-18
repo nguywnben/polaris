@@ -17,7 +17,9 @@ def main():
     with disposable_runtime() as base_url, sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         try:
-            context = browser.new_context(locale="vi-VN", viewport={"width": 1440, "height": 1100})
+            context = browser.new_context(
+                locale="vi-VN", viewport={"width": 1440, "height": 1100}, has_touch=True
+            )
             context.add_init_script("""window.__invalidDefaults = [];
                 document.addEventListener('invalid', event => {
                     setTimeout(() => window.__invalidDefaults.push(event.defaultPrevented), 0);
@@ -74,6 +76,70 @@ def main():
             context.route("**/api/auth/setup", submit)
             page.goto(base_url + "/setup", wait_until="networkidle")
             expect(page.locator("#setupTokenGroup")).to_be_visible()
+            page.set_viewport_size({"width": 320, "height": 900})
+            for value in ("", "synthetic-token", ""):
+                page.locator("#setupToken").fill(value)
+                padding = page.locator("#setupToken").evaluate("""el => {
+                    const style = getComputedStyle(el);
+                    return [style.paddingInlineStart, style.paddingInlineEnd];
+                }""")
+                if value:
+                    expect(page.locator("#setupTokenToggle")).to_be_visible()
+                    assert float(padding[1][:-2]) >= 40, padding
+                else:
+                    expect(page.locator("#setupTokenToggle")).to_be_hidden()
+                    assert padding[0] == padding[1], (
+                        "Empty input must not reserve space for the hidden eye button",
+                        padding,
+                    )
+            placeholder_fits = page.locator("#setupToken").evaluate("""el => {
+                const style = getComputedStyle(el);
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = style.font;
+                return context.measureText(el.placeholder).width <= el.clientWidth
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            }""")
+            assert placeholder_fits, "Setup placeholder must fit at 320px without clipping"
+            clipped_locales = page.locator("#setupToken").evaluate("""el => {
+                const style = getComputedStyle(el);
+                const context = document.createElement('canvas').getContext('2d');
+                context.font = style.font;
+                const available = el.clientWidth - parseFloat(style.paddingLeft)
+                    - parseFloat(style.paddingRight);
+                return Object.entries(AUTH_LOCALE_TRANSLATIONS)
+                    .filter(([, copy]) => context.measureText(copy.setup_token_placeholder).width > available)
+                    .map(([locale]) => locale);
+            }""")
+            assert not clipped_locales, clipped_locales
+            page.screenshot(path=str(screenshots / "setup-placeholder-320.png"), full_page=True)
+            highlight = page.locator("#setupPreflightButton").evaluate(
+                "el => getComputedStyle(el).webkitTapHighlightColor"
+            )
+            assert highlight == "rgba(0, 0, 0, 0)", highlight
+            for selector in ("html", "#setupToken", "label[for='setupToken']", "a"):
+                colors = page.locator(selector).evaluate_all(
+                    "elements => elements.map(el => getComputedStyle(el).webkitTapHighlightColor)"
+                )
+                assert colors and all(color == "rgba(0, 0, 0, 0)" for color in colors), (
+                    selector,
+                    colors,
+                )
+            page.locator("#setupPreflightButton").tap()
+            expect(page.locator("#statusSection")).to_contain_text(
+                "Nhập mã thiết lập do người vận hành cấu hình, rồi chạy kiểm tra."
+            )
+            assert not attempts, "Touch must preserve empty-token validation"
+            page.locator("#setupToken").focus()
+            page.keyboard.press("Tab")
+            expect(page.locator("#setupPreflightButton")).to_be_focused()
+            assert (
+                page.locator("#setupPreflightButton").evaluate(
+                    "el => getComputedStyle(el).outlineStyle"
+                )
+                != "none"
+            ), "Keyboard focus must remain visible"
+            page.set_viewport_size({"width": 1440, "height": 1100})
             expect(page.locator("#setupPassword")).to_be_disabled()
             expect(page.locator("#setupPasswordConfirm")).to_be_disabled()
             expect(page.locator("#setupSubmitButton")).to_be_disabled()
@@ -241,11 +307,17 @@ def main():
                 expect(page.locator(f"#{field}Toggle")).to_be_hidden()
 
             # Reload to remove the synthetic error before the batched visual inspection.
+            checks["transport"] = {"status": "warning", "code": "transport_insecure_allowed"}
             page.reload(wait_until="networkidle")
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
+            expect(page.locator("#setupHttpWarning")).to_contain_text("HTTP không mã hóa")
+            expect(page.locator("#setupCheckTransport")).to_have_attribute("data-status", "warning")
+            expect(page.locator("#setupCheckTransport")).to_contain_text("Đã cho phép HTTP")
             expect(page.locator("#setupPassword")).to_be_disabled()
             page.locator("#setupToken").fill("synthetic-setup-token-for-ui-tests")
             page.locator("#setupPreflightButton").click()
             expect(page.locator("#setupPassword")).to_be_enabled()
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
             for width, theme in ((1440, "light"), (768, "light"), (320, "light"), (1440, "dark")):
                 page.set_viewport_size({"width": width, "height": 1100})
                 page.emulate_media(color_scheme=theme)
@@ -280,6 +352,18 @@ def main():
                 page.screenshot(
                     path=str(screenshots / f"setup-{width}-{theme}.png"), full_page=True
                 )
+            checks["transport"] = {"status": "fail", "code": "https_required"}
+            state.update(state="invalid", next_action="use_https")
+            page.reload(wait_until="networkidle")
+            expect(page.locator("#setupPreflightAction")).to_contain_text(
+                "SETUP_ALLOW_INSECURE_HTTP=true"
+            )
+            expect(page.locator("#setupHttpWarning")).to_be_visible()
+            expect(page.locator("#setupPassword")).to_be_disabled()
+            checks["transport"] = {"status": "pass", "code": "transport_secure"}
+            state.update(state="fresh", next_action="enter_setup_token")
+            page.reload(wait_until="networkidle")
+            expect(page.locator("#setupHttpWarning")).to_be_hidden()
             assert not errors, errors
             print(
                 json.dumps(

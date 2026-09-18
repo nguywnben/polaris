@@ -1,6 +1,11 @@
-# Canonical Installation
+# Docker Compose Installation
 
-This is the single production installation path for Polaris R1. It runs the supported
+For the no-clone guided Docker path, see [Install Polaris with Docker](docker-install.md).
+It prepares the container and setup code without manual `.env` editing. Its publication
+status and Linux/amd64 scope are stated there. This page retains the explicit Compose path
+for operators who want to manage the deployment files themselves.
+
+This is the established Compose production installation path for Polaris R1. It runs the supported
 standalone topology—one application worker and one replica—through Docker Compose with SQLite in
 one named volume. Do not add Redis, an external database, or the advanced override during the
 first installation.
@@ -61,11 +66,14 @@ On Windows PowerShell:
 Copy-Item deploy/compose.env.example .env
 ```
 
-The template pins the image, host port, and data-volume name. For interactive setup on the same
-machine, leave `API_KEY`, `PANEL_PASSWORD`, and `SETUP_TOKEN` empty. Before an unconfigured console
-can be reached through a non-loopback host, set a unique `SETUP_TOKEN` of at least 24 characters,
-or set a unique 12–256 character `PANEL_PASSWORD` for non-interactive bootstrap. Never commit the
-populated `.env` file.
+The template pins the image, host port, and data-volume name. Leave `API_KEY` and
+`PANEL_PASSWORD` empty for interactive setup, and set a unique `SETUP_TOKEN` of at least
+24 characters. Docker can hide the original loopback client address, so a local browser
+may also need the token and explicit HTTP consent. For local-only HTTP, set
+`HOST_PORT=127.0.0.1:4283` and `SETUP_ALLOW_INSECURE_HTTP=true` in `.env`. For public access,
+use HTTPS or explicitly accept the HTTP risks described below. Never trust a loopback
+Host header as proof of local transport. Alternatively, set a unique 12–256 character
+`PANEL_PASSWORD` for non-interactive bootstrap. Never commit the populated `.env` file.
 
 ## 4. Start and wait for readiness
 
@@ -95,6 +103,32 @@ Open `http://127.0.0.1:4283/` on the host running Docker. Complete the displayed
 create the local owner with a unique 12–256 character passphrase. For a remote host, first provide
 HTTPS through a trusted reverse proxy or use a secure tunnel; enter the configured setup token
 when prompted. The application never generates or prints that token.
+
+### Explicit HTTP opt-in for a remote host
+
+HTTPS is recommended, but a domain name is not a Polaris requirement. If the server owner
+accepts unencrypted access, set `SETUP_ALLOW_INSECURE_HTTP=true` in the root `.env` together
+with a strong `SETUP_TOKEN`. Recreate the container to apply environment changes:
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml up --detach --wait
+```
+
+Then open `http://YOUR_PUBLIC_IP:4283/` (or your configured host port). The host port must be
+published and permitted by the host/cloud firewall. Setup displays an HTTP warning even after
+the checks pass. **HTTP does not encrypt setup tokens, passwords, session cookies, API keys
+or other traffic; an on-path attacker can read or modify it.** Only enable this option after
+accepting that risk. Do not enable trusted proxy headers for a directly exposed HTTP listener.
+
+The option defaults to `false`, is controlled only by the server environment, and relaxes only
+the initial setup HTTPS check. It does not bypass the setup token, password policy, durable
+storage check, authentication, or origin protection. Keep `PANEL_COOKIE_SECURE` in automatic
+mode for direct HTTP; explicitly requiring secure cookies still prevents HTTP setup. HTTPS
+continues to require secure cookies even when the option is enabled.
+
+To return to HTTPS, configure TLS and trusted proxy handling as appropriate, change the option
+back to `false`, and recreate the container. **The flag is not a post-setup HTTP access firewall**:
+restrict or close the public HTTP listener separately. Do not delete the data volume.
 
 The setup flow creates the public API key once and displays it for the operator. Store it in a
 password manager; do not put it in source control or screenshots.
@@ -153,7 +187,9 @@ a required operator check, not as independently CI-verified.
 
 ## Non-canonical paths
 
-The native Python installers and launchers in `deploy/scripts`, direct `docker run`, Render, and
+The [guided Docker-run installer](docker-install.md) is a separate no-clone path with its own
+[maintenance procedure](docker-maintenance.md); the Compose updater does not manage it.
+The native Python installers and launchers in `deploy/scripts`, Render, and
 Zeabur are compatibility paths. They may help development, migration, or community deployments,
 but they do not receive the complete production install/update/rollback evidence. Kubernetes is
 outside the product boundary. These alternatives must not be used

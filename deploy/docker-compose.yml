@@ -14,6 +14,7 @@ services:
       API_KEY: ${API_KEY:-}
       PANEL_PASSWORD: ${PANEL_PASSWORD:-}
       SETUP_TOKEN: ${SETUP_TOKEN:-}
+      SETUP_ALLOW_INSECURE_HTTP: ${SETUP_ALLOW_INSECURE_HTTP:-false}
 
       # The supported production topology is one process and one replica.
       HOST: "0.0.0.0"

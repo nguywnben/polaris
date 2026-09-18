@@ -13,9 +13,26 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [1.0.0] - 2026-09-18
 
-Publication approved on this date; the matching Polaris release/tag/image records
-the actual published revision.
+This refreshed 1.0.0 includes the guided installation and phone interaction fixes.
+The release's verified source revision and image digest identify its exact contents;
+operators with an earlier 1.0.0 image must pull the refreshed image before upgrading.
 The historical Omni Gateway 1.0.0 is separate.
+
+### Installation and mobile improvements
+
+- Reject remote HTTP setup with a forged loopback Host header unless the operator
+  explicitly allows HTTP. Guided local installation retains its loopback-only bind.
+- Reserve space for password visibility buttons only while the input has content,
+  so empty setup and sign-in fields use their full placeholder width.
+- Shorten setup-code placeholders in all 15 languages for mobile screens and remove
+  native tap-highlight overlays while preserving keyboard focus and text selection.
+
+- Add a guided Linux/amd64 Docker installer: no repository clone or manual `.env` editing,
+  generated setup codes, explicit public HTTP consent, readiness checks, and preservation
+  of existing containers/data. Keep manual Docker, Compose, and source-run paths available.
+- Add an explicit, disabled-by-default `SETUP_ALLOW_INSECURE_HTTP` option for remote first-run
+  setup, with persistent unencrypted-transport warnings in all 15 console languages.
+  Setup-token, password, storage and secure-cookie requirements remain enforced.
 
 ### Release preparation
 

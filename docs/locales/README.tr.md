@@ -139,11 +139,13 @@ Modül sınırları, istek akışı, durum sahipliği ve mevcut sürüm kısıtl
 
 ## Dağıtım
 
+Linux/amd64 için [kolay Docker kurulumu](../docker-install.md), depoyu klonlamayı veya `.env` dosyasını elle düzenlemeyi gerektirmez: tek komut, VPS üzerinde HTTP için açık onay, ardından web üzerinden parola oluşturma. **Yerel olarak hazırlanmıştır; önce eşleşen güncel kurulum betiği ve imaj yayımlanmalıdır.** Elle Docker, Compose ve kaynak koddan çalıştırma seçenekleri korunur. Docker-run, Compose güncelleyicisi yerine [ayrı yedekleme ve güncelleme adımlarını](../docker-maintenance.md) kullanır.
+
 Tek makine ve tek worker için ana yol Docker Compose'dur. [Kurulum](../installation.md) ve [destek tablosunu](../installation.md#support-matrix) izleyin.
 
 Temel profil dış hizmet gerektirmez; veriler `polaris-data` içinde saklanır. Şablon `1.0.0` sürümünü hedefler. Yalnızca aynı sürümün yayımlanmış Polaris etiket ve imajlarıyla kurulum yapın; yayımlanmamış kaynak kod için [yayın kontrol listesine](../releases/1.0.0-preparation.md) göre ayrı bir yerel imaj oluşturun. [Güncelleme ve geri dönüş](../updating.md) sürecini izleyin; gelişmiş özellikler `deploy/compose.advanced.yml` ile isteğe bağlıdır.
 
-[Adlandırma sözleşmesi](../migrations/polaris.md) ve [sorun giderme](../troubleshooting.md) kılavuzlarına bakın. Yerel betikler, `docker run`, Render ve Zeabur eşdeğer kurulum/kurtarma doğrulamasına sahip olmayan uyumluluk yollarıdır. İmajlar `linux/amd64` için yayımlanır; `linux/arm64` yayını duraklatılmıştır.
+[Adlandırma sözleşmesi](../migrations/polaris.md) ve [sorun giderme](../troubleshooting.md) kılavuzlarına bakın. Yerel betikler, Render ve Zeabur eşdeğer kurulum/kurtarma doğrulamasına sahip olmayan uyumluluk yollarıdır. İmajlar `linux/amd64` için yayımlanır; `linux/arm64` yayını duraklatılmıştır.
 
 ### Yerel geliştirme veya tanılama:
 
@@ -192,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | otomatik üretilir | `sk-polaris-` önekli istemci API anahtarı. |
 | `PANEL_PASSWORD` | kuruluma kadar boş | Web kontrol paneli şifresi. |
 | `SETUP_TOKEN` | boş | Uzak kurulum için en az 24 karakterli benzersiz belirteç; üretilmez veya kaydedilmez. Doğrudan localhost için gerekmez. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Yalnızca kimlik bilgileri ve oturumların şifrelenmemesi riskini kabul ediyorsanız uzak HTTP kurulumuna izin verir. HTTPS önerilir; güçlü bir kurulum belirteci yine gereklidir. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Saniye cinsinden web konsolu oturum ömrü. |
 | `PANEL_COOKIE_SECURE` | otomatik | Yalnızca HTTPS panel çerezleri gerektirmek için `true` yapın. HTTPS'yi `X-Forwarded-Proto` üzerinden algılamak için boş bırakın. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Saniye cinsinden giriş hız sınırlama penceresi. |
@@ -460,7 +463,7 @@ Kimlik bilgisi modu adları:
 
 ## Depolama
 
-SQLite önerilir. Compose `/app/backend/data` verisini `polaris-data` içinde saklar. Doğrudan Docker için `/app/backend/data/creds` ve `/app/backend/data/logs` yollarını `/opt/polaris/creds` ve `/opt/polaris/logs` gibi kalıcı dizinlere bağlayın.
+SQLite önerilir. Compose ve Docker kurucusu `/app/backend/data` dizininin tamamını `polaris-data` içinde saklar. Elle Docker kullanırken de tüm veri dizinini bağlayın: yalnızca `creds` ve `logs` saklamak SQLite ve yapılandırmayı korumaz.
 
 PostgreSQL isteğe bağlıdır; MongoDB Redis olmadan uyumluluk için korunur. Yalnız birini yapılandırın. Başlatma hatası sessizce SQLite'a dönmek yerine süreci durdurur. Dış depolama yatay ölçekleme sağlamaz: tek worker, tek replika. Taşınabilir şifreli yedek yalnız SQLite içindir; arka uçlar arası canlı geçiş desteklenmez.
 

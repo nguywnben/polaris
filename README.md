@@ -148,6 +148,13 @@ See [Architecture](docs/architecture.md) for module boundaries, request flow, st
 
 ## Deployment
 
+For a guided Linux/amd64 installation without cloning the repository or editing `.env`,
+see [Simple Docker installation](docs/docker-install.md): one installer command, an explicit
+HTTP choice for VPS access, then create your password on the web. **This flow is prepared
+locally and requires the matching updated installer/image to be published first.** Manual
+Docker, Compose and source development remain available; Docker-run uses its own
+[backup/update procedure](docs/docker-maintenance.md), not the Compose updater.
+
 Docker Compose is the canonical production deployment path for the supported single-machine,
 single-worker profile. Follow the [Canonical installation guide](docs/installation.md) from host
 checks through the first authenticated Dashboard; its
@@ -170,7 +177,7 @@ For diagnosis and safe recovery, use the [Production troubleshooting guide](docs
 It starts with health and readiness checks, preserves the data volume, and records the exact
 information needed for a redacted support bundle.
 
-Compatibility-only native scripts under `deploy/scripts`, direct `docker run`, Render, and Zeabur
+Compatibility-only native scripts under `deploy/scripts`, Render, and Zeabur
 do not carry the full install/update/rollback evidence of the canonical path. The production image
 is published for `linux/amd64`; native `linux/arm64` publication remains paused until the complete
 locked dependency stack has equivalent build and runtime evidence.
@@ -228,6 +235,7 @@ name; likely misspelled `POLARIS_*` variables produce a warning.
 | `API_KEY` | generated automatically | Preferred key for public client API requests. Must start with `sk-polaris-`. |
 | `PANEL_PASSWORD` | empty until setup | Password for the web control panel. |
 | `SETUP_TOKEN` | empty | Required before remote first-run setup; use a unique value of at least 24 characters. It is never generated or printed by the application. Direct localhost setup does not require it. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Opt in to remote HTTP setup only after accepting unencrypted credentials and sessions. HTTPS is recommended; a strong setup token is still required. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web console session lifetime in seconds. |
 | `PANEL_COOKIE_SECURE` | automatic | Set `true` to require HTTPS-only panel cookies. Leave empty to detect HTTPS through `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Login rate-limit window in seconds. |
@@ -490,10 +498,10 @@ Credential mode names:
 
 ## Storage
 
-Single-instance deployments use SQLite-backed storage in the application data directory. Docker
-Compose persists all of `/app/backend/data` in the `polaris-data` named volume. Direct
-`docker run` deployments must mount `/app/backend/data/creds` and `/app/backend/data/logs` to
-durable host paths such as `/opt/polaris/creds` and `/opt/polaris/logs`.
+Single-instance deployments use SQLite-backed storage in the application data directory.
+Compose and the Docker installer persist all of `/app/backend/data` in the `polaris-data`
+named volume. Manual `docker run` deployments must also persist the entire data directory:
+mounting only `creds` and `logs` does not preserve SQLite and configuration.
 
 SQLite is the Core storage authority and the recommended production default. PostgreSQL is an
 Advanced option for operators who manage their own database lifecycle. MongoDB is retained as a

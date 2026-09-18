@@ -148,6 +148,8 @@ Xem [Kiến trúc](../architecture.md) để biết thêm về ranh giới các 
 
 ## <a id="trien-khai"></a>Triển khai
 
+Muốn cài trên Linux/amd64 mà không clone repo hoặc sửa `.env`, xem [Cài Docker đơn giản](../docker-install.md): chạy một lệnh cài, xác nhận nếu dùng HTTP trên VPS, rồi tạo mật khẩu trên web. **Luồng này đang được chuẩn bị cục bộ, cần phát hành installer/image mới tương ứng trước khi dùng lệnh tải.** Vẫn giữ Docker thủ công, Compose và chạy mã nguồn; Docker-run có [hướng dẫn sao lưu/cập nhật riêng](../docker-maintenance.md), không dùng công cụ cập nhật Compose.
+
 Docker Compose là cách triển khai production chuẩn cho profile một máy, một worker được hỗ trợ.
 Hãy đi theo [Hướng dẫn cài đặt chuẩn](../installation.md) từ bước kiểm tra máy chủ đến Dashboard đã
 xác thực. [Ma trận hỗ trợ cài đặt](../installation.md#support-matrix) ghi rõ bằng chứng cho Windows,
@@ -166,7 +168,7 @@ lưu trữ, telemetry và automation. Các bản pre-release không được h�
 Hướng dẫn bắt đầu bằng kiểm tra sức khỏe và mức sẵn sàng, bảo toàn volume dữ liệu và liệt kê
 thông tin cần thu thập sau khi loại bỏ dữ liệu nhạy cảm.
 
-Các script Python native trong `deploy/scripts`, `docker run` trực tiếp, Render và Zeabur chỉ thuộc
+Các script Python native trong `deploy/scripts`, Render và Zeabur chỉ thuộc
 tầng tương thích, không có đầy đủ bằng chứng cài đặt/cập nhật/rollback của đường chuẩn. Image
 production hiện chỉ phát hành cho `linux/amd64`; bản native `linux/arm64` chưa được phát hành vì
 toàn bộ stack phụ thuộc đã khóa chưa có bằng chứng build và runtime tương đương.
@@ -224,6 +226,7 @@ cho phép qua môi trường. Giá trị không hợp lệ sẽ chặn khởi đ
 | `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-polaris-`. |
 | `PANEL_PASSWORD` | trống cho đến khi thiết lập | Mật khẩu cho bảng điều khiển web. |
 | `SETUP_TOKEN` | để trống | Bắt buộc trước khi thiết lập từ xa lần đầu; dùng giá trị riêng dài ít nhất 24 ký tự. Ứng dụng không tự sinh hoặc ghi giá trị này vào log. Thiết lập trực tiếp trên localhost không cần mã. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Chỉ bật khi chấp nhận thiết lập từ xa qua HTTP không mã hóa thông tin xác thực và phiên. Khuyến nghị HTTPS; vẫn cần mã thiết lập đủ mạnh. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Thời gian sống của phiên bảng điều khiển web tính bằng giây. |
 | `PANEL_COOKIE_SECURE` | tự động | Đặt `true` để bắt buộc cookie bảng điều khiển chỉ truyền qua HTTPS. Để trống để tự động phát hiện HTTPS qua `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Cửa sổ giới hạn tần suất đăng nhập tính bằng giây. |
@@ -487,10 +490,10 @@ Tên chế độ xác thực (Credential mode names):
 
 ## Lưu trữ
 
-Triển khai đơn tiến trình sử dụng bộ lưu trữ SQLite trong thư mục dữ liệu ứng dụng. Docker Compose
-lưu toàn bộ `/app/backend/data` trong volume có tên `polaris-data`. Khi dùng trực tiếp
-`docker run`, hãy gắn `/app/backend/data/creds` và `/app/backend/data/logs` vào các đường dẫn bền
-vững trên máy chủ như `/opt/polaris/creds` và `/opt/polaris/logs`.
+Triển khai đơn tiến trình sử dụng SQLite trong thư mục dữ liệu ứng dụng. Compose và trình cài
+Docker lưu toàn bộ `/app/backend/data` trong volume `polaris-data`. Khi dùng `docker run`
+thủ công cũng phải lưu bền vững toàn bộ thư mục dữ liệu; chỉ gắn `creds` và `logs` sẽ không
+giữ được cơ sở dữ liệu SQLite và cấu hình.
 
 SQLite là nguồn lưu trữ Core và là lựa chọn production được khuyến nghị. PostgreSQL là tùy chọn
 Advanced dành cho người vận hành tự quản lý vòng đời cơ sở dữ liệu. MongoDB chỉ được giữ ở tier

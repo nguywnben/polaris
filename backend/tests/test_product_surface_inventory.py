@@ -218,7 +218,7 @@ class ProductSurfaceInventoryTests(unittest.TestCase):
         provider_pattern = r'assets/providers/([^"/]+)'
         config_keys = re.findall(config_pattern, reference, re.MULTILINE)
         provider_icons = re.findall(provider_pattern, reference)
-        self.assertEqual(len(config_keys), 85)
+        self.assertEqual(len(config_keys), 86)
         self.assertEqual(len(provider_icons), 23)
 
         for document in documents:

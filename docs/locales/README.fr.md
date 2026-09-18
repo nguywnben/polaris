@@ -139,11 +139,13 @@ Consultez [Architecture](../architecture.md) pour en savoir plus sur les limites
 
 ## Déploiement
 
+L'[installation Docker simplifiée](../docker-install.md) pour Linux/amd64 ne demande ni clonage du dépôt ni modification manuelle de `.env` : une commande, un accord explicite pour HTTP sur VPS, puis création du mot de passe sur le Web. **Préparée localement ; l'installateur et l'image mis à jour doivent d'abord être publiés.** Docker manuel, Compose et l'exécution depuis les sources restent disponibles. Docker-run dispose de sa [procédure de sauvegarde et mise à jour](../docker-maintenance.md), distincte de l'outil Compose.
+
 Docker Compose est la voie de référence sur une machine avec un worker. Suivez le [guide d’installation](../installation.md) et sa [matrice de prise en charge](../installation.md#support-matrix) jusqu’au tableau de bord authentifié ; aucune prise en charge ARM64 supplémentaire n’est implicite.
 
 Le profil standard fonctionne sans service externe et conserve les données dans `polaris-data`. Le modèle cible `1.0.0`. Installez uniquement des tags et images Polaris publiés de la même version ; pour du code non publié, construisez une image locale distincte selon la [liste de publication](../releases/1.0.0-preparation.md). Suivez le [guide de mise à jour et retour arrière](../updating.md) ; les options avancées s’activent via `deploy/compose.advanced.yml`.
 
-Consultez le [contrat de nommage](../migrations/polaris.md) et le [dépannage](../troubleshooting.md). Les scripts natifs, `docker run`, Render et Zeabur sont des voies de compatibilité sans les mêmes preuves d’installation/restauration. L’image de production cible `linux/amd64` ; la publication `linux/arm64` reste suspendue.
+Consultez le [contrat de nommage](../migrations/polaris.md) et le [dépannage](../troubleshooting.md). Les scripts natifs, Render et Zeabur sont des voies de compatibilité sans les mêmes preuves d’installation/restauration. L’image de production cible `linux/amd64` ; la publication `linux/arm64` reste suspendue.
 
 ### Pour développer ou diagnostiquer localement :
 
@@ -192,6 +194,7 @@ Priorité : environnement, configuration enregistrée, valeurs par défaut. La [
 | `API_KEY` | générée automatiquement | Clé des clients API avec préfixe `sk-polaris-`. |
 | `PANEL_PASSWORD` | vide jusqu’à la configuration | Mot de passe pour le panneau de contrôle web. |
 | `SETUP_TOKEN` | vide | Configuration distante initiale : valeur unique d’au moins 24 caractères, jamais générée ni journalisée. Inutile en localhost direct. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Autorise la configuration distante en HTTP uniquement si vous acceptez des identifiants et sessions non chiffrés. HTTPS est recommandé ; un jeton de configuration fort reste requis. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Durée de vie de la session de console web en secondes. |
 | `PANEL_COOKIE_SECURE` | automatique | Définir à `true` pour forcer les cookies de console uniquement via HTTPS. Laisser vide pour une détection automatique via `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Fenêtre de limitation de débit de connexion en secondes. |
@@ -460,7 +463,7 @@ Noms des modes d'identifiants :
 
 ## Stockage
 
-SQLite est le stockage recommandé. Compose conserve `/app/backend/data` dans `polaris-data` ; avec Docker direct, montez durablement `/app/backend/data/creds` et `/app/backend/data/logs`, par exemple sous `/opt/polaris/creds` et `/opt/polaris/logs`.
+SQLite est le stockage recommandé. Compose et l'installateur Docker conservent tout `/app/backend/data` dans `polaris-data`. Avec Docker manuel, montez aussi le répertoire complet : conserver seulement `creds` et `logs` ne préserve ni SQLite ni la configuration.
 
 PostgreSQL est optionnel ; MongoDB est conservé pour compatibilité, avec accès direct sans Redis. Configurez un seul backend externe. Son échec d’initialisation arrête le démarrage sans repli silencieux vers SQLite. Un worker et une réplique restent requis. La sauvegarde portable chiffrée ne couvre que SQLite ; aucune migration à chaud entre backends n’est fournie.
 

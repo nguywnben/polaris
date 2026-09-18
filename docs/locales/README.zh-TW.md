@@ -139,11 +139,13 @@ docs/          架構設計說明與專案維護文檔
 
 ## 部署
 
+Linux/amd64 的[簡易 Docker 安裝](../docker-install.md)不必複製儲存庫或手動編輯 `.env`：執行一個命令，在 VPS 使用 HTTP 時明確同意風險，再於網頁建立密碼。**目前僅在本機準備，須先發布配套的新安裝指令碼與映像。** 手動 Docker、Compose 與原始碼執行方式仍然保留。Docker-run 使用[獨立的備份與更新流程](../docker-maintenance.md)，不使用 Compose 更新工具。
+
 單機、單 worker 的 Docker Compose 是主要部署方式。請遵循[安裝指南](../installation.md)與[支援矩陣](../installation.md#support-matrix)。
 
 基本設定不需外部服務，資料保存在 `polaris-data`。範本面向 `1.0.0`。僅使用已發布且版本一致的 Polaris 標籤和映像安裝；若使用尚未發布的原始碼，請依[發布清單](../releases/1.0.0-preparation.md)建置獨立的本機映像。升級或回復請遵循[更新指南](../updating.md)，進階功能可透過 `deploy/compose.advanced.yml` 選用。
 
-參閱[識別名稱約定](../migrations/polaris.md)及[疑難排解](../troubleshooting.md)。原生指令碼、`docker run`、Render 與 Zeabur 屬相容路徑，未具備同等安裝及復原驗證。映像發布支援 `linux/amd64`；`linux/arm64` 仍暫停發布。
+參閱[識別名稱約定](../migrations/polaris.md)及[疑難排解](../troubleshooting.md)。原生指令碼、Render 與 Zeabur 屬相容路徑，未具備同等安裝及復原驗證。映像發布支援 `linux/amd64`；`linux/arm64` 仍暫停發布。
 
 ### 本機開發或疑難排解：
 
@@ -192,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自動產生 | 用戶端 API 金鑰，前綴為 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 設定前為空白 | Web 控制面板的造訪密碼。 |
 | `SETUP_TOKEN` | 空白 | 遠端初始設定所需的唯一權杖，至少 24 字元；不自動產生或記錄。直接 localhost 存取不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 僅在接受憑證和工作階段未加密的風險後，才啟用遠端 HTTP 設定。建議使用 HTTPS；仍然需要強式設定權杖。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台工作階段有效時間（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自動 | 設為 `true` 強制僅在 HTTPS 下傳輸 Cookie。留空時透過 `X-Forwarded-Proto` 自動偵測。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登入頻率限制時間窗口（秒）。 |
@@ -460,7 +463,7 @@ Google Antigravity 憑證命名為 `google-antigravity-{account_fingerprint}.jso
 
 ## 資料儲存
 
-建議使用 SQLite。Compose 將 `/app/backend/data` 保存在 `polaris-data`；直接使用 Docker 時，將 `/app/backend/data/creds` 與 `/app/backend/data/logs` 掛載至 `/opt/polaris/creds`、`/opt/polaris/logs` 等持久目錄。
+建議使用 SQLite。Compose 與 Docker 安裝指令碼將整個 `/app/backend/data` 保存在 `polaris-data` 中。手動執行 Docker 時也必須掛載完整的資料目錄：僅保存 `creds` 和 `logs` 無法保留 SQLite 資料庫與設定。
 
 PostgreSQL 為選用；MongoDB 保留相容支援，可直接運作，不需 Redis。兩者只能設定一個。初始化失敗會阻止啟動，不會靜默退回 SQLite。外部資料庫不提供水平擴充：仍僅支援一個 worker、一個副本。可攜式加密備份僅支援 SQLite，不支援儲存後端間的線上遷移。
 
