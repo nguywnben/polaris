@@ -1,5 +1,17 @@
 {
   "schema_version": 1,
+  "guided": {
+    "deployment": "docker-run",
+    "installer": "deploy/scripts/docker-install.sh",
+    "guide": "docs/docker-install.md",
+    "target": "linux/amd64",
+    "status": "local-preparation",
+    "verification": "backend/tests/test_docker_install.py",
+    "runtime_evidence": "docs/evidence/guided-docker-install-2026-09-18.md",
+    "requires": ["Docker Engine", "Bash", "Permission to access the local Docker daemon"],
+    "no_clone_required": true,
+    "compose_updater_supported": false
+  },
   "canonical": {
     "deployment": "docker-compose",
     "compose_file": "deploy/docker-compose.yml",

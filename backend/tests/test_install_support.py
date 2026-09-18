@@ -77,7 +77,13 @@ class InstallSupportContractTests(unittest.TestCase):
             if path.is_file() and path.name != "docker-entrypoint.sh"
         }
 
-        self.assertEqual(user_facing_scripts, COMPATIBILITY_SCRIPTS)
+        guided = _matrix()["guided"]
+        self.assertEqual(user_facing_scripts, COMPATIBILITY_SCRIPTS | {guided["installer"]})
+        self.assertEqual(guided["deployment"], "docker-run")
+        self.assertEqual(guided["target"], "linux/amd64")
+        self.assertTrue(guided["no_clone_required"])
+        self.assertFalse(guided["compose_updater_supported"])
+        self.assertTrue((ROOT / guided["guide"]).is_file())
         self.assertEqual(
             {path for path in alternatives if path.startswith("deploy/scripts/")},
             COMPATIBILITY_SCRIPTS,
@@ -155,6 +161,17 @@ class InstallSupportContractTests(unittest.TestCase):
         vietnamese = (ROOT / "docs" / "locales" / "README.vi.md").read_text(encoding="utf-8")
         self.assertIn("[Hướng dẫn cài đặt chuẩn](../installation.md)", vietnamese)
         self.assertIn("[Ma trận hỗ trợ cài đặt](../installation.md#support-matrix)", vietnamese)
+
+    def test_all_readmes_describe_guided_install_and_complete_volume_storage(self):
+        documents = [ROOT / "README.md", *(ROOT / "docs/locales").glob("README.*.md")]
+        self.assertEqual(len(documents), 15)
+        for document in documents:
+            with self.subTest(document=document.name):
+                source = document.read_text(encoding="utf-8")
+                self.assertIn("docker-install.md)", source)
+                self.assertIn("docker-maintenance.md)", source)
+                self.assertIn("`/app/backend/data`", source)
+                self.assertNotIn("`/opt/polaris/creds`", source)
 
 
 if __name__ == "__main__":
