@@ -54,12 +54,12 @@ Tangkapan layar menggunakan data fiktif dari demo luring yang terisolasi.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dasbor" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dasbor" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Pratinjau Konsol" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Pratinjau Konsol" />
 </picture>
 
 <a id="supported-providers"></a>

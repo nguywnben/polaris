@@ -54,12 +54,12 @@ Ekran görüntülerinde yalıtılmış çevrimdışı demodan alınan kurgusal v
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Gösterge Paneli" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Gösterge Paneli" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsol Önizlemesi" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsol Önizlemesi" />
 </picture>
 
 <a id="supported-providers"></a>

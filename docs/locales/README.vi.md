@@ -71,12 +71,12 @@ Quy trình lập trình hiện đại thường kết hợp nhiều client và p
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
-  <img src="../assets/screenshots/dashboard-light.png" alt="Bảng điều khiển Polaris" width="1600" height="1100" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Bảng điều khiển Polaris" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
-  <img src="../assets/screenshots/credentials-light.png" alt="Trang thông tin xác thực Polaris" width="1600" height="1100" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Trang thông tin xác thực Polaris" />
 </picture>
 
 ## <a id="nha-cung-cap-duoc-ho-tro"></a>Nhà cung cấp được hỗ trợ

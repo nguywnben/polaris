@@ -71,12 +71,12 @@ Screenshots use fictional data from an isolated offline demo.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/dashboard-dark.png" />
-  <img src="docs/assets/screenshots/dashboard-light.png" alt="Polaris dashboard" width="1600" height="1100" />
+  <img src="docs/assets/screenshots/dashboard-light.png" alt="Polaris dashboard" />
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/credentials-dark.png" />
-  <img src="docs/assets/screenshots/credentials-light.png" alt="Polaris credentials" width="1600" height="1100" />
+  <img src="docs/assets/screenshots/credentials-light.png" alt="Polaris credentials" />
 </picture>
 
 ## Supported Providers
