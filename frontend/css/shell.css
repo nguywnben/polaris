@@ -107,8 +107,12 @@
 .login-card .setup-secret-field input {
     width: 100%;
     min-height: var(--control-height);
-    padding-inline-end: 48px;
     caret-color: var(--text);
+}
+
+/* Match the eye button's visibility; empty fields keep normal input padding. */
+.login-card .setup-secret-field input:not(:placeholder-shown) {
+    padding-inline-end: 48px;
 }
 
 .setup-secret-field input::placeholder {

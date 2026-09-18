@@ -75,6 +75,21 @@ def main():
             page.goto(base_url + "/setup", wait_until="networkidle")
             expect(page.locator("#setupTokenGroup")).to_be_visible()
             page.set_viewport_size({"width": 320, "height": 900})
+            for value in ("", "synthetic-token", ""):
+                page.locator("#setupToken").fill(value)
+                padding = page.locator("#setupToken").evaluate("""el => {
+                    const style = getComputedStyle(el);
+                    return [style.paddingInlineStart, style.paddingInlineEnd];
+                }""")
+                if value:
+                    expect(page.locator("#setupTokenToggle")).to_be_visible()
+                    assert float(padding[1][:-2]) >= 40, padding
+                else:
+                    expect(page.locator("#setupTokenToggle")).to_be_hidden()
+                    assert padding[0] == padding[1], (
+                        "Empty input must not reserve space for the hidden eye button",
+                        padding,
+                    )
             placeholder_fits = page.locator("#setupToken").evaluate("""el => {
                 const style = getComputedStyle(el);
                 const canvas = document.createElement('canvas');
