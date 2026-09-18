@@ -134,11 +134,6 @@
     margin-top: 4px;
 }
 
-#loginSubmitButton,
-#setupSubmitButton {
-    --control-height: 36px;
-}
-
 @media (max-width: 520px) {
     .signin-card {
         padding: 20px;
