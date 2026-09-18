@@ -163,6 +163,11 @@ select:not([multiple]):not([size]) {
     outline-offset: 2px;
 }
 
+/* Neutral touch feedback without changing keyboard focus or text selection. */
+:where(button, a, input, select, textarea, summary, label, [role="button"], [role="tab"]) {
+    -webkit-tap-highlight-color: rgba(128, 128, 128, 0.16);
+}
+
 a {
     color: var(--accent);
     text-decoration: none;

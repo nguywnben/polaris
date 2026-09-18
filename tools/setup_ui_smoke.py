@@ -74,6 +74,42 @@ def main():
             context.route("**/api/auth/setup", submit)
             page.goto(base_url + "/setup", wait_until="networkidle")
             expect(page.locator("#setupTokenGroup")).to_be_visible()
+            page.set_viewport_size({"width": 320, "height": 900})
+            placeholder_fits = page.locator("#setupToken").evaluate("""el => {
+                const style = getComputedStyle(el);
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = style.font;
+                return context.measureText(el.placeholder).width <= el.clientWidth
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            }""")
+            assert placeholder_fits, "Setup placeholder must fit at 320px without clipping"
+            clipped_locales = page.locator("#setupToken").evaluate("""el => {
+                const style = getComputedStyle(el);
+                const context = document.createElement('canvas').getContext('2d');
+                context.font = style.font;
+                const available = el.clientWidth - parseFloat(style.paddingLeft)
+                    - parseFloat(style.paddingRight);
+                return Object.entries(AUTH_LOCALE_TRANSLATIONS)
+                    .filter(([, copy]) => context.measureText(copy.setup_token_placeholder).width > available)
+                    .map(([locale]) => locale);
+            }""")
+            assert not clipped_locales, clipped_locales
+            page.screenshot(path=str(screenshots / "setup-placeholder-320.png"), full_page=True)
+            highlight = page.locator("#setupPreflightButton").evaluate(
+                "el => getComputedStyle(el).webkitTapHighlightColor"
+            )
+            assert highlight == "rgba(128, 128, 128, 0.16)", highlight
+            page.locator("#setupToken").focus()
+            page.keyboard.press("Tab")
+            expect(page.locator("#setupPreflightButton")).to_be_focused()
+            assert (
+                page.locator("#setupPreflightButton").evaluate(
+                    "el => getComputedStyle(el).outlineStyle"
+                )
+                != "none"
+            ), "Keyboard focus must remain visible"
+            page.set_viewport_size({"width": 1440, "height": 1100})
             expect(page.locator("#setupPassword")).to_be_disabled()
             expect(page.locator("#setupPasswordConfirm")).to_be_disabled()
             expect(page.locator("#setupSubmitButton")).to_be_disabled()

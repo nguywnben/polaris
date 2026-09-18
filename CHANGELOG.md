@@ -11,6 +11,9 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+- Shorten setup-code placeholders in all 15 languages for mobile screens and use
+  neutral touch highlights while preserving keyboard focus and text selection.
+
 - Add a guided Linux/amd64 Docker installer: no repository clone or manual `.env` editing,
   generated setup codes, explicit public HTTP consent, readiness checks, and preservation
   of existing containers/data. Keep manual Docker, Compose, and source-run paths available.
