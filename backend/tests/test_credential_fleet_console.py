@@ -63,7 +63,7 @@ global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('
 const plan = 'Muse Code Power Usage';
 const badge = renderCredentialSubscriptionBadge('test', plan, 'provider_plan');
 assert(badge.includes(`class="credential-badge-label">${{plan}}</span>`), 'Card should show the plan without the Gói prefix');
-assert(badge.includes('tabindex="0"') && badge.includes('credential-badge-tooltip'), 'Full plan must be available on focus');
+assert(!badge.includes('tabindex=') && !badge.includes('credential-badge-tooltip') && !badge.includes(' title='), 'Plan is plain text without a hover or focus tooltip');
 assert(badge.includes(plan) && !badge.includes('Power…'), 'Truncation must be visual, not data loss');
 assert(renderCredentialSubscriptionBadge('test', '', 'provider_plan').includes('hidden'), 'Unknown plans stay hidden');
 const unsafe = renderCredentialSubscriptionBadge('test', '<img src=x>', 'provider_plan');
@@ -73,6 +73,48 @@ const info = {{credential_type: 'oauth'}};
 assert(renderCredentialAuthenticationBadge(oauth, info, {{compact: true}}) === '', 'Do not repeat OAuth in compact cards');
 assert(renderCredentialAuthenticationBadge(oauth, info).includes('OAuth'), 'Management still shows OAuth');
 assert(renderCredentialAuthenticationBadge({{id: 'openai_platform'}}, {{}}, {{compact: true}}).includes('credentials.workspace.api_key'), 'Keep API key badges');
+""")
+
+    def test_quota_refresh_preserves_plan_badge_until_a_new_plan_arrives(self) -> None:
+        dialogs = ROOT / "frontend/js/ui/credential-dialogs.js"
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+vm.runInThisContext(fs.readFileSync({json.dumps(str(dialogs))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+let replacements = 0;
+const badge = {{
+    querySelector: () => ({{textContent: 'G1 Pro Tier'}}),
+    classList: {{contains: name => name === 'tier-pro'}},
+    set outerHTML(value) {{ replacements++; this.markup = value; }},
+}};
+elements.set('subscription-plan-card', badge);
+global.AppState = {{credentialCardIndex: {{card: {{providerVariant: 'google_antigravity', subscriptionPlan: 'pro'}}}}, quotaPreviewCache: {{}}}};
+for (const cached of [{{loading: true}}, {{error: 'Quota unavailable'}}, {{data: {{}}}}, {{data: {{plan: 'g1-pro-tier'}}}}]) {{
+    AppState.quotaPreviewCache.file = cached;
+    updateCredentialSubscriptionBadge('card', 'file');
+    assert(replacements === 0, 'Loading, error, absent or unchanged plan must preserve the existing badge node');
+}}
+AppState.quotaPreviewCache.file = {{data: {{plan: 'ultra'}}}};
+updateCredentialSubscriptionBadge('card', 'file');
+assert(replacements === 1 && badge.markup.includes('Ultra'), 'A confirmed plan change must still update');
+""")
+
+    def test_card_summary_only_shows_enabled_state_and_plan(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+global.AppState = {{quotaPreviewCache: {{file: {{data: {{plan: 'g1-pro-tier'}}}}}}, credentialCardIndex: {{}}}};
+global.getCredentialProviderMeta = () => ({{id: 'google_antigravity', name: 'Antigravity'}});
+global.renderCredentialQuotaPreview = () => '';
+global.formatCooldownTime = () => '60s';
+document.createElement = () => ({{querySelector: () => null, querySelectorAll: () => []}});
+manager.credentialSupportsOperation = () => false;
+const card = createCredCard({{filename: 'file', status: {{disabled: true, error_codes: [403]}},
+    credential_type: 'oauth', tier: 'g1-pro-tier', enable_credit: true,
+    model_cooldowns: {{'gemini-pro': Date.now() / 1000 + 60}}}}, manager);
+const summary = card.innerHTML.split('<div class="cred-status cred-summary">')[1].split('</div>')[0];
+assert((summary.match(/class="status-badge /g) || []).length === 2, 'Only enabled state and plan belong in the summary');
+assert(!card.innerHTML.includes('cooldown-badge') && !summary.includes('error-codes') && !summary.includes('credit-on'), 'Diagnostics must not add card badges');
 """)
 
     def test_provider_sections_are_ordered_by_matching_credential_count(self) -> None:
@@ -352,7 +394,10 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertIn("supportsReauthenticate", cards)
         self.assertIn("edit: supportsEdit", cards)
         self.assertIn("reauthenticate: supportsReauthenticate", cards)
-        self.assertIn("credential_badge_environment", cards)
+        self.assertIn(
+            "settings.managed_environment",
+            (ROOT / "frontend/js/ui/credential-management.js").read_text(encoding="utf-8"),
+        )
         self.assertIn("showCredentialEditModal(pathId)", cards)
         self.assertIn("reauthenticateCredential(pathId)", cards)
         self.assertIn("/configuration/", dialogs)

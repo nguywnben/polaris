@@ -11,6 +11,11 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+### Changed
+
+- Keep credential plan badges stable during quota refresh, remove their hover tooltips,
+  and show only enabled/disabled state and the known plan in compact credential cards.
+
 ### Fixed
 
 - Preserve Chat Completions tool-call history when routing to Muse Code / Meta,

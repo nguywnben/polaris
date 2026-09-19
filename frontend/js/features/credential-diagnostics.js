@@ -408,7 +408,7 @@ async function loadPrimaryQuotaPreview(pathId) {
 
     if (!filename) return;
 
-    AppState.quotaPreviewCache[filename] = { loading: true };
+    AppState.quotaPreviewCache[filename] = {...AppState.quotaPreviewCache[filename], loading: true, error: null};
 
     updateCredentialQuotaPreview(pathId, filename);
 
