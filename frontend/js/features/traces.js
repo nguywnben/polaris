@@ -306,6 +306,8 @@ async function openTraceDetail(element) {
     dialog.setAttribute('aria-busy', 'true');
     setRegionBusy('traceDecisionList', true);
     TraceConsoleState.detailReturnFocus = element; if (traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.loading'); dialog.showModal();
+    const detailBody = dialog.querySelector('.trace-detail-body');
+    if (detailBody) detailBody.scrollTop = 0;
     try {
         const response = await fetch(`./api/traces/${encodeURIComponent(traceId)}`, { signal: controller.signal }); if (!response.ok) throw new Error('trace-detail');
         const trace = normalizeRequestTrace(await response.json()); if (!trace) throw new TypeError('trace-detail-shape');

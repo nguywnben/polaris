@@ -13,6 +13,10 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Use compact, theme-aware horizontal and vertical scrollbars throughout the console,
+  while preserving system controls in forced-colors mode.
+- Clarify trace-detail dialog hierarchy and close control; keep header/actions visible
+  while scrolling a lighter decision list, and reset scrolling when reopening a trace.
 - Keep unknown credential model counts distinct from zero, retain same-account counts
   during incomplete refreshes, and synchronize cards after model discovery in management.
 - Use one consistent blue information color for all credential subscription-plan badges.
