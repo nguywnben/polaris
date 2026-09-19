@@ -13,6 +13,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Keep browser-native page scrollbars; apply compact themed scrollbars only to
+  inner scrolling regions such as dialogs, lists, and tables.
 - Classify dialog dismissal consistently: read-only details support outside click
   and Escape; forms, confirmations, credential management, and one-time secrets
   require an explicit action button, protecting drafts from accidental dismissal.

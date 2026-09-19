@@ -79,10 +79,13 @@ def main():
                     body = dialog.locator(".trace-detail-body")
                     assert body.evaluate("el => el.scrollHeight > el.clientHeight")
                     assert body.evaluate("el => getComputedStyle(el).scrollbarWidth") == "thin"
-                    assert (
-                        page.locator("html").evaluate("el => getComputedStyle(el).scrollbarWidth")
-                        == "thin"
-                    )
+                    for selector in ("html", "body"):
+                        assert page.locator(selector).evaluate("""el => {
+                            const style = getComputedStyle(el);
+                            const fallback = getComputedStyle(el, '::-webkit-scrollbar');
+                            return style.scrollbarWidth === 'auto' && style.scrollbarColor === 'auto'
+                                && fallback.width === 'auto' && fallback.height === 'auto';
+                        }"""), f"{selector}: page scrollbar must remain browser-native"
                     assert dialog.evaluate("el => el.scrollWidth <= el.clientWidth")
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
                     header_y = dialog.locator(".trace-detail-header").bounding_box()["y"]
@@ -142,7 +145,9 @@ def main():
                     lambda r: r.fulfill(
                         content_type="text/html",
                         body="""<!doctype html>
+                        <html style="overflow:auto">
                         <link rel="stylesheet" href="/frontend/console.css">
+                        <body style="min-width:1600px;min-height:1600px;overflow:visible">
                         <div id="scroll" tabindex="0" style="width:280px;height:160px;overflow:auto">
                         <div style="width:1000px;height:1000px">Synthetic two-axis scroll</div></div>""",
                     ),
@@ -156,6 +161,12 @@ def main():
                 page.wait_for_function(
                     "() => { const el = document.querySelector('#scroll'); return el.scrollLeft > 0 && el.scrollTop > 0; }"
                 )
+                page.mouse.move(600, 500)
+                page.mouse.wheel(200, 200)
+                page.wait_for_function("() => scrollX > 0 && scrollY > 0")
+                page.emulate_media(forced_colors="active")
+                assert surface.evaluate("el => getComputedStyle(el).scrollbarWidth") == "auto"
+                assert surface.evaluate("el => getComputedStyle(el).scrollbarColor") == "auto"
             assert not errors, errors
             print(
                 "PASS: trace dialog matrix, keyboard/focus, scroll, themes, empty/error and forced colors"

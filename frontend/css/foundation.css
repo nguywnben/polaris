@@ -103,22 +103,26 @@
 * {
     box-sizing: border-box;
     font-family: var(--font-sans) !important;
+}
+
+/* Style only inner scroll regions; html/body keep browser-native viewport bars. */
+body * {
     scrollbar-width: thin;
     scrollbar-color: var(--text-soft) transparent;
 }
 
 /* Both axes keep native scrolling, with a compact fallback for older WebKit. */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track,
-::-webkit-scrollbar-corner { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--text-soft); border: 2px solid transparent; border-radius: 8px; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
+body *::-webkit-scrollbar { width: 8px; height: 8px; }
+body *::-webkit-scrollbar-track,
+body *::-webkit-scrollbar-corner { background: transparent; }
+body *::-webkit-scrollbar-thumb { background: var(--text-soft); border: 2px solid transparent; border-radius: 8px; background-clip: padding-box; }
+body *::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
 
 /* Respect high-contrast users' system scrollbar affordances. */
 @media (forced-colors: active) {
-    * { scrollbar-width: auto; scrollbar-color: auto; }
-    ::-webkit-scrollbar { width: auto; height: auto; }
-    ::-webkit-scrollbar-thumb { background: CanvasText; }
+    body * { scrollbar-width: auto; scrollbar-color: auto; }
+    body *::-webkit-scrollbar { width: auto; height: auto; }
+    body *::-webkit-scrollbar-thumb { background: CanvasText; }
 }
 
 /* Only palette changes bypass transitions; normal interactions keep their motion. */
