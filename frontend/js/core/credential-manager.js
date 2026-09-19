@@ -428,6 +428,7 @@ function createCredsManager(type) {
                             credential_label: item.credential_label,
 
                             credential_type: item.credential_type,
+                            quota_cache_scope: item.quota_cache_scope,
                             api_key_hint: item.api_key_hint,
                             validation_status: item.validation_status === 'unverified' ? 'unverified' : null,
 

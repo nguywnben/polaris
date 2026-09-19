@@ -11,6 +11,11 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+### Security
+
+- Update AnyIO to 4.14.2 to resolve the three reported dependency advisories.
+- Synchronize the runtime lock with the already-declared Pydantic 2.13.5 minimum.
+
 ### Changed
 
 - Remove the masked API-key subtitle from credential cards.
@@ -21,6 +26,11 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Bind saved credential plans and quota previews to an opaque account scope,
+  preventing a replaced account from inheriting the previous account's badge.
+  Discard late quota responses after account replacement or deletion.
+- Classify invalid stored Meta/Muse credentials as provider preparation failures,
+  while preserving HTTP 400 for unsupported client request options.
 - Retain Muse Code account email through sign-in, import and refresh, and show it
   on credential cards instead of falling back to the credential filename.
 - Preserve Chat Completions tool-call history when routing to Muse Code / Meta,

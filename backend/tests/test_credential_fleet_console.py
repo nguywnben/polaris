@@ -17,6 +17,19 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_quota_result_cannot_repopulate_a_replaced_or_deleted_card(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.AppState = {{quotaPreviewCache: {{}}, credentialCardIndex: {{card: {{quotaCacheScope: 'new-account'}}}}}};
+assert(!cacheCredentialQuota('card', 'same.json', 'old-account', {{data: {{plan: 'Pro'}}}}), 'Ignore the old in-flight response');
+assert(!AppState.quotaPreviewCache['same.json'], 'Do not leak old quota into the new account');
+assert(cacheCredentialQuota('card', 'same.json', 'new-account', {{data: {{plan: 'Free'}}}}), 'Accept a current response');
+assert(AppState.quotaPreviewCache['same.json'].scope === 'new-account', 'Bind data to its source account');
+delete AppState.credentialCardIndex.card;
+assert(!cacheCredentialQuota('card', 'same.json', 'new-account', {{error: 'late'}}), 'Deleted cards ignore late failures');
+assert(AppState.quotaPreviewCache['same.json'].data.plan === 'Free', 'Late failures cannot overwrite newer data');
+""")
+
     def test_badge_hints_dismiss_without_moving_focus_and_reopen_on_reentry(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -109,20 +122,24 @@ global.getCredentialProviderMeta = () => ({{id: 'google_antigravity', name: 'Ant
 global.renderCredentialQuotaPreview = () => '';
 document.createElement = () => ({{querySelector: () => null, querySelectorAll: () => []}});
 manager.credentialSupportsOperation = () => false;
-const info = {{filename: 'file', status: {{disabled: false}}, credential_type: 'oauth', tier: 'pro'}};
-const resetPage = data => {{ global.AppState = {{quotaPreviewCache: {{file: {{data}}}}, credentialCardIndex: {{}}}}; }};
+const info = {{filename: 'file', quota_cache_scope: 'a'.repeat(64), status: {{disabled: false}}, credential_type: 'oauth', tier: 'pro'}};
+const resetPage = data => {{ global.AppState = {{quotaPreviewCache: {{file: {{data, scope: info.quota_cache_scope}}}}, credentialCardIndex: {{}}}}; }};
 resetPage({{}});
 assert(!createCredCard(info, manager).innerHTML.includes('>Pro</span>'), 'Never display the internal default tier as a provider plan');
 resetPage({{plan: 'g1-pro-tier'}});
 assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Render the confirmed provider plan');
 resetPage({{}});
 assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Page reload keeps the last confirmed plan');
+const replacement = {{...info, quota_cache_scope: 'b'.repeat(64)}};
+assert(!createCredCard(replacement, manager).innerHTML.includes('G1 Pro Tier'), 'Same filename with a different account cannot restore the prior plan');
+resetPage({{plan: 'g1-pro-tier'}});
+assert(!createCredCard(replacement, manager).innerHTML.includes('G1 Pro Tier'), 'Invalidate in-memory quota data belonging to the previous account too');
 assert(!createCredCard({{...info, filename: 'another'}}, manager).innerHTML.includes('G1 Pro Tier'), 'Do not mix credential plans');
 resetPage({{plan: 'ultra'}});
 assert(createCredCard(info, manager).innerHTML.includes('>Ultra</span>'), 'Fresh provider metadata replaces the snapshot');
 assert(credentialSubscriptionSnapshot('different', 'muse_code', null) === null, 'Provider and credential keys are isolated');
 assert(credentialSubscriptionSnapshot('card', 'muse_code', {{api_key: 'never-store'}}, 'provider_plan') === null, 'Cache only plan strings, not arbitrary response objects');
-for (let index = 0; index < 260; index++) credentialSubscriptionSnapshot('card-' + index, 'muse_code', 'Pro');
+for (let index = 0; index < 260; index++) credentialSubscriptionSnapshot('card-' + index, 'muse_code', 'Pro', 'plan', 'a'.repeat(64));
 assert(JSON.parse(saved.get('polaris_credential_plan_snapshots')).length === 256, 'Keep browser storage bounded');
 sessionStorage.getItem = () => 'broken JSON';
 resetPage({{}});

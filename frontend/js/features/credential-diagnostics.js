@@ -336,6 +336,7 @@ async function togglePrimaryQuotaDetails(pathId) {
 
     const context = getCredentialModalContext(pathId, AppState.primaryCreds);
     const { filename } = context;
+    const scope = AppState.credentialCardIndex[pathId]?.quotaCacheScope;
 
     if (!filename) return;
 
@@ -347,10 +348,10 @@ async function togglePrimaryQuotaDetails(pathId) {
 
         if (response.ok && data.success) {
 
-            AppState.quotaPreviewCache[filename] = {
+            if (!cacheCredentialQuota(pathId, filename, scope, {
                 summary: summarizeCredentialQuota(data),
                 data,
-            };
+            })) return;
 
             updateCredentialQuotaPreview(pathId, filename);
 
@@ -360,7 +361,7 @@ async function togglePrimaryQuotaDetails(pathId) {
 
             const errorMsg = data.error || t('failed_to_get_quota_information');
 
-            AppState.quotaPreviewCache[filename] = { error: errorMsg };
+            if (!cacheCredentialQuota(pathId, filename, scope, {error: errorMsg})) return;
 
             updateCredentialQuotaPreview(pathId, filename);
 
@@ -374,7 +375,7 @@ async function togglePrimaryQuotaDetails(pathId) {
 
         const errorMsg = t('failed_to_get_quota_information_err', {error_message: error.message});
 
-        AppState.quotaPreviewCache[filename] = { error: errorMsg };
+        if (!cacheCredentialQuota(pathId, filename, scope, {error: errorMsg})) return;
 
         updateCredentialQuotaPreview(pathId, filename);
 
@@ -405,6 +406,7 @@ async function fetchPrimaryQuota(filename) {
 async function loadPrimaryQuotaPreview(pathId) {
 
     const { filename } = getCredentialModalContext(pathId, AppState.primaryCreds);
+    const scope = AppState.credentialCardIndex[pathId]?.quotaCacheScope;
 
     if (!filename) return;
 
@@ -418,24 +420,24 @@ async function loadPrimaryQuotaPreview(pathId) {
 
         if (response.ok && data.success) {
 
-            AppState.quotaPreviewCache[filename] = {
+            cacheCredentialQuota(pathId, filename, scope, {
                 summary: summarizeCredentialQuota(data),
                 data,
-            };
+            });
 
         } else {
 
-            AppState.quotaPreviewCache[filename] = {
+            cacheCredentialQuota(pathId, filename, scope, {
                 error: data.error || t('failed_to_get_quota_information'),
-            };
+            });
 
         }
 
     } catch (error) {
 
-        AppState.quotaPreviewCache[filename] = {
+        cacheCredentialQuota(pathId, filename, scope, {
             error: t('failed_to_get_quota_information_err', {error_message: error.message}),
-        };
+        });
 
     } finally {
 

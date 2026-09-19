@@ -274,9 +274,11 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
 
 }
 
-function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan') {
+function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan', scope = '') {
     const storageKey = 'polaris_credential_plan_snapshots';
-    const key = `${provider}:${pathId}`;
+    // Never restore legacy filename-only snapshots for a new or unknown account.
+    const key = JSON.stringify([provider, pathId, scope]);
+    const persist = typeof scope === 'string' && /^[a-f0-9]{64}$/.test(scope);
     let entries = [];
     try {
         const stored = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
@@ -286,14 +288,22 @@ function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan') 
         const snapshot = {key, value, kind};
         entries = entries.filter(item => item.key !== key);
         entries.push(snapshot);
-        try { sessionStorage.setItem(storageKey, JSON.stringify(entries.slice(-256))); }
+        try { if (persist) sessionStorage.setItem(storageKey, JSON.stringify(entries.slice(-256))); }
         catch { /* Keep the live provider value even if persistence is blocked. */ }
         return snapshot;
     }
-    const previous = entries.find(item => item.key === key);
+    const previous = persist && entries.find(item => item.key === key);
     return previous && typeof previous.value === 'string'
         && ['plan', 'provider_plan', 'provider_tier'].includes(previous.kind)
         && normalizeCredentialSubscriptionPlan(previous.value, previous.kind) ? previous : null;
+}
+
+function cacheCredentialQuota(pathId, filename, scope, cached) {
+    // A late response from a replaced card must not populate the new account.
+    const context = AppState.credentialCardIndex[pathId];
+    if (!context || context.quotaCacheScope !== scope) return false;
+    AppState.quotaPreviewCache[filename] = {...cached, scope};
+    return true;
 }
 
 function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
@@ -361,6 +371,10 @@ function createCredCard(credInfo, manager) {
     const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
+    const quotaCacheScope = credInfo.quota_cache_scope;
+    if (AppState.quotaPreviewCache[filename]?.scope !== quotaCacheScope) {
+        delete AppState.quotaPreviewCache[filename];
+    }
     const supportsQuotaPreview = managerType === 'primary'
         && manager.credentialSupportsOperation(credInfo, 'quota');
     const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
@@ -377,7 +391,7 @@ function createCredCard(credInfo, manager) {
 
     if (shouldAutoLoadQuota) {
 
-        AppState.quotaPreviewCache[filename] = { loading: true };
+        AppState.quotaPreviewCache[filename] = { loading: true, scope: quotaCacheScope };
 
     }
 
@@ -399,12 +413,13 @@ function createCredCard(credInfo, manager) {
     const subscription = credentialSubscriptionSnapshot(
         pathId, providerMeta.id,
         quotaData?.plan || (isMuseOAuth ? quotaData?.subscription_tier : null),
-        isMuseOAuth ? (quotaData?.plan ? 'provider_plan' : 'provider_tier') : 'plan'
+        isMuseOAuth ? (quotaData?.plan ? 'provider_plan' : 'provider_tier') : 'plan', quotaCacheScope
     );
     contextBadges += renderCredentialSubscriptionBadge(pathId, subscription?.value, subscription?.kind);
 
     AppState.credentialCardIndex[pathId] = {
         filename,
+        quotaCacheScope,
         managerType,
         email: credInfo.user_email || '',
         accountLabel,
