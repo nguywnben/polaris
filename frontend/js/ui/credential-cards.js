@@ -274,6 +274,28 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
 
 }
 
+function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan') {
+    const storageKey = 'polaris_credential_plan_snapshots';
+    const key = `${provider}:${pathId}`;
+    let entries = [];
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored)) entries = stored.filter(item => item && typeof item.key === 'string').slice(-256);
+    } catch { /* Plan display still works when browser storage is unavailable. */ }
+    if (typeof value === 'string' && normalizeCredentialSubscriptionPlan(value, kind)) {
+        const snapshot = {key, value, kind};
+        entries = entries.filter(item => item.key !== key);
+        entries.push(snapshot);
+        try { sessionStorage.setItem(storageKey, JSON.stringify(entries.slice(-256))); }
+        catch { /* Keep the live provider value even if persistence is blocked. */ }
+        return snapshot;
+    }
+    const previous = entries.find(item => item.key === key);
+    return previous && typeof previous.value === 'string'
+        && ['plan', 'provider_plan', 'provider_tier'].includes(previous.kind)
+        && normalizeCredentialSubscriptionPlan(previous.value, previous.kind) ? previous : null;
+}
+
 function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
 
     const plan = normalizeCredentialSubscriptionPlan(value, kind);
@@ -337,7 +359,6 @@ function createCredCard(credInfo, manager) {
 
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
-    const isAntigravity = providerMeta.id === 'google_antigravity';
     const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
@@ -375,37 +396,13 @@ function createCredCard(credInfo, manager) {
 
         : `<span class="status-badge enabled">${t('status_enabled')}</span>`;
 
-    if (isAntigravity) {
-
-        contextBadges += renderCredentialSubscriptionBadge(pathId, AppState.quotaPreviewCache[filename]?.data?.plan || credInfo.tier, 'plan');
-
-    } else if (isMuseOAuth) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan || AppState.quotaPreviewCache[filename]?.data?.subscription_tier,
-            AppState.quotaPreviewCache[filename]?.data?.plan ? 'provider_plan' : 'provider_tier'
-        );
-
-    } else if (supportsQuotaPreview) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan,
-            'plan'
-        );
-
-    } else if (managerType !== 'primary' && credInfo.tier) {
-
-        const tier = credInfo.tier.toString().toLowerCase();
-
-        const tierLabel = tier.toUpperCase();
-
-        const tierClass = tier === 'ultra' ? 'tier-ultra' : (tier === 'free' ? 'tier-free' : 'tier-pro');
-
-        contextBadges += `<span class="status-badge ${tierClass}">${escapeHtml(tierLabel)}</span>`;
-
-    }
+    const quotaData = AppState.quotaPreviewCache[filename]?.data;
+    const subscription = credentialSubscriptionSnapshot(
+        pathId, providerMeta.id,
+        quotaData?.plan || (isMuseOAuth ? quotaData?.subscription_tier : null),
+        isMuseOAuth ? (quotaData?.plan ? 'provider_plan' : 'provider_tier') : 'plan'
+    );
+    contextBadges += renderCredentialSubscriptionBadge(pathId, subscription?.value, subscription?.kind);
 
     AppState.credentialCardIndex[pathId] = {
         filename,
@@ -416,8 +413,8 @@ function createCredCard(credInfo, manager) {
         providerVariant: providerMeta.id,
         credentialSource: credInfo.source || 'managed',
         modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
-        subscriptionPlan: isAntigravity ? credInfo.tier : '',
-        subscriptionKind: isAntigravity ? 'plan' : '',
+        subscriptionPlan: subscription?.value || '',
+        subscriptionKind: subscription?.kind || '',
     };
 
     const primaryActionButtons = `

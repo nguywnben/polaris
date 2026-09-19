@@ -99,6 +99,39 @@ updateCredentialSubscriptionBadge('card', 'file');
 assert(replacements === 1 && badge.markup.includes('Ultra'), 'A confirmed plan change must still update');
 """)
 
+    def test_plan_snapshot_survives_reload_without_using_internal_tier(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+const saved = new Map();
+global.sessionStorage = {{getItem: key => saved.get(key) || null, setItem: (key, value) => saved.set(key, value)}};
+global.getCredentialProviderMeta = () => ({{id: 'google_antigravity', name: 'Antigravity'}});
+global.renderCredentialQuotaPreview = () => '';
+document.createElement = () => ({{querySelector: () => null, querySelectorAll: () => []}});
+manager.credentialSupportsOperation = () => false;
+const info = {{filename: 'file', status: {{disabled: false}}, credential_type: 'oauth', tier: 'pro'}};
+const resetPage = data => {{ global.AppState = {{quotaPreviewCache: {{file: {{data}}}}, credentialCardIndex: {{}}}}; }};
+resetPage({{}});
+assert(!createCredCard(info, manager).innerHTML.includes('>Pro</span>'), 'Never display the internal default tier as a provider plan');
+resetPage({{plan: 'g1-pro-tier'}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Render the confirmed provider plan');
+resetPage({{}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Page reload keeps the last confirmed plan');
+assert(!createCredCard({{...info, filename: 'another'}}, manager).innerHTML.includes('G1 Pro Tier'), 'Do not mix credential plans');
+resetPage({{plan: 'ultra'}});
+assert(createCredCard(info, manager).innerHTML.includes('>Ultra</span>'), 'Fresh provider metadata replaces the snapshot');
+assert(credentialSubscriptionSnapshot('different', 'muse_code', null) === null, 'Provider and credential keys are isolated');
+assert(credentialSubscriptionSnapshot('card', 'muse_code', {{api_key: 'never-store'}}, 'provider_plan') === null, 'Cache only plan strings, not arbitrary response objects');
+for (let index = 0; index < 260; index++) credentialSubscriptionSnapshot('card-' + index, 'muse_code', 'Pro');
+assert(JSON.parse(saved.get('polaris_credential_plan_snapshots')).length === 256, 'Keep browser storage bounded');
+sessionStorage.getItem = () => 'broken JSON';
+resetPage({{}});
+assert(!createCredCard(info, manager).innerHTML.includes('>Pro</span>'), 'Invalid storage must not reintroduce default plans');
+sessionStorage.getItem = sessionStorage.setItem = () => {{throw new Error('Storage blocked');}};
+resetPage({{plan: 'g1-pro-tier'}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Blocked storage does not prevent live display');
+""")
+
     def test_card_summary_only_shows_enabled_state_and_plan(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -315,7 +348,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertNotIn("isStaticProvider", source)
         self.assertNotIn("isCodexOAuth", source)
         self.assertIn("const supportsQuotaPreview", source)
-        self.assertIn("} else if (supportsQuotaPreview)", source)
+        self.assertIn("credentialSubscriptionSnapshot(", source)
         self.assertIn("manager.credentialSupportsOperation(credInfo, 'quota')", source)
 
     def test_credential_page_navigation_is_single_flight_and_preserves_content(self) -> None:

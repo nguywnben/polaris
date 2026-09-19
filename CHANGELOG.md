@@ -13,6 +13,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Changed
 
+- Restore the last provider-reported credential plan when reloading the same browser tab;
+  keep unknown plans hidden instead of displaying internal default tiers.
 - Keep credential plan badges stable during quota refresh, remove their hover tooltips,
   and show only enabled/disabled state and the known plan in compact credential cards.
 

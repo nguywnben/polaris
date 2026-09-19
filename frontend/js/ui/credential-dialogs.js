@@ -682,6 +682,9 @@ function updateCredentialSubscriptionBadge(pathId, filename) {
     const kind = isMuse ? (cached.data?.plan ? 'provider_plan' : 'provider_tier') : 'plan';
     const normalized = normalizeCredentialSubscriptionPlan(plan, kind);
     if (!normalized) return;
+    credentialSubscriptionSnapshot(pathId, cardContext.providerVariant, plan, kind);
+    cardContext.subscriptionPlan = plan;
+    cardContext.subscriptionKind = kind;
     if (badge.querySelector('.credential-badge-label')?.textContent === normalized.label
         && badge.classList.contains(normalized.badgeClass)) return;
     badge.outerHTML = renderCredentialSubscriptionBadge(pathId, plan, kind);
