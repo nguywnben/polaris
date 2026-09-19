@@ -192,6 +192,13 @@ def enrich_credential_summary(
         credential_kind = "oauth"
     source = "environment" if credential_data.get("source") == "environment" else "managed"
     provider = get_credential_provider(credential_data)
+    user_email = summary.get("user_email")
+    if provider == "muse_code" and credential_kind == "oauth":
+        from core.muse_oauth import account_email
+
+        # Muse refresh stores account metadata in the credential payload, while
+        # older records can have an empty or stale email in their state column.
+        user_email = account_email(credential_data.get("user_email")) or account_email(user_email)
     tier = (
         str(summary.get("tier") or "pro").strip().lower()
         if provider == GOOGLE_ANTIGRAVITY
@@ -200,7 +207,7 @@ def enrich_credential_summary(
 
     item: dict[str, Any] = {
         "filename": os.path.basename(str(summary.get("filename") or "")),
-        "user_email": summary.get("user_email"),
+        "user_email": user_email,
         "credential_label": credential_data.get("credential_label"),
         "credential_type": credential_kind,
         "api_key_hint": (

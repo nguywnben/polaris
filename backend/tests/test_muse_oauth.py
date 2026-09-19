@@ -169,7 +169,7 @@ class MuseOAuthTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["credential_type"], "oauth")
         self.assertEqual(result["access_token"], "fixture-oauth-secret")
         self.assertEqual(len(result["account_id"]), 64)
-        self.assertNotIn("user_email", result)
+        self.assertEqual(result["user_email"], "fixture@example.test")
         self.assertNotIn("user_full_name", result)
         self.assertEqual(result["subscription_usage"]["window"]["used_percent"], 7)
 

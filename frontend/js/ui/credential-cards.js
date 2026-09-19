@@ -344,9 +344,8 @@ function getCredentialAccountLabel(credInfo) {
 
 function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
     const kind = getCredentialAuthenticationType(providerMeta, credInfo);
-    const subtitle = kind === 'API key' ? credInfo.api_key_hint
-        : kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
-            ? credInfo.user_email : '';
+    const subtitle = kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
+        ? credInfo.user_email : '';
     if (!subtitle) return '';
     return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
 }

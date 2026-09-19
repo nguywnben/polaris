@@ -12,6 +12,7 @@ from core.muse_oauth import (
     USER_AGENT,
     MuseOAuthError,
     _secret,
+    account_email,
     mint_key,
     subscription_label,
     subscription_usage,
@@ -41,15 +42,9 @@ def normalize_credential(data: dict) -> dict:
     if data.get("base_url", API_BASE) != API_BASE:
         raise MuseOAuthError("Unsupported Muse Code API endpoint.", 400)
     account = data.get("account_id")
-    if not account:
-        email = data.get("user_email")
-        if (
-            isinstance(email, str)
-            and 3 <= len(email) <= 320
-            and "@" in email
-            and all(c.isprintable() and not c.isspace() for c in email)
-        ):
-            account = hashlib.sha256(email.casefold().encode()).hexdigest()
+    email = account_email(data.get("user_email"))
+    if not account and email:
+        account = hashlib.sha256(email.casefold().encode()).hexdigest()
     if not isinstance(account, str) or not re.fullmatch(r"[a-f0-9]{64}", account):
         raise MuseOAuthError("Muse Code credential is missing a valid account identity.", 400)
     models = data.get("model_ids", [])
@@ -72,6 +67,8 @@ def normalize_credential(data: dict) -> dict:
             dict.fromkeys(MODEL_PREFIX + model.removeprefix(MODEL_PREFIX) for model in models)
         ),
     }
+    if email:
+        result["user_email"] = email
     if data.get("api_key"):
         result["api_key"] = _secret(data["api_key"])
     if "oauth_expires_at" in data:

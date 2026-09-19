@@ -13,6 +13,7 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Changed
 
+- Remove the masked API-key subtitle from credential cards.
 - Restore the last provider-reported credential plan when reloading the same browser tab;
   keep unknown plans hidden instead of displaying internal default tiers.
 - Keep credential plan badges stable during quota refresh, remove their hover tooltips,
@@ -20,6 +21,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Retain Muse Code account email through sign-in, import and refresh, and show it
+  on credential cards instead of falling back to the credential filename.
 - Preserve Chat Completions tool-call history when routing to Muse Code / Meta,
   ignoring only the internal Gemini tool-call placeholder, not real signed reasoning.
   Return typed request-validation errors as HTTP 400 without penalizing credential health.

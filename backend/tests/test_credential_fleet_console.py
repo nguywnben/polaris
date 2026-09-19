@@ -40,13 +40,13 @@ document.querySelectorAll = () => [];
 listeners.keydown({{key: 'Escape', preventDefault() {{ throw new Error('Unrelated Escape intercepted'); }}}});
 """)
 
-    def test_identity_subtitle_uses_only_masked_key_or_oauth_email(self) -> None:
+    def test_identity_subtitle_shows_only_oauth_email(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
 global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 const provider = {{id: 'openai_platform'}};
 const key = {{credential_type: 'api_key', api_key_hint: 'sample…last', api_key: 'never-render-this'}};
-assert(renderCredentialIdentitySubtitle(provider, key, 'Work').includes('sample…last'), 'Show masked key beneath the name');
+assert(renderCredentialIdentitySubtitle(provider, key, 'Work') === '', 'API key cards have no key subtitle');
 assert(!renderCredentialIdentitySubtitle(provider, key, 'Work').includes('never-render'), 'Never derive preview from a full client-side key');
 assert(renderCredentialIdentitySubtitle(provider, {{api_key: 'secret'}}, 'Work') === '', 'Missing hint must not fall back to the full key');
 assert(!renderCredentialIdentitySubtitle(provider, {{...key, api_key_hint: '<img src=x>'}}, 'Work').includes('<img'), 'Escape the hint');

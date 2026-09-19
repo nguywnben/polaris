@@ -54,6 +54,33 @@ def _item(
 
 
 class CredentialFleetQueryTests(unittest.TestCase):
+    def test_muse_email_comes_from_refreshed_payload_without_state_migration(self):
+        credential = {
+            "provider": "muse_code",
+            "credential_type": "oauth",
+            "account_id": "a" * 64,
+            "user_email": "fixture@example.test",
+            "access_token": "must-never-leak",
+            "api_key": "must-never-leak",
+        }
+        for stored_email in (None, "old@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json", "user_email": stored_email},
+                credential,
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertEqual(item["user_email"], "fixture@example.test")
+            self.assertNotIn("must-never-leak", repr(item))
+        for email in (None, "invalid", "bad@\nexample.test", "x" * 321 + "@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json"},
+                {**credential, "user_email": email},
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertIsNone(item["user_email"])
+
     def test_api_key_hint_is_masked_at_the_public_boundary(self):
         key = "sample-prefix-private-middle-suffix"
         credential = {

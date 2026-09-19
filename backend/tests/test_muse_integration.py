@@ -406,6 +406,7 @@ class MuseIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_quota_rechecks_eligibility_and_exposes_no_secrets(self):
         fresh = {
             **ACCOUNT,
+            "user_email": "fixture@example.test",
             "subscription_usage": {
                 "window": {
                     "used_percent": 35,
@@ -433,10 +434,22 @@ class MuseIntegrationTests(unittest.IsolatedAsyncioTestCase):
         result = json.loads(response.body)
         self.assertEqual(result["windows"][0]["remaining_percentage"], 65)
         self.assertNotIn("synthetic", str(result))
+        self.assertNotIn("user_email", result)
         self.assertEqual(result["subscription_tier"], "opaque-tier")
         self.assertNotIn("plan", result)
         refresh.assert_awaited_once_with(ACCOUNT)
         storage.store_credential.assert_awaited_once()
+        stored = storage.store_credential.await_args.args[1]
+        self.assertEqual(stored["user_email"], "fixture@example.test")
+        from core.credential_fleet_query import enrich_credential_summary
+
+        card = enrich_credential_summary(
+            {"filename": "muse.json", "user_email": None},
+            stored,
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(card["user_email"], "fixture@example.test")
 
     def test_console_errors_have_all_locales_and_protocol_text_stays_unchanged(self):
         for values in MESSAGES.values():
