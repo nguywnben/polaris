@@ -11,6 +11,14 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-19
+
+Prepared refresh, not yet published. This candidate includes the guided installation,
+mobile interaction, client compatibility, credential identity and dependency fixes.
+The verified source revision and image digest identify its exact contents; operators
+with an earlier 1.0.0 image must explicitly pull the refreshed image after publication.
+The historical Omni Gateway 1.0.0 is separate.
+
 ### Security
 
 - Update AnyIO to 4.14.2 to resolve the three reported dependency advisories.
@@ -42,13 +50,6 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
   and retain usage-only provider frames, including fake streams and continuation attempts.
   Preserve `tool_calls` finish reasons when providers send the stop marker separately.
 - Preserve streamed usage totals in the translated Responses API.
-
-## [1.0.0] - 2026-09-18
-
-This refreshed 1.0.0 includes the guided installation and phone interaction fixes.
-The release's verified source revision and image digest identify its exact contents;
-operators with an earlier 1.0.0 image must pull the refreshed image before upgrading.
-The historical Omni Gateway 1.0.0 is separate.
 
 ### Installation and mobile improvements
 
@@ -680,7 +681,7 @@ The historical Omni Gateway 1.0.0 is separate.
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...HEAD
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.0.0...HEAD
 [0.1.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.4.0...v0.1.0-beta
 [1.5.0]: docs/evidence/p5.6-release-candidate-handoff.md
 [1.4.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.2...omni-gateway/v1.4.0
