@@ -13,6 +13,8 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Replace the trace-detail header's X icon with a translated Close button in the
+  footer, keeping Escape dismissal and return focus.
 - Keep trace and credential-management dialog frames stable during delayed requests.
 - Match Identity summary skeletons to their fact layout, preserve expanded permissions
   on refresh, and retain last loaded lists during transient refresh errors without

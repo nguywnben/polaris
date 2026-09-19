@@ -67,7 +67,14 @@ def main():
                 if not args.baseline:
                     expect(dialog).to_have_accessible_name("Chi tiết dấu vết")
                     close = dialog.locator('[data-ui-action="close-trace-detail"]')
-                    assert close.locator("svg").count() == 1
+                    expect(close).to_have_text("Đóng")
+                    expect(close.locator("svg")).to_have_count(0)
+                    expect(dialog.locator(".trace-detail-header button")).to_have_count(0)
+                    expect(
+                        dialog.locator(
+                            '.trace-detail-actions [data-ui-action="close-trace-detail"]'
+                        )
+                    ).to_have_count(1)
                     assert close.bounding_box()["width"] >= 32
                     body = dialog.locator(".trace-detail-body")
                     assert body.evaluate("el => el.scrollHeight > el.clientHeight")
@@ -91,6 +98,11 @@ def main():
                     assert dialog.evaluate("el => el.contains(document.activeElement)")
                     page.keyboard.press("Tab")
                     assert dialog.evaluate("el => el.contains(document.activeElement)")
+                    close.click()
+                    expect(dialog).not_to_be_visible()
+                    expect(opener).to_be_focused()
+                    opener.click()
+                    expect(dialog).to_be_visible()
                 page.keyboard.press("Escape")
                 expect(dialog).not_to_be_visible()
                 expect(opener).to_be_focused()

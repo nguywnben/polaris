@@ -107,7 +107,6 @@
 .trace-detail-header > div { min-width: 0; }
 .trace-detail-header h2, .trace-detail-dialog > p { margin: 0; overflow-wrap: anywhere; }
 .trace-detail-id { display: block; margin-top: 4px; color: var(--text-muted); font-size: var(--type-meta); overflow-wrap: anywhere; }
-.trace-detail-close { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; }
 .trace-detail-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .trace-detail-dialog > p:empty { padding: 0; }
 .trace-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 10px 20px; }
