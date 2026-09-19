@@ -17,6 +17,37 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_subscription_plans_use_one_color_for_all_providers_and_tiers(self):
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+for (const [value, kind] of [['free', 'plan'], ['ultra', 'plan'], ['g1-pro-tier', 'plan'],
+    ['Muse Code Power Usage', 'provider_plan'], ['fixture_TIER-2', 'provider_tier']]) {{
+    assert(normalizeCredentialSubscriptionPlan(value, kind).badgeClass === 'info', 'All plans share the info color');
+}}
+""")
+
+    def test_model_count_retains_only_same_account_observations(self):
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const scope = 'a'.repeat(64);
+const previous = {{quotaCacheScope: scope, modelCount: 29}};
+assert(credentialModelCount({{model_count: 0, model_count_known: false, quota_cache_scope: scope}}, previous) === 29, 'Pending cache must not flash zero');
+assert(credentialModelCount({{model_count: 0, model_count_known: true, quota_cache_scope: scope}}, previous) === 0, 'Confirmed empty replaces old count');
+assert(credentialModelCount({{model_count: 5, quota_cache_scope: scope}}, previous) === 5, 'Known current count wins');
+assert(credentialModelCount({{model_count: 0, model_count_known: false, quota_cache_scope: 'b'.repeat(64)}}, previous) === null, 'No count inherited by replacement account');
+for (const value of [null, undefined, '', -1, 1.2, NaN]) {{
+    assert(credentialModelCount({{model_count: value}}, {{}}) === null, 'Missing or invalid counts are not zero');
+}}
+global.AppState = {{credentialCardIndex: {{card: previous}}}};
+const modelManager = {{data: {{file: {{quota_cache_scope: scope}}}}}};
+const metric = {{textContent: ''}};
+document.getElementById = () => metric;
+assert(updateCredentialModelCount('card', 'file', scope, 5, modelManager), 'Model discovery updates card');
+assert(previous.modelCount === 5 && modelManager.data.file.model_count === 5, 'Future renders retain fresh count');
+assert(!updateCredentialModelCount('card', 'file', 'b'.repeat(64), 0, modelManager), 'Ignore stale model response');
+assert(previous.modelCount === 5, 'Old account response cannot overwrite count');
+""")
+
     def test_quota_result_cannot_repopulate_a_replaced_or_deleted_card(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -97,7 +128,7 @@ global.escapeHtml = global.escapeAttribute = String;
 let replacements = 0;
 const badge = {{
     querySelector: () => ({{textContent: 'G1 Pro Tier'}}),
-    classList: {{contains: name => name === 'tier-pro'}},
+    classList: {{contains: name => name === 'info'}},
     set outerHTML(value) {{ replacements++; this.markup = value; }},
 }};
 elements.set('subscription-plan-card', badge);

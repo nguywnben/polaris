@@ -256,6 +256,7 @@ def enrich_credential_summary(
         "provider": provider,
         "provider_variant": get_credential_provider_variant(credential_data),
         "model_count": len(get_declared_credential_models(credential_data)),
+        "model_count_known": isinstance(credential_data.get("model_ids"), list),
         "disabled": disabled,
         "error_codes": error_codes,
         "last_success": summary.get("last_success"),

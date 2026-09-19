@@ -133,7 +133,12 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
                     onSaved: () => { syncOverview(); void Promise.all(['models', 'quota', 'errors'].map(load)); }});
             } else if (name === 'models') {
                 const data = await read(endpoint('models'));
-                if (!closed) renderCredentialManagementModels(host, data.model_ids || [], capabilities.test);
+                if (!closed) {
+                    renderCredentialManagementModels(host, data.model_ids || [], capabilities.test);
+                    if (Array.isArray(data.model_ids)) {
+                        updateCredentialModelCount(pathId, filename, scope, data.model_ids.length, manager);
+                    }
+                }
             } else if (name === 'quota') {
                 const data = await read(endpoint('quota'));
                 if (closed) return;

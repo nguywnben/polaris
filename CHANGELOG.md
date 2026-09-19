@@ -13,6 +13,10 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Keep unknown credential model counts distinct from zero, retain same-account counts
+  during incomplete refreshes, and synchronize cards after model discovery in management.
+- Use one consistent blue information color for all credential subscription-plan badges.
+
 - Recover dashboard login after a large session-expiry backlog without restarting Polaris;
   preserve active sessions and continue rejecting expired or revoked sessions.
 

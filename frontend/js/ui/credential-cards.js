@@ -252,7 +252,7 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
     if (kind === 'provider_tier' || kind === 'provider_plan') {
         if (!rawValue || rawValue.length > 128 || /[\u0000-\u001f\u007f-\u009f]/.test(rawValue)
             || ['unknown', 'not_applicable', 'n/a', 'none'].includes(rawValue.toLowerCase())) return null;
-        return {label: rawValue, kind: kind === 'provider_plan' ? 'plan' : 'tier', badgeClass: 'muted'};
+        return {label: rawValue, kind: kind === 'provider_plan' ? 'plan' : 'tier', badgeClass: 'info'};
     }
     if (!rawValue || rawValue.toLowerCase() === 'unknown' || rawValue.length > 48) return null;
 
@@ -265,12 +265,7 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
     if (!displayValue) return null;
 
     const label = displayValue.replace(/\b\w/g, (character) => character.toUpperCase());
-    const normalizedLabel = label.toLowerCase();
-    const badgeClass = normalizedLabel === 'free'
-        ? 'tier-free'
-        : (normalizedLabel === 'ultra' || normalizedLabel === 'enterprise' ? 'tier-ultra' : 'tier-pro');
-
-    return { label, kind: normalizedKind, badgeClass };
+    return { label, kind: normalizedKind, badgeClass: 'info' };
 
 }
 
@@ -360,6 +355,34 @@ function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) 
     return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
 }
 
+function credentialModelCount(credInfo, previous = {}) {
+    const count = credInfo.model_count;
+    if (credInfo.model_count_known !== false && Number.isSafeInteger(count) && count >= 0) return count;
+    const scope = credInfo.quota_cache_scope;
+    if (typeof scope === 'string' && /^[a-f0-9]{64}$/.test(scope)
+        && scope === previous.quotaCacheScope
+        && Number.isSafeInteger(previous.modelCount) && previous.modelCount >= 0) return previous.modelCount;
+    return null;
+}
+
+function credentialModelCountLabel(count) {
+    return t('credentials.workspace.models', {count: count === null ? '—' : formatConsoleNumber(count)});
+}
+
+function updateCredentialModelCount(pathId, filename, scope, count, manager) {
+    const context = AppState.credentialCardIndex[pathId];
+    const info = manager.data[filename];
+    if (typeof scope !== 'string' || !/^[a-f0-9]{64}$/.test(scope)
+        || !context || !info || context.quotaCacheScope !== scope || info.quota_cache_scope !== scope
+        || !Number.isSafeInteger(count) || count < 0) return false;
+    context.modelCount = count;
+    info.model_count = count;
+    info.model_count_known = true;
+    const metric = document.getElementById(`credential-model-count-${pathId}`);
+    if (metric) metric.textContent = credentialModelCountLabel(count);
+    return true;
+}
+
 function createCredCard(credInfo, manager) {
 
     const div = document.createElement('div');
@@ -396,7 +419,7 @@ function createCredCard(credInfo, manager) {
     }
 
     const accountLabel = getCredentialAccountLabel(credInfo);
-    const modelCount = Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0;
+    const modelCount = credentialModelCount(credInfo, AppState.credentialCardIndex[pathId]);
 
     div.className = status.disabled ? 'cred-card disabled' : 'cred-card';
 
@@ -426,7 +449,7 @@ function createCredCard(credInfo, manager) {
         providerName: providerMeta.name,
         providerVariant: providerMeta.id,
         credentialSource: credInfo.source || 'managed',
-        modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
+        modelCount,
         subscriptionPlan: subscription?.value || '',
         subscriptionKind: subscription?.kind || '',
     };
@@ -472,7 +495,7 @@ function createCredCard(credInfo, manager) {
         </div>
 
         <div class="cred-metrics">
-            <span>${escapeHtml(t('credentials.workspace.models', {count: formatConsoleNumber(modelCount)}))}</span>
+            <span id="credential-model-count-${pathId}">${escapeHtml(credentialModelCountLabel(modelCount))}</span>
             ${quotaPreview}
         </div>
 

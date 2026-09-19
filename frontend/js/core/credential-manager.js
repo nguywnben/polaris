@@ -436,7 +436,8 @@ function createCredsManager(type) {
 
                             provider_variant: item.provider_variant,
 
-                            model_count: Number.isFinite(Number(item.model_count)) ? Number(item.model_count) : 0,
+                            model_count: item.model_count,
+                            model_count_known: item.model_count_known,
 
                             model_cooldowns: item.model_cooldowns || {},
 
