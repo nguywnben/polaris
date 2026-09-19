@@ -11,12 +11,45 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-09-18
+## [1.0.0] - 2026-09-19
 
-This refreshed 1.0.0 includes the guided installation and phone interaction fixes.
-The release's verified source revision and image digest identify its exact contents;
-operators with an earlier 1.0.0 image must pull the refreshed image before upgrading.
+Prepared refresh, not yet published. This candidate includes the guided installation,
+mobile interaction, client compatibility, credential identity and dependency fixes.
+The verified source revision and image digest identify its exact contents; operators
+with an earlier 1.0.0 image must explicitly pull the refreshed image after publication.
 The historical Omni Gateway 1.0.0 is separate.
+
+### Security
+
+- Update AnyIO to 4.14.2 to resolve the three reported dependency advisories.
+- Synchronize the runtime lock with the already-declared Pydantic 2.13.5 minimum.
+
+### Changed
+
+- Remove the masked API-key subtitle from credential cards.
+- Restore the last provider-reported credential plan when reloading the same browser tab;
+  keep unknown plans hidden instead of displaying internal default tiers.
+- Keep credential plan badges stable during quota refresh, remove their hover tooltips,
+  and show only enabled/disabled state and the known plan in compact credential cards.
+
+### Fixed
+
+- Bind saved credential plans and quota previews to an opaque account scope,
+  preventing a replaced account from inheriting the previous account's badge.
+  Discard late quota responses after account replacement or deletion.
+- Classify invalid stored Meta/Muse credentials as provider preparation failures,
+  while preserving HTTP 400 for unsupported client request options.
+- Retain Muse Code account email through sign-in, import and refresh, and show it
+  on credential cards instead of falling back to the credential filename.
+- Preserve Chat Completions tool-call history when routing to Muse Code / Meta,
+  ignoring only the internal Gemini tool-call placeholder, not real signed reasoning.
+  Return typed request-validation errors as HTTP 400 without penalizing credential health.
+- Shorten the virtual-key secret dialog's copy button label.
+- Accept Chat Completions `stream_options.include_usage` used by VS Code and OpenCode.
+  Emit requested usage once before `[DONE]`, preserve tool-call deltas and upstream errors,
+  and retain usage-only provider frames, including fake streams and continuation attempts.
+  Preserve `tool_calls` finish reasons when providers send the stop marker separately.
+- Preserve streamed usage totals in the translated Responses API.
 
 ### Installation and mobile improvements
 
@@ -648,7 +681,7 @@ The historical Omni Gateway 1.0.0 is separate.
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...HEAD
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.0.0...HEAD
 [0.1.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.4.0...v0.1.0-beta
 [1.5.0]: docs/evidence/p5.6-release-candidate-handoff.md
 [1.4.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.2...omni-gateway/v1.4.0

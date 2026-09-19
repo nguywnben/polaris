@@ -675,16 +675,19 @@ function updateCredentialSubscriptionBadge(pathId, filename) {
     if (!badge) return;
 
     const cached = AppState.quotaPreviewCache[filename] || {};
+    if (cached.loading || cached.error) return;
     const cardContext = AppState.credentialCardIndex[pathId] || {};
-    if (cardContext.providerVariant === 'muse_code') {
-        badge.outerHTML = renderCredentialSubscriptionBadge(
-            pathId, cached.data?.plan || cached.data?.subscription_tier,
-            cached.data?.plan ? 'provider_plan' : 'provider_tier'
-        );
-        return;
-    }
-    const plan = cached.data?.plan || cardContext.subscriptionPlan;
-    const kind = cached.data?.plan ? 'plan' : (cardContext.subscriptionKind || 'plan');
+    const isMuse = cardContext.providerVariant === 'muse_code';
+    const plan = cached.data?.plan || (isMuse ? cached.data?.subscription_tier : null);
+    const kind = isMuse ? (cached.data?.plan ? 'provider_plan' : 'provider_tier') : 'plan';
+    const normalized = normalizeCredentialSubscriptionPlan(plan, kind);
+    if (!normalized) return;
+    if (cached.scope !== cardContext.quotaCacheScope) return;
+    credentialSubscriptionSnapshot(pathId, cardContext.providerVariant, plan, kind, cardContext.quotaCacheScope);
+    cardContext.subscriptionPlan = plan;
+    cardContext.subscriptionKind = kind;
+    if (badge.querySelector('.credential-badge-label')?.textContent === normalized.label
+        && badge.classList.contains(normalized.badgeClass)) return;
     badge.outerHTML = renderCredentialSubscriptionBadge(pathId, plan, kind);
 
 }

@@ -148,6 +148,7 @@ def responses_to_chat_request(request: OpenAIResponsesRequest) -> OpenAIChatComp
         "model": request.model,
         "messages": messages,
         "stream": request.stream,
+        "stream_options": {"include_usage": True} if request.stream else None,
         "temperature": request.temperature,
         "top_p": request.top_p,
         "max_tokens": request.max_output_tokens,
@@ -346,6 +347,7 @@ async def _responses_stream(
     message_id = f"msg_{uuid.uuid4().hex}"
     output_text = ""
     output_bytes = 0
+    chat_usage = {}
     output_item = {
         "id": message_id,
         "type": "message",
@@ -393,6 +395,8 @@ async def _responses_stream(
                     param=None,
                 )
                 return
+            if isinstance(chat_event.get("usage"), dict):
+                chat_usage = chat_event["usage"]
             choices = chat_event.get("choices") or []
             delta = choices[0].get("delta", {}) if choices else {}
             text = delta.get("content")
@@ -470,7 +474,7 @@ async def _responses_stream(
         created_at=created_at,
         status="completed",
         output=[output_item],
-        usage=_response_usage({}),
+        usage=_response_usage(chat_usage),
     )
     yield event("response.completed", response=completed)
 

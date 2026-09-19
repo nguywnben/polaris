@@ -120,6 +120,7 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
 
     // Load each safe information section independently; one failure must not hide the rest.
     const load = async name => {
+        const scope = AppState.credentialCardIndex[pathId]?.quotaCacheScope;
         const host = modal.querySelector(`[data-management-${name}]`);
         const refresh = modal.querySelector(`[data-management-load="${name}"]`);
         if (!host || host.getAttribute('aria-busy') === 'true' || closed) return;
@@ -136,7 +137,7 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
             } else if (name === 'quota') {
                 const data = await read(endpoint('quota'));
                 if (closed) return;
-                AppState.quotaPreviewCache[filename] = {data, summary: summarizeCredentialQuota(data)};
+                if (!cacheCredentialQuota(pathId, filename, scope, {data, summary: summarizeCredentialQuota(data)})) return;
                 updateCredentialQuotaPreview(pathId, filename);
                 renderCredentialManagementQuota(host, filename, data, context);
             } else if (name === 'errors') {
@@ -150,7 +151,7 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
             if (!closed) {
                 host.innerHTML = `<p class="credential-management-error" role="alert">${escapeHtml(error.message || t('unknown_error'))}</p>`;
                 if (name === 'quota') {
-                    AppState.quotaPreviewCache[filename] = {error: error.message};
+                    cacheCredentialQuota(pathId, filename, scope, {error: error.message});
                     updateCredentialQuotaPreview(pathId, filename);
                 }
             }

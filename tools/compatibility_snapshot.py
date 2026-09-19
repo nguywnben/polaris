@@ -21,6 +21,20 @@ NON_SEMANTIC_OPENAPI_KEYS = frozenset(
 # Adding the optional bounded timezone offset preserves every existing request shape. Keep the
 # exact before/after fingerprints explicit so unrelated changes to these operations still fail.
 COMPATIBLE_OPERATION_EVOLUTIONS = {
+    # Optional stream_options is additive; the immutable R1 input remains accepted.
+    # docs/compatibility/chat-stream-options-v1.json records this exact extension.
+    ("POST", "/v1/chat/completions"): {
+        (
+            "f40845078cff2c2b6827456ce5558a796e41aa9573c23d1dc264ec1850d979fd",
+            "299cf275aec42d75320eb31e302d3e5309d1f8e945bc5fa5e277a8033e48e19a",
+        )
+    },
+    ("POST", "/vertex/v1/chat/completions"): {
+        (
+            "9a718cb729b8e91a780cc971438da68cc17b460e71ef37f9bc0405b4a7e1a337",
+            "5e0d17f72637e3035b65203a92fb1115a03d0fd81de7c9b4579fe6bdf21a2964",
+        )
+    },
     # ADR-014 adds a separate native Meta branch while retaining the exact legacy
     # Responses schema. HTTP/legacy regression tests cover dispatch and rejection;
     # the fixed pair still detects every subsequent contract change.

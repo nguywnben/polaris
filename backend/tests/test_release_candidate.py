@@ -12,7 +12,7 @@ from backend.app_version import DEFAULT_APPLICATION_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
 RELEASE_VERSION = "1.0.0"
-RELEASE_DATE = "2026-09-18"
+RELEASE_DATE = "2026-09-19"
 MAINTAINED_DOCUMENTS = (
     ROOT / "README.md",
     ROOT / "SECURITY.md",
@@ -70,7 +70,7 @@ class ReleaseCandidateContractTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn(f"## [{RELEASE_VERSION}] - {RELEASE_DATE}", changelog)
         self.assertIn(
-            "[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...HEAD",
+            "[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.0.0...HEAD",
             changelog,
         )
         self.assertIn(

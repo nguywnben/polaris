@@ -133,10 +133,17 @@ class OpenAIChatMessage(BaseModel):
         return self
 
 
+class OpenAIStreamOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    include_usage: bool = Field(False, strict=True)
+
+
 class OpenAIChatCompletionRequest(BaseModel):
     model: str
     messages: List[OpenAIChatMessage]
     stream: bool = False
+    stream_options: Optional[OpenAIStreamOptions] = None
     temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
     top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
     max_tokens: Optional[int] = Field(None, ge=1)
@@ -162,6 +169,7 @@ class OpenAIChatCompletionRequest(BaseModel):
                 "model",
                 "messages",
                 "stream",
+                "stream_options",
                 "temperature",
                 "top_p",
                 "max_tokens",
@@ -183,6 +191,8 @@ class OpenAIChatCompletionRequest(BaseModel):
 
     @model_validator(mode="after")
     def reject_unsupported_reasoning_control(self) -> "OpenAIChatCompletionRequest":
+        if self.stream_options is not None and not self.stream:
+            raise ValueError("stream_options requires stream=true.")
         if self.reasoning_effort is not None:
             raise ValueError(
                 "reasoning_effort is not supported by the Chat Completions translation."

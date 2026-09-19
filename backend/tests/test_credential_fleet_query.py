@@ -54,6 +54,55 @@ def _item(
 
 
 class CredentialFleetQueryTests(unittest.TestCase):
+    def test_quota_cache_scope_tracks_account_not_mutable_metadata(self):
+        def scope(data):
+            return enrich_credential_summary(
+                {"filename": "same.json"}, data, backend_type="sqlite", mode="primary"
+            ).get("quota_cache_scope")
+
+        original = {
+            "provider": "muse_code",
+            "credential_type": "oauth",
+            "account_id": "a" * 64,
+            "access_token": "private-oauth",
+        }
+        key = scope(original)
+        self.assertRegex(key or "", r"^[a-f0-9]{64}$")
+        self.assertEqual(key, scope({**original, "api_key": "rotated", "subscription_plan": "Pro"}))
+        self.assertNotEqual(key, scope({**original, "account_id": "b" * 64}))
+        self.assertNotEqual(key, scope({**original, "provider": "openai"}))
+        self.assertNotIn("private-oauth", key)
+        first = {"provider": "google_antigravity", "refresh_token": "private-first"}
+        self.assertNotEqual(scope(first), scope({**first, "refresh_token": "private-second"}))
+        self.assertIsNone(scope({"provider": "google_antigravity"}))
+
+    def test_muse_email_comes_from_refreshed_payload_without_state_migration(self):
+        credential = {
+            "provider": "muse_code",
+            "credential_type": "oauth",
+            "account_id": "a" * 64,
+            "user_email": "fixture@example.test",
+            "access_token": "must-never-leak",
+            "api_key": "must-never-leak",
+        }
+        for stored_email in (None, "old@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json", "user_email": stored_email},
+                credential,
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertEqual(item["user_email"], "fixture@example.test")
+            self.assertNotIn("must-never-leak", repr(item))
+        for email in (None, "invalid", "bad@\nexample.test", "x" * 321 + "@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json"},
+                {**credential, "user_email": email},
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertIsNone(item["user_email"])
+
     def test_api_key_hint_is_masked_at_the_public_boundary(self):
         key = "sample-prefix-private-middle-suffix"
         credential = {

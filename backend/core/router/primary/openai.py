@@ -8,6 +8,7 @@ from core.converter.fake_stream import (
 )
 from core.model_pool import ModelPoolError, resolve_model_request
 from core.models import OpenAIChatCompletionRequest, model_to_dict
+from core.router.openai_stream_options import apply_stream_options, sum_attempt_usage
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
@@ -168,6 +169,11 @@ async def chat_completions(
             chunks = build_openai_fake_stream_chunks(
                 content, reasoning_content, finish_reason, response_model, images
             )
+            from core.converter.openai_to_gemini import convert_gemini_to_openai_response
+
+            usage = convert_gemini_to_openai_response(gemini_response, response_model).get("usage")
+            if chunks and usage:
+                chunks[-1]["usage"] = usage
             for idx, chunk in enumerate(chunks):
                 chunk_json = json.dumps(chunk)
                 log.debug(f"[FAKE_STREAM] Yielding chunk #{idx + 1}: {chunk_json[:200]}")
@@ -251,6 +257,7 @@ async def chat_completions(
 
         response_id = str(uuid.uuid4())
 
+        attempt_usage = {}
         processor_stream = processor.process_stream()
         anti_owned_streams.append(processor_stream)
         async for chunk in processor_stream:
@@ -280,6 +287,11 @@ async def chat_completions(
                     )
 
                     if openai_chunk_str:
+                        event = json.loads(openai_chunk_str[6:])
+                        if event.get("usage") is not None:
+                            attempt_usage[processor.current_attempt] = event["usage"]
+                            event["usage"] = sum_attempt_usage(list(attempt_usage.values()))
+                            openai_chunk_str = f"data: {json.dumps(event)}\n\n"
                         yield openai_chunk_str.encode("utf-8")
 
                 except Exception as e:
@@ -365,17 +377,18 @@ async def chat_completions(
         yield "data: [DONE]\n\n".encode("utf-8")
 
     if use_fake_streaming:
-        return await build_streaming_response_or_error(
-            fake_stream_generator(), error_protocol="openai"
-        )
+        stream = fake_stream_generator()
     elif use_anti_truncation:
         log.info("Enabling anti-truncation streaming feature")
-        return await build_streaming_response_or_error(
-            cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams),
-            error_protocol="openai",
-        )
+        stream = cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams)
     else:
-        return await build_streaming_response_or_error(
-            cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams),
-            error_protocol="openai",
-        )
+        stream = cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams)
+    return await build_streaming_response_or_error(
+        apply_stream_options(
+            stream,
+            include_usage=bool(
+                openai_request.stream_options and openai_request.stream_options.include_usage
+            ),
+        ),
+        error_protocol="openai",
+    )

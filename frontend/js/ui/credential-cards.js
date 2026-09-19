@@ -274,6 +274,38 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
 
 }
 
+function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan', scope = '') {
+    const storageKey = 'polaris_credential_plan_snapshots';
+    // Never restore legacy filename-only snapshots for a new or unknown account.
+    const key = JSON.stringify([provider, pathId, scope]);
+    const persist = typeof scope === 'string' && /^[a-f0-9]{64}$/.test(scope);
+    let entries = [];
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored)) entries = stored.filter(item => item && typeof item.key === 'string').slice(-256);
+    } catch { /* Plan display still works when browser storage is unavailable. */ }
+    if (typeof value === 'string' && normalizeCredentialSubscriptionPlan(value, kind)) {
+        const snapshot = {key, value, kind};
+        entries = entries.filter(item => item.key !== key);
+        entries.push(snapshot);
+        try { if (persist) sessionStorage.setItem(storageKey, JSON.stringify(entries.slice(-256))); }
+        catch { /* Keep the live provider value even if persistence is blocked. */ }
+        return snapshot;
+    }
+    const previous = persist && entries.find(item => item.key === key);
+    return previous && typeof previous.value === 'string'
+        && ['plan', 'provider_plan', 'provider_tier'].includes(previous.kind)
+        && normalizeCredentialSubscriptionPlan(previous.value, previous.kind) ? previous : null;
+}
+
+function cacheCredentialQuota(pathId, filename, scope, cached) {
+    // A late response from a replaced card must not populate the new account.
+    const context = AppState.credentialCardIndex[pathId];
+    if (!context || context.quotaCacheScope !== scope) return false;
+    AppState.quotaPreviewCache[filename] = {...cached, scope};
+    return true;
+}
+
 function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
 
     const plan = normalizeCredentialSubscriptionPlan(value, kind);
@@ -281,11 +313,7 @@ function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
         return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge muted" hidden></span>`;
     }
 
-    const title = plan.kind === 'tier'
-        ? t('credential_badge_tier', {tier: plan.label})
-        : t('credential_badge_plan', {plan: plan.label});
-
-    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge credential-badge-hint ${plan.badgeClass}" tabindex="0" aria-label="${escapeAttribute(title)}"><span class="credential-badge-label">${escapeHtml(plan.label)}</span><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(title)}</span></span>`;
+    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}"><span class="credential-badge-label">${escapeHtml(plan.label)}</span></span>`;
 
 }
 
@@ -326,9 +354,8 @@ function getCredentialAccountLabel(credInfo) {
 
 function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
     const kind = getCredentialAuthenticationType(providerMeta, credInfo);
-    const subtitle = kind === 'API key' ? credInfo.api_key_hint
-        : kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
-            ? credInfo.user_email : '';
+    const subtitle = kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
+        ? credInfo.user_email : '';
     if (!subtitle) return '';
     return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
 }
@@ -341,10 +368,13 @@ function createCredCard(credInfo, manager) {
 
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
-    const isAntigravity = providerMeta.id === 'google_antigravity';
     const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
+    const quotaCacheScope = credInfo.quota_cache_scope;
+    if (AppState.quotaPreviewCache[filename]?.scope !== quotaCacheScope) {
+        delete AppState.quotaPreviewCache[filename];
+    }
     const supportsQuotaPreview = managerType === 'primary'
         && manager.credentialSupportsOperation(credInfo, 'quota');
     const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
@@ -361,7 +391,7 @@ function createCredCard(credInfo, manager) {
 
     if (shouldAutoLoadQuota) {
 
-        AppState.quotaPreviewCache[filename] = { loading: true };
+        AppState.quotaPreviewCache[filename] = { loading: true, scope: quotaCacheScope };
 
     }
 
@@ -372,7 +402,6 @@ function createCredCard(credInfo, manager) {
 
     let statusBadges = '';
     let contextBadges = '';
-    let cooldownBadges = '';
 
     statusBadges += status.disabled
 
@@ -380,124 +409,17 @@ function createCredCard(credInfo, manager) {
 
         : `<span class="status-badge enabled">${t('status_enabled')}</span>`;
 
-    if (status.error_codes && status.error_codes.length > 0) {
-
-        const errorLabel = `${t('error_code_prefix')} ${status.error_codes.join(', ')}`;
-        statusBadges += `<span class="error-codes" title="${escapeAttribute(errorLabel)}">${escapeHtml(errorLabel)}</span>`;
-
-        const autoBan = status.error_codes.filter(c => c === 400 || c === 403);
-
-        if (autoBan.length > 0 && status.disabled) {
-
-            statusBadges += `<span class="status-badge danger">${t('credential_badge_auto_disabled')}</span>`;
-
-        }
-
-    }
-
-    if (managerType !== 'primary' && credInfo.preview) {
-
-        statusBadges += `<span class="status-badge success" title="${t('preview_supported_title')}">${t('credential_badge_preview', {state: t('credential_state_on')})}</span>`;
-
-    }
-
-    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact: true});
-
-    if (!isManagedCredential) {
-        statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
-    }
-
-    if (isAntigravity) {
-
-        contextBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
-
-    } else if (isMuseOAuth) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan || AppState.quotaPreviewCache[filename]?.data?.subscription_tier,
-            AppState.quotaPreviewCache[filename]?.data?.plan ? 'provider_plan' : 'provider_tier'
-        );
-
-    } else if (supportsQuotaPreview) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan,
-            'plan'
-        );
-
-    } else if (managerType !== 'primary' && credInfo.tier) {
-
-        const tier = credInfo.tier.toString().toLowerCase();
-
-        const tierLabel = tier.toUpperCase();
-
-        const tierClass = tier === 'ultra' ? 'tier-ultra' : (tier === 'free' ? 'tier-free' : 'tier-pro');
-
-        contextBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
-
-    }
-
-    if (managerType === 'primary' && isAntigravity && credInfo.enable_credit) {
-
-        const creditLabel = t('credit_enabled_title');
-        contextBadges += `<span class="status-badge credit-on credential-badge-hint" tabindex="0" aria-label="${escapeAttribute(creditLabel)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg><span class="credential-badge-tooltip" aria-hidden="true">${escapeHtml(creditLabel)}</span></span>`;
-
-    }
-
-    if (credInfo.model_cooldowns && Object.keys(credInfo.model_cooldowns).length > 0) {
-
-        const currentTime = Date.now() / 1000;
-
-        const activeCooldowns = Object.entries(credInfo.model_cooldowns)
-
-            .filter(([, until]) => until > currentTime)
-
-            .map(([model, until]) => {
-
-                const remaining = Math.max(0, Math.floor(until - currentTime));
-
-                const shortModel = model.replace('gemini-', '').replace('-exp', '')
-
-                    .replace('2.0-', '2-').replace('1.5-', '1.5-');
-
-                return {
-
-                    model: shortModel,
-
-                    time: formatCooldownTime(remaining).replace(/s$/, '').replace(/ /g, ''),
-
-                    fullModel: model
-
-                };
-
-            });
-
-        if (activeCooldowns.length > 0) {
-
-            activeCooldowns.slice(0, 2).forEach(item => {
-
-                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
-
-            });
-
-            if (activeCooldowns.length > 2) {
-
-                const remaining = activeCooldowns.length - 2;
-
-                const remainingModels = activeCooldowns.slice(2).map(i => `${i.fullModel}: ${i.time}`).join('\n');
-
-                cooldownBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
-
-            }
-
-        }
-
-    }
+    const quotaData = AppState.quotaPreviewCache[filename]?.data;
+    const subscription = credentialSubscriptionSnapshot(
+        pathId, providerMeta.id,
+        quotaData?.plan || (isMuseOAuth ? quotaData?.subscription_tier : null),
+        isMuseOAuth ? (quotaData?.plan ? 'provider_plan' : 'provider_tier') : 'plan', quotaCacheScope
+    );
+    contextBadges += renderCredentialSubscriptionBadge(pathId, subscription?.value, subscription?.kind);
 
     AppState.credentialCardIndex[pathId] = {
         filename,
+        quotaCacheScope,
         managerType,
         email: credInfo.user_email || '',
         accountLabel,
@@ -505,8 +427,8 @@ function createCredCard(credInfo, manager) {
         providerVariant: providerMeta.id,
         credentialSource: credInfo.source || 'managed',
         modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
-        subscriptionPlan: isAntigravity ? credInfo.tier : '',
-        subscriptionKind: isAntigravity ? 'plan' : '',
+        subscriptionPlan: subscription?.value || '',
+        subscriptionKind: subscription?.kind || '',
     };
 
     const primaryActionButtons = `
@@ -546,7 +468,6 @@ function createCredCard(credInfo, manager) {
             </div>
 
             <div class="cred-status cred-summary">${statusBadges}${contextBadges}</div>
-            ${cooldownBadges ? `<div class="cred-status cred-context">${cooldownBadges}</div>` : ''}
 
         </div>
 

@@ -574,11 +574,15 @@ class ControlPanelAssetTests(unittest.TestCase):
 
         self.assertIn("renderCredentialSubscriptionBadge", card_script)
         self.assertIn("subscription-plan-${pathId}", card_script)
-        self.assertIn("t('credential_badge_plan'", card_script)
-        self.assertIn("t('credential_badge_tier'", card_script)
+        self.assertIn("${escapeHtml(plan.label)}</span>", card_script)
+        badge_renderer = card_script.split("function renderCredentialSubscriptionBadge", 1)[
+            1
+        ].split("function getCredentialAuthenticationType", 1)[0]
+        self.assertNotIn("credential-badge-tooltip", badge_renderer)
+        self.assertNotIn("tabindex=", badge_renderer)
         self.assertIn("updateCredentialSubscriptionBadge", dialog_script)
         self.assertIn("cached.data?.plan", dialog_script)
-        self.assertIn("cardContext.subscriptionPlan", dialog_script)
+        self.assertIn("if (cached.loading || cached.error) return", dialog_script)
 
     def test_root_endpoints_copy_on_click_without_icons(self):
         html = (

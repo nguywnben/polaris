@@ -17,6 +17,19 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_quota_result_cannot_repopulate_a_replaced_or_deleted_card(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.AppState = {{quotaPreviewCache: {{}}, credentialCardIndex: {{card: {{quotaCacheScope: 'new-account'}}}}}};
+assert(!cacheCredentialQuota('card', 'same.json', 'old-account', {{data: {{plan: 'Pro'}}}}), 'Ignore the old in-flight response');
+assert(!AppState.quotaPreviewCache['same.json'], 'Do not leak old quota into the new account');
+assert(cacheCredentialQuota('card', 'same.json', 'new-account', {{data: {{plan: 'Free'}}}}), 'Accept a current response');
+assert(AppState.quotaPreviewCache['same.json'].scope === 'new-account', 'Bind data to its source account');
+delete AppState.credentialCardIndex.card;
+assert(!cacheCredentialQuota('card', 'same.json', 'new-account', {{error: 'late'}}), 'Deleted cards ignore late failures');
+assert(AppState.quotaPreviewCache['same.json'].data.plan === 'Free', 'Late failures cannot overwrite newer data');
+""")
+
     def test_badge_hints_dismiss_without_moving_focus_and_reopen_on_reentry(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -40,13 +53,13 @@ document.querySelectorAll = () => [];
 listeners.keydown({{key: 'Escape', preventDefault() {{ throw new Error('Unrelated Escape intercepted'); }}}});
 """)
 
-    def test_identity_subtitle_uses_only_masked_key_or_oauth_email(self) -> None:
+    def test_identity_subtitle_shows_only_oauth_email(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
 global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 const provider = {{id: 'openai_platform'}};
 const key = {{credential_type: 'api_key', api_key_hint: 'sample…last', api_key: 'never-render-this'}};
-assert(renderCredentialIdentitySubtitle(provider, key, 'Work').includes('sample…last'), 'Show masked key beneath the name');
+assert(renderCredentialIdentitySubtitle(provider, key, 'Work') === '', 'API key cards have no key subtitle');
 assert(!renderCredentialIdentitySubtitle(provider, key, 'Work').includes('never-render'), 'Never derive preview from a full client-side key');
 assert(renderCredentialIdentitySubtitle(provider, {{api_key: 'secret'}}, 'Work') === '', 'Missing hint must not fall back to the full key');
 assert(!renderCredentialIdentitySubtitle(provider, {{...key, api_key_hint: '<img src=x>'}}, 'Work').includes('<img'), 'Escape the hint');
@@ -63,7 +76,7 @@ global.escapeHtml = global.escapeAttribute = value => String(value).replaceAll('
 const plan = 'Muse Code Power Usage';
 const badge = renderCredentialSubscriptionBadge('test', plan, 'provider_plan');
 assert(badge.includes(`class="credential-badge-label">${{plan}}</span>`), 'Card should show the plan without the Gói prefix');
-assert(badge.includes('tabindex="0"') && badge.includes('credential-badge-tooltip'), 'Full plan must be available on focus');
+assert(!badge.includes('tabindex=') && !badge.includes('credential-badge-tooltip') && !badge.includes(' title='), 'Plan is plain text without a hover or focus tooltip');
 assert(badge.includes(plan) && !badge.includes('Power…'), 'Truncation must be visual, not data loss');
 assert(renderCredentialSubscriptionBadge('test', '', 'provider_plan').includes('hidden'), 'Unknown plans stay hidden');
 const unsafe = renderCredentialSubscriptionBadge('test', '<img src=x>', 'provider_plan');
@@ -73,6 +86,85 @@ const info = {{credential_type: 'oauth'}};
 assert(renderCredentialAuthenticationBadge(oauth, info, {{compact: true}}) === '', 'Do not repeat OAuth in compact cards');
 assert(renderCredentialAuthenticationBadge(oauth, info).includes('OAuth'), 'Management still shows OAuth');
 assert(renderCredentialAuthenticationBadge({{id: 'openai_platform'}}, {{}}, {{compact: true}}).includes('credentials.workspace.api_key'), 'Keep API key badges');
+""")
+
+    def test_quota_refresh_preserves_plan_badge_until_a_new_plan_arrives(self) -> None:
+        dialogs = ROOT / "frontend/js/ui/credential-dialogs.js"
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+vm.runInThisContext(fs.readFileSync({json.dumps(str(dialogs))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+let replacements = 0;
+const badge = {{
+    querySelector: () => ({{textContent: 'G1 Pro Tier'}}),
+    classList: {{contains: name => name === 'tier-pro'}},
+    set outerHTML(value) {{ replacements++; this.markup = value; }},
+}};
+elements.set('subscription-plan-card', badge);
+global.AppState = {{credentialCardIndex: {{card: {{providerVariant: 'google_antigravity', subscriptionPlan: 'pro'}}}}, quotaPreviewCache: {{}}}};
+for (const cached of [{{loading: true}}, {{error: 'Quota unavailable'}}, {{data: {{}}}}, {{data: {{plan: 'g1-pro-tier'}}}}]) {{
+    AppState.quotaPreviewCache.file = cached;
+    updateCredentialSubscriptionBadge('card', 'file');
+    assert(replacements === 0, 'Loading, error, absent or unchanged plan must preserve the existing badge node');
+}}
+AppState.quotaPreviewCache.file = {{data: {{plan: 'ultra'}}}};
+updateCredentialSubscriptionBadge('card', 'file');
+assert(replacements === 1 && badge.markup.includes('Ultra'), 'A confirmed plan change must still update');
+""")
+
+    def test_plan_snapshot_survives_reload_without_using_internal_tier(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+const saved = new Map();
+global.sessionStorage = {{getItem: key => saved.get(key) || null, setItem: (key, value) => saved.set(key, value)}};
+global.getCredentialProviderMeta = () => ({{id: 'google_antigravity', name: 'Antigravity'}});
+global.renderCredentialQuotaPreview = () => '';
+document.createElement = () => ({{querySelector: () => null, querySelectorAll: () => []}});
+manager.credentialSupportsOperation = () => false;
+const info = {{filename: 'file', quota_cache_scope: 'a'.repeat(64), status: {{disabled: false}}, credential_type: 'oauth', tier: 'pro'}};
+const resetPage = data => {{ global.AppState = {{quotaPreviewCache: {{file: {{data, scope: info.quota_cache_scope}}}}, credentialCardIndex: {{}}}}; }};
+resetPage({{}});
+assert(!createCredCard(info, manager).innerHTML.includes('>Pro</span>'), 'Never display the internal default tier as a provider plan');
+resetPage({{plan: 'g1-pro-tier'}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Render the confirmed provider plan');
+resetPage({{}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Page reload keeps the last confirmed plan');
+const replacement = {{...info, quota_cache_scope: 'b'.repeat(64)}};
+assert(!createCredCard(replacement, manager).innerHTML.includes('G1 Pro Tier'), 'Same filename with a different account cannot restore the prior plan');
+resetPage({{plan: 'g1-pro-tier'}});
+assert(!createCredCard(replacement, manager).innerHTML.includes('G1 Pro Tier'), 'Invalidate in-memory quota data belonging to the previous account too');
+assert(!createCredCard({{...info, filename: 'another'}}, manager).innerHTML.includes('G1 Pro Tier'), 'Do not mix credential plans');
+resetPage({{plan: 'ultra'}});
+assert(createCredCard(info, manager).innerHTML.includes('>Ultra</span>'), 'Fresh provider metadata replaces the snapshot');
+assert(credentialSubscriptionSnapshot('different', 'muse_code', null) === null, 'Provider and credential keys are isolated');
+assert(credentialSubscriptionSnapshot('card', 'muse_code', {{api_key: 'never-store'}}, 'provider_plan') === null, 'Cache only plan strings, not arbitrary response objects');
+for (let index = 0; index < 260; index++) credentialSubscriptionSnapshot('card-' + index, 'muse_code', 'Pro', 'plan', 'a'.repeat(64));
+assert(JSON.parse(saved.get('polaris_credential_plan_snapshots')).length === 256, 'Keep browser storage bounded');
+sessionStorage.getItem = () => 'broken JSON';
+resetPage({{}});
+assert(!createCredCard(info, manager).innerHTML.includes('>Pro</span>'), 'Invalid storage must not reintroduce default plans');
+sessionStorage.getItem = sessionStorage.setItem = () => {{throw new Error('Storage blocked');}};
+resetPage({{plan: 'g1-pro-tier'}});
+assert(createCredCard(info, manager).innerHTML.includes('G1 Pro Tier'), 'Blocked storage does not prevent live display');
+""")
+
+    def test_card_summary_only_shows_enabled_state_and_plan(self) -> None:
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+global.escapeHtml = global.escapeAttribute = String;
+global.AppState = {{quotaPreviewCache: {{file: {{data: {{plan: 'g1-pro-tier'}}}}}}, credentialCardIndex: {{}}}};
+global.getCredentialProviderMeta = () => ({{id: 'google_antigravity', name: 'Antigravity'}});
+global.renderCredentialQuotaPreview = () => '';
+global.formatCooldownTime = () => '60s';
+document.createElement = () => ({{querySelector: () => null, querySelectorAll: () => []}});
+manager.credentialSupportsOperation = () => false;
+const card = createCredCard({{filename: 'file', status: {{disabled: true, error_codes: [403]}},
+    credential_type: 'oauth', tier: 'g1-pro-tier', enable_credit: true,
+    model_cooldowns: {{'gemini-pro': Date.now() / 1000 + 60}}}}, manager);
+const summary = card.innerHTML.split('<div class="cred-status cred-summary">')[1].split('</div>')[0];
+assert((summary.match(/class="status-badge /g) || []).length === 2, 'Only enabled state and plan belong in the summary');
+assert(!card.innerHTML.includes('cooldown-badge') && !summary.includes('error-codes') && !summary.includes('credit-on'), 'Diagnostics must not add card badges');
 """)
 
     def test_provider_sections_are_ordered_by_matching_credential_count(self) -> None:
@@ -273,7 +365,7 @@ function assert(condition, message) {{ if (!condition) throw new Error(message);
         self.assertNotIn("isStaticProvider", source)
         self.assertNotIn("isCodexOAuth", source)
         self.assertIn("const supportsQuotaPreview", source)
-        self.assertIn("} else if (supportsQuotaPreview)", source)
+        self.assertIn("credentialSubscriptionSnapshot(", source)
         self.assertIn("manager.credentialSupportsOperation(credInfo, 'quota')", source)
 
     def test_credential_page_navigation_is_single_flight_and_preserves_content(self) -> None:
@@ -352,7 +444,10 @@ assert(elements.get('primaryBatchVerifyBtn').hidden === false, 'common verify hi
         self.assertIn("supportsReauthenticate", cards)
         self.assertIn("edit: supportsEdit", cards)
         self.assertIn("reauthenticate: supportsReauthenticate", cards)
-        self.assertIn("credential_badge_environment", cards)
+        self.assertIn(
+            "settings.managed_environment",
+            (ROOT / "frontend/js/ui/credential-management.js").read_text(encoding="utf-8"),
+        )
         self.assertIn("showCredentialEditModal(pathId)", cards)
         self.assertIn("reauthenticateCredential(pathId)", cards)
         self.assertIn("/configuration/", dialogs)
