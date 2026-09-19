@@ -15,6 +15,28 @@ function identitySetStatus(elementId, message = '', type = '') {
 }
 
 function identitySetBusy(elementId, busy) {
+    const region = document.getElementById(elementId);
+    const labels = {
+        identityPrincipalSummary: ['identity.identity_id', 'identity.principal_type', 'identity.role',
+            'identity.role_source', 'identity.authentication', 'identity.permissions'],
+        identityOidcSummary: ['identity.status', 'identity.issuer', 'identity.redirect_uri', 'identity.scopes',
+            'identity.role_mappings', 'identity.authorization_epoch', 'identity.configuration_revision', 'identity.client_credential'],
+        identityRecoverySummary: ['identity.local_owner', 'identity.password', 'identity.ingress_policy']
+    }[elementId];
+    if (busy && region && !region.childElementCount && labels) {
+        for (const label of labels) {
+            const fact = identityFact(label, '');
+            fact.className = 'region-skeleton identity-fact-skeleton';
+            const line = identityElement('span', 'skeleton-line');
+            line.setAttribute('aria-hidden', 'true');
+            fact.lastElementChild.append(line);
+            if (label === 'identity.permissions') {
+                fact.classList.add('identity-permission-fact');
+                fact.firstElementChild.className = 'visually-hidden';
+            }
+            region.append(fact);
+        }
+    }
     setRegionBusy(elementId, Boolean(busy));
 }
 
@@ -138,10 +160,13 @@ function renderIdentityPrincipal() {
     const container = document.getElementById('identityPrincipalSummary');
     if (!container || !IdentityConsoleState.principal) return;
     const principal = IdentityConsoleState.principal;
+    const previousPermissions = container.querySelector('.identity-permissions');
+    const restorePermissionFocus = previousPermissions?.contains(document.activeElement);
     const permissionFact = identityFact('identity.permissions', '');
     permissionFact.className = 'identity-permission-fact';
     permissionFact.children[0].className = 'visually-hidden';
     const permissions = identityElement('details', 'identity-permissions');
+    permissions.open = previousPermissions?.open === true;
     permissions.appendChild(identityElement('summary', '', t('identity.permissions')));
     permissionFact.children[1].appendChild(permissions);
     if (principal.permissions.length) {
@@ -161,6 +186,7 @@ function renderIdentityPrincipal() {
         identityFact('identity.authentication', identityProtocolLabel(principal.authenticationContext), { technical: true }),
         permissionFact
     );
+    if (restorePermissionFocus) permissions.querySelector('summary').focus({ preventScroll: true });
     container.setAttribute('aria-busy', 'false');
     identityStatusBadge('identityPrincipalBadge', 'identity.authorized', 'success');
 }
@@ -412,7 +438,8 @@ function renderIdentitySessionPagination() {
 
 async function loadIdentityPage({
     signal = null,
-    generation = IdentityConsoleState.generation
+    generation = IdentityConsoleState.generation,
+    preserveOnError = false
 } = {}) {
     if (!identityLoadIsCurrent(generation, signal)) return;
     if (!identityCan('identity.read')) {
@@ -435,9 +462,12 @@ async function loadIdentityPage({
         identitySetStatus('identityListStatus');
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
-        IdentityConsoleState.identities = [];
-        IdentityConsoleState.identityNextCursor = null;
-        renderIdentityList();
+        if (!preserveOnError || error.status === 403) {
+            IdentityConsoleState.identities = [];
+            IdentityConsoleState.identityNextCursor = null;
+            renderIdentityList();
+        }
+        identitySetBusy('identityList', false);
         identitySetStatus(
             'identityListStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
@@ -447,7 +477,8 @@ async function loadIdentityPage({
 
 async function loadIdentitySessions({
     signal = null,
-    generation = IdentityConsoleState.generation
+    generation = IdentityConsoleState.generation,
+    preserveOnError = false
 } = {}) {
     if (!identityLoadIsCurrent(generation, signal)) return;
     if (!identityCan('sessions.manage')) {
@@ -472,9 +503,12 @@ async function loadIdentitySessions({
         identitySetStatus('identitySessionStatus');
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
-        IdentityConsoleState.sessions = [];
-        IdentityConsoleState.sessionNextCursor = null;
-        renderIdentitySessions();
+        if (!preserveOnError || error.status === 403) {
+            IdentityConsoleState.sessions = [];
+            IdentityConsoleState.sessionNextCursor = null;
+            renderIdentitySessions();
+        }
+        identitySetBusy('identitySessionList', false);
         identitySetStatus(
             'identitySessionStatus', identityErrorMessage(error, 'identity.request_failed'), 'error'
         );
@@ -500,7 +534,7 @@ async function loadIdentityOidc({
         updateTeamAccessNavigation();
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
-        IdentityConsoleState.oidcPolicy = null;
+        if (error.status === 403) IdentityConsoleState.oidcPolicy = null;
         renderIdentityOidc();
         return false;
     }
@@ -523,7 +557,7 @@ async function loadIdentityRecovery({
         IdentityConsoleState.recovery = identityValidateRecovery(payload);
     } catch (error) {
         if (error?.name === 'AbortError' || !identityLoadIsCurrent(generation, signal)) return;
-        IdentityConsoleState.recovery = null;
+        if (error.status === 403) IdentityConsoleState.recovery = null;
         renderIdentityRecovery();
         return false;
     }
@@ -541,7 +575,8 @@ async function loadIdentityConsole({ announce = false } = {}) {
     for (const id of ['identityPrincipalSummary', 'identityOidcSummary', 'identityRecoverySummary', 'identityList', 'identitySessionList']) {
         identitySetBusy(id, true);
     }
-    identitySetStatus('identityPageStatus', announce ? '' : t('identity.loading'));
+    // The shaped regions already announce loading without adding/removing a page row.
+    identitySetStatus('identityPageStatus');
     try {
         const current = await identityApi('/session', {
             signal: controller.signal
@@ -551,8 +586,8 @@ async function loadIdentityConsole({ announce = false } = {}) {
         IdentityConsoleState.permissions = new Set(IdentityConsoleState.principal.permissions);
         renderIdentityPrincipal();
         const results = await Promise.all([
-            loadIdentityPage({ signal: controller.signal, generation }),
-            loadIdentitySessions({ signal: controller.signal, generation }),
+            loadIdentityPage({ signal: controller.signal, generation, preserveOnError: true }),
+            loadIdentitySessions({ signal: controller.signal, generation, preserveOnError: true }),
             loadIdentityOidc({ signal: controller.signal, generation }),
             loadIdentityRecovery({ signal: controller.signal, generation })
         ]);
@@ -570,6 +605,11 @@ async function loadIdentityConsole({ announce = false } = {}) {
         }
         IdentityConsoleState.principal = null;
         IdentityConsoleState.permissions = new Set();
+        IdentityConsoleState.identities = [];
+        IdentityConsoleState.sessions = [];
+        IdentityConsoleState.oidcPolicy = null;
+        IdentityConsoleState.recovery = null;
+        document.getElementById('identityPrincipalSummary')?.replaceChildren();
         identityStatusBadge('identityPrincipalBadge', 'identity.unavailable', 'danger');
         identitySetBusy('identityPrincipalSummary', false);
         renderIdentityOidc();

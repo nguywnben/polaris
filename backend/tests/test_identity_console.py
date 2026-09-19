@@ -93,6 +93,18 @@ class TestElement {{
     }}
     append(...children) {{ children.forEach(child => this.appendChild(child)); }}
     get childElementCount() {{ return this.children.length; }}
+    querySelector(selector) {{
+        for (const child of this.children) {{
+            const matches = selector.startsWith('.')
+                ? (child.className || '').split(' ').includes(selector.slice(1))
+                : child.tagName.toLowerCase() === selector;
+            if (matches) return child;
+            const descendant = child.querySelector(selector);
+            if (descendant) return descendant;
+        }}
+        return null;
+    }}
+    contains(node) {{ return this === node || this.children.some(child => child.contains(node)); }}
     querySelectorAll(selector) {{
         return selector === ':scope > .region-skeleton'
             ? this.children.filter(child => child.className === 'region-skeleton') : [];
@@ -269,6 +281,12 @@ assert(!list.hidden && list.getAttribute('aria-hidden') !== 'true',
 assert(list.children.length === permissionIds.length, 'collapsed view must retain every permission');
 assert(list.children.every((child, index) => child.tagName === 'LI' && child.textContent === permissionIds[index]),
     'permission identifiers must remain exact and individually readable');
+disclosure.open = true;
+global.document.activeElement = summary;
+contract.renderPrincipal();
+const refreshed = container.querySelector('.identity-permissions');
+assert(refreshed.open === true, 'refresh must preserve expanded permissions');
+assert(refreshed.querySelector('summary').focused === true, 'refresh must restore keyboard focus');
 """,
             include_feature=True,
         )

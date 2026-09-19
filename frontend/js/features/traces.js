@@ -303,6 +303,7 @@ async function openTraceDetail(element) {
     TraceConsoleState.detailAbortController = controller;
     TraceConsoleState.selectedTrace = null;
     clearTraceDetail();
+    traceElement('traceDetailTitle').textContent = traceId;
     dialog.setAttribute('aria-busy', 'true');
     setRegionBusy('traceDecisionList', true);
     TraceConsoleState.detailReturnFocus = element; if (traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.loading'); dialog.showModal();

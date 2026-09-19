@@ -99,7 +99,7 @@
 .raw-log-badge { display: inline-block; margin-bottom: 6px; color: var(--warning); font-size: var(--type-meta); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .raw-log-controls { margin-bottom: 14px; }
 .raw-log-section #logConnectionStatus { margin-bottom: 14px; }
-.trace-detail-dialog { width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); }
+.trace-detail-dialog { width: min(820px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); }
 .trace-detail-dialog[open] { display: flex; flex-direction: column; }
 .trace-detail-dialog::backdrop { background: var(--overlay); }
 .trace-detail-header, .trace-detail-actions, .trace-detail-dialog > p { flex: 0 0 auto; padding: 16px 20px; }
@@ -108,7 +108,7 @@
 .trace-detail-header h2, .trace-detail-dialog > p { margin: 0; overflow-wrap: anywhere; }
 .trace-detail-id { display: block; margin-top: 4px; color: var(--text-muted); font-size: var(--type-meta); overflow-wrap: anywhere; }
 .trace-detail-close { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; }
-.trace-detail-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.trace-detail-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .trace-detail-dialog > p:empty { padding: 0; }
 .trace-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 10px 20px; }
 .trace-detail-grid div { min-width: 0; padding: 10px 0; }

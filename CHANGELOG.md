@@ -13,6 +13,10 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Keep trace and credential-management dialog frames stable during delayed requests.
+- Match Identity summary skeletons to their fact layout, preserve expanded permissions
+  on refresh, and retain last loaded lists during transient refresh errors without
+  retaining protected data after authorization loss.
 - Use compact, theme-aware horizontal and vertical scrollbars throughout the console,
   while preserving system controls in forced-colors mode.
 - Clarify trace-detail dialog hierarchy and close control; keep header/actions visible

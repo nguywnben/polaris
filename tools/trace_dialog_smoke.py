@@ -98,7 +98,10 @@ def main():
                 state["failed"] = True
                 opener.click()
                 expect(page.locator("#traceDetailStatus")).not_to_have_text("")
-                expect(page.locator("#traceDetailTitle")).to_have_text("")
+                # The requested ID is known before fetching; old response data is not.
+                expect(page.locator("#traceDetailTitle")).to_have_text(trace["trace_id"])
+                expect(page.locator("#traceDetailModel")).to_have_text("")
+                expect(page.locator("#traceDetailRequestId")).to_have_text("")
                 page.keyboard.press("Escape")
                 state["failed"] = False
                 trace["decisions"] = []
