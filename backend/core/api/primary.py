@@ -75,7 +75,9 @@ from core.google_ai_studio import (
     parse_model_ids,
 )
 from core.httpx_client import get_async, post_async, stream_post_async
+from core.meta_model_api import MetaModelAPIError
 from core.model_blacklist import record_model_not_found
+from core.muse_oauth import MuseOAuthError
 from core.muse_quota import subscription_observer
 from core.ollama import (
     build_ollama_headers,
@@ -597,6 +599,42 @@ async def _exclude_missing_model_route(
         )
 
 
+async def _request_preparation_error(
+    error: ValueError, filename: str, credential: Dict[str, Any], model_name: str
+) -> Response:
+    """Separate rejected client options from failures that affect provider health."""
+    provider = get_credential_provider(credential)
+    status_code = 500
+    if isinstance(error, (MetaModelAPIError, MuseOAuthError)) and error.status_code == 400:
+        status_code = 400
+        await credential_manager.release_credential(filename, mode="primary")
+        trace_decision(
+            category="request",
+            action="failed",
+            result="failed",
+            reason="client_error",
+            provider=provider,
+            model=model_name,
+            status_code=status_code,
+        )
+    else:
+        await record_api_call_error(
+            credential_manager,
+            filename,
+            status_code,
+            None,
+            mode="primary",
+            model_name=model_name,
+            error_message=str(error),
+            provider=provider,
+        )
+    return Response(
+        content=json.dumps({"error": str(error)}),
+        status_code=status_code,
+        media_type="application/json",
+    )
+
+
 async def stream_request(
     body: Dict[str, Any],
     native: bool = False,
@@ -679,22 +717,7 @@ async def _stream_request_upstream(
             extra_headers=headers,
         )
     except ValueError as exc:
-        provider_id = get_credential_provider(credential_data)
-        await record_api_call_error(
-            credential_manager,
-            current_file,
-            500,
-            None,
-            mode="primary",
-            model_name=model_name,
-            error_message=str(exc),
-            provider=provider_id,
-        )
-        yield Response(
-            content=json.dumps({"error": str(exc)}),
-            status_code=500,
-            media_type="application/json",
-        )
+        yield await _request_preparation_error(exc, current_file, credential_data, model_name)
         return
 
     provider_id = context.provider_id
@@ -1321,22 +1344,7 @@ async def _non_stream_request_upstream(
             extra_headers=headers,
         )
     except ValueError as exc:
-        provider_id = get_credential_provider(credential_data)
-        await record_api_call_error(
-            credential_manager,
-            current_file,
-            500,
-            None,
-            mode="primary",
-            model_name=model_name,
-            error_message=str(exc),
-            provider=provider_id,
-        )
-        return Response(
-            content=json.dumps({"error": str(exc)}),
-            status_code=500,
-            media_type="application/json",
-        )
+        return await _request_preparation_error(exc, current_file, credential_data, model_name)
 
     provider_id = context.provider_id
     target_url = context.target_url

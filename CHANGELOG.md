@@ -13,6 +13,9 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Preserve Chat Completions tool-call history when routing to Muse Code / Meta,
+  ignoring only the internal Gemini tool-call placeholder, not real signed reasoning.
+  Return typed request-validation errors as HTTP 400 without penalizing credential health.
 - Shorten the virtual-key secret dialog's copy button label.
 - Accept Chat Completions `stream_options.include_usage` used by VS Code and OpenCode.
   Emit requested usage once before `[DONE]`, preserve tool-call deltas and upstream errors,

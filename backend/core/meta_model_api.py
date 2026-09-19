@@ -13,6 +13,7 @@ import math
 import re
 
 import httpx
+from core.converter.thought_signature import SKIP_THOUGHT_SIGNATURE_VALIDATOR
 from core.httpx_client import http_client
 from core.meta_native_boundary import validate_native_request
 from core.meta_responses_models import validate_native_payload
@@ -244,6 +245,14 @@ def _canonical_input(source):
         role = "assistant" if content["role"] == "model" else "user"
         for part in content.get("parts") or []:
             part = _object(part, "content part")
+            # Chat tool history receives this Gemini-only bypass marker in the
+            # shared converter. It is not signed reasoning and must not reach Meta.
+            if (
+                part.get("thoughtSignature") == SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                and ("functionCall" in part or "function_call" in part)
+                and not part.get("thought")
+            ):
+                part = {key: value for key, value in part.items() if key != "thoughtSignature"}
             if part.get("thought") or "thoughtSignature" in part:
                 raise MetaModelAPIError("Signed reasoning requires native Meta Responses replay.")
             kinds = set(part) - {"thought"}

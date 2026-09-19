@@ -30,6 +30,181 @@ MODEL = "muse-code/muse-spark-1.3"
 
 
 class MuseIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_chat_tool_history_survives_converter_and_muse_preparation(self):
+        from core.converter.openai_to_gemini import convert_openai_to_gemini_request
+        from core.converter.thought_signature import SKIP_THOUGHT_SIGNATURE_VALIDATOR
+
+        canonical = await convert_openai_to_gemini_request(
+            {
+                "model": MODEL,
+                "messages": [
+                    {"role": "user", "content": "What is the weather in Hanoi?"},
+                    {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_weather_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "lookup_weather",
+                                    "arguments": '{"city":"Hanoi"}',
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "role": "tool",
+                        "tool_call_id": "call_weather_1",
+                        "content": '{"temperature":29,"unit":"C"}',
+                    },
+                ],
+            }
+        )
+        self.assertEqual(
+            canonical["contents"][1]["parts"][0]["thoughtSignature"],
+            SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+        )
+        for streaming in (False, True):
+            with self.subTest(streaming=streaming):
+                _, _, payload = muse_code.prepare_request(ACCOUNT, canonical, MODEL, streaming)
+                call, result = payload["input"][1:]
+                self.assertEqual(call["type"], "function_call")
+                self.assertEqual(call["call_id"], "call_weather_1")
+                self.assertEqual(call["name"], "lookup_weather")
+                self.assertEqual(json.loads(call["arguments"]), {"city": "Hanoi"})
+                self.assertEqual(result["type"], "function_call_output")
+                self.assertEqual(result["call_id"], "call_weather_1")
+                self.assertEqual(json.loads(result["output"]), {"temperature": 29, "unit": "C"})
+                self.assertNotIn("thoughtSignature", json.dumps(payload))
+
+    async def test_real_signed_reasoning_remains_rejected_by_muse_preparation(self):
+        from core.meta_model_api import MetaModelAPIError
+
+        for streaming in (False, True):
+            with self.subTest(streaming=streaming), self.assertRaises(MetaModelAPIError):
+                muse_code.prepare_request(
+                    ACCOUNT,
+                    {
+                        "contents": [
+                            {
+                                "role": "model",
+                                "parts": [
+                                    {
+                                        "functionCall": {
+                                            "id": "call_1",
+                                            "name": "search",
+                                            "args": {},
+                                        },
+                                        "thoughtSignature": "real-opaque-reasoning-signature",
+                                    }
+                                ],
+                            }
+                        ]
+                    },
+                    MODEL,
+                    streaming,
+                )
+
+    async def test_client_preparation_errors_release_lease_without_penalizing_muse(self):
+        from core.api import primary
+        from core.meta_model_api import MetaModelAPIError
+        from core.muse_oauth import MuseOAuthError
+
+        from backend.tests.test_extended_provider_runtime import PrimaryExtendedIntegrationTests
+
+        real_prepare = primary.prepare_provider_request
+        cases = (
+            (
+                MetaModelAPIError,
+                {
+                    "contents": [
+                        {
+                            "role": "model",
+                            "parts": [{"text": "private", "thoughtSignature": "real-signature"}],
+                        }
+                    ]
+                },
+            ),
+            (
+                MuseOAuthError,
+                {
+                    "contents": [{"role": "user", "parts": [{"text": "hello"}]}],
+                    "tools": [{"functionDeclarations": [{"name": "lookup_weather"}]}],
+                    "toolConfig": {"functionCallingConfig": {"mode": "ANY"}},
+                },
+            ),
+        )
+        for error_type, canonical in cases:
+            # Use the real adapter so the test covers its typed validation errors,
+            # not only an artificial exception injected at the runtime boundary.
+            with self.assertRaises(error_type) as raised:
+                muse_code.prepare_request(ACCOUNT, canonical, MODEL, True)
+            self.assertEqual(raised.exception.status_code, 400)
+            for streaming in (False, True):
+                stack, release = PrimaryExtendedIntegrationTests().fixtures(
+                    [(MODEL, "muse.json", ACCOUNT)]
+                )
+                with (
+                    stack,
+                    patch.object(primary, "prepare_provider_request", real_prepare),
+                    patch.object(
+                        primary, "get_token_compression_config", AsyncMock(return_value={})
+                    ),
+                    patch.object(primary, "post_async", AsyncMock()) as post,
+                    patch.object(primary, "stream_extended_request") as transport,
+                ):
+                    request = {"model": MODEL, **canonical}
+                    if streaming:
+                        results = [item async for item in primary._stream_request_upstream(request)]
+                        response = results[-1]
+                    else:
+                        response = await primary._non_stream_request_upstream(request)
+                    with self.subTest(
+                        error=error_type.__name__, streaming=streaming, check="status"
+                    ):
+                        self.assertEqual(response.status_code, 400, response.body)
+                    with self.subTest(
+                        error=error_type.__name__, streaming=streaming, check="lease"
+                    ):
+                        release.assert_awaited_once_with("muse.json", mode="primary")
+                    with self.subTest(
+                        error=error_type.__name__, streaming=streaming, check="health"
+                    ):
+                        primary.record_api_call_error.assert_not_awaited()
+                    primary.record_api_call_success.assert_not_awaited()
+                    post.assert_not_awaited()
+                    transport.assert_not_called()
+
+    async def test_untyped_preparation_failure_still_counts_as_provider_failure(self):
+        from core.api import primary
+
+        from backend.tests.test_extended_provider_runtime import PrimaryExtendedIntegrationTests
+
+        for streaming in (False, True):
+            stack, _ = PrimaryExtendedIntegrationTests().fixtures([(MODEL, "muse.json", ACCOUNT)])
+            with (
+                self.subTest(streaming=streaming),
+                stack,
+                patch.object(
+                    primary,
+                    "prepare_provider_request",
+                    AsyncMock(side_effect=ValueError("Missing provider configuration")),
+                ),
+            ):
+                if streaming:
+                    responses = [
+                        item async for item in primary._stream_request_upstream({"model": MODEL})
+                    ]
+                    response = responses[-1]
+                else:
+                    response = await primary._non_stream_request_upstream({"model": MODEL})
+                self.assertEqual(response.status_code, 500)
+                primary.record_api_call_error.assert_awaited_once()
+                self.assertEqual(
+                    primary.record_api_call_error.await_args.args[1:3], ("muse.json", 500)
+                )
+
     async def test_muse_canonical_requests_do_not_receive_google_defaults(self):
         from core.converter.gemini_fix import normalize_gemini_request
 
