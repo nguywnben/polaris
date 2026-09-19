@@ -991,25 +991,9 @@ function renderIdentityConsoleForLocale() {
 function initIdentityBindings() {
     document.getElementById('identityCreateForm')?.addEventListener('submit', submitIdentityCreate);
     const createDialog = document.getElementById('identityCreateDialog');
-    createDialog?.addEventListener('cancel', (event) => {
-        event.preventDefault();
-        closeIdentityCreateDialog();
-    });
-    createDialog?.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        event.preventDefault();
-        closeIdentityCreateDialog();
-    });
+    configureModalDismissal(createDialog, 'explicit');
     const confirmDialog = document.getElementById('identityConfirmDialog');
-    confirmDialog?.addEventListener('cancel', (event) => {
-        event.preventDefault();
-        closeIdentityConfirmation(false);
-    });
-    confirmDialog?.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        event.preventDefault();
-        closeIdentityConfirmation(false);
-    });
+    configureModalDismissal(confirmDialog, 'explicit');
 }
 
 document.addEventListener('DOMContentLoaded', initIdentityBindings);

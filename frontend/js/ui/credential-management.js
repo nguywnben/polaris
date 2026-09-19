@@ -114,8 +114,7 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
         checkbox?.closest('.cred-card')?.querySelector('[data-credential-command="manage"]')?.focus();
     };
     syncOverview();
-    modal.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); void close(); } });
-    modal.addEventListener('click', event => { if (event.target === modal || event.target.closest('[data-dialog-close]')) void close(); });
+    modal.addEventListener('click', event => { if (event.target.closest('[data-dialog-close]')) void close(); });
     await mountModal(modal);
 
     // Load each safe information section independently; one failure must not hide the rest.

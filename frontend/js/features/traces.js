@@ -385,10 +385,7 @@ function initTraceBindings() {
     restoreTraceSafeFilters(); TraceConsoleState.filters = readTraceFilters(); traceElement('traceFilterForm')?.addEventListener('submit', applyTraceFilters); traceElement('traceRetentionForm')?.addEventListener('submit', saveTraceRetention);
     const dialog = traceElement('traceDetailDialog');
     dialog?.addEventListener('close', () => TraceConsoleState.detailReturnFocus?.focus());
-    dialog?.addEventListener('cancel', (event) => { event.preventDefault(); closeTraceDetail(); });
-    dialog?.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') { event.preventDefault(); closeTraceDetail(); }
-    });
+    configureModalDismissal(dialog, 'outside', closeTraceDetail);
 }
 document.addEventListener('DOMContentLoaded', initTraceBindings);
 document.addEventListener('polaris:locale-change', () => { if (TraceConsoleState.loaded) { renderTraces(); if (TraceConsoleState.selectedTrace) renderTraceDetail(TraceConsoleState.selectedTrace); } });

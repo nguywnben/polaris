@@ -107,6 +107,8 @@ def main():
                     loading, frame(page, ".credential-management-modal"), f"complete {width}"
                 )
                 page.keyboard.press("Escape")
+                expect(page.locator(".credential-management-modal")).to_be_visible()
+                page.locator(".credential-management-modal [data-dialog-close]").click()
                 expect(page.locator(".credential-management-modal")).to_have_count(0)
             print("modal loading stability: PASS (1440, 1024, 768, 360)")
         finally:

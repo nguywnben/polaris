@@ -22,6 +22,46 @@ const modalReturnFocus = new WeakMap();
 const modalFocusHandlers = new WeakMap();
 const mountedModals = [];
 const modalBackgroundStates = new Map();
+const modalDismissalHandlers = new WeakMap();
+
+// Informational surfaces may light-dismiss; drafts/confirmations require a button.
+function configureModalDismissal(modal, policy = 'explicit', onDismiss = null) {
+    if (!modal) return;
+    if (!['outside', 'explicit'].includes(policy)) throw new TypeError('Unknown modal dismissal policy');
+    modalDismissalHandlers.get(modal)?.();
+    modal.dataset.modalDismissal = policy;
+    let outsidePointer = null;
+    const isOutside = event => {
+        if (event.target !== modal) return false;
+        if (!modal.matches('dialog')) return true;
+        const bounds = modal.getBoundingClientRect();
+        return event.clientX < bounds.left || event.clientX > bounds.right
+            || event.clientY < bounds.top || event.clientY > bounds.bottom;
+    };
+    const dismiss = event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (policy === 'outside') onDismiss?.();
+    };
+    const pointerDown = event => {
+        outsidePointer = event.isPrimary && event.button === 0 && isOutside(event) ? event.pointerId : null;
+    };
+    const pointerCancel = () => { outsidePointer = null; };
+    const click = event => {
+        const startedOutside = outsidePointer !== null && event.pointerId === outsidePointer;
+        outsidePointer = null;
+        if (!isOutside(event)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (policy === 'outside' && startedOutside) onDismiss?.();
+    };
+    const keyDown = event => { if (event.key === 'Escape') dismiss(event); };
+    const handlers = { pointerdown: pointerDown, pointercancel: pointerCancel, click, keydown: keyDown, cancel: dismiss };
+    for (const [type, handler] of Object.entries(handlers)) modal.addEventListener(type, handler, true);
+    modalDismissalHandlers.set(modal, () => {
+        for (const [type, handler] of Object.entries(handlers)) modal.removeEventListener(type, handler, true);
+    });
+}
 
 function syncModalBackground() {
     for (const [element, inert] of modalBackgroundStates) element.inert = inert;
@@ -72,8 +112,9 @@ document.addEventListener('keydown', event => {
     if (dialog) trapModalFocus(dialog, event);
 });
 
-function mountModal(modal) {
+function mountModal(modal, { dismissal = 'explicit', onDismiss = null } = {}) {
 
+    configureModalDismissal(modal, dismissal, onDismiss);
     modalReturnFocus.set(modal, document.activeElement);
     document.body.appendChild(modal);
     mountedModals.push(modal);
@@ -93,6 +134,8 @@ function mountModal(modal) {
 
 function unmountModal(modal) {
 
+    modalDismissalHandlers.get(modal)?.();
+    modalDismissalHandlers.delete(modal);
     const focusHandler = modalFocusHandlers.get(modal);
     if (focusHandler) modal.removeEventListener('keydown', focusHandler);
     const returnTarget = modalReturnFocus.get(modal);

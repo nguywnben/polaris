@@ -96,7 +96,7 @@ def main(locales=LOCALES):
                         page.locator('[data-ui-action="virtual-key-create"]').first.click()
                         expect(page.locator(".virtual-key-form-modal")).to_be_visible()
                         check_layout(page, (locale, "virtual-key-dialog"))
-                        page.keyboard.press("Escape")
+                        page.locator("[data-virtual-key-cancel]").click()
                     if (locale, route) in (("de", "config"), ("ja", "providers"), ("vi", "config")):
                         page.screenshot(
                             path=str(output / f"{locale}-{route}-mobile.png"),

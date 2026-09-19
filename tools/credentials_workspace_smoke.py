@@ -217,6 +217,8 @@ def main():
             page.keyboard.press("Shift+Tab")
             expect(dialog.locator("[data-dialog-close]")).to_be_focused()
             page.keyboard.press("Escape")
+            expect(dialog).to_be_visible()
+            dialog.locator("[data-dialog-close]").click()
             expect(dialog).to_have_count(0)
             expect(manage).to_be_focused()
 

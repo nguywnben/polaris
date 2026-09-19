@@ -130,7 +130,7 @@ def main():
             expect(modal.locator('[name="rpm_limit"]')).not_to_have_attribute(
                 "aria-invalid", "true"
             )
-            page.keyboard.press("Escape")
+            modal.locator("[data-virtual-key-cancel]").click()
             page.goto(base + "/ai-quality", wait_until="networkidle")
             disabled = page.locator("input:disabled:visible").first
             if disabled.count():

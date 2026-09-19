@@ -13,6 +13,9 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ### Fixed
 
+- Classify dialog dismissal consistently: read-only details support outside click
+  and Escape; forms, confirmations, credential management, and one-time secrets
+  require an explicit action button, protecting drafts from accidental dismissal.
 - Replace the trace-detail header's X icon with a translated Close button in the
   footer, keeping Escape dismissal and return focus.
 - Keep trace and credential-management dialog frames stable during delayed requests.

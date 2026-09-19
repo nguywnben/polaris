@@ -107,6 +107,10 @@ def main(stage, strict):
                 expect(page.locator(form)).to_be_visible()
                 capture(route + "-create")
                 page.keyboard.press("Escape")
+                expect(page.locator(form)).to_be_visible()
+                page.locator(form).locator(
+                    '[data-virtual-key-cancel], [data-ui-action="identity-create-close"]'
+                ).click()
                 expect(page.locator(form)).not_to_be_visible()
                 expect(page.locator(trigger)).to_be_focused()
 

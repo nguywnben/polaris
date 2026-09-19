@@ -38,6 +38,7 @@ class IdentityConsoleContractTests(unittest.TestCase):
         source_paths = [str(IDENTITY_CONTRACT)]
         feature_exports = ""
         if include_feature:
+            source_paths.append(str(FRONTEND / "js/ui/notifications.js"))
             source_paths.append(str(FRONTEND / "js/ui/page-states.js"))
             source_paths.append(str(IDENTITY_SCRIPT))
             feature_exports = """
@@ -90,6 +91,9 @@ class TestElement {{
     addEventListener(type, listener) {{
         if (!this.listeners.has(type)) this.listeners.set(type, []);
         this.listeners.get(type).push(listener);
+    }}
+    removeEventListener(type, listener) {{
+        this.listeners.set(type, (this.listeners.get(type) || []).filter(item => item !== listener));
     }}
     append(...children) {{ children.forEach(child => this.appendChild(child)); }}
     get childElementCount() {{ return this.children.length; }}
@@ -382,7 +386,7 @@ for (const busy of [false, true]) {
         self.assertIn('<dialog id="identityConfirmDialog"', fragment)
         self.assertRegex(fragment, r"<h1[^>]+data-i18n=\"identity\.title\"")
 
-    def test_escape_key_closes_the_create_dialog(self):
+    def test_escape_key_preserves_the_create_dialog(self):
         self._run_identity_contract(
             """
 const dialog = new HTMLElement();
@@ -393,10 +397,12 @@ let prevented = false;
 dialog.dispatchEvent({
     type: 'keydown',
     key: 'Escape',
-    preventDefault() { prevented = true; }
+    preventDefault() { prevented = true; },
+    stopImmediatePropagation() {}
 });
 assert(prevented, 'Escape did not suppress the native dialog default');
-assert(!dialog.open, 'Escape did not close the create dialog');
+assert(dialog.open, 'Escape discarded the create dialog');
+assert(dialog.dataset.modalDismissal === 'explicit', 'create dialog must require a button');
 """,
             include_feature=True,
         )

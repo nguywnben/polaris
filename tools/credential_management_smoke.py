@@ -268,6 +268,10 @@ def main():
                 page.keyboard.press("Tab")
                 assert dialog.evaluate("el => el.contains(document.activeElement)")
                 page.keyboard.press("Escape")
+                expect(dialog).to_be_visible()
+                page.mouse.click(2, 2)
+                expect(dialog).to_be_visible()
+                dialog.locator("[data-dialog-close]").click()
                 expect(dialog).to_have_count(0)
                 expect(active_trigger).to_be_focused()
             for locale in page.evaluate("Object.keys(CREDENTIAL_MANAGEMENT_COPY)"):
