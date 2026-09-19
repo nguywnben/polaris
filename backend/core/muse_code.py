@@ -179,8 +179,13 @@ def protocol_for_model(data: dict, model: str) -> str:
 
 
 def prepare_request(data: dict, request: dict, model: str, streaming: bool):
+    try:
+        credential = _inference_credential(data)
+    except MuseOAuthError as error:
+        # Only request validation below this boundary is a client error.
+        raise ValueError(str(error)) from error
     url, headers, body = meta.prepare_request(
-        _inference_credential(data),
+        credential,
         request,
         upstream_model(model),
         streaming,

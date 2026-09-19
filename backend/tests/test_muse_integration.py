@@ -176,6 +176,75 @@ class MuseIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     post.assert_not_awaited()
                     transport.assert_not_called()
 
+    async def test_invalid_stored_credentials_count_as_provider_preparation_failures(self):
+        from core.api import primary
+
+        from backend.tests.test_extended_provider_runtime import PrimaryExtendedIntegrationTests
+
+        real_prepare = primary.prepare_provider_request
+        cases = (
+            (
+                "muse-spark-1.3",
+                "meta.json",
+                {
+                    "provider": "meta",
+                    "credential_type": "api_key",
+                    "api_key": "synthetic-meta-key",
+                    "base_url": "https://invalid.example.test/v1",
+                },
+                "Meta API base URL must be https://api.meta.ai/v1.",
+            ),
+            (
+                MODEL,
+                "muse.json",
+                {**ACCOUNT, "account_id": "invalid-account-identity"},
+                "Muse Code credential is missing a valid account identity.",
+            ),
+        )
+        for model, filename, credential, error_message in cases:
+            for streaming in (False, True):
+                stack, _ = PrimaryExtendedIntegrationTests().fixtures(
+                    [(model, filename, credential)]
+                )
+                with (
+                    stack,
+                    patch.object(primary, "prepare_provider_request", real_prepare),
+                    patch.object(
+                        primary, "get_token_compression_config", AsyncMock(return_value={})
+                    ),
+                    patch.object(primary, "post_async", AsyncMock()) as post,
+                    patch.object(primary, "stream_extended_request") as transport,
+                ):
+                    request = {
+                        "model": model,
+                        "contents": [{"role": "user", "parts": [{"text": "hello"}]}],
+                    }
+                    if streaming:
+                        results = [item async for item in primary._stream_request_upstream(request)]
+                        response = results[-1]
+                    else:
+                        response = await primary._non_stream_request_upstream(request)
+                    with self.subTest(
+                        provider=credential["provider"], streaming=streaming, check="status"
+                    ):
+                        self.assertEqual(response.status_code, 500, response.body)
+                    with self.subTest(
+                        provider=credential["provider"], streaming=streaming, check="health"
+                    ):
+                        primary.record_api_call_error.assert_awaited_once_with(
+                            primary.credential_manager,
+                            filename,
+                            500,
+                            None,
+                            mode="primary",
+                            model_name=model,
+                            error_message=error_message,
+                            provider=credential["provider"],
+                        )
+                    primary.record_api_call_success.assert_not_awaited()
+                    post.assert_not_awaited()
+                    transport.assert_not_called()
+
     async def test_untyped_preparation_failure_still_counts_as_provider_failure(self):
         from core.api import primary
 

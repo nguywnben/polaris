@@ -401,7 +401,12 @@ async def anthropic_request_to_meta_canonical(payload: dict) -> dict:
 def prepare_request(
     data: dict, gemini_request: dict, model: str, streaming: bool, *, native_provider: str = "meta"
 ) -> tuple[str, dict, dict]:
-    normalized = normalize_credential(data)
+    try:
+        normalized = normalize_credential(data)
+    except MetaModelAPIError as error:
+        # Stored configuration failures are not invalid inference requests.
+        # Keep management/import validation's HTTP 400 semantics unchanged.
+        raise ValueError(str(error)) from error
     protocol_for_model(normalized, model)
     validate_native_request(gemini_request, native_provider)
     source = copy.deepcopy(_object(gemini_request, "request"))
