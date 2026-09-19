@@ -11,6 +11,11 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+### Fixed
+
+- Recover dashboard login after a large session-expiry backlog without restarting Polaris;
+  preserve active sessions and continue rejecting expired or revoked sessions.
+
 ## [1.0.0] - 2026-09-19
 
 Prepared refresh, not yet published. This candidate includes the guided installation,

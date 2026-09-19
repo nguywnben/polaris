@@ -1843,6 +1843,42 @@ class InMemoryStateStore(BaseStateStore):
                 },
             )
 
+    async def prune_expired_security_sessions(self, *, epoch: int, limit: int = 256) -> int:
+        """Make bounded expiry progress without admitting or extending any session.
+
+        Normal mutations remain atomic when their cleanup budget is exceeded. The
+        standalone service uses this separate maintenance step before retrying them.
+        """
+        validate_epoch(epoch)
+        if type(limit) is not int or not 1 <= limit <= self._MAX_PRUNED_PER_MUTATION:
+            raise ValueError("Invalid session maintenance limit.")
+        async with self._async_lock:
+            self._ensure_open_locked()
+            self._require_admission_locked()
+            self._require_security_epoch_locked(epoch)
+            now = self._security_now_locked()
+            session_due = self._security_session_expiries.plan_due(
+                self._security_sessions,
+                now,
+                lambda item: min(item.idle_expires_at, item.absolute_expires_at),
+                limit,
+            )
+            replay_due = self._security_session_replay_expiries.plan_due(
+                self._security_session_replays,
+                now,
+                lambda item: item.expires_at,
+                limit - len(session_due),
+            )
+            # Validate the entire batch before removing any indexed record.
+            for digest in session_due:
+                self._validate_security_session_locked(digest)
+            for digest in session_due:
+                self._remove_security_session_locked(digest)
+            for operation_key in replay_due:
+                self._security_session_replays.pop(operation_key)
+                self._security_session_replay_expiries.discard(operation_key)
+            return len(session_due) + len(replay_due)
+
     async def issue_security_session(self, request: SessionIssueRequest) -> SessionMutationResult:
         async with self._async_lock:
             self._ensure_open_locked()
