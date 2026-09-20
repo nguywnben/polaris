@@ -1,6 +1,7 @@
 """Provider catalog routes for the management console."""
 
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.provider_registry import (
     CREDENTIAL_OPERATIONS,
     INFERENCE_PROTOCOLS,
@@ -13,7 +14,7 @@ from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-router = APIRouter(tags=["provider-catalog"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-catalog"])
 
 
 class ProviderCapabilityContract(BaseModel):

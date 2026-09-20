@@ -78,7 +78,13 @@ class InstallSupportContractTests(unittest.TestCase):
         }
 
         guided = _matrix()["guided"]
-        self.assertEqual(user_facing_scripts, COMPATIBILITY_SCRIPTS | {guided["installer"]})
+        self.assertEqual(
+            user_facing_scripts,
+            COMPATIBILITY_SCRIPTS | {guided["installer"], guided["powershell_installer"]},
+        )
+        self.assertTrue((ROOT / guided["powershell_installer"]).is_file())
+        self.assertTrue(guided["powershell_requires"])
+        self.assertIn("manual-check-pending", guided["macos_verification"])
         self.assertEqual(guided["deployment"], "docker-run")
         self.assertEqual(guided["target"], "linux/amd64")
         self.assertTrue(guided["no_clone_required"])
@@ -127,6 +133,20 @@ class InstallSupportContractTests(unittest.TestCase):
         self.assertEqual(values["PANEL_PASSWORD"], "")
         self.assertEqual(values["SETUP_TOKEN"], "")
         self.assertEqual(values["SETUP_ALLOW_INSECURE_HTTP"], "false")
+
+    def test_guided_platform_docs_distinguish_source_from_publication(self):
+        guide = (ROOT / "docs/docker-install.md").read_text(encoding="utf-8")
+        self.assertIn("### Windows (PowerShell)", guide)
+        self.assertIn("### Linux / macOS Intel (Bash)", guide)
+        self.assertIn("Source-ready, not published yet", guide)
+        self.assertIn("RELEASE_TAG/deploy/scripts/docker-install.ps1", guide)
+        self.assertNotIn("v1.0.0/deploy/scripts/docker-install.ps1", guide)
+        self.assertIn("Invoke-RestMethod", guide)
+        self.assertIn("-ErrorAction Stop", guide)
+        self.assertIn("Native Mac verification is **pending**", guide)
+        self.assertIn("docker-maintenance.md", guide)
+        evidence = _matrix()["guided"]["powershell_runtime_evidence"]
+        self.assertTrue((ROOT / evidence).is_file())
 
     def test_install_guide_is_one_ordered_path_to_authenticated_health(self):
         guide = GUIDE_PATH.read_text(encoding="utf-8")

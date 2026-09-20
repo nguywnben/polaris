@@ -11,8 +11,30 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 ## [Unreleased]
 
+_No changes yet._
+
+## [1.0.0] - 2026-09-19
+
+Final local candidate prepared; publication and registry verification remain
+separate release actions.
+
+### Changed
+
+- Mask credential account emails by default and reveal them only through an
+  authorized management action. Use opaque console references for legacy filenames
+  containing email addresses without renaming stored credentials. See the
+  [privacy and API compatibility notes](docs/credential-email-privacy.md).
+- Resolve token prices by provider and explicit model aliases; preserve pricing
+  provenance and distinguish missing cost coverage from free usage on the dashboard.
+  Existing usage amounts are not recalculated. See [pricing and rollback notes](docs/pricing.md).
+- Model discovery lists provider models and configured aliases without automatically
+  adding `fake-streaming/` and `streaming-anti-truncation/` copies. Existing prefixed
+  inference IDs remain accepted for manual opt-in use; provider model variants are retained.
+
 ### Fixed
 
+- Recover credential routing and cache invalidation after an idle backlog of expired
+  coordination replay records, using bounded cleanup without discarding live evidence.
 - Keep browser-native page scrollbars; apply compact themed scrollbars only to
   inner scrolling regions such as dialogs, lists, and tables.
 - Classify dialog dismissal consistently: read-only details support outside click
@@ -34,8 +56,6 @@ below. See the [publication collision checklist](docs/releases/1.0.0-preparation
 
 - Recover dashboard login after a large session-expiry backlog without restarting Polaris;
   preserve active sessions and continue rejecting expired or revoked sessions.
-
-## [1.0.0] - 2026-09-19
 
 Prepared refresh, not yet published. This candidate includes the guided installation,
 mobile interaction, client compatibility, credential identity and dependency fixes.

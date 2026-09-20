@@ -20,6 +20,18 @@ reasoning control/output, usage, finish reasons, and normalized errors as `suppo
 or `rejected`. A provider's eligibility for a family remains defined by the separate
 [provider capability contract](provider-capabilities.md).
 
+## Model discovery
+
+`GET /v1/models` and `GET /v1beta/models` advertise the discovered provider catalog and
+enabled configured virtual aliases, deduplicated in discovery order. They do not synthesize
+`fake-streaming/` or `streaming-anti-truncation/` copies. Provider-returned model variants
+remain unchanged. Response envelopes and authentication are unchanged.
+
+The feature prefixes remain accepted by inference routes as explicit advanced opt-ins;
+existing saved IDs do not need migration. Clients that populate pickers exclusively from
+discovery must enter these IDs manually to select the modes. No automatic mode selection
+or new discovery parameter is introduced.
+
 ## Fail-closed request rules
 
 - Unknown top-level request fields and unknown typed content/config fields return HTTP 400 using
@@ -31,10 +43,36 @@ or `rejected`. A provider's eligibility for a family remains defined by the sepa
 - Anthropic base64 images, tool history, signed thinking blocks, `thinking` control, and
   `output_config.format` JSON schema are translated. A `redacted_thinking` request block cannot be
   represented safely and is rejected.
-- OpenAI `reasoning_effort` and Responses `reasoning` request controls are rejected in R1 because
-  the normalized route cannot enforce them consistently. Reasoning output remains translated.
+- The additive `chat-reasoning-v1` extension accepts nullable Chat `reasoning_effort`:
+  `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. It is resolved after model/provider
+  selection, separately on each fallback attempt. The original R1 corpus is unchanged.
+  Responses `reasoning` controls and Chat `reasoning_content` history remain rejected.
 - Unsupported tool/content types return a bounded validation error; they are never serialized into
   prompt text or silently skipped.
+
+## Chat reasoning extension
+
+Gemini text models on Antigravity, AI Studio and the Vertex Chat alias receive native
+`generationConfig.thinkingConfig`. Gemini 2.5 maps minimal/low to 1,024, medium to 8,192 and high
+to 24,576 thinking tokens. `none` maps to zero only on 2.5 Flash/Flash-Lite. Known Gemini 3 families
+use their supported thinking levels; 3.1 Pro maps minimal to low per Google's compatibility API.
+Gemini 3.7/3.8 Flash only accept low/medium/high; 3 Pro accepts low/high. Unknown families,
+specialized image/audio/live models and unsupported levels fail explicitly rather than being guessed.
+
+`none` on Gemini 2.5 Pro or Gemini 3 returns HTTP 400 explaining that the model cannot disable
+reasoning. No automatic downgrade, omission or retry without the requested control occurs.
+OpenAI Platform forwards `reasoning_effort` unchanged; Codex forwards `reasoning.effort`. Those
+upstreams validate model-specific support. Other provider adapters currently return an explicit
+unsupported-control error; this extension does not claim universal vendor reasoning parity.
+Omitting the field retains existing defaults.
+
+Effort is part of the response cache key. Internal intent is removed before provider serialization;
+the content-free trace records `request.applied` with the requested effort reason code. Rejected
+translations release the credential without marking it unhealthy.
+
+Tiếng Việt: Polaris chuyển mức reasoning theo đúng model/nhà cung cấp đã chọn. Nếu model không
+cho tắt reasoning, `none` trả lỗi 400 rõ ràng, không tự đổi sang `low` hay bỏ tham số. Không gửi
+tham số thì giữ hành vi mặc định. Nhà cung cấp chưa có ánh xạ an toàn vẫn báo không hỗ trợ.
 
 ## Response rules
 
@@ -87,4 +125,6 @@ bounded aggregation are defined by the separate [streaming lifecycle contract](s
 - [Anthropic Messages API](https://platform.claude.com/docs/en/api/http/messages/create)
 - [Anthropic structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
 - [Gemini GenerateContent API](https://ai.google.dev/api/generate-content)
+- [Gemini OpenAI reasoning mapping](https://ai.google.dev/gemini-api/docs/openai#thinking)
+- [Gemini thinking capabilities](https://ai.google.dev/gemini-api/docs/thinking)
 - [Vertex AI generative API reference](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rpc/google.cloud.aiplatform.v1)

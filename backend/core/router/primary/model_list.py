@@ -10,19 +10,15 @@ router = APIRouter()
 
 
 async def get_primary_models_with_features():
+    """Advertise provider models and configured aliases, not synthetic feature IDs.
+
+    Feature prefixes remain accepted by inference routes for explicit opt-in use.
+    """
 
     catalog_entries = await model_catalog_service.get_catalog()
     if not catalog_entries:
         log.warning("[provider model list] No concrete provider models are currently available.")
-    base_model_ids = [entry.model_id for entry in catalog_entries]
-
-    models = []
-    for base_model in base_model_ids:
-        models.append(base_model)
-
-        models.append(f"fake-streaming/{base_model}")
-
-        models.append(f"streaming-anti-truncation/{base_model}")
+    models = list(dict.fromkeys(entry.model_id for entry in catalog_entries))
 
     for virtual_model in await get_public_virtual_models():
         if virtual_model not in models:
@@ -31,7 +27,7 @@ async def get_primary_models_with_features():
     route_label = "route" if len(models) == 1 else "routes"
     log.info(
         f"[provider model list] Generated {len(models)} provider model {route_label}, "
-        "including feature-prefixed routes."
+        "including configured aliases."
     )
     return models
 

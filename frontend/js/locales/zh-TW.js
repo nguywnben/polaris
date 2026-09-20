@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["zh-TW"], {
+    "dashboard.cost_unknown": "費用尚未確定",
+    "dashboard.cost_coverage": "{source} · 已計算 {priced}/{total} 次成功呼叫的費用。依 API 價格估算，並非實際帳單。",
     "setup_preflight_title": "安裝檢查",
     "setup_preflight_copy": "建立擁有者帳戶前，檢查儲存空間、位址和連線。",
     "run_preflight": "執行檢查",

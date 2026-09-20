@@ -1,5 +1,35 @@
 # Simple Docker installation — 2026-09-18
 
+## One-command platform extension — 2026-09-19
+
+Owner approved Docker underneath the unified installer. Contract:
+`docs/specs/one-command-install.md`. No host dependency installation, Oracle update,
+push or publication in this follow-up. Existing native compatibility scripts stay.
+
+- [x] Add parity regressions and a self-contained PowerShell guided Docker installer.
+  Verify local/public consent, arguments, collision/race protection, secure setup
+  token transport, health failures and environment restoration using fake Docker.
+- [x] Improve Bash prerequisite guidance and unify documented one-command entry
+  points. Keep the current amd64 boundary and macOS evidence gap explicit.
+  Verify Bash regressions, syntax, support-matrix and documentation contracts.
+- [x] Rehearse the PowerShell path on isolated Docker storage if the local engine
+  is available: setup/login, restart persistence and recovery; no real data.
+- [x] Review security boundaries, run affected gates and record evidence.
+  Final task gate: 36 tests passed, no failures/skips; static checks passed.
+  Real Docker smoke passed on Windows PowerShell 5.1 and 7, including restart,
+  backup/restore and rollback. One independent review's cleanup-ownership and
+  volume-only recovery findings were fixed and covered by regressions.
+  Evidence: `docs/evidence/one-command-install-2026-09-19.md`.
+- [ ] Commit at the next authorized release-level checkpoint. Source changes stay
+  uncommitted here: the full pre-commit gate in `docs/quality-gates.md` has not been
+  run for this installer-only task. No push, tag, publication or Oracle update.
+
+Threat boundaries: downloaded release code, CLI arguments, local Docker context,
+existing container/volume names and setup tokens. Do not trust a remote daemon,
+mount a volume claimed by another install, print secrets in diagnostic commands,
+or execute partially downloaded scripts. Source distribution stays on official
+GitHub HTTPS URLs until a separately authorized domain/release is available.
+
 Owner approved implementation and this separate plan location. Existing plans stay intact.
 Contract: `docs/specs/simple-docker-install.md`. Local work and the subsequently authorized
 test-VPS rehearsal only; no push or release.

@@ -35,6 +35,20 @@ python backend/main.py
 
 The console is available at `http://127.0.0.1:4283`. Runtime credentials, databases, logs, and `.env` files must remain untracked.
 
+## Repository Hygiene
+
+- Keep application code, regression tests, synthetic fixtures, reusable smoke tools,
+  dependency lockfiles, shared plans, and reviewed documentation in Git. Tests are
+  required for CI and are already excluded from the runtime Docker image.
+- Put one-off probes, downloaded repositories, raw test output, and deployment
+  bundles under `temp/`. Root `artifacts/`, `reports/`, `screenshots/`, `backups/`,
+  and `exports/` are also local-only; curated images belong in `docs/assets/`.
+- Keep private operator notes in `tasks/local/` or `docs/evidence/local/`.
+  `tasks/oracle-*-update.md` deployment records are local-only as well.
+- Review `git diff --cached --stat` and the staged diff before committing. Do not
+  force-add ignored credentials, logs, caches, or backups. `.gitignore` does not
+  remove files already tracked by Git or erase them from repository history.
+
 ## Required Checks
 
 Use the smallest gate matching the work. During implementation, run the fast gate and only the

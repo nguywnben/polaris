@@ -80,6 +80,7 @@ _MANAGEMENT_ROUTE_MANIFEST = (
     ),
     *_http(
         ManagementPermission.CREDENTIALS_EXPORT,
+        ("GET", "/api/credentials/email/{filename}"),
         ("GET", "/api/credentials/detail/{filename}"),
         ("GET", "/api/credentials/download/{filename}"),
         ("GET", "/api/credentials/download-all"),

@@ -337,14 +337,25 @@ function renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact = 
 
 }
 
+function maskCredentialEmailText(value) {
+    return String(value || '').replace(/[^\s<>()"',;:@/\\]+@[^\s<>()"',;:@/\\]+/gu, email => {
+        const [local, domain] = email.split('@');
+        if (local.includes('***')) return email;
+        const chars = Array.from(local);
+        const masked = chars.length > 4 ? `${chars.slice(0, 2).join('')}***${chars.slice(-2).join('')}`
+            : `${chars.length > 2 ? chars[0] : ''}***`;
+        return `${masked}@${domain}`;
+    });
+}
+
 function getCredentialAccountLabel(credInfo) {
     const label = String(credInfo.credential_label || '').trim();
-    if (label) return label;
+    if (label) return maskCredentialEmailText(label);
     const kind = String(credInfo.credential_type || 'oauth').toLowerCase();
     const email = kind === 'oauth' ? String(credInfo.user_email || '').trim() : '';
-    if (email) return email;
+    if (email) return maskCredentialEmailText(email);
     // Filenames are existing public inventory identifiers, not token/key fragments.
-    return String(credInfo.filename || '').replace(/\.json$/i, '') || t('credential_details_title');
+    return maskCredentialEmailText(String(credInfo.filename || '').replace(/\.json$/i, '')) || t('credential_details_title');
 }
 
 function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
@@ -352,7 +363,7 @@ function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) 
     const subtitle = kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
         ? credInfo.user_email : '';
     if (!subtitle) return '';
-    return `<div class="cred-email" title="${escapeAttribute(subtitle)}">${escapeHtml(subtitle)}</div>`;
+    return `<div class="cred-email">${escapeHtml(maskCredentialEmailText(subtitle))}</div>`;
 }
 
 function credentialModelCount(credInfo, previous = {}) {
@@ -423,14 +434,9 @@ function createCredCard(credInfo, manager) {
 
     div.className = status.disabled ? 'cred-card disabled' : 'cred-card';
 
-    let statusBadges = '';
     let contextBadges = '';
-
-    statusBadges += status.disabled
-
-        ? `<span class="status-badge disabled">${t('status_disabled')}</span>`
-
-        : `<span class="status-badge enabled">${t('status_enabled')}</span>`;
+    const statusText = t(status.disabled ? 'status_disabled' : 'status_enabled');
+    const statusIndicator = `<span class="credential-state-indicator ${status.disabled ? 'is-disabled' : 'is-enabled'}" role="img" aria-label="${escapeAttribute(statusText)}"></span>`;
 
     const quotaData = AppState.quotaPreviewCache[filename]?.data;
     const subscription = credentialSubscriptionSnapshot(
@@ -477,11 +483,13 @@ function createCredCard(credInfo, manager) {
 
         <div class="cred-header">
 
+            ${statusIndicator}
+
             <div class="cred-title-row">
 
                 <input type="checkbox" class="${escapeAttribute(checkboxClass)}" data-filename="${escapeAttribute(filename)}" data-credential-select aria-label="${escapeAttribute(t('credentials.workspace.select', {name: accountLabel}))}">
 
-                <div class="cred-identity" title="${escapeAttribute(filename)}">
+                <div class="cred-identity">
                     <div class="cred-identity-copy">
                         <h3 class="cred-account-name" title="${escapeAttribute(accountLabel)}">${escapeHtml(accountLabel)}</h3>
                         ${renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel)}
@@ -490,7 +498,7 @@ function createCredCard(credInfo, manager) {
 
             </div>
 
-            <div class="cred-status cred-summary">${statusBadges}${contextBadges}</div>
+            <div class="cred-status cred-summary">${contextBadges}</div>
 
         </div>
 

@@ -27,13 +27,22 @@ COMPATIBLE_OPERATION_EVOLUTIONS = {
         (
             "f40845078cff2c2b6827456ce5558a796e41aa9573c23d1dc264ec1850d979fd",
             "299cf275aec42d75320eb31e302d3e5309d1f8e945bc5fa5e277a8033e48e19a",
-        )
+        ),
+        # chat-reasoning-v1: optional, bounded effort; existing requests are unchanged.
+        (
+            "f40845078cff2c2b6827456ce5558a796e41aa9573c23d1dc264ec1850d979fd",
+            "f100eebd316536e39ba8d414bcdce35ee4d67d7cda1539f5cbe800a396bc80ff",
+        ),
     },
     ("POST", "/vertex/v1/chat/completions"): {
         (
             "9a718cb729b8e91a780cc971438da68cc17b460e71ef37f9bc0405b4a7e1a337",
             "5e0d17f72637e3035b65203a92fb1115a03d0fd81de7c9b4579fe6bdf21a2964",
-        )
+        ),
+        (
+            "9a718cb729b8e91a780cc971438da68cc17b460e71ef37f9bc0405b4a7e1a337",
+            "b923c7863c7feb1b3aa4c6aa71bc0034c1a0e5a9938745fab0105ae9f9324420",
+        ),
     },
     # ADR-014 adds a separate native Meta branch while retaining the exact legacy
     # Responses schema. HTTP/legacy regression tests cover dispatch and rejection;

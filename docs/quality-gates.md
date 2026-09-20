@@ -3,6 +3,13 @@
 Polaris uses one gate runner with increasing scope. Run commands from the repository root with
 the active project virtual environment.
 
+The maintained installer contract tests require Bash and PowerShell (`pwsh`, or
+`powershell.exe` on Windows) on PATH. Docker is replaced by a subprocess fake in those
+tests; they do not install dependencies or mutate the real daemon. Windows exercises both
+shells when available. The separate `tools/docker_install_smoke.py --installer powershell`
+or `--installer pwsh` rehearsal requires a running local Linux/amd64 Docker engine and
+uses only isolated temporary resources.
+
 ## Gate Selection
 
 | Situation | Command | Scope |

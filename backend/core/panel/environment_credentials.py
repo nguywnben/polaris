@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 from core.credential_pool import upsert_credential_by_email
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.storage_adapter import get_storage_adapter
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,7 +15,9 @@ from log import log
 
 from .utils import internal_server_error, public_mode_name, validate_mode
 
-router = APIRouter(prefix="/api/auth", tags=["environment-credentials"])
+router = APIRouter(
+    route_class=CredentialPrivacyRoute, prefix="/api/auth", tags=["environment-credentials"]
+)
 
 ENV_CREDENTIAL_SOURCE = "environment"
 ENV_CREDENTIAL_PATTERN = re.compile(

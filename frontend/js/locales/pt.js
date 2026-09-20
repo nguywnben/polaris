@@ -1,5 +1,7 @@
 // Contextual interface translations. Product names and protocol identifiers stay exact.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["pt"], {
+    "dashboard.cost_unknown": "Custo indisponível",
+    "dashboard.cost_coverage": "{source} · Custo calculado para {priced}/{total} chamadas bem-sucedidas. Estimativas com preços de API, não faturas.",
     "provider": "Provedor",
     "status_filter_suffix": " Filtro: {filter}.",
     "setup_preflight_title": "Verificações da instalação",

@@ -491,16 +491,31 @@
 }
 
 .cred-header {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
 }
+
+.credential-state-indicator {
+    position: absolute;
+    inset-inline-end: 2px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.credential-state-indicator.is-enabled { background: var(--success); }
+.credential-state-indicator.is-disabled { background: var(--danger); }
 
 .cred-title-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 10px;
+    padding-inline-end: 18px;
 }
 
 .cred-identity {
@@ -657,13 +672,15 @@
     min-width: 0;
 }
 
+.cred-summary:has(> .subscription-badge[hidden]:only-child) {
+    display: none;
+}
+
 .cred-summary > :not([hidden]) {
     flex: 0 1 auto;
     white-space: nowrap;
 }
 
-.cred-summary > .enabled,
-.cred-summary > .disabled,
 .cred-summary > .credit-on {
     flex-shrink: 0;
 }

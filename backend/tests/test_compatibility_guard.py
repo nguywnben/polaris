@@ -76,6 +76,23 @@ class CompatibilitySnapshotTests(unittest.TestCase):
             compare_snapshots(self.baseline, changed),
         )
 
+    def test_reasoning_extension_pins_both_chat_operations_without_exempting_future_changes(self):
+        extension = _load_json(ROOT / "docs" / "compatibility" / "chat-reasoning-v1.json")
+        current_operations = {
+            entry["path"]: entry for entry in self.current["public_inference_operations"]
+        }
+        self.assertEqual(len(extension["operations"]), 2)
+        for expected in extension["operations"]:
+            self.assertEqual(current_operations[expected["path"]], expected)
+            changed = copy.deepcopy(self.current)
+            for operation in changed["public_inference_operations"]:
+                if operation["path"] == expected["path"]:
+                    operation["semantic_sha256"] = "0" * 64
+            self.assertIn(
+                f"changed public_inference_operations: POST {expected['path']}",
+                compare_snapshots(self.baseline, changed),
+            )
+
     def test_console_urls_and_generated_client_examples_remain_valid(self) -> None:
         self.assertEqual(self.baseline["console_routes"]["tab_map"]["dashboard"], "/dashboard")
         self.assertIn("/code_assist", self.baseline["console_routes"]["server_paths"])
@@ -160,10 +177,17 @@ class CompatibilitySnapshotTests(unittest.TestCase):
         self.assertTrue(request.stream_options.include_usage)
         legacy_document = copy.deepcopy(main.app.openapi())
         chat_schema = legacy_document["components"]["schemas"]["OpenAIChatCompletionRequest"]
+        # Remove only the later additive field to verify the immutable stream-options
+        # fingerprint, then remove stream_options to prove the original R1 shape.
+        self.assertNotIn("reasoning_effort", chat_schema.get("required", []))
+        del chat_schema["properties"]["reasoning_effort"]
+        stream_options_document = copy.deepcopy(legacy_document)
         self.assertNotIn("stream_options", chat_schema.get("required", []))
         del chat_schema["properties"]["stream_options"]
         for expected in fixture["operations"]:
-            self.assertIn(expected, self.current["public_inference_operations"])
+            self.assertEqual(
+                _operation_snapshot(stream_options_document, "POST", expected["path"]), expected
+            )
             self.assertIn(
                 _operation_snapshot(legacy_document, "POST", expected["path"]),
                 self.baseline["public_inference_operations"],

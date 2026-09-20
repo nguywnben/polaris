@@ -148,10 +148,11 @@ See [Architecture](docs/architecture.md) for module boundaries, request flow, st
 
 ## Deployment
 
-For a guided Linux/amd64 installation without cloning the repository or editing `.env`,
-see [Simple Docker installation](docs/docker-install.md): one installer command, an explicit
-HTTP choice for VPS access, then create your password on the web. **This flow is prepared
-locally and requires the matching updated installer/image to be published first.** Manual
+For a guided Docker installation on Linux or Windows without cloning the repository or editing `.env`,
+see [Simple Docker installation](docs/docker-install.md): choose Bash or PowerShell, run one
+installer command, then create your password on the web. Public HTTP requires explicit consent.
+**The new PowerShell entry point is source-ready and must be published before its download
+command can be used.** The runtime is Linux/amd64; Intel macOS verification is pending. Manual
 Docker, Compose and source development remain available; Docker-run uses its own
 [backup/update procedure](docs/docker-maintenance.md), not the Compose updater.
 
@@ -427,10 +428,23 @@ Model discovery is provider-aware: a shared model can be backed by multiple prov
 
 When an upstream returns `404` for a concrete model, Polaris records an unavailable route for that credential and model rather than suppressing the entire provider. The route is temporarily avoided immediately and remains visible under **Unavailable Model Routes** until it is removed or the credential is revalidated. This prevents one account's subscription or regional entitlement from affecting other accounts at the same provider. If no enabled credential declares or can infer support for a requested concrete model, the gateway returns a clear no-compatible-credential error instead of sending the request to a random provider.
 
-Polaris recognizes feature prefixes and suffixes in model names:
+`GET /v1/models` and `GET /v1beta/models` advertise concrete provider models and enabled,
+configured aliases without automatically creating feature-prefixed copies. Provider-returned
+variants, including thinking models, remain listed. Clients that refresh their model picker
+will no longer see synthetic copies; saved or manually entered feature IDs remain accepted.
 
-- `fake-streaming/{model}` or the configured pseudo-streaming prefix for clients that require SSE output.
-- `streaming-anti-truncation/{model}` or the configured anti-truncation prefix for long-form streaming recovery.
+### Advanced model features (opt-in)
+
+Choose these modes explicitly by entering the prefixed model ID in your client with
+`stream: true`; no discovery flag or global enable switch is required:
+
+- `fake-streaming/{model}` waits for a non-streaming upstream response and emits SSE output.
+- `streaming-anti-truncation/{model}` enables streaming continuation, which can make additional
+  upstream calls and increase latency and usage. The AI Quality attempt limit bounds this mode;
+  changing that limit alone does not enable it.
+
+Polaris also recognizes supported suffixes in model names:
+
 - Thinking suffixes such as `-high`, `-medium`, `-low`, `-minimal`, and `-max` for supported Gemini-family models.
 - Search suffixes such as `-search` for models that support Google Search grounding.
 
@@ -438,7 +452,9 @@ Provider adapters normalize these feature names before sending upstream requests
 
 ## Usage and Cost Visibility
 
-Polaris records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates direct OpenAI, Anthropic, Gemini, and xAI entries, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
+Polaris records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates provider-qualified token-price entries across catalog providers, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
+
+See [pricing identities, configuration, coverage and rollback](docs/pricing.md) for exact aliases and the distinction between unknown and free usage.
 
 Virtual API keys let one gateway serve multiple clients under separate limits. Each key carries optional daily and monthly USD budgets enforced from the cost ledger, requests-per-minute and tokens-per-minute sliding windows, an expiry timestamp, and a model allowlist with glob patterns. Keys are stored as SHA-256 hashes; the plaintext secret is shown exactly once at creation time.
 
@@ -484,6 +500,8 @@ Ollama connections are configured per endpoint and may include an optional beare
 Credential imports and Google Antigravity batch imports accept archives up to 10 MB, at most 500 files, individual credential files up to 2 MB, and at most 25 MB of uncompressed data. Google AI Studio, OpenAI, Anthropic, and Ollama provider imports use stricter limits of 2 MB per imported file, 200 JSON entries, and 5 MB of uncompressed data.
 
 The **Credentials** page (`/credentials`) groups connected accounts and API keys by provider. Each credential's management dialog shows its identity, models, status, and provider-supported actions. OAuth providers can report different quota windows, per-model limits, plans, or credit controls; unavailable information is shown as unavailable. API keys do not imply access to account email, subscription, or billing data.
+
+Account emails are masked by default. **Manage → Show email** requires credential-export permission and forgets the revealed value when hidden or the dialog closes. Legacy email-containing filenames use opaque console references without renaming stored files. See [email privacy and API compatibility](docs/credential-email-privacy.md).
 
 `Download ZIP` exports credentials, and `Import ZIP` imports mixed-provider archives using provider-specific identification and validation. OAuth identity and API-key fingerprints are deduplicated within their provider and connection context. Unsupported or malformed entries are reported individually. Validation and discovery depend on the provider; an imported credential or visible model catalog does not by itself prove inference access. Use **Test model** for an explicit inference check, which may consume allowance or incur charges.
 

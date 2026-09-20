@@ -1,5 +1,6 @@
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
+from core.reasoning_control import ReasoningEffort
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, WithJsonSchema, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
@@ -157,7 +158,7 @@ class OpenAIChatCompletionRequest(BaseModel):
     top_k: Optional[int] = Field(None, ge=1)
     tools: Optional[List[OpenAITool]] = None
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
-    reasoning_effort: SkipJsonSchema[Optional[str]] = None
+    reasoning_effort: Optional[ReasoningEffort] = None
     size: SkipJsonSchema[Optional[str]] = None
 
     @model_validator(mode="before")
@@ -193,10 +194,6 @@ class OpenAIChatCompletionRequest(BaseModel):
     def reject_unsupported_reasoning_control(self) -> "OpenAIChatCompletionRequest":
         if self.stream_options is not None and not self.stream:
             raise ValueError("stream_options requires stream=true.")
-        if self.reasoning_effort is not None:
-            raise ValueError(
-                "reasoning_effort is not supported by the Chat Completions translation."
-            )
         if any(message.reasoning_content is not None for message in self.messages):
             raise ValueError("reasoning_content cannot be translated safely in request history.")
         if self.response_format is not None:

@@ -134,6 +134,13 @@ TRACE_REASON_CODES = frozenset(
         "client_error",
         "server_error",
         "cancelled",
+        "reasoning_effort_none",
+        "reasoning_effort_minimal",
+        "reasoning_effort_low",
+        "reasoning_effort_medium",
+        "reasoning_effort_high",
+        "reasoning_effort_xhigh",
+        "reasoning_effort_max",
     }
 )
 

@@ -1,6 +1,7 @@
 # Console scrollbars and trace dialog
 
-Scope: user-requested visual refinement only. No VPS deployment, push or release.
+Scope: user-requested visual refinement, followed by explicitly authorized private Oracle
+deployment. No push or public release.
 Preserve trace data, translations, APIs, authentication and credential behavior.
 
 - Shared foundation uses native thin scrollbars on both axes with palette tokens and
@@ -29,5 +30,23 @@ pass. Ruff lint/format, JS syntax and diff whitespace checks pass. Manual five-a
 review found no blocking issue; no new dependency, security boundary or rendering sink.
 No touched source module exceeds the project's 1,500-line extraction threshold.
 
-Vietnamese: Thanh cuộn gọn theo giao diện sáng/tối; modal dấu vết rõ tiêu đề, nút đóng
-và danh sách bước nhẹ hơn. Đã kiểm thử local; chưa cập nhật Oracle.
+## Private Oracle deployment — 2026-09-19
+
+Deployed bea0026 as polaris-private:trace-ui-bea0026, based on the exact running
+credential-summary image so the session and credential fixes remain included.
+Image ID: sha256:5737f614c0d00ea5587dd6bf6c561bc0be7e543224fe2f3d488ddde673c040be.
+Six trace console tests passed in the candidate container. The initial test mount used
+/tests, which broke the test's repository-relative paths; corrected to /app/backend/tests.
+No application or test assertions were changed for that correction.
+
+Verified offline root-only backup: /var/backups/polaris/trace-ui-bea0026-l2lo7lao.
+Previous container retained stopped as polaris-rollback-trace-ui-bea0026; older rollback
+containers untouched. Existing owner, volume, environment (except build version), port,
+restart policy and security settings preserved.
+
+Post-deploy: healthy; all readiness dependencies available; login HTTP 200; no startup
+error lines. Eleven source hashes, four served JS hashes and the new served CSS rules
+verified. No real-provider request or authenticated production UI session was used.
+
+Vietnamese: Đã cập nhật thanh cuộn và modal lên Oracle, kiểm tra thành công; dữ liệu
+và các bản vá trước được giữ nguyên. Chưa push hoặc release công khai.

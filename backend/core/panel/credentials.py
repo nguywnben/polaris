@@ -40,6 +40,7 @@ from core.credential_fleet_query import (
 )
 from core.credential_manager import credential_manager
 from core.credential_operation_evidence import record_durable_credential_mutation
+from core.credential_references import resolve_credential_reference, resolve_credential_references
 from core.extended_provider_runtime import (
     discover_extended_models,
     normalize_extended_credential,
@@ -65,6 +66,7 @@ from core.muse_oauth import MuseOAuthError
 from core.muse_quota import subscription_observer
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
 from core.openai_platform import OpenAIPlatformError, validate_openai_api_key
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import PoolImportError, restore_pool_archive
 from core.provider_connection_diagnostics import (
     CONNECTION_TEST_TIMEOUT_SECONDS,
@@ -115,11 +117,10 @@ from .credential_security import verify_credential_action_token
 from .utils import (
     internal_server_error,
     public_error_detail,
-    validate_credential_filename,
     validate_mode,
 )
 
-router = APIRouter(tags=["credentials"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["credentials"])
 
 
 def _extended_configuration_fields(provider: str) -> tuple[str, ...]:
@@ -179,6 +180,8 @@ def _editable_credential_fields(credential_data: dict) -> list[str]:
 
 
 def _credential_configuration_payload(filename: str, credential_data: dict) -> dict:
+    from core.credential_privacy import mask_email_text
+
     source = "environment" if credential_data.get("source") == "environment" else "managed"
     provider_id = get_credential_provider(credential_data)
     fields = _editable_credential_fields(credential_data)
@@ -187,7 +190,7 @@ def _credential_configuration_payload(filename: str, credential_data: dict) -> d
         "provider": provider_id,
         "provider_variant": get_credential_provider_variant(credential_data),
         "credential_type": str(credential_data.get("credential_type") or "oauth"),
-        "credential_label": credential_data.get("credential_label"),
+        "credential_label": mask_email_text(credential_data.get("credential_label")),
         "source": source,
         "editable": bool(fields) and credential_supports_operation(credential_data, "edit"),
         "editable_fields": fields,
@@ -265,7 +268,7 @@ async def get_credential_configuration(
     mode = validate_mode(mode)
     if mode != "primary":
         raise HTTPException(status_code=400, detail="Only provider-pool credentials are editable.")
-    filename = validate_credential_filename(filename)
+    filename = await resolve_credential_reference(filename, mode=mode)
     storage_adapter = await get_storage_adapter()
     credential_data = await storage_adapter.get_credential(filename, mode=mode)
     if not credential_data:
@@ -287,7 +290,7 @@ async def update_credential_configuration(
     mode = validate_mode(mode)
     if mode != "primary":
         raise HTTPException(status_code=400, detail="Only provider-pool credentials are editable.")
-    filename = validate_credential_filename(filename)
+    filename = await resolve_credential_reference(filename, mode=mode)
     storage_adapter = await get_storage_adapter()
     credential_data = await storage_adapter.get_credential(filename, mode=mode)
     if not credential_data:
@@ -480,7 +483,7 @@ async def get_credential_models(
     """Return public model metadata for one credential without exposing secrets."""
     try:
         mode = validate_mode(mode)
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
         storage_adapter = await get_storage_adapter()
         credential_data = await storage_adapter.get_credential(filename, mode=mode)
         if not credential_data:
@@ -540,13 +543,31 @@ async def get_credential_models(
         ) from exc
 
 
+@router.get("/email/{filename}")
+async def reveal_credential_email(
+    filename: str, token: str = Depends(verify_panel_token), mode: str = "code_assist"
+):
+    """Explicit identity reveal; requires the existing credential-export permission."""
+    from core.credential_privacy import credential_account_email
+
+    mode = validate_mode(mode)
+    filename = await resolve_credential_reference(filename, mode=mode)
+    storage = await get_storage_adapter()
+    content = await storage.get_credential(filename, mode=mode)
+    if not content:
+        raise HTTPException(status_code=404, detail="Credential does not exist.")
+    state = await storage.get_credential_state(filename, mode=mode) or {}
+    email = credential_account_email(content, state)
+    return JSONResponse(content={"user_email": email}, headers={"Cache-Control": "no-store"})
+
+
 @router.get("/detail/{filename}")
 async def get_cred_detail(
     filename: str, token: str = Depends(verify_panel_token), mode: str = "code_assist"
 ):
     try:
         mode = validate_mode(mode)
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
         backend_info = await storage_adapter.get_backend_info()
@@ -728,7 +749,7 @@ async def creds_action(
         mode = validate_mode(mode)
         evidence_mode = mode
         try:
-            filename = validate_credential_filename(request.filename)
+            filename = await resolve_credential_reference(request.filename, mode=mode)
         except HTTPException:
             await record_durable_credential_mutation(
                 action=request.action,
@@ -840,6 +861,10 @@ async def creds_batch_action(
             status_code, body = cached
             return JSONResponse(status_code=status_code, content=body)
 
+        if has_explicit_targets:
+            # Replay binds the submitted identifiers, and must work even after a
+            # successful deletion removed the filename from the live inventory.
+            filenames = await resolve_credential_references(filenames, mode=mode)
         if has_selection:
             try:
                 filters = credential_selection_registry.resolve(
@@ -1121,7 +1146,7 @@ async def download_cred_file(
 ):
     try:
         mode = validate_mode(mode)
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
 
@@ -1245,7 +1270,7 @@ async def get_credential_errors(
 ):
     try:
         mode = validate_mode(mode)
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
 
@@ -1272,7 +1297,7 @@ async def get_credential_quota(
 ):
     try:
         mode = validate_mode(mode)
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
 
@@ -1558,7 +1583,7 @@ async def configure_preview_channel(
                 detail="The Preview channel can only be configured for Code Assist credentials.",
             )
 
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
 
@@ -1773,7 +1798,7 @@ async def _test_credential_unbounded(
     try:
         mode = validate_mode(mode)
 
-        filename = validate_credential_filename(filename)
+        filename = await resolve_credential_reference(filename, mode=mode)
 
         storage_adapter = await get_storage_adapter()
 

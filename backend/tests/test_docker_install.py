@@ -201,6 +201,12 @@ class DockerInstallerTests(unittest.TestCase):
         self.assertNotIn("pull polaris", commands)
         self.assertIn("image inspect", commands)
 
+    def test_missing_docker_points_to_official_host_instructions(self):
+        result, commands, _ = self.run_installer("--local", FAKE_NO_DOCKER="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("https://docs.docker.com/", result.stderr)
+        self.assertEqual(commands, "")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,15 @@ usage() {
         'No existing container or volume is replaced. HTTPS is recommended for remote access.'
 }
 
+docker_prerequisite_help() {
+    case "$(uname -s)" in
+        Darwin) printf '%s\n' 'Install/start Docker Desktop: https://docs.docker.com/desktop/setup/install/mac-install/' >&2 ;;
+        MINGW*|MSYS*|CYGWIN*) printf '%s\n' 'Install/start Docker Desktop (Linux containers): https://docs.docker.com/desktop/setup/install/windows-install/' >&2 ;;
+        *) printf '%s\n' 'Install/start Docker Engine: https://docs.docker.com/engine/install/' >&2 ;;
+    esac
+    printf '%s\n' 'Then rerun this installer. No packages, permissions or firewall settings were changed.' >&2
+}
+
 prompt() {
     printf '%s' "$1" >&2
     IFS= read -r answer <&3 || fail 'No answer received; nothing will be exposed automatically.'
@@ -88,9 +97,9 @@ main() {
         allow_http=true
     fi
 
-    command -v docker >/dev/null 2>&1 || fail 'Install and start Docker, then run this installer again.'
-    engine=$(docker info --format '{{.OSType}}/{{.Architecture}}') || fail 'Docker is unavailable. Start Docker and check your Docker permissions (sudo may be needed).'
-    case "$engine" in linux/x86_64|linux/amd64) ;; *) fail "Unsupported engine: $engine. This release requires Linux amd64." ;; esac
+    command -v docker >/dev/null 2>&1 || { docker_prerequisite_help; fail 'Docker is not installed.'; }
+    engine=$(docker info --format '{{.OSType}}/{{.Architecture}}') || { docker_prerequisite_help; fail 'Docker is unavailable. Check Docker permissions (sudo may be needed).'; }
+    case "$engine" in linux/x86_64|linux/amd64) ;; *) fail "Unsupported engine: $engine. This release requires Linux amd64; native ARM64 is not published." ;; esac
     endpoint=${DOCKER_HOST:-}
     if [[ -n "${DOCKER_CONTEXT:-}" || -z "$endpoint" ]]; then
         endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}') || fail 'Cannot identify the Docker host.'

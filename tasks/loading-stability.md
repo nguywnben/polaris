@@ -1,6 +1,7 @@
 # Loading stability: dialogs and Identity
 
-Scope: local UI fixes requested 2026-09-19. No VPS update, push, tag or release.
+Scope: UI fixes requested 2026-09-19, then explicitly authorized private Oracle
+deployment below. No push, tag or public release.
 Keep the existing visual system; no additional animation or UI framework.
 
 ## Reproduction
@@ -50,3 +51,22 @@ preserving the current design. Its engine and DevTools connector were unavailabl
 verification uses the repository's real Chromium/Playwright localhost harness.
 Unknown list length and genuinely different content may still change body length;
 the tests do not pretend to know these heights in advance.
+
+## Private Oracle deployment — 2026-09-19
+
+Deployed 784fdfb and a37e339 as `polaris-private:loading-ui-a37e339`, built from
+the exact running trace-ui image to retain the prior session/credential fixes.
+Image: `sha256:e708be63b860c0324ef9ef8fcb66d35ef20f881849b56905572d1b41cc65bfb4`.
+Six trace contract tests passed inside the candidate before replacement. The
+network-disabled/read-only test container logged an expected inability to write
+its optional file log; console logging and all tests remained successful.
+
+Verified offline backup: `/var/backups/polaris/loading-ui-a37e339-8z82kpiu`.
+Prior container retained stopped: `polaris-rollback-loading-ui-a37e339`.
+Existing data volume, owner, environment except BUILD_VERSION, port, restart policy
+and hardened runtime settings were preserved and compared after replacement.
+
+Post-deploy: healthy, all readiness dependencies available, login HTTP 200, zero
+startup error lines. Six deployed source hashes, both served JS files and served
+CSS rules verified. No authenticated production dashboard session or real-provider
+model request was performed. No public release or registry/Git push.

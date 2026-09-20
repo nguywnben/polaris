@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,10 +32,29 @@ from log import log
 from paths import DEFAULT_CREDENTIALS_DIR
 
 PRICING_OVERRIDES_FILENAME = "model_pricing.json"
+PRICING_ALIASES_FILENAME = "model_pricing_aliases.json"
 BUILTIN_PRICING_REVIEWED_AT = "2026-08-21"
 
 # Providers whose inference is local/self-hosted and therefore free.
 ZERO_COST_PROVIDERS = frozenset({"ollama"})
+
+# Explicit pricing identities, not inference rewrites. No wildcard suffix removal.
+# Gemini API / Antigravity model metadata reviewed 2026-09-20.
+MODEL_PRICING_ALIASES = {
+    ("google_antigravity", "gemini-3.8-flash-tiered"): ("gemini", "gemini-3.8-flash"),
+}
+
+
+@dataclass(frozen=True)
+class PricingResolution:
+    pricing: ModelPricing | None
+    model: str
+    provider: str
+    source: str = "unknown"
+
+
+def _pricing_aliases_path() -> Path:
+    return _pricing_overrides_path().with_name(PRICING_ALIASES_FILENAME)
 
 
 @dataclass(frozen=True)
@@ -46,6 +66,7 @@ class ModelPricing:
     cache_read_per_million: Optional[float] = None
     reasoning_per_million: Optional[float] = None
     cache_creation_per_million: Optional[float] = None
+    supported: bool = True
 
     def effective_cache_read(self) -> float:
         if self.cache_read_per_million is not None:
@@ -153,13 +174,60 @@ class _PricingTable:
     """Thread-safe manual, synchronized, and built-in pricing resolver."""
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._overrides: Dict[str, ModelPricing] = {}
         self._dynamic: Dict[tuple[str, str], ModelPricing] = {}
         self._overrides_mtime: Optional[float] = None
         self._dynamic_fetched_at: Optional[str] = None
         self._dynamic_state = "not_loaded"
         self._dynamic_last_error: Optional[str] = None
+        self._aliases = dict(MODEL_PRICING_ALIASES)
+        self._aliases_mtime: int | None = None
+
+    def _load_aliases_locked(self) -> None:
+        path = _pricing_aliases_path()
+        try:
+            stamp = path.stat().st_mtime_ns if path.exists() else None
+            if stamp == self._aliases_mtime:
+                return
+            aliases = dict(MODEL_PRICING_ALIASES)
+            if stamp is not None:
+                if path.stat().st_size > 1_048_576:
+                    raise ValueError("alias file too large")
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(raw, dict):
+                    raise ValueError("alias providers must be an object")
+                for provider, models in raw.items():
+                    if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", provider) or not isinstance(
+                        models, dict
+                    ):
+                        raise ValueError("invalid alias provider")
+                    for model, target in models.items():
+                        if not isinstance(target, dict) or set(target) != {"provider", "model"}:
+                            raise ValueError("invalid alias target")
+                        target_provider = str(target["provider"])
+                        names = (model, target["model"])
+                        if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", target_provider) or any(
+                            not isinstance(name, str)
+                            or not name
+                            or len(name) > 256
+                            or any(ord(char) < 33 for char in name)
+                            for name in names
+                        ):
+                            raise ValueError("invalid alias identity")
+                        aliases[
+                            (provider.lower().replace("-", "_"), _normalize_model_name(model))
+                        ] = (
+                            _normalize_dynamic_provider(target_provider),
+                            _normalize_model_name(target["model"]),
+                        )
+                        if len(aliases) > 4096:
+                            raise ValueError("too many pricing aliases")
+            self._aliases = aliases
+            self._aliases_mtime = stamp
+        except (OSError, ValueError, TypeError):
+            # Bad operator configuration does not invent prices or interrupt inference.
+            self._aliases = dict(MODEL_PRICING_ALIASES)
 
     def _load_overrides_locked(self) -> None:
         path = _pricing_overrides_path()
@@ -191,7 +259,7 @@ class _PricingTable:
     def _longest_prefix(table: Dict[str, ModelPricing], normalized: str) -> Optional[ModelPricing]:
         best_key = ""
         for key in table:
-            if normalized.startswith(key) and len(key) > len(best_key):
+            if (normalized == key or normalized.startswith(key + "-")) and len(key) > len(best_key):
                 best_key = key
         return table.get(best_key) if best_key else None
 
@@ -216,28 +284,47 @@ class _PricingTable:
             self._dynamic_last_error = str(error_code)[:80]
 
     def lookup(self, model: str, provider: str = "") -> Optional[ModelPricing]:
+        rates = self.resolve(model, provider).pricing
+        return rates if rates is not None and rates.supported else None
+
+    def resolve(self, model: str, provider: str = "") -> PricingResolution:
+        result = self._resolve(model, provider)
+        if result.pricing is not None and not result.pricing.supported:
+            return PricingResolution(None, result.model, result.provider, "unsupported")
+        return result
+
+    def _resolve(
+        self, model: str, provider: str = "", *, follow_aliases: bool = True
+    ) -> PricingResolution:
         normalized = _normalize_model_name(model)
+        raw_provider = str(provider or "").strip().lower().replace("-", "_")
+        dynamic_provider = _normalize_dynamic_provider(provider)
         if not normalized:
-            return None
+            return PricingResolution(None, normalized, dynamic_provider)
         with self._lock:
             self._load_overrides_locked()
-            override = self._longest_prefix(self._overrides, normalized)
-            if override is not None:
-                return override
-
-            dynamic_provider = _normalize_dynamic_provider(provider)
-            if dynamic_provider:
-                dynamic = self._dynamic.get((dynamic_provider, normalized))
-                if dynamic is not None:
-                    return dynamic
-            else:
-                candidates = {
-                    entry
-                    for (entry_provider, entry_model), entry in self._dynamic.items()
-                    if entry_model == normalized
+            self._load_aliases_locked()
+            if not raw_provider:
+                # Admission runs before routing selects a provider. Include explicit
+                # aliases and scoped overrides in its conservative price envelope.
+                providers = {
+                    key_provider
+                    for key_provider, key_model in (*self._dynamic, *self._aliases)
+                    if key_model == normalized
                 }
-                if candidates:
-                    return ModelPricing(
+                providers.update(
+                    key.split("/", 1)[0]
+                    for key in self._overrides
+                    if "/" in key and key.split("/", 1)[1] == normalized
+                )
+                if providers:
+                    resolutions = [self._resolve(normalized, name) for name in sorted(providers)]
+                    if any(
+                        item.pricing is None or not item.pricing.supported for item in resolutions
+                    ):
+                        return PricingResolution(None, normalized, "", "unsupported")
+                    candidates = [item.pricing for item in resolutions]
+                    rates = ModelPricing(
                         input_per_million=max(entry.input_per_million for entry in candidates),
                         output_per_million=max(entry.output_per_million for entry in candidates),
                         cache_read_per_million=max(
@@ -250,8 +337,50 @@ class _PricingTable:
                             entry.effective_cache_creation() for entry in candidates
                         ),
                     )
+                    return PricingResolution(rates, normalized, "", resolutions[0].source)
+            override = self._overrides.get(f"{raw_provider}/{normalized}") if raw_provider else None
+            if override is None:
+                override = self._longest_prefix(
+                    {key: value for key, value in self._overrides.items() if "/" not in key},
+                    normalized,
+                )
+            if override is not None:
+                return PricingResolution(override, normalized, raw_provider, "manual")
 
-            return self._longest_prefix(BUILTIN_MODEL_PRICING, normalized)
+            if dynamic_provider:
+                dynamic = self._dynamic.get((dynamic_provider, normalized))
+                if dynamic is not None:
+                    return PricingResolution(dynamic, normalized, dynamic_provider, "litellm")
+                alias = self._aliases.get((raw_provider, normalized)) if follow_aliases else None
+                if alias is not None:
+                    alias_provider, alias_model = alias
+                    return self._resolve(alias_model, alias_provider, follow_aliases=False)
+
+            # Built-in retail families must not leak to an unrelated provider.
+            family = next(
+                (
+                    vendor
+                    for prefix, vendor in (
+                        ("gemini-", "gemini"),
+                        ("claude-", "anthropic"),
+                        ("grok-", "xai"),
+                        ("gpt-", "openai"),
+                        ("o3", "openai"),
+                        ("o4", "openai"),
+                        ("codex-", "openai"),
+                    )
+                    if normalized.startswith(prefix)
+                ),
+                "",
+            )
+            builtin = (
+                self._longest_prefix(BUILTIN_MODEL_PRICING, normalized)
+                if (not raw_provider or dynamic_provider == family)
+                else None
+            )
+            return PricingResolution(
+                builtin, normalized, dynamic_provider, "builtin" if builtin else "unknown"
+            )
 
     def status(self) -> Dict[str, Any]:
         with self._lock:
@@ -259,13 +388,13 @@ class _PricingTable:
                 "dynamic_source": "LiteLLM",
                 "dynamic_state": self._dynamic_state,
                 "dynamic_fetched_at": self._dynamic_fetched_at,
-                "dynamic_model_count": len(self._dynamic),
+                "dynamic_model_count": sum(entry.supported for entry in self._dynamic.values()),
                 "dynamic_last_error": self._dynamic_last_error,
             }
 
 
 def _parse_override_entry(entry: Any) -> Optional[ModelPricing]:
-    if not isinstance(entry, dict):
+    if not isinstance(entry, dict) or "input" not in entry or "output" not in entry:
         return None
     try:
         parsed = ModelPricing(
@@ -280,7 +409,10 @@ def _parse_override_entry(entry: Any) -> Optional[ModelPricing]:
             cache_creation_per_million=(
                 float(entry["cache_creation"]) if entry.get("cache_creation") is not None else None
             ),
+            supported=entry.get("supported", True),
         )
+        if type(parsed.supported) is not bool:
+            return None
         prices = (
             parsed.input_per_million,
             parsed.output_per_million,
@@ -299,9 +431,6 @@ def _normalize_model_name(model: Any) -> str:
     name = str(model or "").strip().lower()
     if name.startswith("models/"):
         name = name[len("models/") :]
-    # Strip local-model tag suffixes such as ``llama3:8b``.
-    if ":" in name:
-        name = name.split(":", 1)[0]
     return name
 
 
@@ -321,7 +450,7 @@ def _normalize_dynamic_provider(provider: Any) -> str:
         return "anthropic"
     if normalized in {"xai", "grok", "xai_console"}:
         return "xai"
-    return ""
+    return normalized
 
 
 _pricing_table = _PricingTable()
@@ -330,6 +459,10 @@ _pricing_table = _PricingTable()
 def find_model_pricing(model: str, provider: str = "") -> Optional[ModelPricing]:
     """Return the pricing entry for ``model`` or ``None`` when unpriced."""
     return _pricing_table.lookup(model, provider=provider)
+
+
+def resolve_model_pricing(model: str, provider: str = "") -> PricingResolution:
+    return _pricing_table.resolve(model, provider=provider)
 
 
 def get_pricing_table_status() -> Dict[str, Any]:
@@ -378,6 +511,26 @@ def calculate_cost_usd(
     if pricing is None:
         return 0.0
 
+    return calculate_priced_cost(
+        pricing,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cached_tokens=cached_tokens,
+        cache_creation_tokens=cache_creation_tokens,
+        reasoning_tokens=reasoning_tokens,
+    )
+
+
+def calculate_priced_cost(
+    pricing: ModelPricing,
+    *,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cached_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+    reasoning_tokens: int = 0,
+) -> float:
+    """Calculate against one resolved snapshot, without reloading operator settings."""
     safe_input = max(0, int(input_tokens or 0))
     safe_output = max(0, int(output_tokens or 0))
     safe_cached = min(max(0, int(cached_tokens or 0)), safe_input)

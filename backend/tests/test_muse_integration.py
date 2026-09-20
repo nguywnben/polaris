@@ -518,7 +518,7 @@ class MuseIntegrationTests(unittest.IsolatedAsyncioTestCase):
             backend_type="sqlite",
             mode="primary",
         )
-        self.assertEqual(card["user_email"], "fixture@example.test")
+        self.assertEqual(card["user_email"], "fi***re@example.test")
 
     def test_console_errors_have_all_locales_and_protocol_text_stays_unchanged(self):
         for values in MESSAGES.values():

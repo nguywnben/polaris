@@ -1,7 +1,8 @@
 # Credential summary consistency
 
-Scope: fix misleading zero model counts and unify subscription badge colors; no deployment,
-push, release, provider traffic, or credential changes in this task.
+Scope: fix misleading zero model counts and unify subscription badge colors. Initial work
+was local only; the user subsequently authorized the private Oracle deployment below.
+No push, public release, provider traffic, or credential changes.
 
 The fleet summary counts only stored model_ids, while the management endpoint can return a
 provider catalog when that list is missing. The old UI flattened missing/invalid data to zero
@@ -29,4 +30,20 @@ Extraction assessment: credential-manager.js is already large; this change only 
 two public summary fields. New presentation helpers remain with credential-cards.js rather than
 adding state ownership to the manager. Manual five-axis review found no blocking issues.
 
-Vietnamese: Đã sửa bản local và kiểm thử; chưa cập nhật Oracle, chưa push hoặc release.
+## Private Oracle deployment — 2026-09-19
+
+Deployed commit 4000b86 presentation fixes together with the existing 6f0d82d session fix.
+Private image: polaris-private:credential-summary-4000b86, image ID
+sha256:0a25a25f8961ddc25d6a1437aaf0a35dadccb4c10744e25a36db1a30b82e781d.
+All 24 fleet/session tests passed inside the candidate image on Oracle before replacement.
+Offline data backup validated at /var/backups/polaris/credential-summary-4000b86-ezf2j_ow;
+root-only inspection backup retained there. Previous container is stopped and retained as
+polaris-rollback-summary-4000b86. The earlier original-release rollback is untouched.
+
+Existing environment (except private BUILD_VERSION), port bindings, hardened runtime settings,
+restart policy and polaris-data volume were preserved. Post-deploy checks: healthy, all ready
+dependencies available, owner still configured, login page HTTP 200, zero startup error lines.
+All six patched source hashes and all three HTTP-served JS hashes match the tested files.
+No authenticated live dashboard or real-provider model call was performed in this deployment.
+
+Vietnamese: Đã cập nhật bản vá riêng lên Oracle và kiểm tra thành công; chưa push hoặc release.

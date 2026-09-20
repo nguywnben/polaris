@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['th'], {
+    "dashboard.cost_unknown": "ยังไม่ทราบค่าใช้จ่าย",
+    "dashboard.cost_coverage": "{source} · คำนวณแล้ว {priced}/{total} ครั้งที่สำเร็จ เป็นค่าประมาณตามราคา API ไม่ใช่ยอดเรียกเก็บเงินจริง",
     "provider.copy.grok_intro": "เพิ่มบัญชี OAuth และกำหนดเส้นทางไปยังโมเดล Grok Build ที่พร้อมใช้งานผ่านพูลร่วม",
     "provider.copy.grok_authorize": "อนุญาตบัญชี Grok Build ด้วย PKCE และบันทึกลงในพูลผู้ให้บริการโดยตรง",
     "provider.copy.grok_code": "หลังเข้าสู่ระบบ ให้คัดลอกรหัสที่แสดงบนหน้าอนุญาต Grok Build แล้ววางที่นี่",

@@ -951,6 +951,42 @@ class InMemoryStateStore(BaseStateStore):
                 )
             return self._epoch
 
+    async def prune_expired_coordination_replays(
+        self, *, epoch: int, operation: str, limit: int = 256
+    ) -> int:
+        """Remove one bounded batch of expired mutation evidence, not live state.
+
+        Normal mutations keep their atomic cleanup budget. Separate maintenance
+        lets the service make progress through an idle backlog before retrying.
+        """
+        validate_epoch(epoch)
+        if type(limit) is not int or not 1 <= limit <= self._MAX_PRUNED_PER_MUTATION:
+            raise ValueError("Invalid coordination maintenance limit.")
+        if operation not in ("compare_and_set", "invalidate"):
+            raise ValueError("Invalid coordination maintenance operation.")
+        async with self._async_lock:
+            self._ensure_open_locked()
+            if not self._is_ready_locked(epoch):
+                raise CoordinationUnavailableError("Coordination epoch is not ready.")
+            if operation == "compare_and_set":
+                heap, records = self._cas_replay_expiries, self._cas_replays
+            else:
+                heap, records = self._invalidation_replay_expiries, self._invalidation_replays
+            now = self._clock()
+            planned_heap = list(heap)
+            due: set[str] = set()
+            while planned_heap and planned_heap[0][0] <= now and len(due) < limit:
+                expires_at, identifier = heapq.heappop(planned_heap)
+                record = records.get(identifier)
+                if record is None or record.expires_at != expires_at or identifier in due:
+                    raise CoordinationCorruptError("Coordination expiry index is invalid.")
+                due.add(identifier)
+            # Commit only after the whole batch has been validated under the lock.
+            heap[:] = planned_heap
+            for identifier in due:
+                records.pop(identifier)
+            return len(due)
+
     async def compare_and_set(self, request: CasRequest) -> CasResult:
         async with self._async_lock:
             self._ensure_open_locked()

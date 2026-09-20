@@ -13,6 +13,7 @@ import time
 from typing import Any, Dict, Optional, Tuple
 
 from core.coordination import CoordinationError
+from core.reasoning_control import REASONING_EFFORT_KEY
 from core.routing_coordination import (
     CACHE_SCOPE_EXACT,
     CacheKind,
@@ -44,6 +45,9 @@ def generate_cache_key(
         "generation_config": request_payload.get("generationConfig"),
         "tools": request_payload.get("tools"),
     }
+
+    if request_payload.get(REASONING_EFFORT_KEY) is not None:
+        normalized_data[REASONING_EFFORT_KEY] = request_payload[REASONING_EFFORT_KEY]
 
     # Dump deterministically sorted JSON string
     serialized = json.dumps(normalized_data, sort_keys=True, separators=(",", ":"))

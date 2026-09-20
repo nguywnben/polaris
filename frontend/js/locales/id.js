@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['id'], {
+    "dashboard.cost_unknown": "Biaya belum tersedia",
+    "dashboard.cost_coverage": "{source} · Biaya dihitung untuk {priced}/{total} panggilan berhasil. Estimasi setara harga API, bukan tagihan.",
     "provider.copy.grok_intro": "Tambahkan akun OAuth dan rutekan model Grok Build yang tersedia melalui pool bersama.",
     "provider.copy.grok_authorize": "Otorisasi akun Grok Build dengan PKCE dan simpan langsung ke pool penyedia.",
     "provider.copy.grok_code": "Setelah masuk, salin kode yang ditampilkan di halaman otorisasi Grok Build dan tempel di sini.",

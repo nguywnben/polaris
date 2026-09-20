@@ -690,6 +690,11 @@ class SQLiteUsageLedgerRepository:
                            {detail_columns},
                            SUM(total_tokens) AS total_tokens,
                            SUM(cost_nanos) AS cost_nanos,
+                           SUM(CASE WHEN success = 1 AND
+                               json_extract(payload, CASE kind WHEN 'usage'
+                                   THEN '$.cost_status' ELSE '$.usage.cost_status' END)
+                                   IN ('estimated', 'reported', 'free')
+                               THEN 1 ELSE 0 END) AS priced_calls,
                            SUM(CASE WHEN success = 1
                                THEN {self._usage_payload_integer("usage_reported")}
                                ELSE 0 END) AS reported_usage_calls,
@@ -723,6 +728,7 @@ class SQLiteUsageLedgerRepository:
                 int(row["cost_nanos"]),
                 int(row["cache_creation_tokens"]),
                 int(row["reported_usage_calls"]),
+                int(row["priced_calls"]),
             )
             for row in rows
         ]

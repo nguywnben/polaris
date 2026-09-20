@@ -3,6 +3,17 @@ function credentialManagementButton(action, label, extra = '') {
     return `<button type="button" class="btn btn-secondary" data-management-action="${action}" ${extra}>${escapeHtml(t(label))}</button>`;
 }
 
+function credentialManagementEmailButton(action, label, hidden = false) {
+    return `<button type="button" class="btn btn-secondary icon-btn credential-management-email-toggle"
+        data-management-action="${action}" aria-label="${escapeAttribute(t(label))}"
+        title="${escapeAttribute(t(label))}" aria-controls="credentialManagementEmail" ${hidden ? 'hidden' : ''}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle>
+            ${hidden ? '<path d="m3 3 18 18"></path>' : ''}
+        </svg>
+    </button>`;
+}
+
 function credentialManagementSection(name, title, content = '', refresh = true) {
     return `<section class="credential-management-section" aria-labelledby="management-${name}-title">
         <div class="credential-management-section-heading">
@@ -27,8 +38,11 @@ function buildCredentialManagementHtml(context, credInfo, capabilities) {
             <div class="credential-management-overview">
                 <div class="credential-management-badges" data-management-state></div>
                 <dl class="credential-management-facts">
-                    <div><dt>${escapeHtml(t('table_filename'))}</dt><dd>${escapeHtml(context.filename)}</dd></div>
-                    ${credInfo.credential_type === 'oauth' && credInfo.user_email ? `<div><dt>${escapeHtml(t('modal.email'))}</dt><dd>${escapeHtml(credInfo.user_email)}</dd></div>` : ''}
+                    <div><dt>${escapeHtml(t('table_filename'))}</dt><dd>${escapeHtml(maskCredentialEmailText(context.filename))}</dd></div>
+                    ${credInfo.user_email ? `<div><dt>${escapeHtml(t('modal.email'))}</dt><dd class="credential-management-email">
+                        <span id="credentialManagementEmail" data-management-email>${escapeHtml(maskCredentialEmailText(credInfo.user_email))}</span>
+                        ${capabilities.reveal ? credentialManagementEmailButton('reveal-email', 'credentials.management.reveal_email') + credentialManagementEmailButton('hide-email', 'credentials.management.hide_email', true) : ''}
+                    </dd></div>` : ''}
                 </dl>
                 <div class="credential-management-toolbar">
                     ${capabilities.disable ? button('toggle', credInfo.status?.disabled ? 'action_enable' : 'action_disable') : ''}
@@ -63,7 +77,7 @@ function buildCredentialManagementHtml(context, credInfo, capabilities) {
                     ${button('delete', 'action_delete')}
                     <div data-management-delete-confirm hidden>
                         <p>${escapeHtml(t('confirm_delete_cred'))}</p>
-                        <strong>${escapeHtml(context.filename)}</strong>
+                        <strong>${escapeHtml(maskCredentialEmailText(context.filename))}</strong>
                         <div class="credential-management-toolbar">${button('confirm-delete', 'action_delete')}${button('cancel-delete', 'btn_cancel')}</div>
                     </div>
                 </div>` : ''}
@@ -108,6 +122,8 @@ async function showCredentialManagement(pathId, manager, credInfo, capabilities)
         if (closed || saving) return;
         closed = true;
         lifetime.abort();
+        modal.querySelector('[data-management-email]')?.replaceChildren();
+        modal.querySelector('[data-management-payload]')?.replaceChildren();
         await unmountModal(modal);
         modal.replaceChildren(); // Forget explicitly revealed secrets and entered replacements.
         const checkbox = Array.from(document.querySelectorAll('[data-credential-select]')).find(node => node.dataset.filename === filename);

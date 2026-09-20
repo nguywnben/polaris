@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['ru'], {
+    "dashboard.cost_unknown": "Стоимость не определена",
+    "dashboard.cost_coverage": "{source} · Оценено {priced}/{total} успешных вызовов. Оценка по тарифам API, не сумма счёта.",
     "provider.copy.grok_intro": "Добавьте учётные записи OAuth и направляйте запросы к доступным моделям Grok Build через общий пул.",
     "provider.copy.grok_authorize": "Авторизуйте учётную запись Grok Build с помощью PKCE и сохраните её прямо в пул провайдера.",
     "provider.copy.grok_code": "После входа скопируйте код со страницы авторизации Grok Build и вставьте его здесь.",

@@ -6,6 +6,7 @@ import asyncio
 import json
 import math
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,6 @@ MAX_MODEL_KEY_LENGTH = 512
 MAX_USD_PER_MILLION = 1_000_000.0
 CATALOG_TIMEOUT_SECONDS = 15.0
 FAILED_SYNC_RETRY_SECONDS = 3600
-SUPPORTED_PROVIDERS = frozenset({"openai", "anthropic", "gemini", "xai"})
 SUPPORTED_MODES = frozenset({"chat", "completion", "responses"})
 
 
@@ -42,20 +42,24 @@ def _canonical_provider(value: Any) -> str:
         return "gemini"
     if provider in {"openai", "anthropic", "xai"}:
         return provider
-    return ""
+    return provider if re.fullmatch(r"[a-z0-9_]{1,64}", provider) else ""
 
 
 def _canonical_model(catalog_key: Any, provider: str) -> str:
     key = str(catalog_key or "").strip().lower()
     if not key or len(key) > MAX_MODEL_KEY_LENGTH:
         return ""
-    for prefix in (f"{provider}/", "google/" if provider == "gemini" else ""):
+    for prefix in (
+        f"{provider}/",
+        "google/" if provider == "gemini" else "",
+        "vertex_ai/" if provider == "gemini" else "",
+    ):
         if prefix and key.startswith(prefix):
             key = key[len(prefix) :]
             break
     if key.startswith("models/"):
         key = key[len("models/") :]
-    return key if key and "/" not in key else ""
+    return key if key and not any(ord(char) < 33 for char in key) else ""
 
 
 def _price_per_million(entry: dict[str, Any], field: str) -> float | None:
@@ -99,7 +103,7 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
         if not isinstance(entry, dict):
             continue
         provider = _canonical_provider(entry.get("litellm_provider"))
-        if provider not in SUPPORTED_PROVIDERS:
+        if not provider:
             continue
         mode = str(entry.get("mode") or "chat").strip().lower()
         if mode not in SUPPORTED_MODES:
@@ -120,6 +124,9 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
             cache_read_per_million=cache_price,
             reasoning_per_million=output_price,
             cache_creation_per_million=cache_creation_price,
+            # Keep an explicit barrier rather than falling back to a flat builtin.
+            # These require measurements/rate selection not yet in our token ledger.
+            supported=not any(("above_" in key or "tiered_pricing" == key) for key in entry),
         )
         if qualified_model in ambiguous:
             continue
@@ -247,6 +254,7 @@ class DynamicPricingService:
                 "cache_read": price.cache_read_per_million,
                 "reasoning": price.reasoning_per_million,
                 "cache_creation": price.cache_creation_per_million,
+                "supported": price.supported,
             }
         payload = {
             "schema_version": PRICING_CACHE_SCHEMA_VERSION,

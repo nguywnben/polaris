@@ -104,7 +104,7 @@ class CredentialFleetQueryTests(unittest.TestCase):
                 backend_type="sqlite",
                 mode="primary",
             )
-            self.assertEqual(item["user_email"], "fixture@example.test")
+            self.assertEqual(item["user_email"], "fi***re@example.test")
             self.assertNotIn("must-never-leak", repr(item))
         for email in (None, "invalid", "bad@\nexample.test", "x" * 321 + "@example.test"):
             item = enrich_credential_summary(

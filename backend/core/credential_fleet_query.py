@@ -241,10 +241,12 @@ def enrich_credential_summary(
         else "not_applicable"
     )
 
+    from core.credential_privacy import mask_account_email, mask_email_text
+
     item: dict[str, Any] = {
         "filename": os.path.basename(str(summary.get("filename") or "")),
-        "user_email": user_email,
-        "credential_label": credential_data.get("credential_label"),
+        "user_email": mask_account_email(user_email),
+        "credential_label": mask_email_text(credential_data.get("credential_label")),
         "credential_type": credential_kind,
         "quota_cache_scope": _quota_cache_scope(credential_data),
         "api_key_hint": (
