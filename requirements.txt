@@ -12,4 +12,4 @@ pypinyin>=0.55.0,<1.0
 PyJWT[crypto]>=2.13.0,<3.0
 python-dotenv>=1.2.3,<2.0
 python-multipart>=0.0.32,<1.0
-wreq>=0.12.1,<1.0
+wreq>=0.12.2,<1.0
