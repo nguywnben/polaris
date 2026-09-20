@@ -8,6 +8,7 @@ from typing import List, Tuple
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import OllamaCredentialRequest
 from core.ollama import OllamaError, normalize_ollama_base_url, validate_ollama_connection
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import restore_ollama_credential
 from core.provider_registry import OLLAMA, api_key_fingerprint
 from core.provider_store import store_ollama_credential
@@ -22,7 +23,7 @@ from .import_utils import (
     _safe_import_name,
 )
 
-router = APIRouter(tags=["provider-ollama"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-ollama"])
 
 
 @router.post("/api/providers/ollama/credentials")

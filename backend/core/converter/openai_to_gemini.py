@@ -11,6 +11,7 @@ from core.converter.thought_signature import (
 )
 from core.converter.utils import merge_system_messages
 from core.protocol_contract import validate_gemini_response_part
+from core.reasoning_control import REASONING_EFFORT_KEY
 from log import log
 from pypinyin import Style, lazy_pinyin
 
@@ -1215,6 +1216,8 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
         )
 
     gemini_request = {"contents": contents, "generationConfig": generation_config}
+    if openai_request.get("reasoning_effort") is not None:
+        gemini_request[REASONING_EFFORT_KEY] = openai_request["reasoning_effort"]
 
     if "systemInstruction" in openai_request:
         gemini_request["systemInstruction"] = openai_request["systemInstruction"]

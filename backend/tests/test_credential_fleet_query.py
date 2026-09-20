@@ -54,6 +54,18 @@ def _item(
 
 
 class CredentialFleetQueryTests(unittest.TestCase):
+    def test_model_count_distinguishes_unknown_from_confirmed_empty_catalog(self):
+        for data, expected_count, expected_known in (
+            ({}, 0, False),
+            ({"model_ids": None}, 0, False),
+            ({"model_ids": []}, 0, True),
+            ({"model_ids": ["models/a", "a", "b"]}, 2, True),
+        ):
+            with self.subTest(data=data):
+                item = enrich_credential_summary({}, data, backend_type="sqlite", mode="primary")
+                self.assertEqual(item["model_count"], expected_count)
+                self.assertIs(item.get("model_count_known"), expected_known)
+
     def test_quota_cache_scope_tracks_account_not_mutable_metadata(self):
         def scope(data):
             return enrich_credential_summary(
@@ -92,7 +104,7 @@ class CredentialFleetQueryTests(unittest.TestCase):
                 backend_type="sqlite",
                 mode="primary",
             )
-            self.assertEqual(item["user_email"], "fixture@example.test")
+            self.assertEqual(item["user_email"], "fi***re@example.test")
             self.assertNotIn("must-never-leak", repr(item))
         for email in (None, "invalid", "bad@\nexample.test", "x" * 321 + "@example.test"):
             item = enrich_credential_summary(

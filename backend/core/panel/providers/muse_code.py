@@ -5,12 +5,13 @@ from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.management_audit import ManagementMutation, record_classified_management_response
 from core.muse_device_login import cancel_login, complete_login, start_login
 from core.muse_oauth import MuseOAuthError
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.request_context import get_request_id
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(tags=["provider-muse-code"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-muse-code"])
 
 
 class MuseLoginRequest(BaseModel):

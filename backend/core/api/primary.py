@@ -116,6 +116,7 @@ from core.provider_registry import (
     get_credential_provider_variant,
     get_provider_routing_id,
 )
+from core.reasoning_control import ReasoningControlError, prepare_reasoning_request
 from core.request_trace_service import trace_decision
 from core.storage_adapter import get_storage_adapter
 from core.token_compression import (
@@ -292,6 +293,9 @@ async def prepare_provider_request(
     from core.meta_native_boundary import validate_native_request
 
     validate_native_request(inner_request, provider_id)
+    inner_request, reasoning_options = prepare_reasoning_request(
+        inner_request, model_name, provider_id, get_credential_provider_variant(credential_data)
+    )
     compression_result = compress_gemini_request(
         dict(inner_request),
         CompressionSettings(**await get_token_compression_config()),
@@ -392,6 +396,8 @@ async def prepare_provider_request(
             enable_credit=bool(credential_data.get("enable_credit", False)),
             compression_result=compression_result,
         )
+
+    payload.update(reasoning_options)
 
     # Extended providers own their complete auth context; do not allow ingress
     # Authorization/API-key headers to replace their selected credential.
@@ -605,7 +611,10 @@ async def _request_preparation_error(
     """Separate rejected client options from failures that affect provider health."""
     provider = get_credential_provider(credential)
     status_code = 500
-    if isinstance(error, (MetaModelAPIError, MuseOAuthError)) and error.status_code == 400:
+    if (
+        isinstance(error, (MetaModelAPIError, MuseOAuthError, ReasoningControlError))
+        and error.status_code == 400
+    ):
         status_code = 400
         await credential_manager.release_credential(filename, mode="primary")
         trace_decision(

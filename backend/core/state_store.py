@@ -951,6 +951,42 @@ class InMemoryStateStore(BaseStateStore):
                 )
             return self._epoch
 
+    async def prune_expired_coordination_replays(
+        self, *, epoch: int, operation: str, limit: int = 256
+    ) -> int:
+        """Remove one bounded batch of expired mutation evidence, not live state.
+
+        Normal mutations keep their atomic cleanup budget. Separate maintenance
+        lets the service make progress through an idle backlog before retrying.
+        """
+        validate_epoch(epoch)
+        if type(limit) is not int or not 1 <= limit <= self._MAX_PRUNED_PER_MUTATION:
+            raise ValueError("Invalid coordination maintenance limit.")
+        if operation not in ("compare_and_set", "invalidate"):
+            raise ValueError("Invalid coordination maintenance operation.")
+        async with self._async_lock:
+            self._ensure_open_locked()
+            if not self._is_ready_locked(epoch):
+                raise CoordinationUnavailableError("Coordination epoch is not ready.")
+            if operation == "compare_and_set":
+                heap, records = self._cas_replay_expiries, self._cas_replays
+            else:
+                heap, records = self._invalidation_replay_expiries, self._invalidation_replays
+            now = self._clock()
+            planned_heap = list(heap)
+            due: set[str] = set()
+            while planned_heap and planned_heap[0][0] <= now and len(due) < limit:
+                expires_at, identifier = heapq.heappop(planned_heap)
+                record = records.get(identifier)
+                if record is None or record.expires_at != expires_at or identifier in due:
+                    raise CoordinationCorruptError("Coordination expiry index is invalid.")
+                due.add(identifier)
+            # Commit only after the whole batch has been validated under the lock.
+            heap[:] = planned_heap
+            for identifier in due:
+                records.pop(identifier)
+            return len(due)
+
     async def compare_and_set(self, request: CasRequest) -> CasResult:
         async with self._async_lock:
             self._ensure_open_locked()
@@ -1842,6 +1878,42 @@ class InMemoryStateStore(BaseStateStore):
                     "replays": replay_snapshot,
                 },
             )
+
+    async def prune_expired_security_sessions(self, *, epoch: int, limit: int = 256) -> int:
+        """Make bounded expiry progress without admitting or extending any session.
+
+        Normal mutations remain atomic when their cleanup budget is exceeded. The
+        standalone service uses this separate maintenance step before retrying them.
+        """
+        validate_epoch(epoch)
+        if type(limit) is not int or not 1 <= limit <= self._MAX_PRUNED_PER_MUTATION:
+            raise ValueError("Invalid session maintenance limit.")
+        async with self._async_lock:
+            self._ensure_open_locked()
+            self._require_admission_locked()
+            self._require_security_epoch_locked(epoch)
+            now = self._security_now_locked()
+            session_due = self._security_session_expiries.plan_due(
+                self._security_sessions,
+                now,
+                lambda item: min(item.idle_expires_at, item.absolute_expires_at),
+                limit,
+            )
+            replay_due = self._security_session_replay_expiries.plan_due(
+                self._security_session_replays,
+                now,
+                lambda item: item.expires_at,
+                limit - len(session_due),
+            )
+            # Validate the entire batch before removing any indexed record.
+            for digest in session_due:
+                self._validate_security_session_locked(digest)
+            for digest in session_due:
+                self._remove_security_session_locked(digest)
+            for operation_key in replay_due:
+                self._security_session_replays.pop(operation_key)
+                self._security_session_replay_expiries.discard(operation_key)
+            return len(session_due) + len(replay_due)
 
     async def issue_security_session(self, request: SessionIssueRequest) -> SessionMutationResult:
         async with self._async_lock:

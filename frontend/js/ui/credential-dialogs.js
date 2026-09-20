@@ -144,10 +144,7 @@ async function showCredentialEditModal(pathId, options = {}) {
         };
         if (options.container) form.querySelector('[data-credential-edit-cancel]').addEventListener('click', close);
         modal.addEventListener('click', (event) => {
-            if (event.target === modal || event.target.closest('[data-credential-edit-cancel]')) close();
-        });
-        modal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') close();
+            if (event.target.closest('[data-credential-edit-cancel]')) close();
         });
         form.addEventListener('submit', async (event) => {
             event.preventDefault();

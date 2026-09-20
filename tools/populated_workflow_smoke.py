@@ -99,7 +99,7 @@ def main(stage, regressions_only=False, only=None):
         def credential_edit_toggle_delete():
             ollama = open_credential("demo-ollama-01.json")
             expect(ollama.locator('[name="base_url"]')).to_have_attribute("required", "")
-            page.keyboard.press("Escape")
+            ollama.locator("[data-dialog-close]").click()
             filename = "demo-deepseek-01.json"
             dialog = open_credential(filename)
             label = "DEMO <img src=x onerror=alert(1)> edited"
@@ -242,7 +242,7 @@ def main(stage, regressions_only=False, only=None):
             context.unroute(pattern, fail)
             dialog.locator('[data-management-load="quota"]').click()
             expect(dialog.locator("[data-management-quota]")).to_contain_text("88%")
-            page.keyboard.press("Escape")
+            dialog.locator("[data-dialog-close]").click()
 
         def provider_quota_presets():
             from demo_catalog import catalog
@@ -266,7 +266,7 @@ def main(stage, regressions_only=False, only=None):
                 if provider == "grok":
                     expect(quota).to_contain_text("coding")
                 page.screenshot(path=str(output / f"quota-{provider}.png"))
-                page.keyboard.press("Escape")
+                page.locator(".credential-management-modal [data-dialog-close]").click()
 
         try:
             run("all-provider-filters-and-deep-link", provider_filters)

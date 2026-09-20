@@ -148,7 +148,7 @@ Xem [Kiến trúc](../architecture.md) để biết thêm về ranh giới các 
 
 ## <a id="trien-khai"></a>Triển khai
 
-Muốn cài trên Linux/amd64 mà không clone repo hoặc sửa `.env`, xem [Cài Docker đơn giản](../docker-install.md): chạy một lệnh cài, xác nhận nếu dùng HTTP trên VPS, rồi tạo mật khẩu trên web. **Luồng này đang được chuẩn bị cục bộ, cần phát hành installer/image mới tương ứng trước khi dùng lệnh tải.** Vẫn giữ Docker thủ công, Compose và chạy mã nguồn; Docker-run có [hướng dẫn sao lưu/cập nhật riêng](../docker-maintenance.md), không dùng công cụ cập nhật Compose.
+Muốn cài Docker trên Linux hoặc Windows mà không clone repo hoặc sửa `.env`, xem [Cài Docker đơn giản](../docker-install.md): chọn Bash hoặc PowerShell, chạy một lệnh cài, xác nhận nếu dùng HTTP trên VPS, rồi tạo mật khẩu trên web. **Bộ cài PowerShell mới đã có mã nguồn nhưng cần phát hành trước khi dùng lệnh tải.** Runtime hiện là Linux/amd64; macOS Intel chưa được kiểm thử trên máy Mac. Vẫn giữ Docker thủ công, Compose và chạy mã nguồn; Docker-run có [hướng dẫn sao lưu/cập nhật riêng](../docker-maintenance.md), không dùng công cụ cập nhật Compose.
 
 Docker Compose là cách triển khai production chuẩn cho profile một máy, một worker được hỗ trợ.
 Hãy đi theo [Hướng dẫn cài đặt chuẩn](../installation.md) từ bước kiểm tra máy chủ đến Dashboard đã
@@ -418,10 +418,23 @@ Khám phá mô hình có nhận thức về nhà cung cấp: một mô hình dù
 
 Khi một upstream trả về lỗi `404` cho một mô hình cụ thể, Polaris sẽ ghi nhận một tuyến không khả dụng (unavailable route) cho credential và mô hình đó thay vì vô hiệu hóa toàn bộ nhà cung cấp. Tuyến đó sẽ tạm thời được né tránh ngay lập tức và tiếp tục hiển thị dưới mục **Unavailable Model Routes** cho đến khi nó được xóa hoặc credential được xác minh lại. Điều này ngăn việc gói đăng ký hoặc quyền hạn theo khu vực của một tài khoản ảnh hưởng đến các tài khoản khác ở cùng nhà cung cấp. Nếu không có credential đang bật nào khai báo hoặc suy đoán được khả năng hỗ trợ cho mô hình cụ thể được yêu cầu, gateway sẽ trả về lỗi không có credential tương thích rõ ràng thay vì gửi request đến một provider ngẫu nhiên.
 
-Polaris nhận diện các tiền tố và hậu tố tính năng trong tên mô hình:
+`GET /v1/models` và `GET /v1beta/models` chỉ công bố mô hình của nhà cung cấp và alias đã cấu hình,
+đang bật; không tự sinh thêm bản sao có tiền tố tính năng. Các biến thể do nhà cung cấp trả về,
+bao gồm mô hình thinking, vẫn được giữ nguyên. Sau khi làm mới danh sách chọn mô hình, client
+sẽ không còn thấy các bản sao tự sinh; ID có tiền tố đã lưu hoặc nhập thủ công vẫn được chấp nhận.
 
-- `fake-streaming/{model}` hoặc tiền tố pseudo-streaming đã cấu hình cho các client yêu cầu bắt buộc định dạng SSE.
-- `streaming-anti-truncation/{model}` hoặc tiền tố anti-truncation đã cấu hình để tự động phục hồi streaming trong các văn bản dài.
+### Tính năng mô hình nâng cao (tự chọn bật)
+
+Chọn chế độ bằng cách nhập ID có tiền tố trong client với `stream: true`;
+không cần tham số lấy danh sách hay công tắc bật toàn cục:
+
+- `fake-streaming/{model}` đợi phản hồi không streaming từ upstream rồi xuất kết quả dạng SSE.
+- `streaming-anti-truncation/{model}` bật cơ chế viết tiếp khi streaming, có thể phát sinh thêm
+  lượt gọi upstream, độ trễ và mức sử dụng. Giới hạn số lần thử trong Chất lượng AI giới hạn chế độ
+  này; chỉ thay đổi giới hạn không tự bật chế độ.
+
+Polaris cũng nhận diện các hậu tố được hỗ trợ trong tên mô hình:
+
 - Các hậu tố suy nghĩ (thinking) như `-high`, `-medium`, `-low`, `-minimal` và `-max` cho các mô hình thuộc họ Gemini có hỗ trợ.
 - Các hậu tố tìm kiếm như `-search` cho các mô hình hỗ trợ tiếp đất bằng Google Search (grounding).
 
@@ -429,7 +442,9 @@ Các adapter nhà cung cấp sẽ chuẩn hóa các tên tính năng này trư�
 
 ## Mức độ sử dụng và Minh bạch chi phí
 
-Polaris ghi lại số lần gọi nhà cung cấp, tỷ lệ thành công, phân bổ theo thông tin xác thực, số token do nhà cung cấp báo cáo, lượng token ước tính tiết kiệm được qua nén ngữ cảnh và chi phí USD ước tính mỗi lượt gọi. Mỗi lần thử lại hoặc chuyển tuyến dự phòng là một lần gọi nhà cung cấp riêng, còn request trace giữ kết quả cuối của yêu cầu logic. Tổng token phân biệt đầu vào thông thường, cache read, cache write, đầu ra và suy luận khi nhà cung cấp có báo cáo; dashboard chỉ rõ các lần gọi thành công bị thiếu usage thay vì coi dữ liệu thiếu là số 0 chính xác. Khoảng thống kê và bucket biểu đồ dùng mốc đồng hồ cố định theo múi giờ hiện tại của trình duyệt, vì vậy tải lại ở một phút khác không làm dịch chuyển toàn bộ bucket. Chế độ một ngày bao phủ ngày lịch hiện tại và hiển thị các bucket theo giờ từ 00:00 đến 23:00. Khi khởi động và mặc định mỗi 24 giờ, gateway đồng bộ [catalog giá mô hình LiteLLM](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), kiểm tra các mục trực tiếp của OpenAI, Anthropic, Gemini và xAI rồi lưu nguyên tử snapshot hợp lệ gần nhất. Đồng bộ lỗi không làm gián đoạn inference. Có thể ghi đè hoặc bổ sung giá bằng tệp `model_pricing.json` trong thư mục thông tin xác thực; giá thủ công luôn được ưu tiên và tính bằng USD trên một triệu token. Dữ liệu tổng hợp có trên dashboard, theo từng khóa ảo qua API quản trị `/api/virtual-keys` và qua Prometheus `/metrics`. Lượng tiết kiệm từ nén và chi phí vẫn là ước tính vì tokenizer và quy tắc thanh toán của nhà cung cấp mới là căn cứ cuối cùng.
+Polaris ghi lại số lần gọi nhà cung cấp, tỷ lệ thành công, phân bổ theo thông tin xác thực, số token do nhà cung cấp báo cáo, lượng token ước tính tiết kiệm được qua nén ngữ cảnh và chi phí USD ước tính mỗi lượt gọi. Mỗi lần thử lại hoặc chuyển tuyến dự phòng là một lần gọi nhà cung cấp riêng, còn request trace giữ kết quả cuối của yêu cầu logic. Tổng token phân biệt đầu vào thông thường, cache read, cache write, đầu ra và suy luận khi nhà cung cấp có báo cáo; dashboard chỉ rõ các lần gọi thành công bị thiếu usage thay vì coi dữ liệu thiếu là số 0 chính xác. Khoảng thống kê và bucket biểu đồ dùng mốc đồng hồ cố định theo múi giờ hiện tại của trình duyệt, vì vậy tải lại ở một phút khác không làm dịch chuyển toàn bộ bucket. Chế độ một ngày bao phủ ngày lịch hiện tại và hiển thị các bucket theo giờ từ 00:00 đến 23:00. Khi khởi động và mặc định mỗi 24 giờ, gateway đồng bộ [catalog giá mô hình LiteLLM](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), kiểm tra các mục giá token theo provider trong catalog rồi lưu nguyên tử snapshot hợp lệ gần nhất. Đồng bộ lỗi không làm gián đoạn inference. Có thể ghi đè hoặc bổ sung giá bằng tệp `model_pricing.json` trong thư mục thông tin xác thực; giá thủ công luôn được ưu tiên và tính bằng USD trên một triệu token. Dữ liệu tổng hợp có trên dashboard, theo từng khóa ảo qua API quản trị `/api/virtual-keys` và qua Prometheus `/metrics`. Lượng tiết kiệm từ nén và chi phí vẫn là ước tính vì tokenizer và quy tắc thanh toán của nhà cung cấp mới là căn cứ cuối cùng.
+
+Xem [ánh xạ giá, cấu hình, độ đầy đủ và lưu ý rollback](../pricing.md) để phân biệt giá chưa biết với lượt dùng miễn phí.
 
 Khóa API ảo (Virtual API Keys) cho phép một gateway phục vụ nhiều client dưới các giới hạn riêng biệt. Mỗi khóa mang ngân sách USD tùy chọn theo ngày và tháng được thực thi từ sổ cái chi phí, cửa sổ trượt giới hạn số yêu cầu mỗi phút (RPM) và số token mỗi phút (TPM), mốc thời gian hết hạn và danh sách mô hình cho phép theo mẫu glob. Các khóa được lưu dưới dạng hàm băm SHA-256; chuỗi bí mật dạng văn bản thuần chỉ hiển thị đúng một lần khi tạo.
 
@@ -476,6 +491,8 @@ Các kết nối Ollama được cấu hình theo từng endpoint và có thể 
 Nhập thông tin xác thực và nhập hàng loạt Google Antigravity chấp nhận các file lưu trữ lên đến 10 MB, tối đa 500 file, mỗi file credential riêng lẻ tối đa 2 MB và tổng dữ liệu chưa nén tối đa 25 MB. Việc nhập nhà cung cấp Google AI Studio, OpenAI, Anthropic và Ollama sử dụng các giới hạn chặt chẽ hơn: 2 MB cho mỗi file được nhập, 200 mục JSON và 5 MB dữ liệu chưa nén.
 
 Trang **Thông tin xác thực** (`/credentials`) nhóm các tài khoản và khóa API theo provider. Modal quản lý từng credential hiển thị danh tính, mô hình, trạng thái và các thao tác mà provider hỗ trợ. Các provider OAuth có thể cung cấp hạn mức theo khoảng thời gian, theo mô hình, gói đăng ký hoặc chế độ tín dụng khác nhau; thông tin thiếu được hiển thị là không khả dụng. Khóa API không mặc nhiên cung cấp email tài khoản, gói đăng ký hay dữ liệu thanh toán.
+
+Email tài khoản được che mặc định. **Quản lý → Hiện email** yêu cầu quyền xuất credential; giá trị đầy đủ được bỏ khỏi giao diện khi ẩn hoặc đóng modal. Tên tệp cũ chứa email được thay bằng định danh ẩn trên giao diện và API quản lý, không đổi tên tệp trong kho. Xem [quyền riêng tư email và tương thích API](../credential-email-privacy.md).
 
 **Tải ZIP** xuất thông tin xác thực; **Nhập ZIP** nhập tệp chứa nhiều provider thông qua cơ chế nhận diện và kiểm tra riêng của từng provider. Danh tính OAuth và fingerprint khóa API được chống trùng lặp trong phạm vi provider và ngữ cảnh kết nối. Mục không được hỗ trợ hoặc sai định dạng được báo riêng. Việc kiểm tra và khám phá mô hình tùy thuộc provider; nhập thành công hoặc nhìn thấy danh mục mô hình chưa chứng minh quyền gọi suy luận. Dùng **Thử model** để kiểm tra bằng một yêu cầu thực tế, có thể tiêu tốn hạn mức hoặc phát sinh phí.
 

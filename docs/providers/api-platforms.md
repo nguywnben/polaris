@@ -35,9 +35,10 @@ No vendor key or billable request was used during implementation.
 - Groq and DeepSeek request streaming usage explicitly. Mistral and Cerebras do
   not receive that undocumented option. Usage is reported only when supplied;
   Groq `x_groq.usage` and `x_groq.error` are handled as well as standard usage.
-- Polaris's public Chat contract rejects `reasoning_effort` and
-  `reasoning_content` request history. This integration does not change that
-  contract or claim native vendor API parity. DeepSeek defaults to
+- These four adapters reject explicit Chat `reasoning_effort`; public Chat
+  also rejects `reasoning_content` request history. The separate
+  [Chat reasoning extension](../protocol-translation-contract.md#chat-reasoning-extension)
+  supports selected Google/OpenAI transports, not native vendor parity here. DeepSeek defaults to
   `thinking: {type: disabled}` and Mistral to `reasoning_effort: none` for
   replay-safe translated chat. Canonical histories already containing thoughts
   retain them; their continuation uses enabled/high reasoning respectively.

@@ -25,6 +25,8 @@ from core.credential_pool import (
     parse_credential_expiry,
     resolve_credential_email,
 )
+from core.credential_privacy import mask_account_email
+from core.credential_references import resolve_credential_reference
 from core.google_ai_studio import (
     GoogleAIStudioError,
     validate_api_key,
@@ -757,7 +759,7 @@ async def download_all_creds_common(mode: str = "code_assist") -> Response:
 async def fetch_user_email_common(filename: str, mode: str = "code_assist") -> JSONResponse:
     mode = validate_mode(mode)
 
-    filename_only = validate_credential_filename(filename)
+    filename_only = await resolve_credential_reference(filename, mode=mode)
 
     storage_adapter = await get_storage_adapter()
     credential_data = await storage_adapter.get_credential(filename_only, mode=mode)
@@ -770,7 +772,7 @@ async def fetch_user_email_common(filename: str, mode: str = "code_assist") -> J
         return JSONResponse(
             content={
                 "filename": filename_only,
-                "user_email": email,
+                "user_email": mask_account_email(email),
                 "message": "Retrieved user email.",
             }
         )
@@ -808,7 +810,7 @@ async def refresh_all_user_emails_common(mode: str = "code_assist") -> JSONRespo
                 results.append(
                     {
                         "filename": os.path.basename(filename),
-                        "user_email": cached_email,
+                        "user_email": mask_account_email(cached_email),
                         "success": True,
                         "skipped": True,
                     }
@@ -821,7 +823,7 @@ async def refresh_all_user_emails_common(mode: str = "code_assist") -> JSONRespo
                 results.append(
                     {
                         "filename": os.path.basename(filename),
-                        "user_email": email,
+                        "user_email": mask_account_email(email),
                         "success": True,
                     }
                 )
@@ -888,7 +890,7 @@ async def deduplicate_credentials_by_email_common(mode: str = "code_assist") -> 
         unique_email_count = dedupe_result.get("unique_emails_count", 0)
         result_duplicate_groups = [
             {
-                "email": group["email"],
+                "email": mask_account_email(group["email"]),
                 "kept_file": os.path.basename(group["kept_file"]),
                 "deleted_files": [
                     os.path.basename(filename) for filename in group.get("deleted_files", [])
@@ -933,7 +935,7 @@ async def deduplicate_credentials_by_email_common(mode: str = "code_assist") -> 
 
 async def verify_credential_common(filename: str, mode: str = "code_assist") -> JSONResponse:
     mode = validate_mode(mode)
-    filename = validate_credential_filename(filename)
+    filename = await resolve_credential_reference(filename, mode=mode)
 
     storage_adapter = await get_storage_adapter()
 

@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['tr'], {
+    "dashboard.cost_unknown": "Maliyet belirlenemedi",
+    "dashboard.cost_coverage": "{source} · Başarılı çağrıların {priced}/{total} adedinin maliyeti hesaplandı. API fiyatlarına göre tahmindir, fatura değildir.",
     "provider.copy.grok_intro": "OAuth hesapları ekleyin ve kullanılabilir Grok Build modellerine ortak havuz üzerinden yönlendirme yapın.",
     "provider.copy.grok_authorize": "Bir Grok Build hesabını PKCE ile yetkilendirin ve doğrudan sağlayıcı havuzuna kaydedin.",
     "provider.copy.grok_code": "Oturum açtıktan sonra Grok Build yetkilendirme sayfasında gösterilen kodu kopyalayıp buraya yapıştırın.",

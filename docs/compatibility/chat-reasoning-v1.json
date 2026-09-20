@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "contract_version": "chat-reasoning-v1",
+  "baseline": "r1-compatibility-v1.json",
+  "change": "Optional nullable reasoning_effort enum. Previously valid requests remain valid; supported controls are mapped at selected-provider preparation. Unsupported disable requests remain HTTP 400, never downgraded.",
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "semantic_sha256": "f100eebd316536e39ba8d414bcdce35ee4d67d7cda1539f5cbe800a396bc80ff"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/chat/completions",
+      "semantic_sha256": "b923c7863c7feb1b3aa4c6aa71bc0034c1a0e5a9938745fab0105ae9f9324420"
+    }
+  ]
+}

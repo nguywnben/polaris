@@ -70,6 +70,8 @@ def main():
             expect(page.locator("#identityCreateStatus")).not_to_be_empty()
             expect(page.locator("#identityCreateSubject")).to_have_value("synthetic-operator")
             page.locator("#identityCreateSubject").press("Escape")
+            expect(page.locator("#identityCreateSubject")).to_have_value("synthetic-operator")
+            page.locator('[data-ui-action="identity-create-close"]').click()
             expect(page.locator("#identityCreateDialog")).not_to_be_visible()
             page.goto(base + "/config", wait_until="networkidle")
             page.locator("#themePreference").select_option("dark")

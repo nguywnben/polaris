@@ -32,6 +32,35 @@
     border-top: 1px solid var(--border);
 }
 
+/* Skeleton facts use the same grid, labels and line boxes as the loaded summary. */
+.identity-fact-list > .identity-fact-skeleton {
+    grid-column: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.identity-fact-skeleton dd {
+    display: flex;
+    align-items: center;
+    min-height: 1.5em;
+}
+
+.identity-fact-skeleton .skeleton-line {
+    width: min(100%, 120px);
+}
+
+.identity-fact-list > .identity-fact-skeleton.identity-permission-fact {
+    grid-column: 1 / -1;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.identity-fact-skeleton.identity-permission-fact dd {
+    min-height: calc(1.5em + 12px);
+    padding-block: 6px;
+}
+
 .identity-permissions > summary {
     cursor: pointer;
     font-weight: 600;

@@ -128,6 +128,28 @@ function renderPricingSource(pricing = {}) {
     detail.textContent = t('dashboard.cost_pricing_fallback');
 }
 
+function renderDashboardCost(data) {
+    const total = Number(data.successful_calls ?? data.successful_upstream_attempts ?? 0);
+    const priced = Math.min(total, Math.max(0, Number(data.priced_calls || 0)));
+    const amount = Number(data.total_cost_usd || 0);
+    const metric = document.getElementById('totalCostUsd');
+    setDashboardSummaryMetric('totalCostUsd', amount, {currency: true});
+    if (metric && total > priced && amount === 0) {
+        metric.textContent = '—';
+        metric.removeAttribute('title');
+        metric.setAttribute('aria-label', t('dashboard.cost_unknown'));
+    }
+    renderPricingSource(data.pricing || {});
+    const detail = document.getElementById('pricingSourceDetail');
+    if (detail && total > 0) {
+        detail.textContent = t('dashboard.cost_coverage', {
+            source: detail.textContent,
+            priced: formatUsageNumber(priced),
+            total: formatUsageNumber(total),
+        });
+    }
+}
+
 function setUsagePeriod(period) {
 
     const nextPeriod = getUsagePeriodConfig(period).value;
@@ -246,8 +268,7 @@ async function refreshUsageStats(options = {}) {
         document.getElementById('totalFiles').textContent = formatUsageNumber(aggData.total_files);
         document.getElementById('activeFiles').textContent = formatUsageNumber(aggData.active_files);
         document.getElementById('disabledCredentialsDetail').textContent = t('dashboard.disabled_count', {count: formatUsageNumber(aggData.disabled_files)});
-        setDashboardSummaryMetric('totalCostUsd', aggData.total_cost_usd, {currency: true});
-        renderPricingSource(aggData.pricing);
+        renderDashboardCost(aggData);
         setDashboardSummaryMetric('totalTokens24h', aggData.total_tokens ?? aggData.total_tokens_24h);
         const inputOutputValues = {
             input: formatUsageNumber(aggData.input_tokens ?? aggData.input_tokens_24h),
@@ -960,7 +981,7 @@ function renderProviderHealthMatrix() {
         return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
     });
 
-    container.innerHTML = relevantProviders.map((p, index) => {
+    container.innerHTML = relevantProviders.map(p => {
         const traffic = trafficMap.get(p.id) || { calls: 0, successful: 0, failed: 0, hasCooldown: false };
         const callMetric = getDashboardSummaryMetric(traffic.calls);
         let status = 'idle';
@@ -984,10 +1005,9 @@ function renderProviderHealthMatrix() {
                         <span class="health-item-name">${escapeHtml(p.name)}</span>
                     </div>
                     <div class="health-status">
-                        <button type="button" class="health-status-trigger" aria-label="${escapeAttribute(p.name)}" aria-describedby="provider-health-status-${index}">
+                        <span class="health-status-indicator" role="img" aria-label="${escapeAttribute(statusText)}">
                             <span class="health-status-dot" aria-hidden="true"></span>
-                        </button>
-                        <span class="health-status-tooltip" id="provider-health-status-${index}" role="tooltip" hidden>${escapeHtml(statusText)}</span>
+                        </span>
                     </div>
                 </div>
                 <div class="health-item-stats">
@@ -998,30 +1018,6 @@ function renderProviderHealthMatrix() {
         `;
     }).join('');
 
-    bindProviderHealthStatusHints(container);
-}
-
-function bindProviderHealthStatusHints(container) {
-    if (!container.dataset.healthHintsBound) {
-        document.addEventListener('keydown', event => {
-            if (event.key === 'Escape') {
-                container.querySelectorAll('.health-status-tooltip').forEach(hint => { hint.hidden = true; });
-            }
-        });
-        container.dataset.healthHintsBound = 'true';
-    }
-    container.querySelectorAll('.health-status').forEach(indicator => {
-        const trigger = indicator.querySelector('.health-status-trigger');
-        const hint = indicator.querySelector('.health-status-tooltip');
-        const show = () => { hint.hidden = false; };
-        indicator.addEventListener('pointerenter', show);
-        indicator.addEventListener('pointerleave', () => {
-            if (!indicator.contains(document.activeElement)) hint.hidden = true;
-        });
-        trigger.addEventListener('focus', show);
-        trigger.addEventListener('blur', () => { hint.hidden = true; });
-        trigger.addEventListener('click', show);
-    });
 }
 
 // =====================================================================

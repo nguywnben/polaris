@@ -22,13 +22,14 @@ from core.audit_export import (
 from core.audit_service import get_audit_service
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.management_audit import ManagementMutation
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from log import log
 from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(prefix="/api/audit", tags=["audit"])
+router = APIRouter(route_class=CredentialPrivacyRoute, prefix="/api/audit", tags=["audit"])
 
 
 class AuditFilterParams(BaseModel):

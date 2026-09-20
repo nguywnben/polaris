@@ -70,7 +70,7 @@ def main():
             wide = measurements[0]
             assert abs(wide["quotaWidth"] - wide["bodyWidth"]) <= 1, wide
             measurements.append({"badgeHint": "focus, hover, Escape, reopen"})
-            page.keyboard.press("Escape")
+            page.locator(".credential-management-modal [data-dialog-close]").click()
             page.set_viewport_size({"width": 1440, "height": 900})
             page.locator("#primaryProviderFilter").select_option("muse_code")
             page.locator('[data-filename="demo-muse_code-01.json"]').locator(
@@ -101,7 +101,7 @@ def main():
             page.set_viewport_size({"width": 360, "height": 800})
             page.emulate_media(color_scheme="dark")
             page.screenshot(path=str(output / "muse-code-mobile-dark.png"))
-            page.keyboard.press("Escape")
+            page.locator(".credential-management-modal [data-dialog-close]").click()
             page.set_viewport_size({"width": 1440, "height": 900})
             for theme in ("dark", "light"):
                 page.emulate_media(color_scheme=theme)
@@ -117,7 +117,7 @@ def main():
                         provider,
                         theme,
                     )
-                    page.keyboard.press("Escape")
+                    page.locator(".credential-management-modal [data-dialog-close]").click()
             for role, permissions in (
                 ("viewer", ["credentials.read"]),
                 ("operator", ["credentials.read", "credentials.operate"]),
@@ -161,7 +161,7 @@ def main():
                 expect(dialog.locator("[data-management-configuration]")).to_have_count(
                     int(can_manage)
                 )
-                page.keyboard.press("Escape")
+                page.locator(".credential-management-modal [data-dialog-close]").click()
                 for control in page.locator('[data-ui-action="select-credentials-archive"]').all():
                     expect(control).to_be_enabled(enabled=can_manage)
                 expect(page.locator('[data-ui-action="download-credentials"]')).to_be_enabled(

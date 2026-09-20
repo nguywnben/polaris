@@ -17,6 +17,49 @@ NUMBER_FORMAT_SOURCE = ROOT / "frontend/js/core/number-format.js"
 
 
 class CredentialFleetConsoleTests(unittest.TestCase):
+    def test_account_labels_mask_email_even_with_stale_client_data(self):
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+for (const input of [{{user_email: 'someone42@example.com'}},
+    {{credential_label: 'Main someone42@example.com'}},
+    {{filename: 'someone42@example.com.json'}}]) {{
+    const label = getCredentialAccountLabel(input);
+    assert(!label.includes('someone42@example.com'), 'Original email leaked into label');
+    assert(label.includes('so***42@example.com'), 'Account hint missing');
+}}
+""")
+
+    def test_subscription_plans_use_one_color_for_all_providers_and_tiers(self):
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+for (const [value, kind] of [['free', 'plan'], ['ultra', 'plan'], ['g1-pro-tier', 'plan'],
+    ['Muse Code Power Usage', 'provider_plan'], ['fixture_TIER-2', 'provider_tier']]) {{
+    assert(normalizeCredentialSubscriptionPlan(value, kind).badgeClass === 'info', 'All plans share the info color');
+}}
+""")
+
+    def test_model_count_retains_only_same_account_observations(self):
+        self._run_manager_contract(f"""
+vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
+const scope = 'a'.repeat(64);
+const previous = {{quotaCacheScope: scope, modelCount: 29}};
+assert(credentialModelCount({{model_count: 0, model_count_known: false, quota_cache_scope: scope}}, previous) === 29, 'Pending cache must not flash zero');
+assert(credentialModelCount({{model_count: 0, model_count_known: true, quota_cache_scope: scope}}, previous) === 0, 'Confirmed empty replaces old count');
+assert(credentialModelCount({{model_count: 5, quota_cache_scope: scope}}, previous) === 5, 'Known current count wins');
+assert(credentialModelCount({{model_count: 0, model_count_known: false, quota_cache_scope: 'b'.repeat(64)}}, previous) === null, 'No count inherited by replacement account');
+for (const value of [null, undefined, '', -1, 1.2, NaN]) {{
+    assert(credentialModelCount({{model_count: value}}, {{}}) === null, 'Missing or invalid counts are not zero');
+}}
+global.AppState = {{credentialCardIndex: {{card: previous}}}};
+const modelManager = {{data: {{file: {{quota_cache_scope: scope}}}}}};
+const metric = {{textContent: ''}};
+document.getElementById = () => metric;
+assert(updateCredentialModelCount('card', 'file', scope, 5, modelManager), 'Model discovery updates card');
+assert(previous.modelCount === 5 && modelManager.data.file.model_count === 5, 'Future renders retain fresh count');
+assert(!updateCredentialModelCount('card', 'file', 'b'.repeat(64), 0, modelManager), 'Ignore stale model response');
+assert(previous.modelCount === 5, 'Old account response cannot overwrite count');
+""")
+
     def test_quota_result_cannot_repopulate_a_replaced_or_deleted_card(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
@@ -64,7 +107,7 @@ assert(!renderCredentialIdentitySubtitle(provider, key, 'Work').includes('never-
 assert(renderCredentialIdentitySubtitle(provider, {{api_key: 'secret'}}, 'Work') === '', 'Missing hint must not fall back to the full key');
 assert(!renderCredentialIdentitySubtitle(provider, {{...key, api_key_hint: '<img src=x>'}}, 'Work').includes('<img'), 'Escape the hint');
 const oauth = {{credential_type: 'oauth', credential_label: 'Work', user_email: 'user@example.test', api_key_hint: 'not-for-oauth'}};
-assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('user@example.test'), 'Keep OAuth email under a label');
+assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('u***@example.test'), 'Keep only a masked OAuth email under a label');
 assert(!renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'Work').includes('not-for-oauth'), 'OAuth must not show key hints');
 assert(renderCredentialIdentitySubtitle({{id: 'muse_code'}}, oauth, 'user@example.test') === '', 'Do not repeat the email when it is the main title');
 """)
@@ -97,7 +140,7 @@ global.escapeHtml = global.escapeAttribute = String;
 let replacements = 0;
 const badge = {{
     querySelector: () => ({{textContent: 'G1 Pro Tier'}}),
-    classList: {{contains: name => name === 'tier-pro'}},
+    classList: {{contains: name => name === 'info'}},
     set outerHTML(value) {{ replacements++; this.markup = value; }},
 }};
 elements.set('subscription-plan-card', badge);
@@ -163,7 +206,9 @@ const card = createCredCard({{filename: 'file', status: {{disabled: true, error_
     credential_type: 'oauth', tier: 'g1-pro-tier', enable_credit: true,
     model_cooldowns: {{'gemini-pro': Date.now() / 1000 + 60}}}}, manager);
 const summary = card.innerHTML.split('<div class="cred-status cred-summary">')[1].split('</div>')[0];
-assert((summary.match(/class="status-badge /g) || []).length === 2, 'Only enabled state and plan belong in the summary');
+        assert((summary.match(/class="status-badge /g) || []).length === 1, 'Only the plan belongs in the summary');
+        assert(card.innerHTML.includes('class="credential-state-indicator is-disabled"'), 'Disabled state must use the accessible dot indicator');
+        assert(/class="credential-state-indicator is-disabled" role="img" aria-label="[^"]+"/.test(card.innerHTML), 'Disabled state indicator must remain accessible');
 assert(!card.innerHTML.includes('cooldown-badge') && !summary.includes('error-codes') && !summary.includes('credit-on'), 'Diagnostics must not add card badges');
 """)
 
@@ -233,7 +278,7 @@ const oauth = {{credential_type: 'oauth', filename: 'muse-code-ab12.json'}};
 const key = {{credential_type: 'api_key', filename: 'deepseek-cd34.json'}};
 assert(getCredentialAccountLabel(oauth) === 'muse-code-ab12', 'OAuth without email needs an identifier');
 assert(getCredentialAccountLabel(key) === 'deepseek-cd34', 'Keys do not need email');
-assert(getCredentialAccountLabel({{...oauth, user_email: 'person@example.test'}}) === 'person@example.test', 'Keep known OAuth email');
+assert(getCredentialAccountLabel({{...oauth, user_email: 'person@example.test'}}) === 'pe***on@example.test', 'Keep a masked known OAuth email');
 assert(getCredentialAccountLabel({{...key, user_email: 'not-an-account'}}) === 'deepseek-cd34', 'API keys must not use email fallback');
 assert(getCredentialAccountLabel({{...oauth, credential_label: 'Work'}}) === 'Work', 'Explicit labels take precedence');
 assert(!getCredentialAccountLabel({{...key, api_key: 'secret-key'}}).includes('secret'), 'Never derive identity from a secret');

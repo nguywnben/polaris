@@ -2,6 +2,7 @@ import json
 import uuid
 
 from core.models import OpenAIChatCompletionRequest, model_to_dict
+from core.reasoning_control import ReasoningControlError, prepare_reasoning_request
 from core.router.openai_stream_options import apply_stream_options
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
@@ -12,7 +13,7 @@ from core.router.stream_passthrough import (
     sse_heartbeat_bytes,
 )
 from core.utils import authenticate_bearer, get_base_model_from_feature_model
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from log import log
 
@@ -41,6 +42,10 @@ async def chat_completions(
     from core.converter.gemini_fix import normalize_gemini_request
 
     gemini_dict = await normalize_gemini_request(gemini_dict, mode="vertex")
+    try:
+        gemini_dict, _ = prepare_reasoning_request(gemini_dict, real_model, "vertex", "")
+    except ReasoningControlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     api_request = {
         "model": gemini_dict.pop("model"),

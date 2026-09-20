@@ -249,7 +249,9 @@ def main():
             for width, theme, index in (
                 (1440, "light", 0),
                 (1440, "dark", 1),
+                (1440, "light", 2),
                 (768, "light", 2),
+                (1024, "light", 2),
                 (360, "dark", 1),
                 (320, "light", 3),
             ):
@@ -264,10 +266,26 @@ def main():
                         dialog.locator('[data-management-action="reauthenticate"]')
                     ).to_have_count(0)
                 assert not dialog.evaluate("el => el.scrollWidth > el.clientWidth"), (width, theme)
+                overview = dialog.locator(".credential-management-overview")
+                toolbar = overview.locator(":scope > .credential-management-toolbar")
+                facts = overview.locator(":scope > .credential-management-facts")
+                toolbar_box = toolbar.bounding_box()
+                facts_box = facts.bounding_box()
+                if toolbar.locator("button").count():
+                    assert toolbar_box and facts_box
+                    if width > 700:
+                        assert toolbar_box["y"] + toolbar_box["height"] <= facts_box["y"], width
+                    else:
+                        assert toolbar_box["y"] >= facts_box["y"] + facts_box["height"], width
+                    assert toolbar.evaluate("el => el.scrollWidth <= el.clientWidth"), width
                 page.screenshot(path=str(captures / f"{width}-{theme}-{index}.png"))
                 page.keyboard.press("Tab")
                 assert dialog.evaluate("el => el.contains(document.activeElement)")
                 page.keyboard.press("Escape")
+                expect(dialog).to_be_visible()
+                page.mouse.click(2, 2)
+                expect(dialog).to_be_visible()
+                dialog.locator("[data-dialog-close]").click()
                 expect(dialog).to_have_count(0)
                 expect(active_trigger).to_be_focused()
             for locale in page.evaluate("Object.keys(CREDENTIAL_MANAGEMENT_COPY)"):

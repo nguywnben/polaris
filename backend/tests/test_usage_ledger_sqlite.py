@@ -569,6 +569,7 @@ class SQLiteUsageLedgerTests(unittest.IsolatedAsyncioTestCase):
                 usd_to_nanos("0.25") + 10,
                 4,
                 1,
+                0,  # Legacy rows retain unknown pricing coverage.
             ),
         )
         self.assertEqual([bucket.requests for bucket in buckets], [1, 1])

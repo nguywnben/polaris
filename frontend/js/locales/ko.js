@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["ko"], {
+    "dashboard.cost_unknown": "비용을 확인할 수 없음",
+    "dashboard.cost_coverage": "{source} · 성공한 호출 {total}건 중 {priced}건의 비용 계산 완료. API 요금 기준 추정치이며 청구 금액이 아닙니다.",
     "setup_preflight_title": "설치 확인",
     "setup_preflight_copy": "소유자 계정을 만들기 전에 저장소, 주소, 연결을 확인합니다.",
     "run_preflight": "확인 실행",

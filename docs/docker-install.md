@@ -6,18 +6,31 @@ check the source revision and digest in the [release](https://github.com/nguywnb
 The installer pulls the image and rejects incompatible images before creating data.
 It does not update or reset an existing installation.
 
-## The short path
+## Choose your operating system
 
-Target: a Linux x86_64/amd64 machine with Docker Engine installed and running. You do not need
-Git, Python, Compose, a domain name, or a manually edited `.env` file. You need permission to
-use Docker; if Docker requires sudo, run the saved script with `sudo bash polaris-install.sh`.
-ARM64 is not a published image target. Windows/macOS users retain the
-[Compose installation path](installation.md).
+You do not need Git, Python, Compose, a domain name, or a manually edited `.env` file.
+You **do** need a running local Linux/amd64 Docker engine and permission to use it:
+
+- **Linux x86_64/VPS:** install [Docker Engine](https://docs.docker.com/engine/install/).
+- **Windows x86_64:** install and open [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/),
+  select Linux containers, and wait for the engine to be running. Use Windows PowerShell 5.1
+  or PowerShell 7, not Command Prompt. Windows Server is not this Desktop path.
+- **macOS Intel:** the Bash entry point requires [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/).
+  Native Mac verification is **pending**; this is not a claim of tested macOS support.
+- **Apple Silicon/other ARM64:** native ARM64 images are not published. The guided
+  installer refuses these engines; see the [support matrix](installation.md#support-matrix).
+
+If Docker is missing or stopped, the installer stops with guidance. It does not install
+Docker, grant privileges, change execution policies, or modify firewalls automatically.
+Docker access is privileged: only run installation code from a source you trust.
 
 The script validates the Docker engine, not every host configuration. Verification covers
 Docker Desktop's Linux/amd64 engine and an owner-authorized Ubuntu 24.04 x86_64 VPS,
 not macOS or ARM64. See the recorded test environment in
-[installer verification](evidence/guided-docker-install-2026-09-18.md).
+[installer verification](evidence/guided-docker-install-2026-09-18.md) and
+[PowerShell verification](evidence/one-command-install-2026-09-19.md).
+
+### Linux / macOS Intel (Bash)
 
 Run this on the machine where
 Polaris will live (on a VPS, inside your SSH/Termius session). Use a directory where
@@ -26,6 +39,38 @@ Polaris will live (on a VPS, inside your SSH/Termius session). Use a directory w
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nguywnben/polaris/v1.0.0/deploy/scripts/docker-install.sh -o polaris-install.sh && bash polaris-install.sh
 ```
+
+To inspect before execution, run only the download portion first, read the saved script,
+then run `bash polaris-install.sh`. If Docker requires sudo, run the reviewed saved script
+with `sudo bash polaris-install.sh`. A failed download must not be executed.
+
+### Windows (PowerShell)
+
+**Source-ready, not published yet:** the new PowerShell entry point is not in the existing
+`v1.0.0` tag. The following is a release-command template, **not a currently usable download**.
+Replace `RELEASE_TAG` only after a release containing this file has been published:
+
+```powershell
+& ([scriptblock]::Create((Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/nguywnben/polaris/RELEASE_TAG/deploy/scripts/docker-install.ps1' -ErrorAction Stop)))
+```
+
+This downloads the complete script before parsing/executing it; HTTP/download errors stop
+execution. It still runs remote code, so read the script at that exact release first if
+you want to inspect it. No permanent execution-policy change is needed. Follow your
+organization's policy if script execution is restricted; do not disable its controls.
+
+Developers can test the current checkout now (read the file first):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deploy\scripts\docker-install.ps1 -Local
+```
+
+Here `Bypass` applies only to that new PowerShell process, not the machine/user policy;
+see [Microsoft's execution-policy documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies).
+When script-file execution is already allowed, use `& .\deploy\scripts\docker-install.ps1`.
+Omit `-Local` for the guided questions. Do not reuse an existing container or volume name.
+
+### What happens next
 
 The installer asks two plain-language questions:
 
@@ -61,6 +106,12 @@ instance, use both a different name and an unused port:
 bash polaris-install.sh --local --name polaris-test --port 14283
 ```
 
+PowerShell equivalent (with the reviewed script saved locally):
+
+```powershell
+& .\docker-install.ps1 -Local -Name polaris-test -Port 14283
+```
+
 If a start fails, the container and data are retained. Resolve the reported problem first
 (for example, another application occupying port 4283), then:
 
@@ -77,6 +128,12 @@ it privately from the running container:
 docker exec polaris python -c 'import os; print(os.environ["SETUP_TOKEN"])'
 ```
 
+On Windows PowerShell 5.1, use this quoting instead:
+
+```powershell
+docker exec polaris python -c "import os; print(os.environ['SETUP_TOKEN'])"
+```
+
 This intentionally displays a secret to the administrator, not application logs. If setup
 is already complete, sign in with your owner password instead. Do not reset or delete the
 volume to solve a login problem. If only a volume remains after interrupted creation, stop
@@ -88,6 +145,8 @@ The installer is optional. Run `bash polaris-install.sh --help` to see explicit 
 `--public-host HOST --accept-insecure-http` is the noninteractive equivalent of accepting
 the HTTP warning; it is never enabled by default. `--wait-seconds` changes the readiness
 deadline (1–900 seconds). The installer uses the local Docker daemon, not remote contexts.
+PowerShell uses `-Help`, `-PublicHost HOST -AcceptInsecureHttp`, `-WaitSeconds`,
+`-Name`, `-Port`, `-Image` and `-Pull always|never` for the same choices.
 
 To test a source checkout without changing a release tag/image:
 

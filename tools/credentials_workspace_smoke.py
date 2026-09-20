@@ -128,11 +128,21 @@ def main():
             page.locator('#primaryNavigation [data-tab="credentials"]').click()
             cards = page.locator("#primaryCredsList .cred-card")
             expect(cards).to_have_count(8)
+            expect(page.locator(".credential-state-indicator")).to_have_count(8)
+            expect(
+                page.locator(".cred-summary > .enabled, .cred-summary > .disabled")
+            ).to_have_count(0)
             groups = page.locator(".credential-provider-group")
             expect(groups).to_have_count(4)
             deepseek = groups.filter(has=page.locator("#credentialProviderGroup-deepseek"))
             first = deepseek.locator(".cred-card").first
             expect(first.locator("h3")).to_have_text("deepseek-0")
+            expect(first.locator(".credential-state-indicator")).to_have_attribute(
+                "aria-label", "Đã bật"
+            )
+            expect(
+                deepseek.locator(".cred-card").nth(2).locator(".credential-state-indicator")
+            ).to_have_attribute("aria-label", "Đã tắt")
             expect(page.locator("#primaryCredsList")).not_to_contain_text("Email không khả dụng")
             expect(first.locator(".cred-quota-preview")).to_have_count(0)
             expect(groups.nth(1).locator(".cred-account-name")).to_contain_text("@example.test")
@@ -217,6 +227,8 @@ def main():
             page.keyboard.press("Shift+Tab")
             expect(dialog.locator("[data-dialog-close]")).to_be_focused()
             page.keyboard.press("Escape")
+            expect(dialog).to_be_visible()
+            dialog.locator("[data-dialog-close]").click()
             expect(dialog).to_have_count(0)
             expect(manage).to_be_focused()
 

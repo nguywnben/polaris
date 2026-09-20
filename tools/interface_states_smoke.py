@@ -48,9 +48,14 @@ def main():
                 if not skeleton.count():
                     failures.append(f"{width}/{route_name}: initial request has no skeleton")
                 else:
-                    assert skeleton.get_attribute("aria-label")
-                    box = skeleton.bounding_box()
-                    assert box and box["width"] > 0 and box["x"] + box["width"] <= width + 1
+                    for item in skeleton.all():
+                        if item.locator("dt").count():
+                            expect(item.locator("dt")).not_to_be_empty()
+                            expect(item.locator("dd .skeleton-line")).to_be_visible()
+                        else:
+                            assert item.get_attribute("aria-label")
+                        box = item.bounding_box()
+                        assert box and box["width"] > 0 and box["x"] + box["width"] <= width + 1
                 page.screenshot(
                     path=str(
                         OUTPUT
@@ -119,11 +124,15 @@ def main():
             assert footer and footer["y"] + footer["height"] <= height
             page.screenshot(path=str(OUTPUT / f"nested-confirmation-{width}.png"))
             page.keyboard.press("Escape")
+            expect(page.locator(".message-modal")).to_have_count(2)
+            page.locator("[data-dialog-cancel]").last.click()
             page.wait_for_timeout(50)
             if page.locator(".message-modal").count() != 1:
-                failures.append(f"{width}: Escape closed more than the top dialog")
+                failures.append(f"{width}: Cancel closed more than the top dialog")
             assert page.evaluate("window.confirmOutcome") is False
             page.keyboard.press("Escape")
+            expect(page.locator(".message-modal")).to_have_count(1)
+            page.locator("[data-dialog-cancel]").click()
             expect(page.locator(".message-modal")).to_have_count(0)
             expect(page.locator("#modalRegressionTrigger")).to_be_focused()
             assert not page.locator("#modalRegressionTrigger").evaluate("el => el.inert")

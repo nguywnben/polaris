@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -32,6 +33,7 @@ from core.router.protocol_errors import protocol_error_payload
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "protocol-contract-corpus-v1.json"
 REQUEST_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "protocol-request-golden-v1.json"
 RESPONSE_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "protocol-response-golden-v1.json"
+REASONING_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "protocol-reasoning-extension-v1.json"
 
 
 class ProtocolContractMatrixTests(unittest.TestCase):
@@ -54,7 +56,25 @@ class ProtocolContractMatrixTests(unittest.TestCase):
         self.assertEqual(covered_families, set(INFERENCE_PROTOCOLS))
 
     def test_runtime_contract_matches_the_versioned_corpus(self):
-        self.assertEqual(list_protocol_conversions(), self.fixture["conversions"])
+        expected = deepcopy(self.fixture["conversions"])
+        extension = json.loads(REASONING_FIXTURE_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(extension["schema_version"], 1)
+        for conversion, features in extension["feature_overrides"].items():
+            expected[conversion]["features"].update(features)
+        self.assertEqual(list_protocol_conversions(), expected)
+
+    def test_reasoning_extension_preserves_the_golden_native_control(self):
+        from core.reasoning_control import REASONING_EFFORT_KEY, prepare_reasoning_request
+
+        extension = json.loads(REASONING_FIXTURE_PATH.read_text(encoding="utf-8"))
+        request = OpenAIChatCompletionRequest.model_validate(extension["request"])
+        result, _ = prepare_reasoning_request(
+            {REASONING_EFFORT_KEY: request.reasoning_effort},
+            request.model,
+            "google_antigravity",
+            "",
+        )
+        self.assertEqual(result["generationConfig"]["thinkingConfig"], extension["thinking_config"])
 
     def test_unknown_top_level_fields_fail_closed_for_every_request_family(self):
         cases = (
@@ -348,7 +368,7 @@ class ProtocolRequestGoldenTests(unittest.IsolatedAsyncioTestCase):
                 {
                     "model": "fixture-model",
                     "messages": [{"role": "user", "content": "Hello"}],
-                    "reasoning_effort": "high",
+                    "reasoning_effort": "unknown",
                 },
             ),
             (

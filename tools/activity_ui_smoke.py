@@ -108,6 +108,20 @@ def main():
             page.locator('[data-ui-action="related-audit-request"]').click()
             expect(page.locator("#activityAuditPanel")).to_be_visible()
             expect(page.locator("#activityRequestId")).to_have_value(trace["request_id"])
+            state["empty"] = False
+            page.locator('[data-ui-action="refresh-audit"]').click()
+            audit_trigger = page.locator('[data-ui-action="view-audit-detail"]').first
+            for dismiss in ("outside", "escape"):
+                audit_trigger.click()
+                expect(page.locator("#auditDetailDialog")).to_be_visible()
+                page.locator("#auditDetailEventId").click()
+                expect(page.locator("#auditDetailDialog")).to_be_visible()
+                if dismiss == "outside":
+                    page.mouse.click(2, 2)
+                else:
+                    page.keyboard.press("Escape")
+                expect(page.locator("#auditDetailDialog")).not_to_be_visible()
+                expect(audit_trigger).to_be_focused()
             page.locator('[data-ui-action="clear-activity-filters"]').click()
             for view in ("traces", "audit", "runtime"):
                 page.locator(f'[data-activity-view="{view}"]').click()

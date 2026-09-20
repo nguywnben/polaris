@@ -11,15 +11,13 @@ body:has(dialog:modal) {
 }
 
 .audit-detail-dialog,
-.trace-detail-dialog,
 .identity-dialog {
     max-height: calc(100dvh - 32px);
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
 }
 
-.audit-detail-header,
-.trace-detail-header {
+.audit-detail-header {
     position: sticky;
     top: 0;
     z-index: 1;

@@ -3,12 +3,17 @@
   "guided": {
     "deployment": "docker-run",
     "installer": "deploy/scripts/docker-install.sh",
+    "powershell_installer": "deploy/scripts/docker-install.ps1",
     "guide": "docs/docker-install.md",
     "target": "linux/amd64",
     "status": "local-preparation",
     "verification": "backend/tests/test_docker_install.py",
     "runtime_evidence": "docs/evidence/guided-docker-install-2026-09-18.md",
     "requires": ["Docker Engine", "Bash", "Permission to access the local Docker daemon"],
+    "powershell_requires": ["Docker Desktop with a running Linux/amd64 engine", "Windows PowerShell 5.1+ or PowerShell 7", "Permission to access the local Docker daemon"],
+    "powershell_verification": "backend/tests/test_docker_install_powershell.py",
+    "powershell_runtime_evidence": "docs/evidence/one-command-install-2026-09-19.md",
+    "macos_verification": "manual-check-pending; Intel/amd64 only in guided installer",
     "no_clone_required": true,
     "compose_updater_supported": false
   },

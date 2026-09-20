@@ -3,6 +3,12 @@
 Applies to the [guided Docker installation](docker-install.md), not Compose. These are
 Linux/Bash commands for an administrator. Replace names consistently if you installed with
 a custom `--name`. This is a manual maintenance path, not an automatic updater.
+PowerShell installations use the same container/volume layout. The simple lifecycle commands
+below also work in PowerShell, but the backup/update blocks marked `bash` require Bash and
+access to the same local Docker engine; do not paste them into PowerShell. In particular,
+Windows PowerShell 5.1 binary-output redirection can corrupt a tar archive. The console's
+encrypted backup export remains available without a Bash shell. A native PowerShell update
+command is not provided by the installer.
 
 ## Stop or start without deleting data
 
@@ -12,6 +18,11 @@ docker start polaris
 ```
 
 Do not remove `polaris-data` or use volume-pruning commands to troubleshoot Polaris.
+
+To uninstall only the application container, first create and verify a backup, check
+`docker inspect polaris` identifies your intended installation, then run `docker stop polaris`
+and `docker rm polaris`. This deliberately keeps `polaris-data` and the image for recovery.
+It is not a complete data wipe; do not delete the volume unless you intend to lose its data.
 
 ## Consistent offline backup
 

@@ -570,24 +570,24 @@ for (const [locale, copy] of Object.entries(CREDENTIAL_WORKSPACE_COPY)) {
 }
 
 const CREDENTIAL_MANAGEMENT_COPY = {
-    en: ['Configuration', 'Diagnostics', 'Sensitive credential data', 'Reveal data', 'Hide data'],
-    vi: ['Cấu hình', 'Chẩn đoán', 'Dữ liệu xác thực nhạy cảm', 'Hiển thị dữ liệu', 'Ẩn dữ liệu'],
-    de: ['Konfiguration', 'Diagnose', 'Vertrauliche Zugangsdaten', 'Daten anzeigen', 'Daten verbergen'],
-    es: ['Configuración', 'Diagnóstico', 'Datos confidenciales de credenciales', 'Mostrar datos', 'Ocultar datos'],
-    fr: ['Configuration', 'Diagnostic', 'Données d’authentification sensibles', 'Afficher les données', 'Masquer les données'],
-    id: ['Konfigurasi', 'Diagnostik', 'Data kredensial sensitif', 'Tampilkan data', 'Sembunyikan data'],
-    it: ['Configurazione', 'Diagnostica', 'Dati sensibili delle credenziali', 'Mostra dati', 'Nascondi dati'],
-    ja: ['設定', '診断', '機密の認証情報', 'データを表示', 'データを非表示'],
-    ko: ['설정', '진단', '민감한 인증 정보', '데이터 표시', '데이터 숨기기'],
-    pt: ['Configuração', 'Diagnóstico', 'Dados confidenciais das credenciais', 'Mostrar dados', 'Ocultar dados'],
-    ru: ['Настройки', 'Диагностика', 'Конфиденциальные данные доступа', 'Показать данные', 'Скрыть данные'],
-    th: ['การตั้งค่า', 'การวินิจฉัย', 'ข้อมูลรับรองที่ละเอียดอ่อน', 'แสดงข้อมูล', 'ซ่อนข้อมูล'],
-    tr: ['Yapılandırma', 'Tanılama', 'Hassas kimlik bilgileri', 'Verileri göster', 'Verileri gizle'],
-    'zh-CN': ['配置', '诊断', '敏感凭据数据', '显示数据', '隐藏数据'],
-    'zh-TW': ['設定', '診斷', '敏感憑證資料', '顯示資料', '隱藏資料'],
+    en: ['Configuration', 'Diagnostics', 'Sensitive credential data', 'Reveal data', 'Hide data', "Show email", "Hide email", "Email is not available."],
+    vi: ['Cấu hình', 'Chẩn đoán', 'Dữ liệu xác thực nhạy cảm', 'Hiển thị dữ liệu', 'Ẩn dữ liệu', "Hiện email", "Ẩn email", "Chưa có thông tin email."],
+    de: ['Konfiguration', 'Diagnose', 'Vertrauliche Zugangsdaten', 'Daten anzeigen', 'Daten verbergen', "E-Mail anzeigen", "E-Mail verbergen", "E-Mail-Adresse nicht verfügbar."],
+    es: ['Configuración', 'Diagnóstico', 'Datos confidenciales de credenciales', 'Mostrar datos', 'Ocultar datos', "Mostrar correo", "Ocultar correo", "El correo no está disponible."],
+    fr: ['Configuration', 'Diagnostic', 'Données d’authentification sensibles', 'Afficher les données', 'Masquer les données', "Afficher l’adresse e-mail", "Masquer l’adresse e-mail", "L’adresse e-mail n’est pas disponible."],
+    id: ['Konfigurasi', 'Diagnostik', 'Data kredensial sensitif', 'Tampilkan data', 'Sembunyikan data', "Tampilkan email", "Sembunyikan email", "Email tidak tersedia."],
+    it: ['Configurazione', 'Diagnostica', 'Dati sensibili delle credenziali', 'Mostra dati', 'Nascondi dati', "Mostra email", "Nascondi email", "Email non disponibile."],
+    ja: ['設定', '診断', '機密の認証情報', 'データを表示', 'データを非表示', "メールアドレスを表示", "メールアドレスを非表示", "メールアドレスを取得できません。"],
+    ko: ['설정', '진단', '민감한 인증 정보', '데이터 표시', '데이터 숨기기', "이메일 표시", "이메일 숨기기", "이메일을 사용할 수 없습니다."],
+    pt: ['Configuração', 'Diagnóstico', 'Dados confidenciais das credenciais', 'Mostrar dados', 'Ocultar dados', "Mostrar email", "Ocultar email", "Email indisponível."],
+    ru: ['Настройки', 'Диагностика', 'Конфиденциальные данные доступа', 'Показать данные', 'Скрыть данные', "Показать email", "Скрыть email", "Email недоступен."],
+    th: ['การตั้งค่า', 'การวินิจฉัย', 'ข้อมูลรับรองที่ละเอียดอ่อน', 'แสดงข้อมูล', 'ซ่อนข้อมูล', "แสดงอีเมล", "ซ่อนอีเมล", "ไม่มีข้อมูลอีเมล"],
+    tr: ['Yapılandırma', 'Tanılama', 'Hassas kimlik bilgileri', 'Verileri göster', 'Verileri gizle', "E-postayı göster", "E-postayı gizle", "E-posta bilgisi kullanılamıyor."],
+    'zh-CN': ['配置', '诊断', '敏感凭据数据', '显示数据', '隐藏数据', "显示邮箱", "隐藏邮箱", "邮箱信息不可用。"],
+    'zh-TW': ['設定', '診斷', '敏感憑證資料', '顯示資料', '隱藏資料', "顯示電子郵件", "隱藏電子郵件", "電子郵件資訊無法使用。"],
 };
 for (const [locale, labels] of Object.entries(CREDENTIAL_MANAGEMENT_COPY)) {
-    ['configuration', 'diagnostics', 'sensitive', 'reveal', 'hide'].forEach((key, index) => {
+    ['configuration', 'diagnostics', 'sensitive', 'reveal', 'hide', 'reveal_email', 'hide_email', 'email_unavailable'].forEach((key, index) => {
         PAGE_LOCALE_TRANSLATIONS[locale][`credentials.management.${key}`] = labels[index];
     });
 }

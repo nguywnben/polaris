@@ -20,6 +20,7 @@ from core.model_pool import (
     save_virtual_model_pool,
 )
 from core.models import VirtualModelPoolUpdateRequest
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.provider_registry import get_provider_display_name, get_provider_routing_id
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
@@ -27,7 +28,7 @@ from log import log
 
 from .utils import get_env_locked_keys
 
-router = APIRouter(tags=["model-pools"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["model-pools"])
 _model_pool_write_lock = asyncio.Lock()
 
 
@@ -221,6 +222,9 @@ async def delete_model_blacklist_entry(
     """Restore one credential-model route, or every matching provider route."""
     try:
         if credential_name:
+            from core.credential_references import resolve_credential_reference
+
+            credential_name = await resolve_credential_reference(credential_name, mode="primary")
             removed = await remove_model_blacklist_entry(
                 provider_id,
                 model_id,
