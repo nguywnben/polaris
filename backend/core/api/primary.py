@@ -251,9 +251,7 @@ def _normalize_antigravity_tool_turns(
         copied = dict(content)
         copied["parts"] = copied_parts
 
-        has_call = any(
-            "functionCall" in part or "function_call" in part for part in copied_parts
-        )
+        has_call = any("functionCall" in part or "function_call" in part for part in copied_parts)
         has_response = any(
             "functionResponse" in part or "function_response" in part for part in copied_parts
         )
@@ -275,9 +273,7 @@ def _normalize_antigravity_tool_turns(
                 if "functionResponse" in part or "function_response" in part
             ]
             call_parts = [
-                part
-                for part in copied_parts
-                if "functionCall" in part or "function_call" in part
+                part for part in copied_parts if "functionCall" in part or "function_call" in part
             ]
             other_parts = [
                 part
@@ -312,9 +308,7 @@ def _normalize_antigravity_tool_turns(
         ):
             continue
         content["parts"] = [
-            part
-            for part in parts
-            if "functionCall" in part or "function_call" in part
+            part for part in parts if "functionCall" in part or "function_call" in part
         ]
 
     # The upstream rejects a function-call/model turn at the beginning of the

@@ -165,9 +165,7 @@ class ModelCatalogService:
                 self._ttl_seconds,
                 MODEL_CATALOG_STALE_RETRY_SECONDS,
             )
-            log.warning(
-                f"Provider model discovery failed; serving the last known catalog: {exc}"
-            )
+            log.warning(f"Provider model discovery failed; serving the last known catalog: {exc}")
             return
 
         providers_by_model: dict[str, set[str]] = {}

@@ -41,11 +41,15 @@ class OpenAIToGeminiToolTurnTests(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-        self.assertEqual([content["role"] for content in translated["contents"]], ["user", "model", "user"])
+        self.assertEqual(
+            [content["role"] for content in translated["contents"]], ["user", "model", "user"]
+        )
         model_parts = translated["contents"][1]["parts"]
         self.assertEqual(model_parts[0], {"text": "I will inspect it."})
         self.assertEqual(model_parts[1]["functionCall"]["name"], "read_file")
-        self.assertEqual(translated["contents"][2]["parts"][0]["functionResponse"]["name"], "read_file")
+        self.assertEqual(
+            translated["contents"][2]["parts"][0]["functionResponse"]["name"], "read_file"
+        )
 
     def test_antigravity_drops_narration_before_function_call(self):
         normalized = _normalize_antigravity_tool_turns(
