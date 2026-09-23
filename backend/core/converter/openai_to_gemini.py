@@ -994,6 +994,30 @@ def _sanitize_openai_roundtrip_signatures(contents: List[Dict[str, Any]]) -> Non
             parts[index] = sanitized_part
 
 
+def _merge_adjacent_gemini_turns(contents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Coalesce consecutive same-role turns into one Gemini content turn.
+
+    OpenAI clients may preserve assistant narration and a later tool call as
+    separate messages. Gemini requires a function-call turn to follow a user
+    or function-response turn, so keeping those adjacent assistant messages
+    separate would make an otherwise valid tool exchange fail upstream.
+    """
+    merged: List[Dict[str, Any]] = []
+    for content in contents:
+        if not isinstance(content, dict):
+            continue
+        role = content.get("role")
+        parts = content.get("parts")
+        if not isinstance(parts, list) or not parts:
+            continue
+
+        if merged and merged[-1].get("role") == role:
+            merged[-1]["parts"].extend(parts)
+        else:
+            merged.append({"role": role, "parts": list(parts)})
+    return merged
+
+
 async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Dict[str, Any]:
 
     openai_request = await merge_system_messages(openai_request)
@@ -1166,6 +1190,7 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
             contents.append({"role": role, "parts": [{"text": content}]})
 
     flush_pending_tool_parts()
+    contents = _merge_adjacent_gemini_turns(contents)
     _sanitize_openai_roundtrip_signatures(contents)
 
     generation_config = {}

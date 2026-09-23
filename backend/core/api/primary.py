@@ -222,6 +222,115 @@ def _apply_credit_mode(payload: Dict[str, Any], enabled: bool) -> None:
         payload.pop("enabledCreditTypes", None)
 
 
+def _normalize_antigravity_tool_turns(
+    request: Dict[str, Any], model_name: str = ""
+) -> Dict[str, Any]:
+    """Normalize Gemini turns to the stricter Antigravity function-call contract.
+
+    Antigravity requires a model/function-call turn to follow a user turn (or a
+    user turn carrying functionResponse parts). OpenAI histories can start
+    with an assistant tool call, replay consecutive assistant turns, or carry a
+    function response under a non-native role. Keep regular content intact,
+    but canonicalize those tool turns before the provider envelope is built.
+    """
+    contents = request.get("contents")
+    if not isinstance(contents, list):
+        return request
+
+    normalized_contents: list[dict[str, Any]] = []
+    for content in contents:
+        if not isinstance(content, dict):
+            continue
+        parts = content.get("parts")
+        if not isinstance(parts, list) or not parts:
+            continue
+
+        copied_parts = [part.copy() for part in parts if isinstance(part, dict)]
+        if not copied_parts:
+            continue
+        copied = dict(content)
+        copied["parts"] = copied_parts
+
+        has_call = any("functionCall" in part or "function_call" in part for part in copied_parts)
+        has_response = any(
+            "functionResponse" in part or "function_response" in part for part in copied_parts
+        )
+
+        # Function responses are user turns in Gemini. A malformed replay can
+        # carry them as model/function; canonicalize the role before merging.
+        if has_response and not has_call:
+            copied["role"] = "user"
+        elif has_call and not has_response:
+            copied["role"] = "model"
+
+        # A mixed response/call content cannot satisfy strict turn ordering.
+        # Keep ordinary text with the response/user side and emit calls as a
+        # separate model turn.
+        if has_call and has_response:
+            response_parts = [
+                part
+                for part in copied_parts
+                if "functionResponse" in part or "function_response" in part
+            ]
+            call_parts = [
+                part for part in copied_parts if "functionCall" in part or "function_call" in part
+            ]
+            other_parts = [
+                part
+                for part in copied_parts
+                if not (
+                    "functionCall" in part
+                    or "function_call" in part
+                    or "functionResponse" in part
+                    or "function_response" in part
+                )
+            ]
+            if response_parts or other_parts:
+                normalized_contents.append(
+                    {**copied, "role": "user", "parts": response_parts + other_parts}
+                )
+            if call_parts:
+                normalized_contents.append({**copied, "role": "model", "parts": call_parts})
+            continue
+
+        if normalized_contents and normalized_contents[-1].get("role") == copied.get("role"):
+            normalized_contents[-1]["parts"].extend(copied_parts)
+        else:
+            normalized_contents.append(copied)
+
+    for content in normalized_contents:
+        if content.get("role") != "model":
+            continue
+        parts = content.get("parts", [])
+        if not any(
+            isinstance(part, dict) and ("functionCall" in part or "function_call" in part)
+            for part in parts
+        ):
+            continue
+        content["parts"] = [
+            part for part in parts if "functionCall" in part or "function_call" in part
+        ]
+
+    # The upstream rejects a function-call/model turn at the beginning of the
+    # history, and also rejects one following another model turn. Reference
+    # Antigravity adapters use this same empty-user sentinel. Claude targets
+    # reject empty text parts, so leave their model-first history alone.
+    if "claude" not in str(model_name or "").lower():
+        with_leading_users: list[dict[str, Any]] = []
+        for content in normalized_contents:
+            is_model = content.get("role") == "model"
+            if is_model and (
+                not with_leading_users or with_leading_users[-1].get("role") != "user"
+            ):
+                with_leading_users.append({"role": "user", "parts": [{"text": ""}]})
+            with_leading_users.append(content)
+        normalized_contents = with_leading_users
+
+    result = dict(request)
+    result["contents"] = normalized_contents
+    return result
+
+
 async def wrap_cli_request(
     gemini_request: Dict[str, Any],
     model: str,
@@ -301,6 +410,9 @@ async def prepare_provider_request(
         CompressionSettings(**await get_token_compression_config()),
     )
     compressed_request = dict(compression_result.request)
+
+    if provider_id == GOOGLE_ANTIGRAVITY:
+        compressed_request = _normalize_antigravity_tool_turns(compressed_request, model_name)
 
     if provider_id in EXTENDED_PROVIDERS:
         target_url, auth_headers, payload = prepare_extended_request(

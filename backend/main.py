@@ -37,6 +37,7 @@ from core.management_audit import (
     record_classified_management_response,
 )
 from core.metrics import router as metrics_router
+from core.model_pool import model_catalog_service
 from core.otel_exporter import run_otel_export_loop
 from core.panel import router as panel_router
 from core.panel.playground import PLAYGROUND_MAX_BODY_BYTES
@@ -86,6 +87,17 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 
 _REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+
+async def _prewarm_model_catalog() -> None:
+    """Refresh provider models without delaying readiness or first traffic."""
+    try:
+        await model_catalog_service.get_catalog()
+        log.info("Model catalog prewarm completed.")
+    except Exception as exc:
+        # Discovery is best-effort at startup; the request path still has the
+        # normal retry/fallback behavior if an upstream is temporarily down.
+        log.warning(f"Model catalog prewarm failed ({type(exc).__name__}).")
 
 
 def _parse_csv_env(name: str) -> list[str]:
@@ -219,6 +231,9 @@ async def lifespan(app: FastAPI):
         await keep_alive_service.start()
     except Exception as e:
         log.error(f"Keep-alive service startup failed ({type(e).__name__}).")
+
+    create_managed_task(_prewarm_model_catalog(), name="model-catalog-prewarm")
+    log.info("Model catalog prewarm scheduled.")
 
     try:
         yield
