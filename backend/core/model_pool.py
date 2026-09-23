@@ -103,6 +103,7 @@ class ModelCatalogService:
         self._loaded = False
         self._last_refresh_error = ""
         self._generation = GovernanceGenerationObserver(GOVERNANCE_SCOPE_MODEL_CATALOG)
+        self._refresh_task: Optional[asyncio.Task[None]] = None
 
     async def get_catalog(self, *, force_refresh: bool = False) -> list[ModelCatalogEntry]:
         await self._generation.synchronize(self.invalidate)
@@ -110,47 +111,90 @@ class ModelCatalogService:
         if not force_refresh and self._loaded and self._expires_at > now:
             return list(self._entries)
 
+        # Once a catalog has been loaded, never make the first request after
+        # expiry wait on every provider's model-discovery call. Return the
+        # last known catalog and refresh it in the background. Explicit
+        # force_refresh callers still wait for that refresh to finish.
+        if not force_refresh and self._loaded:
+            self._schedule_background_refresh()
+            return list(self._entries)
+
+        refresh_task: Optional[asyncio.Task[None]] = None
         async with self._lock:
             now = self._clock()
             if not force_refresh and self._loaded and self._expires_at > now:
                 return list(self._entries)
 
-            try:
-                provider_models = await self._loader()
-            except Exception as exc:
-                self._last_refresh_error = str(exc)
-                if not self._loaded:
-                    raise
-                self._expires_at = now + min(
-                    self._ttl_seconds,
-                    MODEL_CATALOG_STALE_RETRY_SECONDS,
-                )
-                log.warning(
-                    f"Provider model discovery failed; serving the last known catalog: {exc}"
-                )
-                return list(self._entries)
-            providers_by_model: dict[str, set[str]] = {}
-            for provider_id, model_ids in provider_models.items():
-                normalized_provider = str(provider_id or "").strip()
-                if not normalized_provider:
-                    continue
-                for value in model_ids or ():
-                    try:
-                        model_id = normalize_model_id(value)
-                    except ModelPoolError:
-                        continue
-                    providers_by_model.setdefault(model_id, set()).add(normalized_provider)
+            if force_refresh and self._refresh_task is not None:
+                refresh_task = self._refresh_task
+            else:
+                await self._refresh_locked(now=now)
 
-            self._entries = tuple(
-                ModelCatalogEntry(model_id, tuple(sorted(providers)))
-                for model_id, providers in sorted(providers_by_model.items())
+        if refresh_task is not None:
+            await refresh_task
+        return list(self._entries)
+
+    def _schedule_background_refresh(self) -> None:
+        if self._refresh_task is not None and not self._refresh_task.done():
+            return
+
+        task = asyncio.create_task(
+            self._refresh_in_background(),
+            name="model-catalog-refresh",
+        )
+        self._refresh_task = task
+
+        def clear_task(completed: asyncio.Task[None]) -> None:
+            if self._refresh_task is completed:
+                self._refresh_task = None
+
+        task.add_done_callback(clear_task)
+
+    async def _refresh_in_background(self) -> None:
+        async with self._lock:
+            await self._refresh_locked(now=self._clock())
+
+    async def _refresh_locked(self, *, now: float) -> None:
+        try:
+            provider_models = await self._loader()
+        except Exception as exc:
+            self._last_refresh_error = str(exc)
+            if not self._loaded:
+                raise
+            self._expires_at = now + min(
+                self._ttl_seconds,
+                MODEL_CATALOG_STALE_RETRY_SECONDS,
             )
-            self._expires_at = now + self._ttl_seconds
-            self._loaded = True
-            self._last_refresh_error = ""
-            return list(self._entries)
+            log.warning(
+                f"Provider model discovery failed; serving the last known catalog: {exc}"
+            )
+            return
+
+        providers_by_model: dict[str, set[str]] = {}
+        for provider_id, model_ids in provider_models.items():
+            normalized_provider = str(provider_id or "").strip()
+            if not normalized_provider:
+                continue
+            for value in model_ids or ():
+                try:
+                    model_id = normalize_model_id(value)
+                except ModelPoolError:
+                    continue
+                providers_by_model.setdefault(model_id, set()).add(normalized_provider)
+
+        self._entries = tuple(
+            ModelCatalogEntry(model_id, tuple(sorted(providers)))
+            for model_id, providers in sorted(providers_by_model.items())
+        )
+        self._expires_at = now + self._ttl_seconds
+        self._loaded = True
+        self._last_refresh_error = ""
 
     async def invalidate(self) -> None:
+        refresh_task = self._refresh_task
+        if refresh_task is not None and not refresh_task.done():
+            refresh_task.cancel()
+        self._refresh_task = None
         async with self._lock:
             self._entries = ()
             self._expires_at = 0.0
