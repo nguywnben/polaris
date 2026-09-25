@@ -312,13 +312,6 @@ class _PricingTable:
             self._load_overrides_locked()
             self._load_aliases_locked()
             if not raw_provider:
-                # A public provider namespace can still identify a LiteLLM
-                # catalog entry before routing selects a credential.
-                mapped_identity = _litellm_pricing_identity(normalized, "")
-                if mapped_identity is not None:
-                    mapped_pricing = self._dynamic.get(mapped_identity)
-                    if mapped_pricing is not None:
-                        return PricingResolution(mapped_pricing, normalized, "", "litellm")
                 # Admission runs before routing selects a provider. Include explicit
                 # aliases and scoped overrides in its conservative price envelope.
                 providers = {
@@ -352,6 +345,29 @@ class _PricingTable:
                         ),
                     )
                     return PricingResolution(rates, normalized, "", resolutions[0].source)
+                # A public provider namespace can still identify a LiteLLM
+                # catalog entry before routing selects a credential. Preserve
+                # manual override precedence before using that catalog price.
+                mapped_identity = _litellm_pricing_identity(normalized, "")
+                if mapped_identity is not None:
+                    mapped_provider, mapped_model = mapped_identity
+                    mapped_override = self._overrides.get(f"{mapped_provider}/{mapped_model}")
+                    if mapped_override is None:
+                        mapped_override = self._longest_prefix(
+                            {
+                                key: value
+                                for key, value in self._overrides.items()
+                                if "/" not in key
+                            },
+                            mapped_model,
+                        )
+                    if mapped_override is not None:
+                        return PricingResolution(
+                            mapped_override, mapped_model, mapped_provider, "manual"
+                        )
+                    mapped_pricing = self._dynamic.get(mapped_identity)
+                    if mapped_pricing is not None:
+                        return PricingResolution(mapped_pricing, normalized, "", "litellm")
             override = self._overrides.get(f"{raw_provider}/{normalized}") if raw_provider else None
             if override is None:
                 override = self._longest_prefix(

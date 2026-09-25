@@ -82,6 +82,28 @@ class ProviderScopedPricingResolutionTests(unittest.TestCase):
         providerless = self.table.resolve("muse-code/muse-spark-1.3-contributor")
         self.assertEqual(providerless.pricing, muse_price)
 
+    def test_providerless_muse_pricing_keeps_manual_override_precedence(self):
+        self.overrides_path.write_text(
+            json.dumps(
+                {
+                    "meta/muse-spark-1.3-contributor": {
+                        "input": 7.0,
+                        "output": 11.0,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.table.replace_dynamic(
+            {("meta", "muse-spark-1.3-contributor"): pricing.ModelPricing(0.1, 0.2)},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("muse-code/muse-spark-1.3-contributor")
+
+        self.assertEqual(resolved.pricing, pricing.ModelPricing(7.0, 11.0))
+        self.assertEqual(resolved.source, "manual")
+
     def test_antigravity_alias_does_not_apply_to_other_providers(self):
         for provider in ("google_ai_studio", "openai", "custom_endpoint"):
             with self.subTest(provider=provider):
