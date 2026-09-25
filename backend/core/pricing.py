@@ -44,6 +44,13 @@ MODEL_PRICING_ALIASES = {
     ("google_antigravity", "gemini-3.8-flash-tiered"): ("gemini", "gemini-3.8-flash"),
 }
 
+# Polaris keeps Muse Code OAuth separate from the pay-as-you-go Meta provider,
+# but LiteLLM publishes both families under the ``meta`` pricing namespace.
+# This is a pricing-only identity bridge; routing and credential handling still
+# use the real ``muse_code`` provider.
+LITELLM_PRICING_PROVIDER_ALIASES = {"muse_code": "meta"}
+LITELLM_PRICING_MODEL_PREFIXES = {"muse_code": ("muse-code/",)}
+
 
 @dataclass(frozen=True)
 class PricingResolution:
@@ -305,6 +312,13 @@ class _PricingTable:
             self._load_overrides_locked()
             self._load_aliases_locked()
             if not raw_provider:
+                # A public provider namespace can still identify a LiteLLM
+                # catalog entry before routing selects a credential.
+                mapped_identity = _litellm_pricing_identity(normalized, "")
+                if mapped_identity is not None:
+                    mapped_pricing = self._dynamic.get(mapped_identity)
+                    if mapped_pricing is not None:
+                        return PricingResolution(mapped_pricing, normalized, "", "litellm")
                 # Admission runs before routing selects a provider. Include explicit
                 # aliases and scoped overrides in its conservative price envelope.
                 providers = {
@@ -355,6 +369,33 @@ class _PricingTable:
                 if alias is not None:
                     alias_provider, alias_model = alias
                     return self._resolve(alias_model, alias_provider, follow_aliases=False)
+
+            # Muse Code OAuth is intentionally a separate routing provider, while
+            # LiteLLM publishes its model prices under ``meta``. Resolve this
+            # pricing-only identity after native provider/alias matches so
+            # operator overrides remain authoritative.
+            mapped_identity = _litellm_pricing_identity(normalized, raw_provider)
+            if mapped_identity is not None:
+                mapped_provider, mapped_model = mapped_identity
+                mapped_override = (
+                    self._overrides.get(f"{raw_provider}/{mapped_model}") if raw_provider else None
+                )
+                if mapped_override is None:
+                    mapped_override = self._overrides.get(f"{mapped_provider}/{mapped_model}")
+                if mapped_override is None:
+                    mapped_override = self._longest_prefix(
+                        {key: value for key, value in self._overrides.items() if "/" not in key},
+                        mapped_model,
+                    )
+                if mapped_override is not None:
+                    return PricingResolution(
+                        mapped_override, mapped_model, mapped_provider, "manual"
+                    )
+                mapped_pricing = self._dynamic.get(mapped_identity)
+                if mapped_pricing is not None:
+                    return PricingResolution(
+                        mapped_pricing, mapped_model, mapped_provider, "litellm"
+                    )
 
             # Built-in retail families must not leak to an unrelated provider.
             family = next(
@@ -451,6 +492,31 @@ def _normalize_dynamic_provider(provider: Any) -> str:
     if normalized in {"xai", "grok", "xai_console"}:
         return "xai"
     return normalized
+
+
+def _litellm_pricing_identity(model: str, provider: str) -> tuple[str, str] | None:
+    """Return a provider/model identity used by the LiteLLM price catalog.
+
+    Some Polaris providers intentionally expose a namespaced public model ID
+    while LiteLLM stores the same model under the upstream vendor namespace.
+    Keep this translation explicit and limited to pricing so it cannot affect
+    request routing or provider authentication.
+    """
+
+    raw_provider = str(provider or "").strip().lower().replace("-", "_")
+    normalized_model = _normalize_model_name(model)
+    if not normalized_model:
+        return None
+    catalog_provider = LITELLM_PRICING_PROVIDER_ALIASES.get(raw_provider)
+    if catalog_provider is None:
+        if normalized_model.startswith("muse-code/"):
+            return "meta", normalized_model.removeprefix("muse-code/")
+        return None
+    for prefix in LITELLM_PRICING_MODEL_PREFIXES.get(raw_provider, ()):
+        if normalized_model.startswith(prefix):
+            normalized_model = normalized_model[len(prefix) :]
+            break
+    return catalog_provider, normalized_model
 
 
 _pricing_table = _PricingTable()

@@ -44,6 +44,44 @@ class ProviderScopedPricingResolutionTests(unittest.TestCase):
 
         self.assertEqual(resolved, self.gemini_price)
 
+    def test_muse_code_public_model_uses_meta_litellm_catalog_price(self):
+        muse_price = pricing.ModelPricing(0.10, 0.20, 0.002)
+        self.table.replace_dynamic(
+            {("meta", "muse-spark-1.3-contributor"): muse_price},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("muse-code/muse-spark-1.3-contributor", provider="muse_code")
+
+        self.assertEqual(resolved.pricing, muse_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual(
+            (resolved.provider, resolved.model), ("meta", "muse-spark-1.3-contributor")
+        )
+
+    def test_muse_code_public_namespace_covers_future_catalog_models(self):
+        model_names = (
+            "muse-spark-1.1",
+            "muse-spark-1.2",
+            "muse-spark-1.2-contributor",
+            "muse-spark-1.3",
+            "muse-spark-1.3-contributor",
+        )
+        muse_price = pricing.ModelPricing(0.10, 0.20, 0.002)
+        self.table.replace_dynamic(
+            {("meta", model): muse_price for model in model_names},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        for model in model_names:
+            with self.subTest(model=model):
+                resolved = self.table.resolve(f"muse-code/{model}", provider="muse_code")
+                self.assertEqual(resolved.pricing, muse_price)
+                self.assertEqual(resolved.source, "litellm")
+
+        providerless = self.table.resolve("muse-code/muse-spark-1.3-contributor")
+        self.assertEqual(providerless.pricing, muse_price)
+
     def test_antigravity_alias_does_not_apply_to_other_providers(self):
         for provider in ("google_ai_studio", "openai", "custom_endpoint"):
             with self.subTest(provider=provider):
