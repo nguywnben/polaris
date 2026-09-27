@@ -44,12 +44,19 @@ MODEL_PRICING_ALIASES = {
     ("google_antigravity", "gemini-3.8-flash-tiered"): ("gemini", "gemini-3.8-flash"),
 }
 
-# Polaris keeps Muse Code OAuth separate from the pay-as-you-go Meta provider,
-# but LiteLLM publishes both families under the ``meta`` pricing namespace.
-# This is a pricing-only identity bridge; routing and credential handling still
-# use the real ``muse_code`` provider.
-LITELLM_PRICING_PROVIDER_ALIASES = {"muse_code": "meta"}
+# Polaris keeps some routing providers separate from the namespace LiteLLM uses
+# for its catalog. These are pricing-only identity bridges; request routing and
+# credential handling continue to use the real Polaris provider.
+LITELLM_PRICING_PROVIDER_ALIASES = {
+    "muse_code": "meta",
+    "kimi": "moonshot",
+    # LiteLLM currently publishes Poolside's OpenRouter catalogue entries as
+    # ``openrouter/poolside/<model>``. The direct Poolside API exposes the same
+    # model IDs without that catalogue prefix, so add it only for pricing.
+    "poolside": "openrouter",
+}
 LITELLM_PRICING_MODEL_PREFIXES = {"muse_code": ("muse-code/",)}
+LITELLM_PRICING_MODEL_TARGET_PREFIXES = {"poolside": ("poolside/",)}
 
 
 @dataclass(frozen=True)
@@ -532,6 +539,10 @@ def _litellm_pricing_identity(model: str, provider: str) -> tuple[str, str] | No
         if normalized_model.startswith(prefix):
             normalized_model = normalized_model[len(prefix) :]
             break
+    for prefix in LITELLM_PRICING_MODEL_TARGET_PREFIXES.get(raw_provider, ()):
+        if not normalized_model.startswith(prefix):
+            normalized_model = f"{prefix}{normalized_model}"
+        break
     return catalog_provider, normalized_model
 
 

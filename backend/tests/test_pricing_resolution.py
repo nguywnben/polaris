@@ -82,6 +82,34 @@ class ProviderScopedPricingResolutionTests(unittest.TestCase):
         providerless = self.table.resolve("muse-code/muse-spark-1.3-contributor")
         self.assertEqual(providerless.pricing, muse_price)
 
+    def test_kimi_provider_uses_moonshot_litellm_namespace(self):
+        kimi_price = pricing.ModelPricing(0.20, 2.0)
+        self.table.replace_dynamic(
+            {("moonshot", "kimi-k2.7-code"): kimi_price},
+            fetched_at="2026-09-27T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("kimi-k2.7-code", provider="kimi")
+
+        self.assertEqual(resolved.pricing, kimi_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual((resolved.provider, resolved.model), ("moonshot", "kimi-k2.7-code"))
+
+    def test_poolside_provider_uses_openrouter_poolside_model_namespace(self):
+        poolside_price = pricing.ModelPricing(0.09, 0.18)
+        self.table.replace_dynamic(
+            {("openrouter", "poolside/laguna-s-2.1"): poolside_price},
+            fetched_at="2026-09-27T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("laguna-s-2.1", provider="poolside")
+
+        self.assertEqual(resolved.pricing, poolside_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual(
+            (resolved.provider, resolved.model), ("openrouter", "poolside/laguna-s-2.1")
+        )
+
     def test_providerless_muse_pricing_keeps_manual_override_precedence(self):
         self.overrides_path.write_text(
             json.dumps(

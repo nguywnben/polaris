@@ -348,10 +348,23 @@ function maskCredentialEmailText(value) {
     });
 }
 
+function getCredentialApiKeyEnding(credInfo) {
+    const hint = String(credInfo?.api_key_hint || '').trim();
+    if (!hint || hint === '••••') return '';
+    const match = hint.match(/(?:…|\.\.\.)([^\s…]{4})$/u);
+    return match ? match[1] : '';
+}
+
 function getCredentialAccountLabel(credInfo) {
+    const kind = String(credInfo.credential_type || 'oauth').toLowerCase();
+    if (kind === 'api_key' || credInfo.api_key_hint) {
+        const ending = getCredentialApiKeyEnding(credInfo);
+        return ending
+            ? t('credentials.workspace.api_key_ending', {ending})
+            : t('credentials.workspace.api_key');
+    }
     const label = String(credInfo.credential_label || '').trim();
     if (label) return maskCredentialEmailText(label);
-    const kind = String(credInfo.credential_type || 'oauth').toLowerCase();
     const email = kind === 'oauth' ? String(credInfo.user_email || '').trim() : '';
     if (email) return maskCredentialEmailText(email);
     // Filenames are existing public inventory identifiers, not token/key fragments.

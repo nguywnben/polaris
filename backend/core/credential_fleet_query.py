@@ -223,9 +223,13 @@ def enrich_credential_summary(
         model_cooldowns = {}
     disabled = bool(summary.get("disabled"))
     has_cooldown = bool(model_cooldowns)
-    credential_kind = str(credential_data.get("credential_type") or "oauth").strip().lower()
+    declared_credential_kind = str(credential_data.get("credential_type") or "").strip().lower()
+    credential_kind = declared_credential_kind
     if credential_kind not in {"oauth", "api_key", "connection"}:
-        credential_kind = "oauth"
+        # A few legacy hosted-provider records predate the explicit type field.
+        # An API key is still detectable without exposing its value, so classify
+        # those records consistently for the public credential card.
+        credential_kind = "api_key" if credential_data.get("api_key") else "oauth"
     source = "environment" if credential_data.get("source") == "environment" else "managed"
     provider = get_credential_provider(credential_data)
     user_email = summary.get("user_email")
