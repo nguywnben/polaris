@@ -217,7 +217,7 @@ class QualityGateDocumentationTests(unittest.TestCase):
     def test_browser_dependency_is_isolated_and_exactly_pinned(self) -> None:
         browser_requirements = (ROOT / "requirements-browser.txt").read_text(encoding="utf-8")
 
-        self.assertEqual(browser_requirements.strip(), "playwright==1.62.0")
+        self.assertEqual(browser_requirements.strip(), "playwright==1.63.0")
 
 
 if __name__ == "__main__":
