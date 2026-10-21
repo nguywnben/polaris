@@ -8,8 +8,16 @@ const EXTENDED_PROVIDER_UI = Object.freeze({
     poolside: {name: 'Poolside Platform', logo: 'poolside-platform.png', site: 'https://platform.poolside.ai/', base: 'https://inference.poolside.ai/v1'},
     kimchi: {name: 'Kimchi Coding', logo: 'kimchi.png', site: 'https://kimchi.dev/', base: 'https://llm.kimchi.dev/openai/v1'},
     kilo: {name: 'Kilo', logo: 'kilo.png', site: 'https://kilo.ai/', base: 'https://api.kilo.ai/api/gateway'},
-    muse_code: {name: 'Muse Code', logo: 'muse-code.png', site: 'https://developer.meta.com/ai/products/muse-code'},
-    meta: {name: 'Meta Model API', logo: 'meta-model-api.png', site: 'https://dev.meta.ai/', base: 'https://api.meta.ai/v1'},
+    muse_code: {
+        name: 'Muse Code', logo: 'muse-code.png', site: 'https://developer.meta.com/ai/products/muse-code',
+        base: 'https://api.meta.ai/v1', protocol: 'Meta Responses API',
+        auth: 'Meta device OAuth + subscription'
+    },
+    meta: {
+        name: 'Meta Model API', logo: 'meta-model-api.png', site: 'https://dev.meta.ai/',
+        base: 'https://api.meta.ai/v1', protocol: 'Meta Responses API',
+        auth: 'Meta Model API key', authLabel: 'provider.form.api_key_auth'
+    },
     groq: {name: 'GroqCloud', logo: 'groqcloud.png', site: 'https://console.groq.com/', base: 'https://api.groq.com/openai/v1'},
     deepseek: {name: 'DeepSeek Platform', logo: 'deepseek-platform.png', site: 'https://platform.deepseek.com/', base: 'https://api.deepseek.com/v1'},
     mistral: {name: 'Mistral AI Studio', logo: 'mistral-ai-studio.png', site: 'https://console.mistral.ai/', base: 'https://api.mistral.ai/v1'},
@@ -52,6 +60,7 @@ function extendedField(form, provider, name, key, placeholder = '', {type = 'tex
     }
     input.required = required;
     input.value = value;
+    input.dataset.defaultValue = value;
     group.append(label);
     if (type === 'password') {
         const wrapper = extendedElement('div', 'setup-secret-field');
@@ -67,6 +76,18 @@ function extendedField(form, provider, name, key, placeholder = '', {type = 'tex
         wrapper.append(input, toggle); group.append(wrapper);
     } else group.append(input);
     form.append(group);
+    return input;
+}
+
+function extendedReadOnlyField(form, provider, name, key, value) {
+    const input = extendedField(form, provider, name, key, value, {value});
+    // Informational fields must never become part of the credential payload.
+    input.removeAttribute('name');
+    input.readOnly = true;
+    input.tabIndex = 0;
+    input.setAttribute('aria-readonly', 'true');
+    input.classList.add('provider-readonly-field');
+    input.dataset.providerReadonly = 'true';
     return input;
 }
 
@@ -141,7 +162,7 @@ function buildExtendedProviderWorkspaces() {
             const advanced = extendedElement('details', 'tool-panel provider-settings-panel provider-secondary-disclosure extended-provider-advanced');
             advanced.dataset.disclosureKind = 'settings';
             advanced.append(extendedElement('summary', 'provider-disclosure-summary', 'providers.advanced_settings'));
-            tools.append(buildMuseOAuthPanel(advanced), buildExtendedProviderImport(provider));
+            tools.append(buildMuseOAuthPanel(advanced, definition), buildExtendedProviderImport(provider));
             workspace.append(tools, advanced); page.append(workspace);
             return;
         }
@@ -178,11 +199,21 @@ function buildExtendedProviderWorkspaces() {
             const endpoint = extendedField(settings, provider, 'base_url', 'provider.form.endpoint_label', definition.base, {type: 'url', value: definition.base});
             if (provider === 'meta') {
                 endpoint.readOnly = true;
+                endpoint.tabIndex = 0;
+                endpoint.setAttribute('aria-readonly', 'true');
+                endpoint.classList.add('provider-readonly-field');
+                endpoint.dataset.providerReadonly = 'true';
                 reset.remove();
             }
             if (provider === 'opencode') fields.querySelector('[name="plan"]').addEventListener('change', event => {
                 endpoint.value = event.target.value === 'go' ? 'https://opencode.ai/zen/go/v1' : definition.base;
             });
+        }
+        if (definition.protocol) {
+            extendedReadOnlyField(settings, provider, 'protocol', 'provider.form.protocol_behavior', definition.protocol);
+        }
+        if (definition.auth) {
+            extendedReadOnlyField(settings, provider, 'auth_method', definition.authLabel || 'provider.form.oauth_client', definition.auth);
         }
         if (provider === 'kilo') extendedField(settings, provider, 'organization_id', 'provider.ext.organization', '00000000-0000-0000-0000-000000000000');
         if (provider === 'kiro') {
@@ -194,13 +225,8 @@ function buildExtendedProviderWorkspaces() {
         reset.addEventListener('click', () => {
             if (form.dataset.saving === 'true') return;
             settings.querySelectorAll('input, select').forEach(input => {
-                input.value = input.name === 'region'
-                    ? 'us-east-1'
-                    : input.name === 'base_url' && provider === 'opencode'
-                        ? 'https://opencode.ai/zen/v1'
-                        : input.name === 'base_url'
-                            ? definition.base
-                            : '';
+                if (input.dataset.providerReadonly === 'true') return;
+                input.value = input.dataset.defaultValue || '';
                 input.dispatchEvent(new Event('input', {bubbles: true}));
             });
         });

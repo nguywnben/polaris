@@ -22,6 +22,11 @@ providers do not borrow another provider's same-named price. Region/path-qualifi
 models retain their identity; punctuation and `:batch` are not blindly removed.
 Antigravity `gemini-3.8-flash-tiered` has an explicit pricing identity of
 `gemini/gemini-3.8-flash`. No arbitrary `-tiered`, `-high`, or `-thinking` rule exists.
+Muse Code OAuth keeps its routing provider as `muse_code`, but its public
+`muse-code/<model>` IDs use the LiteLLM `meta/<model>` pricing identity. This
+provider-only bridge applies to every current and future Muse model that has a
+validated `meta` entry in the synchronized catalog; it does not change routing,
+authentication, or the upstream model ID.
 
 ## Operator configuration
 

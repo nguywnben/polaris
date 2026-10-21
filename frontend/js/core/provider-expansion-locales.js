@@ -437,6 +437,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Select {name}",
         'credentials.workspace.models': "{count} models",
         'credentials.workspace.api_key': "API key",
+        'credentials.workspace.api_key_ending': "API key ending {ending}",
     },
     "vi": {
         'credentials.workspace.manage': "Quản lý",
@@ -446,6 +447,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Chọn {name}",
         'credentials.workspace.models': "{count} mô hình",
         'credentials.workspace.api_key': "Khóa API",
+        'credentials.workspace.api_key_ending': "Khóa API kết thúc bằng {ending}",
     },
     "de": {
         'credentials.workspace.manage': "Verwalten",
@@ -455,6 +457,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "{name} auswählen",
         'credentials.workspace.models': "{count} Modelle",
         'credentials.workspace.api_key': "API-Schlüssel",
+        'credentials.workspace.api_key_ending': "API-Schlüssel mit Endung {ending}",
     },
     "es": {
         'credentials.workspace.manage': "Gestionar",
@@ -464,6 +467,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Seleccionar {name}",
         'credentials.workspace.models': "{count} modelos",
         'credentials.workspace.api_key': "Clave API",
+        'credentials.workspace.api_key_ending': "Clave API terminada en {ending}",
     },
     "fr": {
         'credentials.workspace.manage': "Gérer",
@@ -473,6 +477,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Sélectionner {name}",
         'credentials.workspace.models': "{count} modèles",
         'credentials.workspace.api_key': "Clé API",
+        'credentials.workspace.api_key_ending': "Clé API se terminant par {ending}",
     },
     "id": {
         'credentials.workspace.manage': "Kelola",
@@ -482,6 +487,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Pilih {name}",
         'credentials.workspace.models': "{count} model",
         'credentials.workspace.api_key': "Kunci API",
+        'credentials.workspace.api_key_ending': "Kunci API berakhiran {ending}",
     },
     "it": {
         'credentials.workspace.manage': "Gestisci",
@@ -491,6 +497,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Seleziona {name}",
         'credentials.workspace.models': "{count} modelli",
         'credentials.workspace.api_key': "Chiave API",
+        'credentials.workspace.api_key_ending': "Chiave API che termina con {ending}",
     },
     "ja": {
         'credentials.workspace.manage': "管理",
@@ -500,6 +507,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "{name} を選択",
         'credentials.workspace.models': "{count} モデル",
         'credentials.workspace.api_key': "API キー",
+        'credentials.workspace.api_key_ending': "末尾が {ending} の API キー",
     },
     "ko": {
         'credentials.workspace.manage': "관리",
@@ -509,6 +517,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "{name} 선택",
         'credentials.workspace.models': "모델 {count}개",
         'credentials.workspace.api_key': "API 키",
+        'credentials.workspace.api_key_ending': "끝이 {ending}인 API 키",
     },
     "pt": {
         'credentials.workspace.manage': "Gerenciar",
@@ -518,6 +527,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Selecionar {name}",
         'credentials.workspace.models': "{count} modelos",
         'credentials.workspace.api_key': "Chave de API",
+        'credentials.workspace.api_key_ending': "Chave de API terminada em {ending}",
     },
     "ru": {
         'credentials.workspace.manage': "Управление",
@@ -527,6 +537,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "Выбрать {name}",
         'credentials.workspace.models': "Моделей: {count}",
         'credentials.workspace.api_key': "API-ключ",
+        'credentials.workspace.api_key_ending': "API-ключ с окончанием {ending}",
     },
     "th": {
         'credentials.workspace.manage': "จัดการ",
@@ -536,6 +547,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "เลือก {name}",
         'credentials.workspace.models': "{count} โมเดล",
         'credentials.workspace.api_key': "คีย์ API",
+        'credentials.workspace.api_key_ending': "คีย์ API ลงท้ายด้วย {ending}",
     },
     "tr": {
         'credentials.workspace.manage': "Yönet",
@@ -545,6 +557,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "{name} seç",
         'credentials.workspace.models': "{count} model",
         'credentials.workspace.api_key': "API anahtarı",
+        'credentials.workspace.api_key_ending': "{ending} ile biten API anahtarı",
     },
     "zh-CN": {
         'credentials.workspace.manage': "管理",
@@ -554,6 +567,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "选择 {name}",
         'credentials.workspace.models': "{count} 个模型",
         'credentials.workspace.api_key': "API 密钥",
+        'credentials.workspace.api_key_ending': "末尾为 {ending} 的 API 密钥",
     },
     "zh-TW": {
         'credentials.workspace.manage': "管理",
@@ -563,6 +577,7 @@ const CREDENTIAL_WORKSPACE_COPY = {
         'credentials.workspace.select': "選取 {name}",
         'credentials.workspace.models': "{count} 個模型",
         'credentials.workspace.api_key': "API 金鑰",
+        'credentials.workspace.api_key_ending': "結尾為 {ending} 的 API 金鑰",
     },
 };
 for (const [locale, copy] of Object.entries(CREDENTIAL_WORKSPACE_COPY)) {

@@ -210,6 +210,13 @@ class DynamicPricingTests(unittest.TestCase):
                 "input_cost_per_token": 0.000001,
                 "output_cost_per_token": 0.000004,
             },
+            "meta/muse-spark-1.3-contributor": {
+                "litellm_provider": "meta",
+                "mode": "chat",
+                "input_cost_per_token": 0.0000001,
+                "output_cost_per_token": 0.0000002,
+                "cache_read_input_token_cost": 0.000000002,
+            },
         }
 
         parsed = dynamic_pricing.parse_litellm_catalog(catalog)
@@ -218,6 +225,12 @@ class DynamicPricingTests(unittest.TestCase):
         self.assertEqual(parsed[("openai", "gpt-new")].cache_read_per_million, 0.5)
         self.assertEqual(parsed[("openai", "gpt-new")].cache_creation_per_million, 2.5)
         self.assertEqual(parsed[("gemini", "gemini-new")].output_per_million, 4.0)
+        self.assertAlmostEqual(
+            parsed[("meta", "muse-spark-1.3-contributor")].input_per_million, 0.1
+        )
+        self.assertAlmostEqual(
+            parsed[("meta", "muse-spark-1.3-contributor")].output_per_million, 0.2
+        )
 
     def test_catalog_rejects_untrusted_shapes_and_unbounded_prices(self):
         with self.assertRaisesRegex(ValueError, "JSON object"):
@@ -334,6 +347,22 @@ class DynamicPricingTests(unittest.TestCase):
             )
         self.assertEqual(openai_cost, 1.0)
         self.assertEqual(xai_cost, 3.0)
+
+    def test_muse_code_cost_uses_meta_litellm_price_for_public_model(self):
+        table = pricing._PricingTable()
+        table.replace_dynamic(
+            {("meta", "muse-spark-1.3-contributor"): pricing.ModelPricing(0.10, 0.20, 0.002)},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+        with patch.object(pricing, "_pricing_table", table):
+            cost = pricing.calculate_cost_usd(
+                "muse-code/muse-spark-1.3-contributor",
+                provider="muse_code",
+                input_tokens=1_000_000,
+                output_tokens=1_000_000,
+            )
+
+        self.assertAlmostEqual(cost, 0.30)
 
     def test_missing_cache_discount_uses_full_input_price(self):
         entry = pricing.ModelPricing(input_per_million=2.0, output_per_million=8.0)

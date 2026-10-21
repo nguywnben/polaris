@@ -271,15 +271,16 @@ manager.applyStatusFilter();
 assert(manager.currentProviderFilter !== 'unregistered', 'Do not accept unregistered filter values');
 """)
 
-    def test_identity_uses_labels_or_oauth_email_not_missing_email_errors(self) -> None:
+    def test_identity_uses_masked_oauth_email_or_api_key_hint(self) -> None:
         self._run_manager_contract(f"""
 vm.runInThisContext(fs.readFileSync({json.dumps(str(CARD_SOURCE))}, 'utf8'));
 const oauth = {{credential_type: 'oauth', filename: 'muse-code-ab12.json'}};
-const key = {{credential_type: 'api_key', filename: 'deepseek-cd34.json'}};
+const key = {{credential_type: 'api_key', filename: 'deepseek-cd34.json', api_key_hint: 'prefix…hE8A'}};
 assert(getCredentialAccountLabel(oauth) === 'muse-code-ab12', 'OAuth without email needs an identifier');
-assert(getCredentialAccountLabel(key) === 'deepseek-cd34', 'Keys do not need email');
+assert(getCredentialAccountLabel(key) === 'credentials.workspace.api_key_ending:{{"ending":"hE8A"}}', 'Keys show only their safe ending');
+assert(getCredentialAccountLabel({{credential_type: 'api_key', api_key_hint: '••••'}}) === 'credentials.workspace.api_key:{{}}', 'Short keys use a generic label');
 assert(getCredentialAccountLabel({{...oauth, user_email: 'person@example.test'}}) === 'pe***on@example.test', 'Keep a masked known OAuth email');
-assert(getCredentialAccountLabel({{...key, user_email: 'not-an-account'}}) === 'deepseek-cd34', 'API keys must not use email fallback');
+assert(getCredentialAccountLabel({{...key, user_email: 'not-an-account'}}) === 'credentials.workspace.api_key_ending:{{"ending":"hE8A"}}', 'API keys must not use email fallback');
 assert(getCredentialAccountLabel({{...oauth, credential_label: 'Work'}}) === 'Work', 'Explicit labels take precedence');
 assert(!getCredentialAccountLabel({{...key, api_key: 'secret-key'}}).includes('secret'), 'Never derive identity from a secret');
 """)

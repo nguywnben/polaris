@@ -165,6 +165,16 @@ class CredentialFleetQueryTests(unittest.TestCase):
         )
         self.assertEqual(updated["api_key_hint"], "rotate…last")
 
+    def test_legacy_api_key_without_declared_type_is_classified_as_api_key(self):
+        item = enrich_credential_summary(
+            {"filename": "poolside-legacy.json"},
+            {"provider": "poolside", "api_key": "prefix-private-middle-hE8A"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(item["credential_type"], "api_key")
+        self.assertEqual(item["api_key_hint"], "prefix…hE8A")
+
     def setUp(self) -> None:
         self.registry = CredentialSelectionRegistry(ttl_seconds=300, max_entries=8)
 

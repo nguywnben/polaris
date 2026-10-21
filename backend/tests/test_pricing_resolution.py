@@ -44,6 +44,94 @@ class ProviderScopedPricingResolutionTests(unittest.TestCase):
 
         self.assertEqual(resolved, self.gemini_price)
 
+    def test_muse_code_public_model_uses_meta_litellm_catalog_price(self):
+        muse_price = pricing.ModelPricing(0.10, 0.20, 0.002)
+        self.table.replace_dynamic(
+            {("meta", "muse-spark-1.3-contributor"): muse_price},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("muse-code/muse-spark-1.3-contributor", provider="muse_code")
+
+        self.assertEqual(resolved.pricing, muse_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual(
+            (resolved.provider, resolved.model), ("meta", "muse-spark-1.3-contributor")
+        )
+
+    def test_muse_code_public_namespace_covers_future_catalog_models(self):
+        model_names = (
+            "muse-spark-1.1",
+            "muse-spark-1.2",
+            "muse-spark-1.2-contributor",
+            "muse-spark-1.3",
+            "muse-spark-1.3-contributor",
+        )
+        muse_price = pricing.ModelPricing(0.10, 0.20, 0.002)
+        self.table.replace_dynamic(
+            {("meta", model): muse_price for model in model_names},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        for model in model_names:
+            with self.subTest(model=model):
+                resolved = self.table.resolve(f"muse-code/{model}", provider="muse_code")
+                self.assertEqual(resolved.pricing, muse_price)
+                self.assertEqual(resolved.source, "litellm")
+
+        providerless = self.table.resolve("muse-code/muse-spark-1.3-contributor")
+        self.assertEqual(providerless.pricing, muse_price)
+
+    def test_kimi_provider_uses_moonshot_litellm_namespace(self):
+        kimi_price = pricing.ModelPricing(0.20, 2.0)
+        self.table.replace_dynamic(
+            {("moonshot", "kimi-k2.7-code"): kimi_price},
+            fetched_at="2026-09-27T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("kimi-k2.7-code", provider="kimi")
+
+        self.assertEqual(resolved.pricing, kimi_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual((resolved.provider, resolved.model), ("moonshot", "kimi-k2.7-code"))
+
+    def test_poolside_provider_uses_openrouter_poolside_model_namespace(self):
+        poolside_price = pricing.ModelPricing(0.09, 0.18)
+        self.table.replace_dynamic(
+            {("openrouter", "poolside/laguna-s-2.1"): poolside_price},
+            fetched_at="2026-09-27T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("laguna-s-2.1", provider="poolside")
+
+        self.assertEqual(resolved.pricing, poolside_price)
+        self.assertEqual(resolved.source, "litellm")
+        self.assertEqual(
+            (resolved.provider, resolved.model), ("openrouter", "poolside/laguna-s-2.1")
+        )
+
+    def test_providerless_muse_pricing_keeps_manual_override_precedence(self):
+        self.overrides_path.write_text(
+            json.dumps(
+                {
+                    "meta/muse-spark-1.3-contributor": {
+                        "input": 7.0,
+                        "output": 11.0,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.table.replace_dynamic(
+            {("meta", "muse-spark-1.3-contributor"): pricing.ModelPricing(0.1, 0.2)},
+            fetched_at="2026-09-20T00:00:00+00:00",
+        )
+
+        resolved = self.table.resolve("muse-code/muse-spark-1.3-contributor")
+
+        self.assertEqual(resolved.pricing, pricing.ModelPricing(7.0, 11.0))
+        self.assertEqual(resolved.source, "manual")
+
     def test_antigravity_alias_does_not_apply_to_other_providers(self):
         for provider in ("google_ai_studio", "openai", "custom_endpoint"):
             with self.subTest(provider=provider):
