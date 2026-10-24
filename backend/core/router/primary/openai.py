@@ -23,7 +23,7 @@ from core.utils import (
     is_anti_truncation_model,
     is_fake_streaming_model,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from log import log
 
@@ -31,6 +31,8 @@ router = APIRouter()
 
 
 @router.post("/v1/chat/completions")
+@router.post("/chat/completions", include_in_schema=False)
+@router.post("/v1/v1/chat/completions", include_in_schema=False)
 async def chat_completions(
     openai_request: OpenAIChatCompletionRequest, token: str = Depends(authenticate_bearer)
 ):
@@ -392,3 +394,104 @@ async def chat_completions(
         ),
         error_protocol="openai",
     )
+
+
+@router.post("/v1/completions", include_in_schema=False)
+@router.post("/completions", include_in_schema=False)
+@router.post("/v1/v1/completions", include_in_schema=False)
+async def legacy_completions(
+    request: Request, token: str = Depends(authenticate_bearer)
+):
+    """Legacy OpenAI completions shim for IDE tab-autocomplete / FIM clients."""
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON request body.") from exc
+    if not isinstance(payload, dict) or not payload.get("model"):
+        raise HTTPException(status_code=400, detail="Missing required field: model.")
+
+    prompt = payload.get("prompt", "")
+    if isinstance(prompt, list):
+        prompt_text = "\n".join(str(item) for item in prompt)
+    else:
+        prompt_text = str(prompt or "")
+    suffix = payload.get("suffix")
+    if isinstance(suffix, str) and suffix:
+        user_content = (
+            f"Complete the following text between <prefix> and <suffix>. "
+            f"Return only the middle completion.\n<prefix>{prompt_text}</prefix>"
+            f"<suffix>{suffix}</suffix>"
+        )
+    else:
+        user_content = prompt_text or " "
+
+    chat_req = OpenAIChatCompletionRequest(
+        model=str(payload["model"]),
+        messages=[{"role": "user", "content": user_content}],
+        stream=bool(payload.get("stream", False)),
+        temperature=payload.get("temperature"),
+        top_p=payload.get("top_p"),
+        max_tokens=payload.get("max_tokens"),
+        stop=payload.get("stop"),
+        frequency_penalty=payload.get("frequency_penalty"),
+        presence_penalty=payload.get("presence_penalty"),
+        seed=payload.get("seed"),
+    )
+    response = await chat_completions(chat_req, token=token)
+    if not chat_req.stream or not isinstance(response, StreamingResponse):
+        if getattr(response, "status_code", 200) >= 400:
+            return response
+        body = json.loads(response.body.decode("utf-8"))
+        choices = [
+            {
+                "text": (choice.get("message") or {}).get("content") or "",
+                "index": choice.get("index", 0),
+                "logprobs": None,
+                "finish_reason": choice.get("finish_reason", "stop"),
+            }
+            for choice in body.get("choices") or []
+        ]
+        return JSONResponse(
+            content={
+                "id": f"cmpl-{body.get('id', '')}",
+                "object": "text_completion",
+                "created": body.get("created", 0),
+                "model": body.get("model", chat_req.model),
+                "choices": choices,
+                **({"usage": body["usage"]} if "usage" in body else {}),
+            }
+        )
+
+    async def _completion_stream():
+        async for chunk in response.body_iterator:
+            text = chunk.decode("utf-8", errors="ignore") if isinstance(chunk, bytes) else str(chunk)
+            for line in text.splitlines():
+                if not line.startswith("data: "):
+                    continue
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    yield b"data: [DONE]\n\n"
+                    continue
+                try:
+                    event = json.loads(data_str)
+                except Exception:
+                    continue
+                comp_choices = [
+                    {
+                        "text": (c.get("delta") or {}).get("content") or "",
+                        "index": c.get("index", 0),
+                        "logprobs": None,
+                        "finish_reason": c.get("finish_reason"),
+                    }
+                    for c in event.get("choices") or []
+                ]
+                out = {
+                    "id": f"cmpl-{event.get('id', '')}",
+                    "object": "text_completion",
+                    "created": event.get("created", 0),
+                    "model": event.get("model", chat_req.model),
+                    "choices": comp_choices,
+                }
+                yield f"data: {json.dumps(out)}\n\n".encode("utf-8")
+
+    return StreamingResponse(_completion_stream(), media_type="text/event-stream")

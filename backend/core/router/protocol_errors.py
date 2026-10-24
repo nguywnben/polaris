@@ -21,9 +21,20 @@ _SAFE_RESPONSE_HEADERS = {
 
 def protocol_for_path(path: str) -> ProtocolName | None:
     """Return the public SDK protocol represented by a request path."""
-    if path.startswith("/v1/messages"):
+    if path.startswith(("/v1/messages", "/messages", "/v1/v1/messages")):
         return "anthropic"
-    if path.startswith("/v1beta/models/") or path == "/v1beta/models":
+    if (
+        path.startswith("/v1beta/models/")
+        or path == "/v1beta/models"
+        or (
+            path.startswith("/v1/models/")
+            and (
+                ":generateContent" in path
+                or ":streamGenerateContent" in path
+                or ":countTokens" in path
+            )
+        )
+    ):
         return "gemini"
     if (
         path == "/vertex/v1beta/models"
@@ -35,6 +46,17 @@ def protocol_for_path(path: str) -> ProtocolName | None:
         path.startswith("/v1/")
         or path == "/vertex/v1/models"
         or path.startswith("/vertex/v1/chat/completions")
+        or path.startswith(
+            (
+                "/chat/completions",
+                "/v1/v1/chat/completions",
+                "/responses",
+                "/v1/v1/responses",
+                "/completions",
+                "/v1/v1/completions",
+                "/models/",
+            )
+        )
     ):
         return "openai"
     return None

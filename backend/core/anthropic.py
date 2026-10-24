@@ -442,50 +442,78 @@ def _text_parts(parts: List[Dict[str, Any]]) -> str:
 
 
 def _anthropic_content(parts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    from core.converter.thought_signature import SKIP_THOUGHT_SIGNATURE_VALIDATOR
+
     blocks: List[Dict[str, Any]] = []
     for index, part in enumerate(parts):
-        if not isinstance(part, dict) or part.get("thought") is True:
+        if not isinstance(part, dict):
+            continue
+        cache_ctrl = part.get("cache_control") if isinstance(part.get("cache_control"), dict) else None
+        if part.get("thought") is True:
+            sig = part.get("thoughtSignature")
+            if isinstance(sig, str) and sig and sig != SKIP_THOUGHT_SIGNATURE_VALIDATOR:
+                block: Dict[str, Any] = {
+                    "type": "thinking",
+                    "thinking": str(part.get("text") or ""),
+                    "signature": sig,
+                }
+                if cache_ctrl:
+                    block["cache_control"] = cache_ctrl
+                blocks.append(block)
             continue
         if part.get("text") is not None:
-            blocks.append({"type": "text", "text": str(part.get("text") or "")})
+            block = {"type": "text", "text": str(part.get("text") or "")}
+            if cache_ctrl:
+                block["cache_control"] = cache_ctrl
+            blocks.append(block)
             continue
         inline = part.get("inlineData") or part.get("inline_data")
         if isinstance(inline, dict) and inline.get("data"):
-            blocks.append(
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": str(
-                            inline.get("mimeType")
-                            or inline.get("mime_type")
-                            or "application/octet-stream"
-                        ),
-                        "data": str(inline["data"]),
-                    },
-                }
-            )
+            block = {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": str(
+                        inline.get("mimeType")
+                        or inline.get("mime_type")
+                        or "application/octet-stream"
+                    ),
+                    "data": str(inline["data"]),
+                },
+            }
+            if cache_ctrl:
+                block["cache_control"] = cache_ctrl
+            blocks.append(block)
             continue
         call = part.get("functionCall") or part.get("function_call")
         if isinstance(call, dict):
-            blocks.append(
-                {
-                    "type": "tool_use",
-                    "id": str(call.get("id") or f"tool_{index}"),
-                    "name": str(call.get("name") or "tool"),
-                    "input": call.get("args") if isinstance(call.get("args"), dict) else {},
-                }
-            )
+            block = {
+                "type": "tool_use",
+                "id": str(call.get("id") or f"tool_{index}"),
+                "name": str(call.get("name") or "tool"),
+                "input": call.get("args") if isinstance(call.get("args"), dict) else {},
+            }
+            if cache_ctrl:
+                block["cache_control"] = cache_ctrl
+            blocks.append(block)
             continue
         result = part.get("functionResponse") or part.get("function_response")
         if isinstance(result, dict):
-            blocks.append(
-                {
-                    "type": "tool_result",
-                    "tool_use_id": str(result.get("id") or result.get("name") or f"tool_{index}"),
-                    "content": json.dumps(result.get("response", {}), ensure_ascii=False),
-                }
-            )
+            resp_data = result.get("response", {})
+            if isinstance(resp_data, dict) and set(resp_data.keys()) == {"result"} and isinstance(resp_data["result"], str):
+                content_val: Any = resp_data["result"]
+            else:
+                content_val = json.dumps(resp_data, ensure_ascii=False)
+            block = {
+                "type": "tool_result",
+                "tool_use_id": str(result.get("id") or result.get("name") or f"tool_{index}"),
+                "content": content_val,
+            }
+            if result.get("is_error") is True:
+                block["is_error"] = True
+            if cache_ctrl:
+                block["cache_control"] = cache_ctrl
+            blocks.append(block)
     return blocks
 
 
@@ -518,9 +546,21 @@ def gemini_request_to_anthropic(
         "max_tokens": 4096,
         "stream": bool(streaming),
     }
-    system = _text_parts((payload.get("systemInstruction") or {}).get("parts") or [])
-    if system:
-        request["system"] = system
+    sys_parts = (payload.get("systemInstruction") or {}).get("parts") or []
+    if any(isinstance(p, dict) and isinstance(p.get("cache_control"), dict) for p in sys_parts):
+        sys_blocks = []
+        for p in sys_parts:
+            if isinstance(p, dict) and p.get("text") is not None and p.get("thought") is not True:
+                b: Dict[str, Any] = {"type": "text", "text": str(p.get("text") or "")}
+                if isinstance(p.get("cache_control"), dict):
+                    b["cache_control"] = p["cache_control"]
+                sys_blocks.append(b)
+        if sys_blocks:
+            request["system"] = sys_blocks
+    else:
+        system = _text_parts(sys_parts)
+        if system:
+            request["system"] = system
     config = payload.get("generationConfig") or {}
     mapping = {
         "maxOutputTokens": "max_tokens",
@@ -532,6 +572,22 @@ def gemini_request_to_anthropic(
     for source, target in mapping.items():
         if config.get(source) is not None:
             request[target] = config[source]
+    thinking_cfg = config.get("thinkingConfig")
+    if isinstance(thinking_cfg, dict):
+        budget = thinking_cfg.get("thinkingBudget")
+        level = thinking_cfg.get("thinkingLevel")
+        if budget is None and isinstance(level, str):
+            budget = {"minimal": 1024, "low": 2048, "medium": 8192, "high": 16384}.get(
+                level.lower()
+            )
+        if isinstance(budget, int) and budget > 0:
+            effective_budget = max(1024, budget)
+            request["thinking"] = {"type": "enabled", "budget_tokens": effective_budget}
+            if int(request.get("max_tokens") or 4096) <= effective_budget:
+                request["max_tokens"] = effective_budget + 4096
+            request.pop("temperature", None)
+            request.pop("top_k", None)
+            request.pop("top_p", None)
     if config.get("responseMimeType") == "application/json" and isinstance(
         config.get("responseSchema"), dict
     ):
@@ -548,7 +604,7 @@ def gemini_request_to_anthropic(
         for declaration in group.get("functionDeclarations") or []:
             if not isinstance(declaration, dict) or not declaration.get("name"):
                 continue
-            tool = {
+            tool: Dict[str, Any] = {
                 "name": str(declaration["name"]),
                 "input_schema": declaration.get("parametersJsonSchema")
                 or declaration.get("parameters")
@@ -556,9 +612,21 @@ def gemini_request_to_anthropic(
             }
             if declaration.get("description"):
                 tool["description"] = str(declaration["description"])
+            if isinstance(declaration.get("cache_control"), dict):
+                tool["cache_control"] = declaration["cache_control"]
             tools.append(tool)
     if tools:
         request["tools"] = tools
+        tool_cfg = (payload.get("toolConfig") or {}).get("functionCallingConfig") or {}
+        mode = str(tool_cfg.get("mode") or "").upper()
+        allowed_names = tool_cfg.get("allowedFunctionNames") or []
+        if mode == "ANY":
+            if len(allowed_names) == 1:
+                request["tool_choice"] = {"type": "tool", "name": str(allowed_names[0])}
+            else:
+                request["tool_choice"] = {"type": "any"}
+        elif mode == "AUTO":
+            request["tool_choice"] = {"type": "auto"}
     return request
 
 
@@ -581,7 +649,10 @@ def anthropic_response_to_gemini(payload: Any) -> Dict[str, Any]:
         if block.get("type") == "text":
             parts.append({"text": str(block.get("text") or "")})
         elif block.get("type") == "thinking":
-            parts.append({"text": str(block.get("thinking") or ""), "thought": True})
+            part: Dict[str, Any] = {"text": str(block.get("thinking") or ""), "thought": True}
+            if block.get("signature"):
+                part["thoughtSignature"] = str(block["signature"])
+            parts.append(part)
         elif block.get("type") == "tool_use":
             parts.append(
                 {
@@ -637,19 +708,57 @@ def anthropic_stream_line_to_gemini(line: Any, stream_id: str = "default") -> st
             parts.append({"text": str(delta.get("text") or "")})
         elif delta.get("type") == "thinking_delta":
             parts.append({"text": str(delta.get("thinking") or ""), "thought": True})
+        elif delta.get("type") == "signature_delta" and delta.get("signature"):
+            parts.append(
+                {
+                    "text": "",
+                    "thought": True,
+                    "thoughtSignature": str(delta["signature"]),
+                }
+            )
         elif delta.get("type") == "input_json_delta":
             index = int(event.get("index") or 0)
+            partial = str(delta.get("partial_json") or "")
             state = _stream_tool_blocks.setdefault(stream_id, {}).setdefault(index, {})
-            state["json"] = str(state.get("json") or "") + str(delta.get("partial_json") or "")
+            if not state.get("delta") and state.get("json") in {None, "", "{}"}:
+                state["json"] = ""
+            state["delta"] = True
+            state["json"] = str(state.get("json") or "") + partial
+            if partial:
+                parts.append(
+                    {
+                        "functionCallDelta": {
+                            "index": index,
+                            "id": str(state.get("id") or ""),
+                            "name": str(state.get("name") or "tool"),
+                            "arguments_delta": partial,
+                        }
+                    }
+                )
     elif event_type == "content_block_start":
         block = event.get("content_block") or {}
         if block.get("type") == "tool_use":
             index = int(event.get("index") or 0)
+            initial_input = block.get("input")
+            initial_json = json.dumps(initial_input) if initial_input else ""
+            call_id = str(block.get("id") or "")
+            call_name = str(block.get("name") or "tool")
             _stream_tool_blocks.setdefault(stream_id, {})[index] = {
-                "id": str(block.get("id") or ""),
-                "name": str(block.get("name") or "tool"),
-                "json": json.dumps(block.get("input") or {}),
+                "id": call_id,
+                "name": call_name,
+                "json": initial_json,
+                "delta": False,
             }
+            parts.append(
+                {
+                    "functionCallDelta": {
+                        "index": index,
+                        "id": call_id,
+                        "name": call_name,
+                        "arguments_delta": initial_json,
+                    }
+                }
+            )
     elif event_type == "content_block_stop":
         index = int(event.get("index") or 0)
         block = _stream_tool_blocks.get(stream_id, {}).pop(index, None)
@@ -664,7 +773,8 @@ def anthropic_stream_line_to_gemini(line: Any, stream_id: str = "default") -> st
                         "id": block.get("id", ""),
                         "name": block.get("name", "tool"),
                         "args": arguments,
-                    }
+                    },
+                    "_streamed_delta": True,
                 }
             )
     elif event_type == "message_start":

@@ -1,7 +1,15 @@
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from core.reasoning_control import ReasoningEffort
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, WithJsonSchema, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StrictBool,
+    WithJsonSchema,
+    model_validator,
+)
 from pydantic.json_schema import SkipJsonSchema
 
 
@@ -53,31 +61,44 @@ class OpenAIToolCall(BaseModel):
     id: str
     type: str = "function"
     function: OpenAIToolFunction
+    index: SkipJsonSchema[Optional[int]] = None
+    extra_content: SkipJsonSchema[Optional[Dict[str, Any]]] = None
 
     @model_validator(mode="before")
     @classmethod
     def reject_unknown_fields(cls, value: Any) -> Any:
-        return _reject_unknown_input_keys(value, {"id", "type", "function"}, "OpenAI tool call")
+        return _reject_unknown_input_keys(
+            value,
+            {"id", "type", "function", "index", "extra_content"},
+            "OpenAI tool call",
+        )
 
 
 class OpenAITool(BaseModel):
     type: str = "function"
     function: Dict[str, Any]
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
 
     @model_validator(mode="before")
     @classmethod
     def reject_unknown_fields(cls, value: Any) -> Any:
-        value = _reject_unknown_input_keys(value, {"type", "function"}, "OpenAI tool")
+        value = _reject_unknown_input_keys(
+            value, {"type", "function", "cache_control"}, "OpenAI tool"
+        )
         if isinstance(value, dict) and isinstance(value.get("function"), dict):
             _reject_unknown_input_keys(
                 value["function"],
-                {"name", "description", "parameters"},
+                {"name", "description", "parameters", "strict", "cache_control"},
                 "OpenAI tool definition",
             )
             function = value["function"]
             if not isinstance(function.get("name"), str) or not function["name"].strip():
                 raise ValueError("OpenAI function tools require a name.")
-            if "parameters" in function and not isinstance(function["parameters"], dict):
+            if (
+                "parameters" in function
+                and function["parameters"] is not None
+                and not isinstance(function["parameters"], dict)
+            ):
                 raise ValueError("OpenAI function tool parameters must be an object.")
         if isinstance(value, dict) and value.get("type", "function") != "function":
             raise ValueError("Only OpenAI function tools are supported.")
@@ -91,13 +112,29 @@ class OpenAIChatMessage(BaseModel):
     name: Optional[str] = None
     tool_calls: Optional[List[OpenAIToolCall]] = None
     tool_call_id: Optional[str] = None  # for role="tool"
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
 
     @model_validator(mode="before")
     @classmethod
     def reject_unknown_fields(cls, value: Any) -> Any:
         return _reject_unknown_input_keys(
             value,
-            {"role", "content", "reasoning_content", "name", "tool_calls", "tool_call_id"},
+            {
+                "role",
+                "content",
+                "reasoning_content",
+                "name",
+                "tool_calls",
+                "tool_call_id",
+                "cache_control",
+                "thinking",
+                "thinking_blocks",
+                "refusal",
+                "annotations",
+                "audio",
+                "function_call",
+                "prefix",
+            },
             "OpenAI message",
         )
 
@@ -105,8 +142,6 @@ class OpenAIChatMessage(BaseModel):
     def validate_translatable_message(self) -> "OpenAIChatMessage":
         if self.role not in {"developer", "system", "user", "assistant", "tool"}:
             raise ValueError(f"Unsupported OpenAI message role: {self.role}.")
-        if self.name is not None and self.role != "tool":
-            raise ValueError("OpenAI message name is supported only for tool results.")
         if self.tool_calls is not None and self.role != "assistant":
             raise ValueError("OpenAI tool_calls are supported only for assistant messages.")
         if self.tool_call_id is not None and self.role != "tool":
@@ -118,12 +153,16 @@ class OpenAIChatMessage(BaseModel):
                 raise ValueError("OpenAI message content parts must be objects.")
             part_type = part.get("type")
             if part_type == "text":
-                if set(part) - {"type", "text"} or not isinstance(part.get("text"), str):
+                if set(part) - {"type", "text", "cache_control"} or not isinstance(
+                    part.get("text"), str
+                ):
                     raise ValueError("Invalid OpenAI text content part.")
                 continue
             if part_type == "image_url":
                 image = part.get("image_url")
-                if set(part) - {"type", "image_url"} or not isinstance(image, dict):
+                if set(part) - {"type", "image_url", "cache_control"} or not isinstance(
+                    image, dict
+                ):
                     raise ValueError("Invalid OpenAI image_url content part.")
                 if set(image) - {"url", "detail"}:
                     raise ValueError("Unknown OpenAI image_url field.")
@@ -137,7 +176,8 @@ class OpenAIChatMessage(BaseModel):
 class OpenAIStreamOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    include_usage: bool = Field(False, strict=True)
+    include_usage: StrictBool = Field(False)
+    continuous_usage_stats: SkipJsonSchema[Optional[StrictBool]] = None
 
 
 class OpenAIChatCompletionRequest(BaseModel):
@@ -158,7 +198,25 @@ class OpenAIChatCompletionRequest(BaseModel):
     top_k: Optional[int] = Field(None, ge=1)
     tools: Optional[List[OpenAITool]] = None
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
+    parallel_tool_calls: SkipJsonSchema[Optional[bool]] = None
     reasoning_effort: Optional[ReasoningEffort] = None
+    reasoning: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    thinking: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    include_reasoning: SkipJsonSchema[Optional[bool]] = None
+    user: SkipJsonSchema[Optional[str]] = None
+    metadata: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    store: SkipJsonSchema[Optional[bool]] = None
+    service_tier: SkipJsonSchema[Optional[str]] = None
+    prompt_cache_key: SkipJsonSchema[Optional[str]] = None
+    prompt_cache_retention: SkipJsonSchema[Optional[str]] = None
+    prediction: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    logprobs: SkipJsonSchema[Optional[bool]] = None
+    top_logprobs: SkipJsonSchema[Optional[int]] = None
+    logit_bias: SkipJsonSchema[Optional[Dict[str, float]]] = None
+    modalities: SkipJsonSchema[Optional[List[str]]] = None
+    audio: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    web_search_options: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    extra_body: SkipJsonSchema[Optional[Dict[str, Any]]] = None
     size: SkipJsonSchema[Optional[str]] = None
 
     @model_validator(mode="before")
@@ -184,7 +242,25 @@ class OpenAIChatCompletionRequest(BaseModel):
                 "top_k",
                 "tools",
                 "tool_choice",
+                "parallel_tool_calls",
                 "reasoning_effort",
+                "reasoning",
+                "thinking",
+                "include_reasoning",
+                "user",
+                "metadata",
+                "store",
+                "service_tier",
+                "prompt_cache_key",
+                "prompt_cache_retention",
+                "prediction",
+                "logprobs",
+                "top_logprobs",
+                "logit_bias",
+                "modalities",
+                "audio",
+                "web_search_options",
+                "extra_body",
                 "size",
             },
             "OpenAI Chat request",
@@ -194,8 +270,19 @@ class OpenAIChatCompletionRequest(BaseModel):
     def reject_unsupported_reasoning_control(self) -> "OpenAIChatCompletionRequest":
         if self.stream_options is not None and not self.stream:
             raise ValueError("stream_options requires stream=true.")
-        if any(message.reasoning_content is not None for message in self.messages):
-            raise ValueError("reasoning_content cannot be translated safely in request history.")
+        if (
+            self.reasoning_effort is None
+            and isinstance(self.reasoning, dict)
+            and isinstance(self.reasoning.get("effort"), str)
+        ):
+            self.reasoning_effort = self.reasoning["effort"]  # type: ignore[assignment]
+        if any(
+            message.reasoning_content is not None and message.role != "assistant"
+            for message in self.messages
+        ):
+            raise ValueError(
+                "reasoning_content is only supported on assistant messages in request history."
+            )
         if self.response_format is not None:
             format_type = self.response_format.get("type")
             if format_type in {"text", "json_object"}:
@@ -255,6 +342,14 @@ class OpenAIResponsesRequest(BaseModel):
     reasoning: SkipJsonSchema[Optional[Dict[str, Any]]] = None
     previous_response_id: SkipJsonSchema[Optional[str]] = None
     conversation: SkipJsonSchema[Optional[Union[str, Dict[str, Any]]]] = None
+    truncation: SkipJsonSchema[Optional[Union[str, Dict[str, Any]]]] = None
+    service_tier: SkipJsonSchema[Optional[str]] = None
+    safety_identifier: SkipJsonSchema[Optional[str]] = None
+    prompt_cache_key: SkipJsonSchema[Optional[str]] = None
+    prompt_cache_retention: SkipJsonSchema[Optional[str]] = None
+    user: SkipJsonSchema[Optional[str]] = None
+    background: SkipJsonSchema[Optional[bool]] = None
+    include: SkipJsonSchema[Optional[List[str]]] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -278,6 +373,14 @@ class OpenAIResponsesRequest(BaseModel):
                 "reasoning",
                 "previous_response_id",
                 "conversation",
+                "truncation",
+                "service_tier",
+                "safety_identifier",
+                "prompt_cache_key",
+                "prompt_cache_retention",
+                "user",
+                "background",
+                "include",
             },
             "OpenAI Responses request",
         )
@@ -285,7 +388,11 @@ class OpenAIResponsesRequest(BaseModel):
     @model_validator(mode="after")
     def validate_translatable_responses_request(self) -> "OpenAIResponsesRequest":
         if self.reasoning is not None:
-            raise ValueError("reasoning is not supported by the Responses translation.")
+            model_lower = self.model.lower().removeprefix("models/")
+            if not model_lower.startswith(
+                ("gpt-", "o1", "o3", "o4", "codex", "gemini-", "claude-")
+            ):
+                raise ValueError("reasoning is not supported by the Responses translation.")
         if self.text is not None:
             if set(self.text) != {"format"} or not isinstance(self.text.get("format"), dict):
                 raise ValueError("Responses text must contain exactly one format object.")
@@ -315,12 +422,16 @@ class OpenAIResponsesRequest(BaseModel):
                 continue
             _reject_unknown_input_keys(
                 tool,
-                {"type", "name", "description", "parameters"},
+                {"type", "name", "description", "parameters", "strict"},
                 "Responses function tool",
             )
             if not isinstance(tool.get("name"), str):
                 raise ValueError("Responses function tools require a name.")
-            if "parameters" in tool and not isinstance(tool["parameters"], dict):
+            if (
+                "parameters" in tool
+                and tool["parameters"] is not None
+                and not isinstance(tool["parameters"], dict)
+            ):
                 raise ValueError("Responses function tool parameters must be an object.")
         if isinstance(self.tool_choice, dict):
             _reject_unknown_input_keys(self.tool_choice, {"type", "name"}, "Responses tool_choice")
@@ -343,7 +454,11 @@ class OpenAIResponsesRequest(BaseModel):
             "user",
             "assistant",
         }:
-            _reject_unknown_input_keys(item, {"type", "role", "content"}, "Responses message")
+            _reject_unknown_input_keys(
+                item,
+                {"type", "role", "content", "id", "status", "phase"},
+                "Responses message",
+            )
             content = item.get("content", "")
             if isinstance(content, str):
                 return
@@ -354,7 +469,9 @@ class OpenAIResponsesRequest(BaseModel):
                     raise ValueError("Responses content parts must be objects.")
                 part_type = part.get("type")
                 if part_type in {"input_text", "output_text", "text"}:
-                    if set(part) - {"type", "text"} or not isinstance(part.get("text"), str):
+                    if set(part) - {"type", "text", "annotations", "logprobs"} or not isinstance(
+                        part.get("text"), str
+                    ):
                         raise ValueError("Invalid Responses text content part.")
                     continue
                 if part_type == "input_image":
@@ -364,10 +481,17 @@ class OpenAIResponsesRequest(BaseModel):
                     continue
                 raise ValueError(f"Unsupported Responses content type: {part_type}.")
             return
+        if item_type == "reasoning":
+            _reject_unknown_input_keys(
+                item,
+                {"type", "id", "summary", "encrypted_content", "status", "content"},
+                "Responses reasoning",
+            )
+            return
         if item_type == "function_call":
             _reject_unknown_input_keys(
                 item,
-                {"type", "id", "call_id", "name", "arguments"},
+                {"type", "id", "call_id", "name", "arguments", "status"},
                 "Responses function_call",
             )
             if not item.get("name") or not isinstance(item.get("arguments"), str):
@@ -376,7 +500,7 @@ class OpenAIResponsesRequest(BaseModel):
         if item_type == "function_call_output":
             _reject_unknown_input_keys(
                 item,
-                {"type", "call_id", "output"},
+                {"type", "id", "call_id", "output", "status"},
                 "Responses function_call_output",
             )
             if not item.get("call_id") or "output" not in item:
@@ -608,7 +732,7 @@ class GeminiResponse(BaseModel):
 
 # Claude Models
 class ClaudeContentBlock(BaseModel):
-    type: str  # "text", "image", "tool_use", "tool_result"
+    type: str  # "text", "image", "tool_use", "tool_result", "thinking", "redacted_thinking"
     text: Optional[str] = None
     source: Optional[Dict[str, Any]] = None  # for image type
     id: Optional[str] = None  # for tool_use
@@ -616,6 +740,8 @@ class ClaudeContentBlock(BaseModel):
     input: Optional[Dict[str, Any]] = None  # for tool_use
     tool_use_id: Optional[str] = None  # for tool_result
     content: Optional[Union[str, List[Dict[str, Any]]]] = None  # for tool_result
+    is_error: SkipJsonSchema[Optional[bool]] = None  # for tool_result
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
     thinking: SkipJsonSchema[Optional[str]] = None
     signature: SkipJsonSchema[Optional[str]] = None
     thoughtSignature: SkipJsonSchema[Optional[str]] = None
@@ -635,6 +761,8 @@ class ClaudeContentBlock(BaseModel):
                 "input",
                 "tool_use_id",
                 "content",
+                "is_error",
+                "cache_control",
                 "thinking",
                 "signature",
                 "thoughtSignature",
@@ -665,34 +793,49 @@ class ClaudeContentBlock(BaseModel):
                 raise ValueError("Anthropic tool_result blocks require tool_use_id.")
             if isinstance(self.content, list):
                 for part in self.content:
-                    if (
-                        not isinstance(part, dict)
-                        or set(part) - {"type", "text"}
-                        or part.get("type") != "text"
-                        or not isinstance(part.get("text"), str)
-                    ):
-                        raise ValueError("Anthropic tool_result lists support text blocks only.")
+                    if not isinstance(part, dict):
+                        raise ValueError("Anthropic tool_result list items must be objects.")
+                    part_type = part.get("type")
+                    if part_type == "text":
+                        if set(part) - {"type", "text", "cache_control"} or not isinstance(
+                            part.get("text"), str
+                        ):
+                            raise ValueError("Invalid Anthropic tool_result text block.")
+                    elif part_type == "image":
+                        source = part.get("source")
+                        if (
+                            set(part) - {"type", "source", "cache_control"}
+                            or not isinstance(source, dict)
+                            or set(source) - {"type", "media_type", "data"}
+                            or source.get("type") != "base64"
+                            or not isinstance(source.get("data"), str)
+                        ):
+                            raise ValueError("Invalid Anthropic tool_result image block.")
+                    else:
+                        raise ValueError(
+                            f"Unsupported Anthropic tool_result block type: {part_type}."
+                        )
             return self
         if self.type == "thinking":
-            signature = self.signature or self.thoughtSignature
-            if self.thinking is None or not signature:
-                raise ValueError("Anthropic thinking blocks require thinking and signature.")
+            if self.thinking is None:
+                raise ValueError("Anthropic thinking blocks require thinking.")
             return self
         if self.type == "redacted_thinking":
-            raise ValueError(
-                "Anthropic redacted_thinking request blocks cannot be translated safely."
-            )
+            return self
         raise ValueError(f"Unsupported Anthropic content block type: {self.type}.")
 
 
 class ClaudeMessage(BaseModel):
     role: str  # "user" or "assistant"
     content: Union[str, List[ClaudeContentBlock]]
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
 
     @model_validator(mode="before")
     @classmethod
     def reject_unknown_fields(cls, value: Any) -> Any:
-        return _reject_unknown_input_keys(value, {"role", "content"}, "Anthropic message")
+        return _reject_unknown_input_keys(
+            value, {"role", "content", "cache_control"}, "Anthropic message"
+        )
 
 
 class ClaudeTool(BaseModel):
@@ -700,13 +843,25 @@ class ClaudeTool(BaseModel):
     description: Optional[str] = None
     input_schema: Optional[Dict[str, Any]] = None
     strict: SkipJsonSchema[Optional[bool]] = None
+    type: SkipJsonSchema[Optional[str]] = None
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
 
     @model_validator(mode="before")
     @classmethod
     def reject_unknown_fields(cls, value: Any) -> Any:
         value = _reject_unknown_input_keys(
             value,
-            {"name", "description", "input_schema"},
+            {
+                "name",
+                "description",
+                "input_schema",
+                "strict",
+                "type",
+                "cache_control",
+                "display_width_px",
+                "display_height_px",
+                "display_number",
+            },
             "Anthropic tool",
         )
         return value
@@ -714,11 +869,7 @@ class ClaudeTool(BaseModel):
 
 class ClaudeMetadata(BaseModel):
     user_id: Optional[str] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def reject_unknown_fields(cls, value: Any) -> Any:
-        return _reject_unknown_input_keys(value, {"user_id"}, "Anthropic metadata")
+    model_config = ConfigDict(extra="ignore")
 
 
 class ClaudeRequest(BaseModel):
@@ -736,6 +887,9 @@ class ClaudeRequest(BaseModel):
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
     thinking: SkipJsonSchema[Optional[Dict[str, Any]]] = None
     output_config: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    cache_control: SkipJsonSchema[Optional[Dict[str, Any]]] = None
+    service_tier: SkipJsonSchema[Optional[str]] = None
+    container: SkipJsonSchema[Optional[str]] = None
     size: SkipJsonSchema[Optional[str]] = None
 
     @model_validator(mode="before")
@@ -758,6 +912,9 @@ class ClaudeRequest(BaseModel):
                 "tool_choice",
                 "thinking",
                 "output_config",
+                "cache_control",
+                "service_tier",
+                "container",
                 "size",
             },
             "Anthropic request",
@@ -767,34 +924,52 @@ class ClaudeRequest(BaseModel):
     def validate_translatable_options(self) -> "ClaudeRequest":
         if isinstance(self.system, list):
             for block in self.system:
-                _reject_unknown_input_keys(block, {"type", "text"}, "Anthropic system block")
+                _reject_unknown_input_keys(
+                    block, {"type", "text", "cache_control"}, "Anthropic system block"
+                )
                 if block.get("type") != "text" or not isinstance(block.get("text"), str):
                     raise ValueError("Anthropic system lists support text blocks only.")
         if self.thinking is not None:
             _reject_unknown_input_keys(
-                self.thinking, {"type", "budget_tokens"}, "Anthropic thinking config"
+                self.thinking,
+                {"type", "budget_tokens", "display"},
+                "Anthropic thinking config",
             )
             thinking_type = self.thinking.get("type")
             budget = self.thinking.get("budget_tokens")
-            if thinking_type not in {"enabled", "disabled"}:
+            if thinking_type not in {"enabled", "disabled", "adaptive"}:
                 raise ValueError(f"Unsupported Anthropic thinking type: {thinking_type}.")
             if budget is not None and (type(budget) is not int or budget < 1):
                 raise ValueError("Anthropic thinking budget_tokens must be a positive integer.")
         if self.output_config is not None:
-            _reject_unknown_input_keys(self.output_config, {"format"}, "Anthropic output_config")
+            _reject_unknown_input_keys(
+                self.output_config, {"format", "effort"}, "Anthropic output_config"
+            )
             output_format = self.output_config.get("format")
-            if not isinstance(output_format, dict):
-                raise ValueError("Anthropic output_config requires a format object.")
-            _reject_unknown_input_keys(output_format, {"type", "schema"}, "Anthropic output format")
-            if output_format.get("type") != "json_schema" or not isinstance(
-                output_format.get("schema"), dict
-            ):
-                raise ValueError("Only Anthropic json_schema output format is supported.")
+            effort = self.output_config.get("effort")
+            if output_format is None and effort is None:
+                raise ValueError("Anthropic output_config requires format or effort.")
+            if output_format is not None:
+                if not isinstance(output_format, dict):
+                    raise ValueError("Anthropic output_config requires a format object.")
+                _reject_unknown_input_keys(
+                    output_format, {"type", "schema"}, "Anthropic output format"
+                )
+                if output_format.get("type") != "json_schema" or not isinstance(
+                    output_format.get("schema"), dict
+                ):
+                    raise ValueError("Only Anthropic json_schema output format is supported.")
+            if effort is not None and effort not in {"low", "medium", "high", "max"}:
+                raise ValueError(f"Unsupported Anthropic output_config effort: {effort}.")
         if isinstance(self.tool_choice, dict):
             choice_type = self.tool_choice.get("type")
-            allowed = {"type", "name"} if choice_type == "tool" else {"type"}
+            allowed = (
+                {"type", "name", "disable_parallel_tool_use"}
+                if choice_type == "tool"
+                else {"type", "disable_parallel_tool_use"}
+            )
             _reject_unknown_input_keys(self.tool_choice, allowed, "Anthropic tool_choice")
-            if choice_type not in {"auto", "any", "tool"}:
+            if choice_type not in {"auto", "any", "tool", "none"}:
                 raise ValueError(f"Unsupported Anthropic tool_choice type: {choice_type}.")
             if choice_type == "tool" and not isinstance(self.tool_choice.get("name"), str):
                 raise ValueError("Anthropic tool_choice type tool requires a name.")

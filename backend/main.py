@@ -380,8 +380,19 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
         "Authorization",
+        "Accept",
         "Accept-Language",
         "Content-Type",
+        "User-Agent",
+        "X-Request-ID",
+        "HTTP-Referer",
+        "X-Title",
+        "OpenAI-Beta",
+        "OpenAI-Organization",
+        "OpenAI-Project",
+        "anthropic-version",
+        "anthropic-beta",
+        "anthropic-dangerous-direct-browser-access",
         "x-api-key",
         "x-goog-api-key",
         "x-anthropic-auth-token",
@@ -401,6 +412,20 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_security_headers(request, call_next):
+    if request.method == "GET" and request.scope.get("path") == "/models":
+        has_api_auth = any(
+            request.headers.get(h)
+            for h in (
+                "authorization",
+                "x-api-key",
+                "x-goog-api-key",
+                "x-anthropic-auth-token",
+                "anthropic-auth-token",
+                "access_token",
+            )
+        ) or bool(request.query_params.get("key"))
+        if has_api_auth:
+            request.scope["path"] = "/v1/models"
     supplied_request_id = request.headers.get("x-request-id", "").strip()
     request_id = (
         supplied_request_id

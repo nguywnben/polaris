@@ -29,6 +29,8 @@ router = APIRouter()
 
 
 @router.post("/v1/messages")
+@router.post("/messages", include_in_schema=False)
+@router.post("/v1/v1/messages", include_in_schema=False)
 async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenticate_bearer)):
     log.debug(f"[provider anthropic] Request for model: {claude_request.model}")
 
@@ -335,6 +337,8 @@ async def messages(claude_request: ClaudeRequest, _token: str = Depends(authenti
 
 
 @router.post("/v1/messages/count_tokens")
+@router.post("/messages/count_tokens", include_in_schema=False)
+@router.post("/v1/v1/messages/count_tokens", include_in_schema=False)
 async def count_tokens(request: Request, _token: str = Depends(authenticate_bearer)):
     try:
         payload = await request.json()
@@ -407,3 +411,10 @@ async def count_tokens(request: Request, _token: str = Depends(authenticate_bear
         log.error(f"[provider anthropic] token evaluation failed: {e}")
 
     return JSONResponse(content={"input_tokens": input_tokens})
+
+
+@router.post("/api/event_logging/batch", include_in_schema=False)
+@router.post("/v1/api/event_logging/batch", include_in_schema=False)
+async def anthropic_event_logging_batch():
+    """No-op telemetry sink so Claude Code CLI never receives 404/405 on batch logs."""
+    return JSONResponse(content={"status": "ok"})

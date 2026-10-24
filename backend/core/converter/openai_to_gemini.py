@@ -788,6 +788,11 @@ def convert_openai_tools_to_gemini(openai_tools: List, model: str = "") -> List[
         elif is_claude_model:
             declaration["parametersJsonSchema"] = {"type": "object", "properties": {}}
 
+        if tool.get("cache_control") or function.get("cache_control"):
+            declaration["cache_control"] = tool.get("cache_control") or function.get(
+                "cache_control"
+            )
+
         function_declarations.append(declaration)
 
     if not function_declarations:
@@ -901,8 +906,38 @@ def extract_tool_calls_from_parts(
     text_content = ""
 
     for idx, part in enumerate(parts):
-        if "functionCall" in part:
+        if "functionCallDelta" in part and is_streaming:
+            delta_info = part["functionCallDelta"]
+            tool_idx = int(delta_info.get("index", idx))
+            tc_delta: Dict[str, Any] = {
+                "index": tool_idx,
+                "function": {
+                    "arguments": str(delta_info.get("arguments_delta") or ""),
+                },
+            }
+            if delta_info.get("id"):
+                tc_delta["id"] = str(delta_info["id"])
+                tc_delta["type"] = "function"
+            if delta_info.get("name"):
+                tc_delta["function"]["name"] = str(delta_info["name"])
+            tool_calls.append(tc_delta)
+
+        elif "functionCall" in part:
             function_call = part["functionCall"]
+
+            if is_streaming and (
+                part.get("_streamed_delta") or function_call.get("_streamed_delta")
+            ):
+                if function_call.get("_final_arguments_delta"):
+                    tool_calls.append(
+                        {
+                            "index": int(function_call.get("_tool_index", idx)),
+                            "function": {
+                                "arguments": str(function_call["_final_arguments_delta"]),
+                            },
+                        }
+                    )
+                continue
 
             original_id = function_call.get("id") or f"call_{uuid.uuid4().hex[:24]}"
 
@@ -983,13 +1018,18 @@ def _sanitize_openai_roundtrip_signatures(contents: List[Dict[str, Any]]) -> Non
 
             sanitized_part = part.copy()
             if "thoughtSignature" in sanitized_part:
-                if "functionCall" in sanitized_part or "function_call" in sanitized_part:
-                    sanitized_part["thoughtSignature"] = SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                if (
+                    "functionCall" in sanitized_part
+                    or "function_call" in sanitized_part
+                    or sanitized_part.get("thought") is True
+                ):
+                    if not sanitized_part.get("thoughtSignature"):
+                        sanitized_part["thoughtSignature"] = SKIP_THOUGHT_SIGNATURE_VALIDATOR
                 else:
                     sanitized_part.pop("thoughtSignature", None)
 
             if sanitized_part.get("thought") is True and not sanitized_part.get("thoughtSignature"):
-                sanitized_part.pop("thought", None)
+                sanitized_part["thoughtSignature"] = SKIP_THOUGHT_SIGNATURE_VALIDATOR
 
             parts[index] = sanitized_part
 
@@ -1109,9 +1149,23 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
         if role == "assistant":
             role = "model"
 
+        reasoning_text = (
+            message.get("reasoning_content")
+            if role == "model" and isinstance(message.get("reasoning_content"), str)
+            else None
+        )
+
         tool_calls = message.get("tool_calls")
         if tool_calls:
             parts = []
+            if reasoning_text:
+                parts.append(
+                    {
+                        "text": reasoning_text,
+                        "thought": True,
+                        "thoughtSignature": SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+                    }
+                )
 
             if content:
                 if isinstance(content, list):
@@ -1151,7 +1205,9 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
                         "functionCall": {"id": original_id, "name": func_name, "args": args}
                     }
 
-                    function_call_part["thoughtSignature"] = SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                    function_call_part["thoughtSignature"] = (
+                        signature or SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                    )
 
                     parts.append(function_call_part)
                 except (json.JSONDecodeError, KeyError) as e:
@@ -1164,9 +1220,22 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
 
         if isinstance(content, list):
             parts = []
+            if reasoning_text:
+                parts.append(
+                    {
+                        "text": reasoning_text,
+                        "thought": True,
+                        "thoughtSignature": SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+                    }
+                )
             for part in content:
                 if part.get("type") == "text":
-                    parts.append({"text": part.get("text", "")})
+                    part_dict: Dict[str, Any] = {"text": part.get("text", "")}
+                    if part.get("cache_control") or message.get("cache_control"):
+                        part_dict["cache_control"] = part.get("cache_control") or message.get(
+                            "cache_control"
+                        )
+                    parts.append(part_dict)
                 elif part.get("type") == "image_url":
                     image_url = part.get("image_url", {}).get("url")
                     if image_url:
@@ -1186,8 +1255,22 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
                             continue
             if parts:
                 contents.append({"role": role, "parts": parts})
-        elif content:
-            contents.append({"role": role, "parts": [{"text": content}]})
+        elif content or reasoning_text:
+            parts = []
+            if reasoning_text:
+                parts.append(
+                    {
+                        "text": reasoning_text,
+                        "thought": True,
+                        "thoughtSignature": SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+                    }
+                )
+            if content:
+                part_dict = {"text": content}
+                if message.get("cache_control"):
+                    part_dict["cache_control"] = message["cache_control"]
+                parts.append(part_dict)
+            contents.append({"role": role, "parts": parts})
 
     flush_pending_tool_parts()
     contents = _merge_adjacent_gemini_turns(contents)
@@ -1515,8 +1598,27 @@ def convert_gemini_to_openai_stream(
         gemini_finish_reason = candidate.get("finishReason")
         finish_reason = _map_finish_reason(gemini_finish_reason)
 
-        if tool_calls and gemini_finish_reason == "STOP":
+        has_tool_call_part = bool(tool_calls) or any(
+            isinstance(p, dict) and ("functionCall" in p or "functionCallDelta" in p)
+            for p in parts
+        )
+        if has_tool_call_part and gemini_finish_reason == "STOP":
             finish_reason = "tool_calls"
+
+        is_silent_streamed_marker = (
+            not delta
+            and finish_reason is None
+            and any(
+                isinstance(p, dict)
+                and (
+                    p.get("_streamed_delta")
+                    or (isinstance(p.get("functionCall"), dict) and p["functionCall"].get("_streamed_delta"))
+                )
+                for p in parts
+            )
+        )
+        if is_silent_streamed_marker and not gemini_response.get("usageMetadata"):
+            continue
 
         choices.append(
             {
@@ -1527,6 +1629,8 @@ def convert_gemini_to_openai_stream(
         )
 
     usage = _convert_usage_metadata(gemini_response.get("usageMetadata"))
+    if not choices and not usage:
+        return None
 
     response_data = {
         "id": response_id,

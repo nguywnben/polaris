@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import time
+import uuid
 from contextlib import aclosing
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ from config import (
     get_xai_user_agent,
 )
 from core.anthropic import (
+    _stream_tool_blocks,
     anthropic_response_to_gemini,
     anthropic_stream_line_to_gemini,
     build_anthropic_headers,
@@ -357,6 +359,13 @@ async def wrap_cli_request(
         )
 
     inner.pop("safetySettings", None)
+    if isinstance(inner.get("generationConfig"), dict):
+        gen_cfg = dict(inner["generationConfig"])
+        gen_cfg.pop("presencePenalty", None)
+        gen_cfg.pop("frequencyPenalty", None)
+        gen_cfg.pop("stopSequences", None)
+        gen_cfg.setdefault("topK", 64)
+        inner["generationConfig"] = gen_cfg
 
     if not inner.get("sessionId"):
         inner["sessionId"] = state.session_id
@@ -921,185 +930,189 @@ async def _stream_request_upstream(
                     timeout=await get_upstream_timeout_seconds(),
                 )
             )
-            async for chunk in upstream:
-                if isinstance(chunk, Response):
-                    status_code = chunk.status_code
-                    last_error_response = chunk
+            stream_instance_id = f"{current_file}:{model_name}:{uuid.uuid4().hex}"
+            try:
+                async for chunk in upstream:
+                    if isinstance(chunk, Response):
+                        status_code = chunk.status_code
+                        last_error_response = chunk
 
-                    error_body = None
-                    try:
-                        error_body = (
-                            chunk.body.decode("utf-8")
-                            if isinstance(chunk.body, bytes)
-                            else str(chunk.body)
-                        )
-                    except Exception as exc:
-                        log.debug(
-                            "[provider stream] could not decode an upstream error body "
-                            f"({type(exc).__name__})."
-                        )
-                        error_body = ""
-
-                    if received_content:
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            None,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
-                        trace_decision(
-                            category="retry",
-                            action="skipped",
-                            result="skipped",
-                            reason="not_eligible",
-                            attempt=attempt + 1,
-                            status_code=status_code,
-                        )
-                        yield chunk
-                        return
-
-                    if status_code == 404:
-                        credential_route_exclusions.add((current_file, model_name))
-                        if model_routing:
-                            log.warning(
-                                "[provider stream] model route not found; blacklisting "
-                                f"credential={current_file}, provider={provider_id}, model={model_name}."
+                        error_body = None
+                        try:
+                            error_body = (
+                                chunk.body.decode("utf-8")
+                                if isinstance(chunk.body, bytes)
+                                else str(chunk.body)
                             )
-                            await _exclude_missing_model_route(
-                                credential_route_exclusions=credential_route_exclusions,
-                                credential_name=current_file,
-                                provider_id=provider_id,
+                        except Exception as exc:
+                            log.debug(
+                                "[provider stream] could not decode an upstream error body "
+                                f"({type(exc).__name__})."
+                            )
+                            error_body = ""
+
+                        if received_content:
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                None,
+                                mode="primary",
                                 model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
                             )
-                        else:
+                            trace_decision(
+                                category="retry",
+                                action="skipped",
+                                result="skipped",
+                                reason="not_eligible",
+                                attempt=attempt + 1,
+                                status_code=status_code,
+                            )
+                            yield chunk
+                            return
+
+                        if status_code == 404:
+                            credential_route_exclusions.add((current_file, model_name))
+                            if model_routing:
+                                log.warning(
+                                    "[provider stream] model route not found; blacklisting "
+                                    f"credential={current_file}, provider={provider_id}, model={model_name}."
+                                )
+                                await _exclude_missing_model_route(
+                                    credential_route_exclusions=credential_route_exclusions,
+                                    credential_name=current_file,
+                                    provider_id=provider_id,
+                                    model_name=model_name,
+                                )
+                            else:
+                                log.warning(
+                                    "[provider stream] credential could not serve the requested model; "
+                                    f"trying another route (credential={current_file}, model={model_name})."
+                                )
+                            await record_model_route_miss(
+                                credential_manager,
+                                current_file,
+                                model_name=model_name,
+                                provider=provider_id,
+                            )
+                            if attempt < attempt_limit:
+                                need_retry = True
+                                model_route_retry = True
+                                break
+                            yield chunk
+                            return
+                        elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                             log.warning(
-                                "[provider stream] credential could not serve the requested model; "
-                                f"trying another route (credential={current_file}, model={model_name})."
-                            )
-                        await record_model_route_miss(
-                            credential_manager,
-                            current_file,
-                            model_name=model_name,
-                            provider=provider_id,
-                        )
-                        if attempt < attempt_limit:
-                            need_retry = True
-                            model_route_retry = True
-                            break
-                        yield chunk
-                        return
-                    elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
-                        log.warning(
-                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
-                        )
-
-                        cooldown_until = None
-                        if (status_code == 429 or status_code == 503) and error_body:
-                            cooldown_until = await parse_and_log_cooldown(
-                                error_body, mode="primary"
+                                f"[provider stream] streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                             )
 
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            cooldown_until,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
+                            cooldown_until = None
+                            if (status_code == 429 or status_code == 503) and error_body:
+                                cooldown_until = await parse_and_log_cooldown(
+                                    error_body, mode="primary"
+                                )
 
-                        should_retry = await handle_error_with_retry(
-                            credential_manager,
-                            status_code,
-                            current_file,
-                            retry_config["retry_enabled"],
-                            retry_attempt,
-                            max_retries,
-                            retry_interval,
-                            mode="primary",
-                        )
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                cooldown_until,
+                                mode="primary",
+                                model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
+                            )
 
-                        if should_retry:
-                            retry_attempt += 1
-                            need_retry = True
-                            break
+                            should_retry = await handle_error_with_retry(
+                                credential_manager,
+                                status_code,
+                                current_file,
+                                retry_config["retry_enabled"],
+                                retry_attempt,
+                                max_retries,
+                                retry_interval,
+                                mode="primary",
+                            )
+
+                            if should_retry:
+                                retry_attempt += 1
+                                need_retry = True
+                                break
+                            else:
+                                log.error(
+                                    "[provider stream] Maximum number of retries reached or should not be retried, returning original error"
+                                )
+                                yield chunk
+                                return
                         else:
                             log.error(
-                                "[provider stream] Maximum number of retries reached or should not be retried, returning original error"
+                                f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
+                            )
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                None,
+                                mode="primary",
+                                model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
                             )
                             yield chunk
                             return
                     else:
-                        log.error(
-                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
-                        )
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            None,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
+                        if _stream_event_is_heartbeat(chunk):
+                            yield _normalize_sse_frame(chunk)
+                            continue
+                        if isinstance(chunk, (str, bytes)) and not chunk.strip():
+                            continue
+                        if provider_id == XAI:
+                            chunk = xai_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+                        elif provider_id == OPENAI:
+                            if get_credential_provider_variant(credential_data) == OPENAI_PLATFORM:
+                                chunk = openai_stream_line_to_gemini(chunk)
+                            else:
+                                chunk = codex_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+                        elif provider_id == ANTHROPIC:
+                            chunk = anthropic_stream_line_to_gemini(
+                                chunk, stream_id=stream_instance_id
+                            )
+                            if not chunk:
+                                continue
+                        elif provider_id == OLLAMA:
+                            chunk = ollama_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+
+                        chunk = _normalize_sse_frame(chunk)
+
+                        if not received_content:
+                            received_content = True
+                            log.debug(
+                                f"[provider stream] started receiving streaming responses, model: {model_name}"
+                            )
+
+                        terminal_received = terminal_received or _stream_event_is_terminal(chunk)
+
+                        chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
+                        stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
+
+                        # Native reasoning and prompt-bearing Meta items stay out of logs.
+                        if provider_id not in {"meta", "muse_code"}:
+                            if isinstance(chunk, bytes):
+                                log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
+                            else:
+                                log.debug(f"[provider stream raw] chunk(str): {chunk}")
+
                         yield chunk
-                        return
-                else:
-                    if _stream_event_is_heartbeat(chunk):
-                        yield _normalize_sse_frame(chunk)
-                        continue
-                    if isinstance(chunk, (str, bytes)) and not chunk.strip():
-                        continue
-                    if provider_id == XAI:
-                        chunk = xai_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-                    elif provider_id == OPENAI:
-                        if get_credential_provider_variant(credential_data) == OPENAI_PLATFORM:
-                            chunk = openai_stream_line_to_gemini(chunk)
-                        else:
-                            chunk = codex_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-                    elif provider_id == ANTHROPIC:
-                        chunk = anthropic_stream_line_to_gemini(
-                            chunk, stream_id=f"{current_file}:{model_name}"
-                        )
-                        if not chunk:
-                            continue
-                    elif provider_id == OLLAMA:
-                        chunk = ollama_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-
-                    chunk = _normalize_sse_frame(chunk)
-
-                    if not received_content:
-                        received_content = True
-                        log.debug(
-                            f"[provider stream] started receiving streaming responses, model: {model_name}"
-                        )
-
-                    terminal_received = terminal_received or _stream_event_is_terminal(chunk)
-
-                    chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
-                    stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
-
-                    # Native reasoning and prompt-bearing Meta items stay out of logs.
-                    if provider_id not in {"meta", "muse_code"}:
-                        if isinstance(chunk, bytes):
-                            log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
-                        else:
-                            log.debug(f"[provider stream raw] chunk(str): {chunk}")
-
-                    yield chunk
+            finally:
+                _stream_tool_blocks.pop(stream_instance_id, None)
 
             if received_content and terminal_received:
                 await record_api_call_success(

@@ -514,6 +514,7 @@ async def collect_streaming_response(stream_generator) -> Response:
 
     collected_text = []
     collected_thought_text = []
+    collected_thought_signature = None
     collected_other_parts = []
     collected_tool_parts_count = 0
     has_data = False
@@ -612,15 +613,28 @@ async def collect_streaming_response(stream_generator) -> Response:
                     if not isinstance(part, dict):
                         continue
 
+                    if "functionCallDelta" in part:
+                        continue
+
                     if (
                         "functionCall" in part
                         or "functionResponse" in part
                         or "function_call" in part
                     ):
-                        collected_other_parts.append(part)
+                        clean_part = dict(part)
+                        if isinstance(clean_part.get("functionCall"), dict):
+                            fc_copy = dict(clean_part["functionCall"])
+                            fc_copy.pop("_streamed_delta", None)
+                            fc_copy.pop("_final_arguments_delta", None)
+                            fc_copy.pop("_tool_index", None)
+                            clean_part["functionCall"] = fc_copy
+                        collected_other_parts.append(clean_part)
                         collected_tool_parts_count += 1
                         log.debug(f"[STREAM COLLECTOR] Collected tool part: {list(part.keys())}")
                         continue
+
+                    if part.get("thought", False) and part.get("thoughtSignature"):
+                        collected_thought_signature = part["thoughtSignature"]
 
                     text = part.get("text", "")
                     if text:
@@ -700,7 +714,10 @@ async def collect_streaming_response(stream_generator) -> Response:
     final_parts = []
 
     if collected_thought_text:
-        final_parts.append({"text": "".join(collected_thought_text), "thought": True})
+        thought_part = {"text": "".join(collected_thought_text), "thought": True}
+        if collected_thought_signature:
+            thought_part["thoughtSignature"] = collected_thought_signature
+        final_parts.append(thought_part)
 
     if collected_text:
         final_parts.append({"text": "".join(collected_text)})

@@ -158,6 +158,12 @@ def compress_gemini_request(
         return _unchanged_result(request, original_estimate, "disabled", settings)
     if "_polaris_meta_responses" in request:
         return _unchanged_result(request, original_estimate, "native_reasoning_history", settings)
+    if any(
+        isinstance(c, dict)
+        and any(isinstance(p, dict) and "cache_control" in p for p in (c.get("parts") or []))
+        for c in (request.get("contents") or [])
+    ):
+        return _unchanged_result(request, original_estimate, "prompt_caching_active", settings)
     if original_estimate <= settings.threshold_tokens:
         return _unchanged_result(request, original_estimate, "below_threshold", settings)
 

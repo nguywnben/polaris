@@ -132,13 +132,27 @@ class ProtocolContractMatrixTests(unittest.TestCase):
                     "model": "fixture-model",
                     "messages": [
                         {
-                            "role": "assistant",
-                            "content": "Previous answer",
+                            "role": "user",
+                            "content": "User prompt",
                             "reasoning_content": "private reasoning",
                         }
                     ],
                 }
             )
+
+        history_request = OpenAIChatCompletionRequest.model_validate(
+            {
+                "model": "fixture-model",
+                "messages": [
+                    {
+                        "role": "assistant",
+                        "content": "Previous answer",
+                        "reasoning_content": "private reasoning",
+                    }
+                ],
+            }
+        )
+        self.assertEqual(history_request.messages[0].reasoning_content, "private reasoning")
 
         response = OpenAIChatCompletionResponse.model_validate(
             {
@@ -640,6 +654,210 @@ class ProtocolResponseGoldenTests(unittest.TestCase):
             with self.subTest(canonical=canonical):
                 translated = convert_gemini_to_openai_response(canonical, "fixture-model")
                 self.assertEqual(translated["usage"], usage)
+
+
+class IDECompatibilityRegressionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_openai_ide_fields_and_assistant_reasoning_history_translate(self):
+        from core.converter.openai_to_gemini import convert_openai_to_gemini_request
+
+        req = OpenAIChatCompletionRequest.model_validate(
+            {
+                "model": "gpt-5",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a coding assistant.",
+                        "cache_control": {"type": "ephemeral"},
+                    },
+                    {
+                        "role": "assistant",
+                        "content": "Let me check.",
+                        "reasoning_content": "First I should inspect the file.",
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "index": 0,
+                                "type": "function",
+                                "function": {"name": "read_file", "arguments": '{"path":"a.py"}'},
+                            }
+                        ],
+                    },
+                    {
+                        "role": "tool",
+                        "tool_call_id": "call_1",
+                        "name": "read_file",
+                        "content": "print(1)",
+                    },
+                    {"role": "user", "content": "What does it print?"},
+                ],
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "read_file",
+                            "parameters": {"type": "object", "properties": {}},
+                            "strict": True,
+                        },
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                "parallel_tool_calls": True,
+                "reasoning": {"effort": "high"},
+                "user": "cursor-user",
+                "store": False,
+                "service_tier": "auto",
+                "prompt_cache_key": "cache-1",
+            }
+        )
+        self.assertEqual(req.reasoning_effort, "high")
+        with patch("config.get_compatibility_mode_enabled", new=AsyncMock(return_value=False)):
+            gemini_req = await convert_openai_to_gemini_request(model_to_dict(req))
+        model_parts = gemini_req["contents"][0]["parts"]
+        self.assertTrue(any(p.get("thought") is True for p in model_parts))
+        self.assertEqual(
+            gemini_req["systemInstruction"]["parts"][0]["cache_control"],
+            {"type": "ephemeral"},
+        )
+
+    async def test_claude_code_cache_control_adaptive_thinking_and_tool_error_translate(self):
+        from core.anthropic import gemini_request_to_anthropic
+        from core.converter.anthropic_to_gemini import anthropic_to_gemini_request
+
+        req = ClaudeRequest.model_validate(
+            {
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 16000,
+                "cache_control": {"type": "ephemeral"},
+                "thinking": {"type": "adaptive"},
+                "output_config": {"effort": "high"},
+                "system": [
+                    {
+                        "type": "text",
+                        "text": "System prompt",
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                "messages": [
+                    {"role": "user", "content": "Run tool"},
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {"type": "thinking", "thinking": "Unsigned thought from IDE"},
+                            {
+                                "type": "tool_use",
+                                "id": "toolu_1",
+                                "name": "bash",
+                                "input": {"cmd": "ls"},
+                            },
+                        ],
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": "toolu_1",
+                                "is_error": True,
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Command failed",
+                                        "cache_control": {"type": "ephemeral"},
+                                    }
+                                ],
+                                "cache_control": {"type": "ephemeral"},
+                            }
+                        ],
+                    },
+                ],
+                "tools": [
+                    {
+                        "name": "bash",
+                        "input_schema": {"type": "object", "properties": {}},
+                        "strict": True,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                "tool_choice": {"type": "any", "disable_parallel_tool_use": True},
+            }
+        )
+        with patch("config.get_compatibility_mode_enabled", new=AsyncMock(return_value=False)):
+            gemini_req = await anthropic_to_gemini_request(model_to_dict(req))
+        anthropic_out = gemini_request_to_anthropic(gemini_req, "claude-sonnet-4-6", True)
+        self.assertIsInstance(anthropic_out["system"], list)
+        self.assertEqual(
+            anthropic_out["system"][0]["cache_control"], {"type": "ephemeral"}
+        )
+        self.assertEqual(
+            anthropic_out["tools"][0]["cache_control"], {"type": "ephemeral"}
+        )
+        self.assertEqual(anthropic_out["tool_choice"], {"type": "any"})
+        tool_result_block = anthropic_out["messages"][-1]["content"][0]
+        self.assertTrue(tool_result_block["is_error"])
+
+    async def test_anthropic_stream_tool_call_deltas_and_whitespace_preserved(self):
+        from core.anthropic import anthropic_stream_line_to_gemini
+        from core.converter.anthropic_to_gemini import gemini_stream_to_anthropic_stream
+        from core.converter.openai_to_gemini import convert_gemini_to_openai_stream
+
+        sid = "test-stream-1"
+        c1 = anthropic_stream_line_to_gemini(
+            'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"read","input":{}}}',
+            stream_id=sid,
+        )
+        c2 = anthropic_stream_line_to_gemini(
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\":"}}',
+            stream_id=sid,
+        )
+        c3 = anthropic_stream_line_to_gemini(
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\\"main.py\\"}"}}',
+            stream_id=sid,
+        )
+        c4 = anthropic_stream_line_to_gemini(
+            'data: {"type":"content_block_stop","index":0}',
+            stream_id=sid,
+        )
+
+        # Verify final reassembled functionCall in c4 did NOT get wiped to {}
+        c4_data = json.loads(c4.removeprefix("data: ").strip())
+        fc = c4_data["candidates"][0]["content"]["parts"][0]["functionCall"]
+        self.assertEqual(fc["args"], {"path": "main.py"})
+
+        # Verify OpenAI stream receives incremental deltas and no duplicate at stop
+        o1 = json.loads(convert_gemini_to_openai_stream(c1, "claude", "resp-1")[6:])
+        o2 = json.loads(convert_gemini_to_openai_stream(c2, "claude", "resp-1")[6:])
+        o3 = json.loads(convert_gemini_to_openai_stream(c3, "claude", "resp-1")[6:])
+        o4 = convert_gemini_to_openai_stream(c4, "claude", "resp-1")
+        self.assertEqual(o1["choices"][0]["delta"]["tool_calls"][0]["function"]["name"], "read")
+        self.assertEqual(
+            o2["choices"][0]["delta"]["tool_calls"][0]["function"]["arguments"],
+            '{"path":',
+        )
+        self.assertEqual(
+            o3["choices"][0]["delta"]["tool_calls"][0]["function"]["arguments"],
+            '"main.py"}',
+        )
+        self.assertIsNone(o4)
+
+        # Verify Anthropic stream preserves whitespace/newline chunks
+        async def gemini_whitespace_source():
+            yield b'data: {"candidates":[{"content":{"role":"model","parts":[{"text":"def foo():"}]}}]}\n\n'
+            yield b'data: {"candidates":[{"content":{"role":"model","parts":[{"text":"\\n    "}]}}]}\n\n'
+            yield b'data: {"candidates":[{"content":{"role":"model","parts":[{"text":"return 1"}]},"finishReason":"STOP"}]}\n\n'
+
+        out_bytes = b"".join(
+            [c async for c in gemini_stream_to_anthropic_stream(gemini_whitespace_source(), "claude")]
+        )
+        self.assertIn(b'"text":"\\n    "', out_bytes)
+
+    async def test_endpoint_aliases_and_event_logging_batch(self):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=main.app),
+            base_url="http://test",
+        ) as client:
+            batch_res = await client.post("/api/event_logging/batch", json={"events": []})
+            self.assertEqual(batch_res.status_code, 200)
+            self.assertEqual(batch_res.json(), {"status": "ok"})
 
 
 if __name__ == "__main__":

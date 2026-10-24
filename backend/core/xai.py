@@ -707,6 +707,7 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
             parts.append({"text": str(reasoning), "thought": True})
         finish = choice.get("finish_reason")
         choice_index = int(choice.get("index") or 0)
+        final_arg_deltas: Dict[int, str] = {}
         if response_id and delta.get("tool_calls"):
             if len(_stream_tool_calls) >= MAX_STREAM_TOOL_CALL_SESSIONS:
                 _stream_tool_calls.pop(next(iter(_stream_tool_calls)), None)
@@ -724,8 +725,23 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
                     pending["id"] = str(tool_call["id"])
                 if function.get("name"):
                     pending["name"] = str(function["name"])
-                if function.get("arguments"):
-                    pending["arguments"] += str(function["arguments"])
+                arg_piece = str(function.get("arguments") or "")
+                if arg_piece:
+                    pending["arguments"] += arg_piece
+                    final_arg_deltas[tool_index] = (
+                        final_arg_deltas.get(tool_index, "") + arg_piece
+                    )
+                if not finish:
+                    parts.append(
+                        {
+                            "functionCallDelta": {
+                                "index": tool_index,
+                                "id": pending["id"] or f"call_tool_{tool_index}",
+                                "name": pending["name"] or "tool",
+                                "arguments_delta": arg_piece,
+                            }
+                        }
+                    )
 
         if response_id and finish and response_id in _stream_tool_calls:
             pending_choices = _stream_tool_calls[response_id]
@@ -735,15 +751,16 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
                     arguments = json.loads(pending["arguments"] or "{}")
                 except ValueError:
                     arguments = {"raw": pending["arguments"]}
-                parts.append(
-                    {
-                        "functionCall": {
-                            "id": pending["id"] or f"call_tool_{tool_index}",
-                            "name": pending["name"] or "tool",
-                            "args": arguments,
-                        }
-                    }
-                )
+                fc_obj: Dict[str, Any] = {
+                    "id": pending["id"] or f"call_tool_{tool_index}",
+                    "name": pending["name"] or "tool",
+                    "args": arguments,
+                    "_streamed_delta": True,
+                    "_tool_index": tool_index,
+                }
+                if final_arg_deltas.get(tool_index):
+                    fc_obj["_final_arguments_delta"] = final_arg_deltas[tool_index]
+                parts.append({"functionCall": fc_obj})
             if not pending_choices:
                 _stream_tool_calls.pop(response_id, None)
 

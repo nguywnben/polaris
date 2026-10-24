@@ -54,7 +54,10 @@ async def merge_system_messages(request_body: Dict[str, Any]) -> Dict[str, Any]:
             for item in system_content:
                 if isinstance(item, dict):
                     if item.get("type") == "text" and item.get("text", "").strip():
-                        system_parts.append({"text": item["text"]})
+                        part_dict: Dict[str, Any] = {"text": item["text"]}
+                        if item.get("cache_control"):
+                            part_dict["cache_control"] = item["cache_control"]
+                        system_parts.append(part_dict)
                 elif isinstance(item, str) and item.strip():
                     system_parts.append({"text": item})
 
@@ -110,12 +113,20 @@ async def merge_system_messages(request_body: Dict[str, Any]) -> Dict[str, Any]:
             if role in {"system", "developer"} and collecting_system:
                 if isinstance(content, str):
                     if content.strip():
-                        system_parts.append({"text": content})
+                        part_dict = {"text": content}
+                        if message.get("cache_control"):
+                            part_dict["cache_control"] = message["cache_control"]
+                        system_parts.append(part_dict)
                 elif isinstance(content, list):
                     for item in content:
                         if isinstance(item, dict):
                             if item.get("type") == "text" and item.get("text", "").strip():
-                                system_parts.append({"text": item["text"]})
+                                part_dict = {"text": item["text"]}
+                                if item.get("cache_control") or message.get("cache_control"):
+                                    part_dict["cache_control"] = item.get(
+                                        "cache_control"
+                                    ) or message.get("cache_control")
+                                system_parts.append(part_dict)
                         elif isinstance(item, str) and item.strip():
                             system_parts.append({"text": item})
             else:
