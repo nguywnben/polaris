@@ -119,6 +119,7 @@ from core.provider_registry import (
     get_provider_routing_id,
 )
 from core.reasoning_control import ReasoningControlError, prepare_reasoning_request
+from core.request_context import mark_request_first_token
 from core.request_trace_service import trace_decision
 from core.storage_adapter import get_storage_adapter
 from core.token_compression import (
@@ -333,6 +334,52 @@ def _normalize_antigravity_tool_turns(
     return result
 
 
+def _strip_internal_gemini_annotations(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove internal Polaris metadata and non-Gemini part keys before native Google dispatch."""
+    cleaned: Dict[str, Any] = {
+        key: value for key, value in request.items() if not str(key).startswith("_polaris_")
+    }
+    contents = cleaned.get("contents")
+    if isinstance(contents, list):
+        cleaned_contents = []
+        for content in contents:
+            if not isinstance(content, dict):
+                cleaned_contents.append(content)
+                continue
+            parts = content.get("parts")
+            if isinstance(parts, list):
+                cleaned_parts = []
+                for part in parts:
+                    if isinstance(part, dict) and (
+                        "_image_detail" in part or "cache_control" in part
+                    ):
+                        part_copy = dict(part)
+                        part_copy.pop("_image_detail", None)
+                        part_copy.pop("cache_control", None)
+                        cleaned_parts.append(part_copy)
+                    else:
+                        cleaned_parts.append(part)
+                cleaned_contents.append({**content, "parts": cleaned_parts})
+            else:
+                cleaned_contents.append(content)
+        cleaned["contents"] = cleaned_contents
+
+    sys_inst = cleaned.get("systemInstruction")
+    if isinstance(sys_inst, dict) and isinstance(sys_inst.get("parts"), list):
+        sys_parts = []
+        for part in sys_inst["parts"]:
+            if isinstance(part, dict) and ("_image_detail" in part or "cache_control" in part):
+                part_copy = dict(part)
+                part_copy.pop("_image_detail", None)
+                part_copy.pop("cache_control", None)
+                sys_parts.append(part_copy)
+            else:
+                sys_parts.append(part)
+        cleaned["systemInstruction"] = {**sys_inst, "parts": sys_parts}
+
+    return cleaned
+
+
 async def wrap_cli_request(
     gemini_request: Dict[str, Any],
     model: str,
@@ -347,7 +394,7 @@ async def wrap_cli_request(
             original_inner,
             CompressionSettings(**await get_token_compression_config()),
         )
-    inner = dict(compression_result.request)
+    inner = _strip_internal_gemini_annotations(dict(compression_result.request))
 
     if compression_result.applied:
         log.info(
@@ -429,7 +476,7 @@ async def prepare_provider_request(
         )
     elif provider_id == GOOGLE_AI_STUDIO:
         api_key = str(credential_data.get("api_key") or "").strip()
-        payload = dict(compressed_request)
+        payload = _strip_internal_gemini_annotations(dict(compressed_request))
         for internal_key in ("model", "sessionId", "labels", "enabledCreditTypes"):
             payload.pop(internal_key, None)
         target_url = build_generation_url(
@@ -1009,9 +1056,11 @@ async def _stream_request_upstream(
                             )
 
                             cooldown_until = None
-                            if (status_code == 429 or status_code == 503) and error_body:
+                            if status_code == 429 or status_code == 503:
                                 cooldown_until = await parse_and_log_cooldown(
-                                    error_body, mode="primary"
+                                    error_body or "",
+                                    mode="primary",
+                                    headers=dict(chunk.headers),
                                 )
 
                             await record_api_call_error(
@@ -1034,6 +1083,7 @@ async def _stream_request_upstream(
                                 max_retries,
                                 retry_interval,
                                 mode="primary",
+                                defer_sleep=switch_credential_enabled,
                             )
 
                             if should_retry:
@@ -1094,6 +1144,7 @@ async def _stream_request_upstream(
 
                         if not received_content:
                             received_content = True
+                            mark_request_first_token()
                             log.debug(
                                 f"[provider stream] started receiving streaming responses, model: {model_name}"
                             )
@@ -1189,6 +1240,7 @@ async def _stream_request_upstream(
                         f"(attempt {retry_attempt + 1}/{max_retries + 1})."
                     )
 
+                previous_file = current_file
                 if model_route_retry or switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1207,6 +1259,13 @@ async def _stream_request_upstream(
                             media_type="application/json",
                         )
                         return
+                if (
+                    not model_route_retry
+                    and switch_credential_enabled
+                    and current_file == previous_file
+                    and retry_interval > 0
+                ):
+                    await asyncio.sleep(retry_interval)
                 continue
 
         except (asyncio.CancelledError, GeneratorExit):
@@ -1316,7 +1375,7 @@ async def _stream_request_upstream(
                     "[provider stream] retry after abnormality "
                     f"(attempt {retry_attempt + 1}/{max_retries + 1})..."
                 )
-                await asyncio.sleep(retry_interval)
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1329,6 +1388,10 @@ async def _stream_request_upstream(
                             media_type="application/json",
                         )
                         return
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
+                elif retry_interval > 0:
+                    await asyncio.sleep(retry_interval)
                 continue
             else:
                 log.error(f"[provider stream] all retries failed. Last exception: {e}")
@@ -1474,7 +1537,7 @@ async def _non_stream_request_upstream(
         context = await prepare_provider_request(
             credential_data,
             request_body,
-            streaming=False,
+            streaming=(get_credential_provider(credential_data) in EXTENDED_PROVIDERS),
             extra_headers=headers,
         )
     except ValueError as exc:
@@ -1513,7 +1576,7 @@ async def _non_stream_request_upstream(
             new_context = await prepare_provider_request(
                 credential_data,
                 request_body,
-                streaming=False,
+                streaming=(get_credential_provider(credential_data) in EXTENDED_PROVIDERS),
                 extra_headers=headers,
             )
         except ValueError:
@@ -1532,17 +1595,14 @@ async def _non_stream_request_upstream(
 
         try:
             if provider_id in EXTENDED_PROVIDERS:
-                # Evaluate on every retry: a legacy provider may fall back to a
-                # binary/stream-only provider. Keep the selected lease and route.
-                stream_context = await prepare_provider_request(
-                    credential_data, request_body, streaming=True, extra_headers=headers
-                )
+                # Extended providers use stream collection in non_stream_request; context
+                # is already prepared with streaming=True when provider_id in EXTENDED_PROVIDERS.
                 upstream = stream_extended_request(
                     credential_data,
                     model_name,
-                    url=stream_context.target_url,
-                    body=stream_context.payload,
-                    headers=stream_context.headers,
+                    url=target_url,
+                    body=final_payload,
+                    headers=auth_headers,
                     timeout=await get_upstream_timeout_seconds(),
                     subscription_observer=subscription_observer(current_file, credential_data),
                 )
@@ -1752,8 +1812,12 @@ async def _non_stream_request_upstream(
                     )
 
                     cooldown_until = None
-                    if (status_code == 429 or status_code == 503) and error_text:
-                        cooldown_until = await parse_and_log_cooldown(error_text, mode="primary")
+                    if status_code == 429 or status_code == 503:
+                        cooldown_until = await parse_and_log_cooldown(
+                            error_text or "",
+                            mode="primary",
+                            headers=dict(response.headers),
+                        )
 
                     await record_api_call_error(
                         credential_manager,
@@ -1775,6 +1839,7 @@ async def _non_stream_request_upstream(
                         max_retries,
                         retry_interval,
                         mode="primary",
+                        defer_sleep=switch_credential_enabled,
                     )
 
                     if should_retry:
@@ -1806,6 +1871,7 @@ async def _non_stream_request_upstream(
                     f"[provider] retrying request (attempt {retry_attempt + 1}/{max_retries + 1})."
                 )
 
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1818,6 +1884,8 @@ async def _non_stream_request_upstream(
                             status_code=503,
                             media_type="application/json",
                         )
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
                 continue
 
         except (asyncio.CancelledError, GeneratorExit):
@@ -1849,7 +1917,7 @@ async def _non_stream_request_upstream(
                     "[provider] Retry after exception "
                     f"(attempt {retry_attempt + 1}/{max_retries + 1})..."
                 )
-                await asyncio.sleep(retry_interval)
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1861,6 +1929,10 @@ async def _non_stream_request_upstream(
                             status_code=503,
                             media_type="application/json",
                         )
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
+                elif retry_interval > 0:
+                    await asyncio.sleep(retry_interval)
                 continue
             else:
                 log.error(f"[provider] all retries failed. Last exception: {e}")

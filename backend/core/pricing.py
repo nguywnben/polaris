@@ -72,6 +72,19 @@ def _pricing_aliases_path() -> Path:
 
 
 @dataclass(frozen=True)
+class ModelCapabilities:
+    """Context window limits and feature support metadata for a model family."""
+
+    max_input_tokens: Optional[int] = None
+    max_output_tokens: Optional[int] = None
+    supports_vision: bool = False
+    supports_function_calling: bool = False
+    supports_prompt_caching: bool = False
+    supports_reasoning: bool = False
+    supports_response_schema: bool = False
+
+
+@dataclass(frozen=True)
 class ModelPricing:
     """USD prices per 1M tokens for a model family."""
 
@@ -178,6 +191,26 @@ BUILTIN_MODEL_PRICING: Dict[str, ModelPricing] = {
     "grok-2": ModelPricing(2.00, 10.00),
 }
 
+BUILTIN_MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
+    "gemini-3-pro": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-3-flash": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.5-pro": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.5-flash": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.0-flash": ModelCapabilities(1_048_576, 8_192, True, True, True, False, True),
+    "gpt-5": ModelCapabilities(400_000, 128_000, True, True, True, True, True),
+    "gpt-4.1": ModelCapabilities(1_047_576, 32_768, True, True, True, False, True),
+    "gpt-4o": ModelCapabilities(128_000, 16_384, True, True, True, False, True),
+    "o3": ModelCapabilities(200_000, 100_000, True, True, True, True, True),
+    "o4-mini": ModelCapabilities(200_000, 100_000, True, True, True, True, True),
+    "claude-opus-4": ModelCapabilities(200_000, 32_000, True, True, True, True, True),
+    "claude-sonnet-4": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-haiku-4": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-3-7-sonnet": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-3-5-sonnet": ModelCapabilities(200_000, 8_192, True, True, True, False, True),
+    "grok-4": ModelCapabilities(256_000, 32_768, True, True, True, True, True),
+    "grok-3": ModelCapabilities(131_072, 32_768, True, True, True, True, True),
+}
+
 
 def _pricing_overrides_path() -> Path:
     credentials_dir = Path(os.getenv("CREDENTIALS_DIR", str(DEFAULT_CREDENTIALS_DIR))).expanduser()
@@ -191,6 +224,7 @@ class _PricingTable:
         self._lock = threading.RLock()
         self._overrides: Dict[str, ModelPricing] = {}
         self._dynamic: Dict[tuple[str, str], ModelPricing] = {}
+        self._capabilities: Dict[tuple[str, str], ModelCapabilities] = {}
         self._overrides_mtime: Optional[float] = None
         self._dynamic_fetched_at: Optional[str] = None
         self._dynamic_state = "not_loaded"
@@ -283,13 +317,36 @@ class _PricingTable:
         *,
         fetched_at: str,
         state: str = "current",
+        capabilities: Optional[Dict[tuple[str, str], ModelCapabilities]] = None,
     ) -> None:
         """Atomically replace the in-memory synchronized catalog."""
         with self._lock:
             self._dynamic = dict(entries)
+            if capabilities is not None:
+                self._capabilities = dict(capabilities)
             self._dynamic_fetched_at = fetched_at
             self._dynamic_state = state if state in {"current", "cached"} else "current"
             self._dynamic_last_error = None
+
+    def lookup_capabilities(self, model: str, provider: str = "") -> Optional[ModelCapabilities]:
+        normalized = _normalize_model_name(model)
+        dynamic_provider = _normalize_dynamic_provider(provider)
+        if not normalized:
+            return None
+        with self._lock:
+            if dynamic_provider and (dynamic_provider, normalized) in self._capabilities:
+                return self._capabilities[(dynamic_provider, normalized)]
+            if not dynamic_provider:
+                for (_prov, mod), cap in self._capabilities.items():
+                    if mod == normalized:
+                        return cap
+            best_key = ""
+            for key in BUILTIN_MODEL_CAPABILITIES:
+                if (normalized == key or normalized.startswith(key + "-")) and len(key) > len(
+                    best_key
+                ):
+                    best_key = key
+            return BUILTIN_MODEL_CAPABILITIES.get(best_key) if best_key else None
 
     def mark_dynamic_failure(self, error_code: str) -> None:
         """Record a bounded failure code while retaining the last good snapshot."""
@@ -552,6 +609,11 @@ _pricing_table = _PricingTable()
 def find_model_pricing(model: str, provider: str = "") -> Optional[ModelPricing]:
     """Return the pricing entry for ``model`` or ``None`` when unpriced."""
     return _pricing_table.lookup(model, provider=provider)
+
+
+def get_model_capabilities(model: str, provider: str = "") -> Optional[ModelCapabilities]:
+    """Return the context window and capability metadata for ``model`` or ``None``."""
+    return _pricing_table.lookup_capabilities(model, provider=provider)
 
 
 def resolve_model_pricing(model: str, provider: str = "") -> PricingResolution:

@@ -12,7 +12,13 @@ from pathlib import Path
 from typing import Any
 
 from core.httpx_client import http_client
-from core.pricing import ModelPricing, _parse_override_entry, _pricing_table, _PricingTable
+from core.pricing import (
+    ModelCapabilities,
+    ModelPricing,
+    _parse_override_entry,
+    _pricing_table,
+    _PricingTable,
+)
 from log import log
 from paths import DEFAULT_CREDENTIALS_DIR
 
@@ -139,6 +145,51 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
     return parsed
 
 
+def _optional_positive_int(entry: dict[str, Any], *fields: str) -> int | None:
+    for field in fields:
+        value = entry.get(field)
+        if isinstance(value, bool) or value is None:
+            continue
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0:
+            return parsed
+    return None
+
+
+def parse_litellm_capabilities(raw: Any) -> dict[tuple[str, str], ModelCapabilities]:
+    """Extract context window and capability metadata from the LiteLLM catalog."""
+    if not isinstance(raw, dict) or len(raw) > MAX_CATALOG_ENTRIES:
+        return {}
+    capabilities: dict[tuple[str, str], ModelCapabilities] = {}
+    for catalog_key, entry in raw.items():
+        if not isinstance(entry, dict):
+            continue
+        provider = _canonical_provider(entry.get("litellm_provider"))
+        if not provider:
+            continue
+        mode = str(entry.get("mode") or "chat").strip().lower()
+        if mode not in SUPPORTED_MODES:
+            continue
+        model = _canonical_model(catalog_key, provider)
+        if not model:
+            continue
+        max_input = _optional_positive_int(entry, "max_input_tokens", "max_tokens")
+        max_output = _optional_positive_int(entry, "max_output_tokens", "max_tokens")
+        capabilities[(provider, model)] = ModelCapabilities(
+            max_input_tokens=max_input,
+            max_output_tokens=max_output,
+            supports_vision=bool(entry.get("supports_vision")),
+            supports_function_calling=bool(entry.get("supports_function_calling")),
+            supports_prompt_caching=bool(entry.get("supports_prompt_caching")),
+            supports_reasoning=bool(entry.get("supports_reasoning")),
+            supports_response_schema=bool(entry.get("supports_response_schema")),
+        )
+    return capabilities
+
+
 class DynamicPricingService:
     """Own the persisted snapshot and install only complete, valid replacements."""
 
@@ -204,9 +255,14 @@ class DynamicPricingService:
             entries = parse_litellm_catalog(raw)
             if len(entries) < MIN_REMOTE_CATALOG_ENTRIES:
                 raise ValueError("remote_catalog_incomplete")
+            capabilities = parse_litellm_capabilities(raw)
             fetched_at = datetime.now(timezone.utc).isoformat()
             self._write_cache(entries, fetched_at=fetched_at)
-            self._table.replace_dynamic(entries, fetched_at=fetched_at)
+            self._table.replace_dynamic(
+                entries,
+                fetched_at=fetched_at,
+                capabilities=capabilities,
+            )
             log.info(f"[pricing] synchronized {len(entries)} direct-provider model prices")
             return True
         except Exception as exc:

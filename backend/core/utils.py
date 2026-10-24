@@ -232,7 +232,7 @@ async def authenticate_flexible(
         )
 
     from core.quality_policy_runtime import compression_policy_from_request_header
-    from core.request_context import set_request_compression_policy
+    from core.request_context import set_request_cache_bypass, set_request_compression_policy
 
     try:
         request_compression_policy = compression_policy_from_request_header(
@@ -241,6 +241,15 @@ async def authenticate_flexible(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     set_request_compression_policy(request_compression_policy)
+
+    cache_control_header = (request.headers.get("cache-control") or "").lower()
+    polaris_cache_header = (request.headers.get("x-polaris-cache") or "").strip().lower()
+    if (
+        "no-cache" in cache_control_header
+        or "no-store" in cache_control_header
+        or polaris_cache_header in {"false", "0", "off", "no-cache", "no-store", "bypass"}
+    ):
+        set_request_cache_bypass(True)
 
     api_key = await get_api_key()
 

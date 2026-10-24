@@ -1,3 +1,4 @@
+import copy
 import json
 import time
 import uuid
@@ -1237,20 +1238,22 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
                         )
                     parts.append(part_dict)
                 elif part.get("type") == "image_url":
-                    image_url = part.get("image_url", {}).get("url")
+                    image_url_obj = part.get("image_url") or {}
+                    image_url = image_url_obj.get("url")
                     if image_url:
                         try:
                             mime_type, base64_data = image_url.split(";")
                             _, mime_type = mime_type.split(":")
                             _, base64_data = base64_data.split(",")
-                            parts.append(
-                                {
-                                    "inlineData": {
-                                        "mimeType": mime_type,
-                                        "data": base64_data,
-                                    }
+                            image_part: Dict[str, Any] = {
+                                "inlineData": {
+                                    "mimeType": mime_type,
+                                    "data": base64_data,
                                 }
-                            )
+                            }
+                            if image_url_obj.get("detail"):
+                                image_part["_image_detail"] = image_url_obj["detail"]
+                            parts.append(image_part)
                         except ValueError:
                             continue
             if parts:
@@ -1341,6 +1344,34 @@ async def convert_openai_to_gemini_request(openai_request: Dict[str, Any]) -> Di
 
     if "size" in openai_request and openai_request["size"]:
         gemini_request["size"] = openai_request["size"]
+
+    openai_passthrough: Dict[str, Any] = {}
+    if isinstance(openai_request.get("response_format"), dict):
+        openai_passthrough["response_format"] = copy.deepcopy(openai_request["response_format"])
+    if isinstance(openai_request.get("tools"), list) and openai_request["tools"]:
+        openai_passthrough["tools"] = copy.deepcopy(openai_request["tools"])
+    for passthrough_key in (
+        "logprobs",
+        "top_logprobs",
+        "logit_bias",
+        "prediction",
+        "service_tier",
+        "store",
+        "metadata",
+        "user",
+        "parallel_tool_calls",
+        "prompt_cache_key",
+        "prompt_cache_retention",
+        "web_search_options",
+        "extra_body",
+        "include_reasoning",
+        "modalities",
+        "audio",
+    ):
+        if openai_request.get(passthrough_key) is not None:
+            openai_passthrough[passthrough_key] = copy.deepcopy(openai_request[passthrough_key])
+    if openai_passthrough:
+        gemini_request["_polaris_openai_passthrough"] = openai_passthrough
 
     return gemini_request
 

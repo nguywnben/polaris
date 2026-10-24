@@ -668,11 +668,11 @@ class VirtualKeyManager:
         return self._match_hash(candidate_hash)
 
     def _match_hash(self, candidate_hash: str) -> Optional[VirtualKey]:
-        matched: Optional[VirtualKey] = None
-        for stored_hash, record in self._keys_by_hash.items():
-            if secrets.compare_digest(candidate_hash, stored_hash):
-                matched = record
-        return matched
+        record = self._keys_by_hash.get(candidate_hash)
+        compare_target = record.key_hash if record is not None else candidate_hash
+        if secrets.compare_digest(candidate_hash, compare_target) and record is not None:
+            return record
+        return None
 
     @staticmethod
     def _enforce_active(record: VirtualKey) -> None:

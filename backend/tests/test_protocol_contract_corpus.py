@@ -859,6 +859,135 @@ class IDECompatibilityRegressionTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(batch_res.status_code, 200)
             self.assertEqual(batch_res.json(), {"status": "ok"})
 
+    async def test_openai_passthrough_preserves_strict_json_schema_and_codex_generation_config(
+        self,
+    ):
+        from core.codex import gemini_request_to_codex
+        from core.converter.openai_to_gemini import convert_openai_to_gemini_request
+        from core.xai import gemini_request_to_xai
+
+        openai_req = {
+            "model": "gpt-4o",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Inspect"},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": "data:image/png;base64,iVBORw0KGgo=",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                }
+            ],
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "max_completion_tokens": 512,
+            "parallel_tool_calls": False,
+            "logprobs": True,
+            "top_logprobs": 3,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "EditPlan",
+                    "description": "Structured edit plan",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {"file": {"type": "string"}},
+                        "required": ["file"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "apply_diff",
+                        "description": "Apply diff",
+                        "strict": True,
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"diff": {"type": "string"}},
+                            "required": ["diff"],
+                            "additionalProperties": False,
+                        },
+                    },
+                }
+            ],
+        }
+        with patch("config.get_compatibility_mode_enabled", new=AsyncMock(return_value=False)):
+            gemini_req = await convert_openai_to_gemini_request(openai_req)
+
+        xai_out = gemini_request_to_xai(gemini_req, "gpt-4o", streaming=False)
+        self.assertEqual(xai_out["response_format"]["json_schema"]["name"], "EditPlan")
+        self.assertTrue(xai_out["response_format"]["json_schema"]["strict"])
+        self.assertFalse(
+            xai_out["response_format"]["json_schema"]["schema"]["additionalProperties"]
+        )
+        self.assertEqual(xai_out["response_format"]["json_schema"]["schema"]["type"], "object")
+        self.assertTrue(xai_out["tools"][0]["function"]["strict"])
+        self.assertFalse(xai_out["tools"][0]["function"]["parameters"]["additionalProperties"])
+        self.assertFalse(xai_out["parallel_tool_calls"])
+        self.assertTrue(xai_out["logprobs"])
+        self.assertEqual(xai_out["top_logprobs"], 3)
+        img_part = xai_out["messages"][0]["content"][1]
+        self.assertEqual(img_part["image_url"]["detail"], "high")
+
+        codex_out = gemini_request_to_codex(gemini_req, "gpt-5-codex", streaming=True)
+        self.assertEqual(codex_out["temperature"], 0.2)
+        self.assertEqual(codex_out["top_p"], 0.9)
+        self.assertEqual(codex_out["max_output_tokens"], 512)
+        self.assertFalse(codex_out["parallel_tool_calls"])
+        self.assertEqual(codex_out["text"]["format"]["type"], "json_schema")
+        self.assertEqual(codex_out["text"]["format"]["name"], "EditPlan")
+        self.assertTrue(codex_out["text"]["format"]["strict"])
+        self.assertTrue(codex_out["tools"][0]["strict"])
+
+    def test_rate_limit_header_parsing_and_capabilities_extraction(self):
+        from core.api.utils import parse_rate_limit_headers
+        from core.dynamic_pricing import parse_litellm_capabilities
+        from core.pricing import get_model_capabilities
+
+        now = 1_700_000_000.0
+        self.assertAlmostEqual(
+            parse_rate_limit_headers({"Retry-After": "12"}, now=now),
+            now + 12.0,
+        )
+        self.assertAlmostEqual(
+            parse_rate_limit_headers({"retry-after-ms": "2500"}, now=now),
+            now + 2.5,
+        )
+        self.assertAlmostEqual(
+            parse_rate_limit_headers({"x-ratelimit-reset-requests": "2m30s"}, now=now),
+            now + 150.0,
+        )
+
+        caps = parse_litellm_capabilities(
+            {
+                "openai/gpt-5": {
+                    "litellm_provider": "openai",
+                    "mode": "chat",
+                    "max_input_tokens": 400000,
+                    "max_output_tokens": 128000,
+                    "supports_vision": True,
+                    "supports_function_calling": True,
+                    "supports_prompt_caching": True,
+                    "supports_reasoning": True,
+                    "supports_response_schema": True,
+                }
+            }
+        )
+        self.assertEqual(caps[("openai", "gpt-5")].max_input_tokens, 400000)
+        self.assertTrue(caps[("openai", "gpt-5")].supports_reasoning)
+        builtin_cap = get_model_capabilities("claude-sonnet-4-6", provider="anthropic")
+        self.assertIsNotNone(builtin_cap)
+        self.assertTrue(builtin_cap.supports_prompt_caching)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,7 @@ import time
 from collections import deque
 from typing import Any, Callable, Deque, Dict, Optional, Set, Tuple
 
-from core.advanced_routing import provider_cost_rank, weighted_order
+from core.advanced_routing import model_cost_rank, weighted_order
 from core.governance_coordination import GovernanceGenerationObserver
 from core.provider_registry import (
     credential_model_support_level,
@@ -17,7 +17,7 @@ from core.provider_registry import (
     get_credential_provider_variant,
     normalize_provider_id,
 )
-from core.request_context import get_request_elapsed_ms, get_request_id
+from core.request_context import get_request_elapsed_ms, get_request_id, get_request_ttft_ms
 from core.request_trace_service import trace_decision
 from core.routing_coordination import (
     GOVERNANCE_SCOPE_CREDENTIALS,
@@ -87,6 +87,7 @@ class SmartCredentialRouter:
         self._state_cache: Dict[str, Tuple[float, Dict[str, Dict[str, Any]]]] = {}
         self._recent_decisions: Deque[RouteDecision] = deque(maxlen=100)
         self._provider_variants: Dict[CredentialKey, str] = {}
+        self._session_affinity: Dict[Tuple[str, str], str] = {}
         self._credential_generation = GovernanceGenerationObserver(GOVERNANCE_SCOPE_CREDENTIALS)
         self._rng = rng
 
@@ -206,9 +207,13 @@ class SmartCredentialRouter:
         coordinated_credentials: Dict[str, CredentialCoordinationSnapshot],
         coordinated_outcomes: Dict[str, RouteOutcomeSnapshot],
         now: float,
+        session_key: Optional[str] = None,
     ) -> tuple[list[tuple[tuple[Any, ...], str]], Dict[str, RouteCandidate]]:
         candidates = []
         decisions: Dict[str, RouteCandidate] = {}
+        affinity_filename = (
+            self._session_affinity.get((mode, str(session_key))) if session_key else None
+        )
 
         for filename, state in states.items():
             key = (mode, filename)
@@ -277,18 +282,24 @@ class SmartCredentialRouter:
             if routing_strategy == "priority" and preferred_provider:
                 provider_penalty = int(self._providers.get(key) != preferred_provider)
 
-            strategy_rank = 0
+            strategy_rank: float = 0
             if routing_strategy == "least_latency":
                 strategy_rank = self._latency_rank(outcome.latency_samples_ms)
             elif routing_strategy == "lowest_cost":
-                strategy_rank = provider_cost_rank(self._provider_variants.get(key) or provider_id)
+                strategy_rank = model_cost_rank(
+                    self._provider_variants.get(key) or provider_id,
+                    model_name,
+                )
 
             retry_after = now + outcome.retry_after_seconds
             error_count = len(state.get("error_codes") or [])
-            last_selected = max(
-                float(state.get("last_success") or 0.0),
-                coordinated.last_selected_ms / 1000,
-            )
+            if affinity_filename and filename == affinity_filename and in_flight == 0:
+                last_selected = -1.0
+            else:
+                last_selected = max(
+                    float(state.get("last_success") or 0.0),
+                    coordinated.last_selected_ms / 1000,
+                )
 
             score = (
                 strategy_rank,
@@ -350,6 +361,7 @@ class SmartCredentialRouter:
         preferred_provider: Optional[str] = None,
         excluded_provider_models: Optional[Set[Tuple[str, str]]] = None,
         excluded_credential_models: Optional[Set[Tuple[str, str]]] = None,
+        session_key: Optional[str] = None,
     ) -> tuple[Optional[CredentialResult], RouteDecision]:
         """Reserve the best credential and return its diagnostic decision."""
         async with self._io_slots:
@@ -440,6 +452,7 @@ class SmartCredentialRouter:
                 coordinated_credentials=coordinated_credentials,
                 coordinated_outcomes=coordinated_outcomes,
                 now=now,
+                session_key=session_key,
             )
 
             if normalized_strategy == "weighted" and len(ranked) > 1:
@@ -547,6 +560,13 @@ class SmartCredentialRouter:
 
                 key = (mode, filename)
                 self._active_leases.setdefault(key, deque()).append(selected_lease)
+                if session_key:
+                    affinity_key = (mode, str(session_key))
+                    self._session_affinity.pop(affinity_key, None)
+                    self._session_affinity[affinity_key] = filename
+                    if len(self._session_affinity) > 512:
+                        oldest_key = next(iter(self._session_affinity))
+                        self._session_affinity.pop(oldest_key, None)
                 candidate = decisions[filename]
                 selected_provider = get_credential_provider(credential_data)
                 decisions[filename] = RouteCandidate(
@@ -633,6 +653,7 @@ class SmartCredentialRouter:
         preferred_provider: Optional[str] = None,
         excluded_provider_models: Optional[Set[Tuple[str, str]]] = None,
         excluded_credential_models: Optional[Set[Tuple[str, str]]] = None,
+        session_key: Optional[str] = None,
     ) -> Optional[CredentialResult]:
         """Reserve and return the best currently available credential."""
         result, _ = await self.acquire_with_decision(
@@ -644,6 +665,7 @@ class SmartCredentialRouter:
             preferred_provider=preferred_provider,
             excluded_provider_models=excluded_provider_models,
             excluded_credential_models=excluded_credential_models,
+            session_key=session_key,
         )
         return result
 
@@ -681,7 +703,8 @@ class SmartCredentialRouter:
                 await self._coordination.release_credential(lease)
 
             if success:
-                latency = float(get_request_elapsed_ms())
+                ttft_ms = get_request_ttft_ms()
+                latency = float(ttft_ms if ttft_ms > 0 else get_request_elapsed_ms())
                 await self._coordination.record_route_outcome(
                     mode,
                     filename,
@@ -748,6 +771,7 @@ class SmartCredentialRouter:
                 self._state_cache.clear()
                 self._recent_decisions.clear()
                 self._provider_variants.clear()
+                self._session_affinity.clear()
             for lease in leases:
                 await self._coordination.release_credential(lease)
         finally:

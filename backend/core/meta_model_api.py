@@ -255,7 +255,7 @@ def _canonical_input(source):
                 part = {key: value for key, value in part.items() if key != "thoughtSignature"}
             if part.get("thought") or "thoughtSignature" in part:
                 raise MetaModelAPIError("Signed reasoning requires native Meta Responses replay.")
-            kinds = set(part) - {"thought"}
+            kinds = set(part) - {"thought", "cache_control", "_image_detail"}
             if kinds == {"text"} and isinstance(part["text"], str):
                 output.append(
                     {
@@ -428,7 +428,9 @@ def prepare_request(
         system = _object(source.get("systemInstruction") or {}, "system instruction")
         parts = system.get("parts") or []
         if any(
-            not isinstance(part, dict) or set(part) != {"text"} or not isinstance(part["text"], str)
+            not isinstance(part, dict)
+            or (set(part) - {"cache_control"}) != {"text"}
+            or not isinstance(part["text"], str)
             for part in parts
         ):
             raise MetaModelAPIError("Meta system instructions support text only.")
