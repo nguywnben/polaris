@@ -18,6 +18,7 @@ from core.openai_platform import (
     normalize_openai_api_url,
     validate_openai_api_key,
 )
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import PoolImportError, restore_openai_credential
 from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import CODEX, OPENAI, OPENAI_PLATFORM, api_key_fingerprint
@@ -35,7 +36,7 @@ from .import_utils import (
     _safe_import_name,
 )
 
-router = APIRouter(tags=["provider-openai"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-openai"])
 
 OPENAI_CONFIG_KEYS = {
     "openai_api_url",

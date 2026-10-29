@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "contract_version": "chat-reasoning-v1",
+  "baseline": "protocol-contract-corpus-v1.json",
+  "feature_overrides": {
+    "openai_chat_to_gemini": {"reasoning_control": "translated"},
+    "vertex_openai_to_gemini": {"reasoning_control": "translated"}
+  },
+  "request": {
+    "model": "gemini-3.8-flash-tiered",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "reasoning_effort": "high"
+  },
+  "thinking_config": {"thinkingLevel": "high"}
+}

@@ -1,6 +1,7 @@
 from core.model_pool import get_public_virtual_models, model_catalog_service
 from core.models import model_to_dict
 from core.router.base_router import create_gemini_model_list, create_openai_model_list
+from core.router.protocol_errors import protocol_error_response
 from core.utils import authenticate_flexible, get_base_model_from_feature_model
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -10,19 +11,15 @@ router = APIRouter()
 
 
 async def get_primary_models_with_features():
+    """Advertise provider models and configured aliases, not synthetic feature IDs.
+
+    Feature prefixes remain accepted by inference routes for explicit opt-in use.
+    """
 
     catalog_entries = await model_catalog_service.get_catalog()
     if not catalog_entries:
         log.warning("[provider model list] No concrete provider models are currently available.")
-    base_model_ids = [entry.model_id for entry in catalog_entries]
-
-    models = []
-    for base_model in base_model_ids:
-        models.append(base_model)
-
-        models.append(f"fake-streaming/{base_model}")
-
-        models.append(f"streaming-anti-truncation/{base_model}")
+    models = list(dict.fromkeys(entry.model_id for entry in catalog_entries))
 
     for virtual_model in await get_public_virtual_models():
         if virtual_model not in models:
@@ -31,7 +28,7 @@ async def get_primary_models_with_features():
     route_label = "route" if len(models) == 1 else "routes"
     log.info(
         f"[provider model list] Generated {len(models)} provider model {route_label}, "
-        "including feature-prefixed routes."
+        "including configured aliases."
     )
     return models
 
@@ -48,6 +45,7 @@ async def list_gemini_models(token: str = Depends(authenticate_flexible)):
 
 
 @router.get("/v1/models")
+@router.get("/v1/v1/models", include_in_schema=False)
 async def list_openai_models(token: str = Depends(authenticate_flexible)):
     models = await get_primary_models_with_features()
     log.info("[provider model list] Returning the model list in OpenAI format.")
@@ -55,3 +53,14 @@ async def list_openai_models(token: str = Depends(authenticate_flexible)):
     return JSONResponse(
         content={"object": "list", "data": [model_to_dict(model) for model in model_list.data]}
     )
+
+
+@router.get("/v1/models/{model_id:path}", include_in_schema=False)
+@router.get("/models/{model_id:path}", include_in_schema=False)
+async def retrieve_openai_model(model_id: str, token: str = Depends(authenticate_flexible)):
+    models = await get_primary_models_with_features()
+    model_list = create_openai_model_list(models, owned_by="provider")
+    for model_obj in model_list.data:
+        if model_obj.id == model_id:
+            return JSONResponse(content=model_to_dict(model_obj))
+    return protocol_error_response("openai", 404, f"The model '{model_id}' does not exist.")

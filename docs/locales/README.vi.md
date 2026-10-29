@@ -67,7 +67,21 @@ Quy trình lập trình hiện đại thường kết hợp nhiều client và p
 
 ## Giao diện Console
 
-![Trang thông tin xác thực Polaris](../assets/screenshots/credential-pool.png)
+Ảnh chụp sử dụng dữ liệu giả lập trong môi trường demo offline riêng.
+
+### Bảng điều khiển
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Bảng điều khiển Polaris" />
+</picture>
+
+### Thông tin xác thực
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Trang thông tin xác thực Polaris" />
+</picture>
 
 ## <a id="nha-cung-cap-duoc-ho-tro"></a>Nhà cung cấp được hỗ trợ
 
@@ -134,13 +148,15 @@ Xem [Kiến trúc](../architecture.md) để biết thêm về ranh giới các 
 
 ## <a id="trien-khai"></a>Triển khai
 
+Muốn cài Docker trên Linux hoặc Windows mà không clone repo hoặc sửa `.env`, xem [Cài Docker đơn giản](../docker-install.md): chọn Bash hoặc PowerShell, chạy một lệnh cài, xác nhận nếu dùng HTTP trên VPS, rồi tạo mật khẩu trên web. **Bộ cài PowerShell mới đã có mã nguồn nhưng cần phát hành trước khi dùng lệnh tải.** Runtime hiện là Linux/amd64; macOS Intel chưa được kiểm thử trên máy Mac. Vẫn giữ Docker thủ công, Compose và chạy mã nguồn; Docker-run có [hướng dẫn sao lưu/cập nhật riêng](../docker-maintenance.md), không dùng công cụ cập nhật Compose.
+
 Docker Compose là cách triển khai production chuẩn cho profile một máy, một worker được hỗ trợ.
 Hãy đi theo [Hướng dẫn cài đặt chuẩn](../installation.md) từ bước kiểm tra máy chủ đến Dashboard đã
 xác thực. [Ma trận hỗ trợ cài đặt](../installation.md#support-matrix) ghi rõ bằng chứng cho Windows,
 Linux, macOS và kiến trúc CPU; tài liệu không ngầm tuyên bố hỗ trợ ARM64.
 
 Profile mặc định không cần dịch vụ bên ngoài, đồng thời lưu toàn bộ dữ liệu ứng dụng trong volume
-`polaris-data`. Mẫu môi trường tối thiểu ghim bản phát hành `0.1.0-beta.1`; việc cập nhật
+`polaris-data`. Mẫu môi trường hướng tới `1.0.0`. Chỉ cài bằng tag và image Polaris đã phát hành, cùng phiên bản; nếu dùng mã nguồn chưa phát hành, hãy theo [checklist phát hành](../releases/1.0.0-preparation.md) và build image local riêng. Việc cập nhật
 production phải theo [quy trình cập nhật và rollback Compose](../updating.md). Chỉ bật lưu trữ ngoài,
 Team access, proxy, guardrail, cache hoặc telemetry qua `deploy/compose.advanced.yml` sau khi bản cài
 đặt cơ bản đã hoạt động tốt.
@@ -152,7 +168,7 @@ lưu trữ, telemetry và automation. Các bản pre-release không được h�
 Hướng dẫn bắt đầu bằng kiểm tra sức khỏe và mức sẵn sàng, bảo toàn volume dữ liệu và liệt kê
 thông tin cần thu thập sau khi loại bỏ dữ liệu nhạy cảm.
 
-Các script Python native trong `deploy/scripts`, `docker run` trực tiếp, Render và Zeabur chỉ thuộc
+Các script Python native trong `deploy/scripts`, Render và Zeabur chỉ thuộc
 tầng tương thích, không có đầy đủ bằng chứng cài đặt/cập nhật/rollback của đường chuẩn. Image
 production hiện chỉ phát hành cho `linux/amd64`; bản native `linux/arm64` chưa được phát hành vì
 toàn bộ stack phụ thuộc đã khóa chưa có bằng chứng build và runtime tương đương.
@@ -210,6 +226,7 @@ cho phép qua môi trường. Giá trị không hợp lệ sẽ chặn khởi đ
 | `API_KEY` | tạo tự động | Key ưu tiên cho các request API client công khai. Phải bắt đầu bằng `sk-polaris-`. |
 | `PANEL_PASSWORD` | trống cho đến khi thiết lập | Mật khẩu cho bảng điều khiển web. |
 | `SETUP_TOKEN` | để trống | Bắt buộc trước khi thiết lập từ xa lần đầu; dùng giá trị riêng dài ít nhất 24 ký tự. Ứng dụng không tự sinh hoặc ghi giá trị này vào log. Thiết lập trực tiếp trên localhost không cần mã. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Chỉ bật khi chấp nhận thiết lập từ xa qua HTTP không mã hóa thông tin xác thực và phiên. Khuyến nghị HTTPS; vẫn cần mã thiết lập đủ mạnh. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Thời gian sống của phiên bảng điều khiển web tính bằng giây. |
 | `PANEL_COOKIE_SECURE` | tự động | Đặt `true` để bắt buộc cookie bảng điều khiển chỉ truyền qua HTTPS. Để trống để tự động phát hiện HTTPS qua `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Cửa sổ giới hạn tần suất đăng nhập tính bằng giây. |
@@ -401,10 +418,23 @@ Khám phá mô hình có nhận thức về nhà cung cấp: một mô hình dù
 
 Khi một upstream trả về lỗi `404` cho một mô hình cụ thể, Polaris sẽ ghi nhận một tuyến không khả dụng (unavailable route) cho credential và mô hình đó thay vì vô hiệu hóa toàn bộ nhà cung cấp. Tuyến đó sẽ tạm thời được né tránh ngay lập tức và tiếp tục hiển thị dưới mục **Unavailable Model Routes** cho đến khi nó được xóa hoặc credential được xác minh lại. Điều này ngăn việc gói đăng ký hoặc quyền hạn theo khu vực của một tài khoản ảnh hưởng đến các tài khoản khác ở cùng nhà cung cấp. Nếu không có credential đang bật nào khai báo hoặc suy đoán được khả năng hỗ trợ cho mô hình cụ thể được yêu cầu, gateway sẽ trả về lỗi không có credential tương thích rõ ràng thay vì gửi request đến một provider ngẫu nhiên.
 
-Polaris nhận diện các tiền tố và hậu tố tính năng trong tên mô hình:
+`GET /v1/models` và `GET /v1beta/models` chỉ công bố mô hình của nhà cung cấp và alias đã cấu hình,
+đang bật; không tự sinh thêm bản sao có tiền tố tính năng. Các biến thể do nhà cung cấp trả về,
+bao gồm mô hình thinking, vẫn được giữ nguyên. Sau khi làm mới danh sách chọn mô hình, client
+sẽ không còn thấy các bản sao tự sinh; ID có tiền tố đã lưu hoặc nhập thủ công vẫn được chấp nhận.
 
-- `fake-streaming/{model}` hoặc tiền tố pseudo-streaming đã cấu hình cho các client yêu cầu bắt buộc định dạng SSE.
-- `streaming-anti-truncation/{model}` hoặc tiền tố anti-truncation đã cấu hình để tự động phục hồi streaming trong các văn bản dài.
+### Tính năng mô hình nâng cao (tự chọn bật)
+
+Chọn chế độ bằng cách nhập ID có tiền tố trong client với `stream: true`;
+không cần tham số lấy danh sách hay công tắc bật toàn cục:
+
+- `fake-streaming/{model}` đợi phản hồi không streaming từ upstream rồi xuất kết quả dạng SSE.
+- `streaming-anti-truncation/{model}` bật cơ chế viết tiếp khi streaming, có thể phát sinh thêm
+  lượt gọi upstream, độ trễ và mức sử dụng. Giới hạn số lần thử trong Chất lượng AI giới hạn chế độ
+  này; chỉ thay đổi giới hạn không tự bật chế độ.
+
+Polaris cũng nhận diện các hậu tố được hỗ trợ trong tên mô hình:
+
 - Các hậu tố suy nghĩ (thinking) như `-high`, `-medium`, `-low`, `-minimal` và `-max` cho các mô hình thuộc họ Gemini có hỗ trợ.
 - Các hậu tố tìm kiếm như `-search` cho các mô hình hỗ trợ tiếp đất bằng Google Search (grounding).
 
@@ -412,7 +442,9 @@ Các adapter nhà cung cấp sẽ chuẩn hóa các tên tính năng này trư�
 
 ## Mức độ sử dụng và Minh bạch chi phí
 
-Polaris ghi lại số lần gọi nhà cung cấp, tỷ lệ thành công, phân bổ theo thông tin xác thực, số token do nhà cung cấp báo cáo, lượng token ước tính tiết kiệm được qua nén ngữ cảnh và chi phí USD ước tính mỗi lượt gọi. Mỗi lần thử lại hoặc chuyển tuyến dự phòng là một lần gọi nhà cung cấp riêng, còn request trace giữ kết quả cuối của yêu cầu logic. Tổng token phân biệt đầu vào thông thường, cache read, cache write, đầu ra và suy luận khi nhà cung cấp có báo cáo; dashboard chỉ rõ các lần gọi thành công bị thiếu usage thay vì coi dữ liệu thiếu là số 0 chính xác. Khoảng thống kê và bucket biểu đồ dùng mốc đồng hồ cố định theo múi giờ hiện tại của trình duyệt, vì vậy tải lại ở một phút khác không làm dịch chuyển toàn bộ bucket. Chế độ một ngày bao phủ ngày lịch hiện tại và hiển thị các bucket theo giờ từ 00:00 đến 23:00. Khi khởi động và mặc định mỗi 24 giờ, gateway đồng bộ [catalog giá mô hình LiteLLM](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), kiểm tra các mục trực tiếp của OpenAI, Anthropic, Gemini và xAI rồi lưu nguyên tử snapshot hợp lệ gần nhất. Đồng bộ lỗi không làm gián đoạn inference. Có thể ghi đè hoặc bổ sung giá bằng tệp `model_pricing.json` trong thư mục thông tin xác thực; giá thủ công luôn được ưu tiên và tính bằng USD trên một triệu token. Dữ liệu tổng hợp có trên dashboard, theo từng khóa ảo qua API quản trị `/api/virtual-keys` và qua Prometheus `/metrics`. Lượng tiết kiệm từ nén và chi phí vẫn là ước tính vì tokenizer và quy tắc thanh toán của nhà cung cấp mới là căn cứ cuối cùng.
+Polaris ghi lại số lần gọi nhà cung cấp, tỷ lệ thành công, phân bổ theo thông tin xác thực, số token do nhà cung cấp báo cáo, lượng token ước tính tiết kiệm được qua nén ngữ cảnh và chi phí USD ước tính mỗi lượt gọi. Mỗi lần thử lại hoặc chuyển tuyến dự phòng là một lần gọi nhà cung cấp riêng, còn request trace giữ kết quả cuối của yêu cầu logic. Tổng token phân biệt đầu vào thông thường, cache read, cache write, đầu ra và suy luận khi nhà cung cấp có báo cáo; dashboard chỉ rõ các lần gọi thành công bị thiếu usage thay vì coi dữ liệu thiếu là số 0 chính xác. Khoảng thống kê và bucket biểu đồ dùng mốc đồng hồ cố định theo múi giờ hiện tại của trình duyệt, vì vậy tải lại ở một phút khác không làm dịch chuyển toàn bộ bucket. Chế độ một ngày bao phủ ngày lịch hiện tại và hiển thị các bucket theo giờ từ 00:00 đến 23:00. Khi khởi động và mặc định mỗi 24 giờ, gateway đồng bộ [catalog giá mô hình LiteLLM](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), kiểm tra các mục giá token theo provider trong catalog rồi lưu nguyên tử snapshot hợp lệ gần nhất. Đồng bộ lỗi không làm gián đoạn inference. Có thể ghi đè hoặc bổ sung giá bằng tệp `model_pricing.json` trong thư mục thông tin xác thực; giá thủ công luôn được ưu tiên và tính bằng USD trên một triệu token. Dữ liệu tổng hợp có trên dashboard, theo từng khóa ảo qua API quản trị `/api/virtual-keys` và qua Prometheus `/metrics`. Lượng tiết kiệm từ nén và chi phí vẫn là ước tính vì tokenizer và quy tắc thanh toán của nhà cung cấp mới là căn cứ cuối cùng.
+
+Xem [ánh xạ giá, cấu hình, độ đầy đủ và lưu ý rollback](../pricing.md) để phân biệt giá chưa biết với lượt dùng miễn phí.
 
 Khóa API ảo (Virtual API Keys) cho phép một gateway phục vụ nhiều client dưới các giới hạn riêng biệt. Mỗi khóa mang ngân sách USD tùy chọn theo ngày và tháng được thực thi từ sổ cái chi phí, cửa sổ trượt giới hạn số yêu cầu mỗi phút (RPM) và số token mỗi phút (TPM), mốc thời gian hết hạn và danh sách mô hình cho phép theo mẫu glob. Các khóa được lưu dưới dạng hàm băm SHA-256; chuỗi bí mật dạng văn bản thuần chỉ hiển thị đúng một lần khi tạo.
 
@@ -442,9 +474,9 @@ Nhập hàng loạt Google AI Studio chấp nhận các file JSON và file nén 
 }
 ```
 
-Mỗi key được nhập đều được xác thực trước khi lưu trữ. Các key trùng lặp trong cùng một lần nhập sẽ bị bỏ qua, các key đã tồn tại được xác thực lại và cập nhật, và các mục không hợp lệ được báo cáo mà không để lộ giá trị key.
+Nhập tệp là thao tác ngoại tuyến: Polaris kiểm tra cấu trúc JSON/ZIP, lưu khóa mới với trạng thái `unverified` (chưa xác minh) và bỏ qua khóa trùng hoặc đã tồn tại, không gọi Google. Danh sách mô hình trong tệp nhập không được coi là đã xác thực. Mục sai định dạng được báo riêng mà không lộ khóa. Sau đó, dùng thao tác xác minh/khám phá mô hình của credential; **Thử model** là bước riêng để kiểm tra quyền suy luận, có thể tiêu tốn hạn mức hoặc phát sinh phí.
 
-Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình Grok Build trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình Grok Build được khai báo bởi danh mục hiện tại của chúng. Trang Thông tin xác thực có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
+Grok Build hỗ trợ thông tin xác thực OAuth PKCE, trong khi SpaceXAI Console hỗ trợ API key. Key SpaceXAI Console được kiểm tra tính hợp lệ với danh mục mô hình API SpaceXAI Console trước khi lưu trữ. Đối với Grok Build OAuth, Polaris tạo một liên kết ủy quyền; sau khi ủy quyền, hãy sao chép mã hiển thị trên trang ủy quyền Grok Build và dán vào biểu mẫu Grok Build OAuth. Token truy cập được tự động làm mới khi có refresh token, và cả hai loại credential chỉ hiển thị các mô hình được khai báo trong danh mục hiện tại tương ứng. Trang Thông tin xác thực có thể truy xuất mức sử dụng tín dụng hàng tháng và mức sử dụng hàng tuần (khi xAI cung cấp) cho các tài khoản Grok Build OAuth. Chế độ xem thanh toán cấp tài khoản này không khả dụng cho các API key SpaceXAI Console.
 
 Codex sử dụng quy trình ủy quyền thiết bị của OpenAI. Tạo một mã thiết bị từ trang Providers, mở URL xác minh được hiển thị, nhập mã, hoàn tất đăng nhập và quay lại để kiểm tra ủy quyền. Polaris lưu trữ danh mục mô hình theo phạm vi tài khoản do Codex trả về, làm mới token truy cập OAuth khi cần và gửi các request tương thích qua giao vận Codex Responses. OpenAI Platform sử dụng xác thực API key; các key được xác thực thông qua danh mục mô hình tài khoản trước khi đưa vào nhóm. Cả hai sản phẩm đều hỗ trợ nhập JSON và ZIP với khả năng xác thực và chống trùng lặp theo từng nhà cung cấp.
 
@@ -460,6 +492,8 @@ Nhập thông tin xác thực và nhập hàng loạt Google Antigravity chấp 
 
 Trang **Thông tin xác thực** (`/credentials`) nhóm các tài khoản và khóa API theo provider. Modal quản lý từng credential hiển thị danh tính, mô hình, trạng thái và các thao tác mà provider hỗ trợ. Các provider OAuth có thể cung cấp hạn mức theo khoảng thời gian, theo mô hình, gói đăng ký hoặc chế độ tín dụng khác nhau; thông tin thiếu được hiển thị là không khả dụng. Khóa API không mặc nhiên cung cấp email tài khoản, gói đăng ký hay dữ liệu thanh toán.
 
+Email tài khoản được che mặc định. **Quản lý → Hiện email** yêu cầu quyền xuất credential; giá trị đầy đủ được bỏ khỏi giao diện khi ẩn hoặc đóng modal. Tên tệp cũ chứa email được thay bằng định danh ẩn trên giao diện và API quản lý, không đổi tên tệp trong kho. Xem [quyền riêng tư email và tương thích API](../credential-email-privacy.md).
+
 **Tải ZIP** xuất thông tin xác thực; **Nhập ZIP** nhập tệp chứa nhiều provider thông qua cơ chế nhận diện và kiểm tra riêng của từng provider. Danh tính OAuth và fingerprint khóa API được chống trùng lặp trong phạm vi provider và ngữ cảnh kết nối. Mục không được hỗ trợ hoặc sai định dạng được báo riêng. Việc kiểm tra và khám phá mô hình tùy thuộc provider; nhập thành công hoặc nhìn thấy danh mục mô hình chưa chứng minh quyền gọi suy luận. Dùng **Thử model** để kiểm tra bằng một yêu cầu thực tế, có thể tiêu tốn hạn mức hoặc phát sinh phí.
 
 Tệp xuất credential chứa bí mật. ZIP thông tin xác thực không phải bản sao lưu toàn ứng dụng: dùng quy trình sao lưu/khôi phục SQLite có mã hóa trong **Cài đặt** để chuyển dữ liệu và cấu hình ứng dụng được hỗ trợ.
@@ -473,10 +507,10 @@ Tên chế độ xác thực (Credential mode names):
 
 ## Lưu trữ
 
-Triển khai đơn tiến trình sử dụng bộ lưu trữ SQLite trong thư mục dữ liệu ứng dụng. Docker Compose
-lưu toàn bộ `/app/backend/data` trong volume có tên `polaris-data`. Khi dùng trực tiếp
-`docker run`, hãy gắn `/app/backend/data/creds` và `/app/backend/data/logs` vào các đường dẫn bền
-vững trên máy chủ như `/opt/polaris/creds` và `/opt/polaris/logs`.
+Triển khai đơn tiến trình sử dụng SQLite trong thư mục dữ liệu ứng dụng. Compose và trình cài
+Docker lưu toàn bộ `/app/backend/data` trong volume `polaris-data`. Khi dùng `docker run`
+thủ công cũng phải lưu bền vững toàn bộ thư mục dữ liệu; chỉ gắn `creds` và `logs` sẽ không
+giữ được cơ sở dữ liệu SQLite và cấu hình.
 
 SQLite là nguồn lưu trữ Core và là lựa chọn production được khuyến nghị. PostgreSQL là tùy chọn
 Advanced dành cho người vận hành tự quản lý vòng đời cơ sở dữ liệu. MongoDB chỉ được giữ ở tier

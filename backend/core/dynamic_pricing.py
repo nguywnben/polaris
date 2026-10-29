@@ -6,12 +6,19 @@ import asyncio
 import json
 import math
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from core.httpx_client import http_client
-from core.pricing import ModelPricing, _parse_override_entry, _pricing_table, _PricingTable
+from core.pricing import (
+    ModelCapabilities,
+    ModelPricing,
+    _parse_override_entry,
+    _pricing_table,
+    _PricingTable,
+)
 from log import log
 from paths import DEFAULT_CREDENTIALS_DIR
 
@@ -27,7 +34,6 @@ MAX_MODEL_KEY_LENGTH = 512
 MAX_USD_PER_MILLION = 1_000_000.0
 CATALOG_TIMEOUT_SECONDS = 15.0
 FAILED_SYNC_RETRY_SECONDS = 3600
-SUPPORTED_PROVIDERS = frozenset({"openai", "anthropic", "gemini", "xai"})
 SUPPORTED_MODES = frozenset({"chat", "completion", "responses"})
 
 
@@ -42,20 +48,24 @@ def _canonical_provider(value: Any) -> str:
         return "gemini"
     if provider in {"openai", "anthropic", "xai"}:
         return provider
-    return ""
+    return provider if re.fullmatch(r"[a-z0-9_]{1,64}", provider) else ""
 
 
 def _canonical_model(catalog_key: Any, provider: str) -> str:
     key = str(catalog_key or "").strip().lower()
     if not key or len(key) > MAX_MODEL_KEY_LENGTH:
         return ""
-    for prefix in (f"{provider}/", "google/" if provider == "gemini" else ""):
+    for prefix in (
+        f"{provider}/",
+        "google/" if provider == "gemini" else "",
+        "vertex_ai/" if provider == "gemini" else "",
+    ):
         if prefix and key.startswith(prefix):
             key = key[len(prefix) :]
             break
     if key.startswith("models/"):
         key = key[len("models/") :]
-    return key if key and "/" not in key else ""
+    return key if key and not any(ord(char) < 33 for char in key) else ""
 
 
 def _price_per_million(entry: dict[str, Any], field: str) -> float | None:
@@ -99,7 +109,7 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
         if not isinstance(entry, dict):
             continue
         provider = _canonical_provider(entry.get("litellm_provider"))
-        if provider not in SUPPORTED_PROVIDERS:
+        if not provider:
             continue
         mode = str(entry.get("mode") or "chat").strip().lower()
         if mode not in SUPPORTED_MODES:
@@ -120,6 +130,9 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
             cache_read_per_million=cache_price,
             reasoning_per_million=output_price,
             cache_creation_per_million=cache_creation_price,
+            # Keep an explicit barrier rather than falling back to a flat builtin.
+            # These require measurements/rate selection not yet in our token ledger.
+            supported=not any(("above_" in key or "tiered_pricing" == key) for key in entry),
         )
         if qualified_model in ambiguous:
             continue
@@ -130,6 +143,51 @@ def parse_litellm_catalog(raw: Any) -> dict[tuple[str, str], ModelPricing]:
             continue
         parsed[qualified_model] = model_pricing
     return parsed
+
+
+def _optional_positive_int(entry: dict[str, Any], *fields: str) -> int | None:
+    for field in fields:
+        value = entry.get(field)
+        if isinstance(value, bool) or value is None:
+            continue
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0:
+            return parsed
+    return None
+
+
+def parse_litellm_capabilities(raw: Any) -> dict[tuple[str, str], ModelCapabilities]:
+    """Extract context window and capability metadata from the LiteLLM catalog."""
+    if not isinstance(raw, dict) or len(raw) > MAX_CATALOG_ENTRIES:
+        return {}
+    capabilities: dict[tuple[str, str], ModelCapabilities] = {}
+    for catalog_key, entry in raw.items():
+        if not isinstance(entry, dict):
+            continue
+        provider = _canonical_provider(entry.get("litellm_provider"))
+        if not provider:
+            continue
+        mode = str(entry.get("mode") or "chat").strip().lower()
+        if mode not in SUPPORTED_MODES:
+            continue
+        model = _canonical_model(catalog_key, provider)
+        if not model:
+            continue
+        max_input = _optional_positive_int(entry, "max_input_tokens", "max_tokens")
+        max_output = _optional_positive_int(entry, "max_output_tokens", "max_tokens")
+        capabilities[(provider, model)] = ModelCapabilities(
+            max_input_tokens=max_input,
+            max_output_tokens=max_output,
+            supports_vision=bool(entry.get("supports_vision")),
+            supports_function_calling=bool(entry.get("supports_function_calling")),
+            supports_prompt_caching=bool(entry.get("supports_prompt_caching")),
+            supports_reasoning=bool(entry.get("supports_reasoning")),
+            supports_response_schema=bool(entry.get("supports_response_schema")),
+        )
+    return capabilities
 
 
 class DynamicPricingService:
@@ -197,9 +255,14 @@ class DynamicPricingService:
             entries = parse_litellm_catalog(raw)
             if len(entries) < MIN_REMOTE_CATALOG_ENTRIES:
                 raise ValueError("remote_catalog_incomplete")
+            capabilities = parse_litellm_capabilities(raw)
             fetched_at = datetime.now(timezone.utc).isoformat()
             self._write_cache(entries, fetched_at=fetched_at)
-            self._table.replace_dynamic(entries, fetched_at=fetched_at)
+            self._table.replace_dynamic(
+                entries,
+                fetched_at=fetched_at,
+                capabilities=capabilities,
+            )
             log.info(f"[pricing] synchronized {len(entries)} direct-provider model prices")
             return True
         except Exception as exc:
@@ -247,6 +310,7 @@ class DynamicPricingService:
                 "cache_read": price.cache_read_per_million,
                 "reasoning": price.reasoning_per_million,
                 "cache_creation": price.cache_creation_per_million,
+                "supported": price.supported,
             }
         payload = {
             "schema_version": PRICING_CACHE_SCHEMA_VERSION,

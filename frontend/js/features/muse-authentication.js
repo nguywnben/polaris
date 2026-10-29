@@ -1,5 +1,5 @@
 // The server owns OAuth state. A user click is required for every check/save.
-function buildMuseOAuthPanel(advanced) {
+function buildMuseOAuthPanel(advanced, definition = {}) {
     const settings = extendedElement('div', 'provider-auth-settings');
     const help = extendedElement('p', 'card-copy provider-tool-copy', 'provider.muse.settings_help');
     help.id = 'museSettingsHelp';
@@ -7,6 +7,15 @@ function buildMuseOAuthPanel(advanced) {
     credentialLabel.dataset.i18nPlaceholder = 'credential_display_name';
     credentialLabel.maxLength = 128;
     credentialLabel.setAttribute('aria-describedby', help.id);
+    if (definition.base) {
+        extendedReadOnlyField(settings, 'muse', 'base_url', 'provider.form.endpoint_label', definition.base);
+    }
+    if (definition.protocol) {
+        extendedReadOnlyField(settings, 'muse', 'protocol', 'provider.form.protocol_behavior', definition.protocol);
+    }
+    if (definition.auth) {
+        extendedReadOnlyField(settings, 'muse', 'auth_method', definition.authLabel || 'provider.form.oauth_client', definition.auth);
+    }
     settings.prepend(help); advanced.append(settings);
     const panel = extendedElement('section', 'tool-panel');
     const title = extendedElement('h3', 'card-title'); title.textContent = 'Muse Code OAuth';

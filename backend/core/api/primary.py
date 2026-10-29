@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import time
+import uuid
 from contextlib import aclosing
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ from config import (
     get_xai_user_agent,
 )
 from core.anthropic import (
+    _stream_tool_blocks,
     anthropic_response_to_gemini,
     anthropic_stream_line_to_gemini,
     build_anthropic_headers,
@@ -75,7 +77,9 @@ from core.google_ai_studio import (
     parse_model_ids,
 )
 from core.httpx_client import get_async, post_async, stream_post_async
+from core.meta_model_api import MetaModelAPIError
 from core.model_blacklist import record_model_not_found
+from core.muse_oauth import MuseOAuthError
 from core.muse_quota import subscription_observer
 from core.ollama import (
     build_ollama_headers,
@@ -114,6 +118,8 @@ from core.provider_registry import (
     get_credential_provider_variant,
     get_provider_routing_id,
 )
+from core.reasoning_control import ReasoningControlError, prepare_reasoning_request
+from core.request_context import mark_request_first_token
 from core.request_trace_service import trace_decision
 from core.storage_adapter import get_storage_adapter
 from core.token_compression import (
@@ -219,6 +225,161 @@ def _apply_credit_mode(payload: Dict[str, Any], enabled: bool) -> None:
         payload.pop("enabledCreditTypes", None)
 
 
+def _normalize_antigravity_tool_turns(
+    request: Dict[str, Any], model_name: str = ""
+) -> Dict[str, Any]:
+    """Normalize Gemini turns to the stricter Antigravity function-call contract.
+
+    Antigravity requires a model/function-call turn to follow a user turn (or a
+    user turn carrying functionResponse parts). OpenAI histories can start
+    with an assistant tool call, replay consecutive assistant turns, or carry a
+    function response under a non-native role. Keep regular content intact,
+    but canonicalize those tool turns before the provider envelope is built.
+    """
+    contents = request.get("contents")
+    if not isinstance(contents, list):
+        return request
+
+    normalized_contents: list[dict[str, Any]] = []
+    for content in contents:
+        if not isinstance(content, dict):
+            continue
+        parts = content.get("parts")
+        if not isinstance(parts, list) or not parts:
+            continue
+
+        copied_parts = [part.copy() for part in parts if isinstance(part, dict)]
+        if not copied_parts:
+            continue
+        copied = dict(content)
+        copied["parts"] = copied_parts
+
+        has_call = any("functionCall" in part or "function_call" in part for part in copied_parts)
+        has_response = any(
+            "functionResponse" in part or "function_response" in part for part in copied_parts
+        )
+
+        # Function responses are user turns in Gemini. A malformed replay can
+        # carry them as model/function; canonicalize the role before merging.
+        if has_response and not has_call:
+            copied["role"] = "user"
+        elif has_call and not has_response:
+            copied["role"] = "model"
+
+        # A mixed response/call content cannot satisfy strict turn ordering.
+        # Keep ordinary text with the response/user side and emit calls as a
+        # separate model turn.
+        if has_call and has_response:
+            response_parts = [
+                part
+                for part in copied_parts
+                if "functionResponse" in part or "function_response" in part
+            ]
+            call_parts = [
+                part for part in copied_parts if "functionCall" in part or "function_call" in part
+            ]
+            other_parts = [
+                part
+                for part in copied_parts
+                if not (
+                    "functionCall" in part
+                    or "function_call" in part
+                    or "functionResponse" in part
+                    or "function_response" in part
+                )
+            ]
+            if response_parts or other_parts:
+                normalized_contents.append(
+                    {**copied, "role": "user", "parts": response_parts + other_parts}
+                )
+            if call_parts:
+                normalized_contents.append({**copied, "role": "model", "parts": call_parts})
+            continue
+
+        if normalized_contents and normalized_contents[-1].get("role") == copied.get("role"):
+            normalized_contents[-1]["parts"].extend(copied_parts)
+        else:
+            normalized_contents.append(copied)
+
+    for content in normalized_contents:
+        if content.get("role") != "model":
+            continue
+        parts = content.get("parts", [])
+        if not any(
+            isinstance(part, dict) and ("functionCall" in part or "function_call" in part)
+            for part in parts
+        ):
+            continue
+        content["parts"] = [
+            part for part in parts if "functionCall" in part or "function_call" in part
+        ]
+
+    # The upstream rejects a function-call/model turn at the beginning of the
+    # history, and also rejects one following another model turn. Reference
+    # Antigravity adapters use this same empty-user sentinel. Claude targets
+    # reject empty text parts, so leave their model-first history alone.
+    if "claude" not in str(model_name or "").lower():
+        with_leading_users: list[dict[str, Any]] = []
+        for content in normalized_contents:
+            is_model = content.get("role") == "model"
+            if is_model and (
+                not with_leading_users or with_leading_users[-1].get("role") != "user"
+            ):
+                with_leading_users.append({"role": "user", "parts": [{"text": ""}]})
+            with_leading_users.append(content)
+        normalized_contents = with_leading_users
+
+    result = dict(request)
+    result["contents"] = normalized_contents
+    return result
+
+
+def _strip_internal_gemini_annotations(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove internal Polaris metadata and non-Gemini part keys before native Google dispatch."""
+    cleaned: Dict[str, Any] = {
+        key: value for key, value in request.items() if not str(key).startswith("_polaris_")
+    }
+    contents = cleaned.get("contents")
+    if isinstance(contents, list):
+        cleaned_contents = []
+        for content in contents:
+            if not isinstance(content, dict):
+                cleaned_contents.append(content)
+                continue
+            parts = content.get("parts")
+            if isinstance(parts, list):
+                cleaned_parts = []
+                for part in parts:
+                    if isinstance(part, dict) and (
+                        "_image_detail" in part or "cache_control" in part
+                    ):
+                        part_copy = dict(part)
+                        part_copy.pop("_image_detail", None)
+                        part_copy.pop("cache_control", None)
+                        cleaned_parts.append(part_copy)
+                    else:
+                        cleaned_parts.append(part)
+                cleaned_contents.append({**content, "parts": cleaned_parts})
+            else:
+                cleaned_contents.append(content)
+        cleaned["contents"] = cleaned_contents
+
+    sys_inst = cleaned.get("systemInstruction")
+    if isinstance(sys_inst, dict) and isinstance(sys_inst.get("parts"), list):
+        sys_parts = []
+        for part in sys_inst["parts"]:
+            if isinstance(part, dict) and ("_image_detail" in part or "cache_control" in part):
+                part_copy = dict(part)
+                part_copy.pop("_image_detail", None)
+                part_copy.pop("cache_control", None)
+                sys_parts.append(part_copy)
+            else:
+                sys_parts.append(part)
+        cleaned["systemInstruction"] = {**sys_inst, "parts": sys_parts}
+
+    return cleaned
+
+
 async def wrap_cli_request(
     gemini_request: Dict[str, Any],
     model: str,
@@ -233,7 +394,7 @@ async def wrap_cli_request(
             original_inner,
             CompressionSettings(**await get_token_compression_config()),
         )
-    inner = dict(compression_result.request)
+    inner = _strip_internal_gemini_annotations(dict(compression_result.request))
 
     if compression_result.applied:
         log.info(
@@ -245,6 +406,13 @@ async def wrap_cli_request(
         )
 
     inner.pop("safetySettings", None)
+    if isinstance(inner.get("generationConfig"), dict):
+        gen_cfg = dict(inner["generationConfig"])
+        gen_cfg.pop("presencePenalty", None)
+        gen_cfg.pop("frequencyPenalty", None)
+        gen_cfg.pop("stopSequences", None)
+        gen_cfg.setdefault("topK", 64)
+        inner["generationConfig"] = gen_cfg
 
     if not inner.get("sessionId"):
         inner["sessionId"] = state.session_id
@@ -290,11 +458,17 @@ async def prepare_provider_request(
     from core.meta_native_boundary import validate_native_request
 
     validate_native_request(inner_request, provider_id)
+    inner_request, reasoning_options = prepare_reasoning_request(
+        inner_request, model_name, provider_id, get_credential_provider_variant(credential_data)
+    )
     compression_result = compress_gemini_request(
         dict(inner_request),
         CompressionSettings(**await get_token_compression_config()),
     )
     compressed_request = dict(compression_result.request)
+
+    if provider_id == GOOGLE_ANTIGRAVITY:
+        compressed_request = _normalize_antigravity_tool_turns(compressed_request, model_name)
 
     if provider_id in EXTENDED_PROVIDERS:
         target_url, auth_headers, payload = prepare_extended_request(
@@ -302,7 +476,7 @@ async def prepare_provider_request(
         )
     elif provider_id == GOOGLE_AI_STUDIO:
         api_key = str(credential_data.get("api_key") or "").strip()
-        payload = dict(compressed_request)
+        payload = _strip_internal_gemini_annotations(dict(compressed_request))
         for internal_key in ("model", "sessionId", "labels", "enabledCreditTypes"):
             payload.pop(internal_key, None)
         target_url = build_generation_url(
@@ -390,6 +564,8 @@ async def prepare_provider_request(
             enable_credit=bool(credential_data.get("enable_credit", False)),
             compression_result=compression_result,
         )
+
+    payload.update(reasoning_options)
 
     # Extended providers own their complete auth context; do not allow ingress
     # Authorization/API-key headers to replace their selected credential.
@@ -597,6 +773,45 @@ async def _exclude_missing_model_route(
         )
 
 
+async def _request_preparation_error(
+    error: ValueError, filename: str, credential: Dict[str, Any], model_name: str
+) -> Response:
+    """Separate rejected client options from failures that affect provider health."""
+    provider = get_credential_provider(credential)
+    status_code = 500
+    if (
+        isinstance(error, (MetaModelAPIError, MuseOAuthError, ReasoningControlError))
+        and error.status_code == 400
+    ):
+        status_code = 400
+        await credential_manager.release_credential(filename, mode="primary")
+        trace_decision(
+            category="request",
+            action="failed",
+            result="failed",
+            reason="client_error",
+            provider=provider,
+            model=model_name,
+            status_code=status_code,
+        )
+    else:
+        await record_api_call_error(
+            credential_manager,
+            filename,
+            status_code,
+            None,
+            mode="primary",
+            model_name=model_name,
+            error_message=str(error),
+            provider=provider,
+        )
+    return Response(
+        content=json.dumps({"error": str(error)}),
+        status_code=status_code,
+        media_type="application/json",
+    )
+
+
 async def stream_request(
     body: Dict[str, Any],
     native: bool = False,
@@ -679,22 +894,7 @@ async def _stream_request_upstream(
             extra_headers=headers,
         )
     except ValueError as exc:
-        provider_id = get_credential_provider(credential_data)
-        await record_api_call_error(
-            credential_manager,
-            current_file,
-            500,
-            None,
-            mode="primary",
-            model_name=model_name,
-            error_message=str(exc),
-            provider=provider_id,
-        )
-        yield Response(
-            content=json.dumps({"error": str(exc)}),
-            status_code=500,
-            media_type="application/json",
-        )
+        yield await _request_preparation_error(exc, current_file, credential_data, model_name)
         return
 
     provider_id = context.provider_id
@@ -777,185 +977,193 @@ async def _stream_request_upstream(
                     timeout=await get_upstream_timeout_seconds(),
                 )
             )
-            async for chunk in upstream:
-                if isinstance(chunk, Response):
-                    status_code = chunk.status_code
-                    last_error_response = chunk
+            stream_instance_id = f"{current_file}:{model_name}:{uuid.uuid4().hex}"
+            try:
+                async for chunk in upstream:
+                    if isinstance(chunk, Response):
+                        status_code = chunk.status_code
+                        last_error_response = chunk
 
-                    error_body = None
-                    try:
-                        error_body = (
-                            chunk.body.decode("utf-8")
-                            if isinstance(chunk.body, bytes)
-                            else str(chunk.body)
-                        )
-                    except Exception as exc:
-                        log.debug(
-                            "[provider stream] could not decode an upstream error body "
-                            f"({type(exc).__name__})."
-                        )
-                        error_body = ""
-
-                    if received_content:
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            None,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
-                        trace_decision(
-                            category="retry",
-                            action="skipped",
-                            result="skipped",
-                            reason="not_eligible",
-                            attempt=attempt + 1,
-                            status_code=status_code,
-                        )
-                        yield chunk
-                        return
-
-                    if status_code == 404:
-                        credential_route_exclusions.add((current_file, model_name))
-                        if model_routing:
-                            log.warning(
-                                "[provider stream] model route not found; blacklisting "
-                                f"credential={current_file}, provider={provider_id}, model={model_name}."
+                        error_body = None
+                        try:
+                            error_body = (
+                                chunk.body.decode("utf-8")
+                                if isinstance(chunk.body, bytes)
+                                else str(chunk.body)
                             )
-                            await _exclude_missing_model_route(
-                                credential_route_exclusions=credential_route_exclusions,
-                                credential_name=current_file,
-                                provider_id=provider_id,
+                        except Exception as exc:
+                            log.debug(
+                                "[provider stream] could not decode an upstream error body "
+                                f"({type(exc).__name__})."
+                            )
+                            error_body = ""
+
+                        if received_content:
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                None,
+                                mode="primary",
                                 model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
                             )
-                        else:
+                            trace_decision(
+                                category="retry",
+                                action="skipped",
+                                result="skipped",
+                                reason="not_eligible",
+                                attempt=attempt + 1,
+                                status_code=status_code,
+                            )
+                            yield chunk
+                            return
+
+                        if status_code == 404:
+                            credential_route_exclusions.add((current_file, model_name))
+                            if model_routing:
+                                log.warning(
+                                    "[provider stream] model route not found; blacklisting "
+                                    f"credential={current_file}, provider={provider_id}, model={model_name}."
+                                )
+                                await _exclude_missing_model_route(
+                                    credential_route_exclusions=credential_route_exclusions,
+                                    credential_name=current_file,
+                                    provider_id=provider_id,
+                                    model_name=model_name,
+                                )
+                            else:
+                                log.warning(
+                                    "[provider stream] credential could not serve the requested model; "
+                                    f"trying another route (credential={current_file}, model={model_name})."
+                                )
+                            await record_model_route_miss(
+                                credential_manager,
+                                current_file,
+                                model_name=model_name,
+                                provider=provider_id,
+                            )
+                            if attempt < attempt_limit:
+                                need_retry = True
+                                model_route_retry = True
+                                break
+                            yield chunk
+                            return
+                        elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                             log.warning(
-                                "[provider stream] credential could not serve the requested model; "
-                                f"trying another route (credential={current_file}, model={model_name})."
-                            )
-                        await record_model_route_miss(
-                            credential_manager,
-                            current_file,
-                            model_name=model_name,
-                            provider=provider_id,
-                        )
-                        if attempt < attempt_limit:
-                            need_retry = True
-                            model_route_retry = True
-                            break
-                        yield chunk
-                        return
-                    elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
-                        log.warning(
-                            f"[provider stream] streaming request failed (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
-                        )
-
-                        cooldown_until = None
-                        if (status_code == 429 or status_code == 503) and error_body:
-                            cooldown_until = await parse_and_log_cooldown(
-                                error_body, mode="primary"
+                                f"[provider stream] streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                             )
 
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            cooldown_until,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
+                            cooldown_until = None
+                            if status_code == 429 or status_code == 503:
+                                cooldown_until = await parse_and_log_cooldown(
+                                    error_body or "",
+                                    mode="primary",
+                                    headers=dict(chunk.headers),
+                                )
 
-                        should_retry = await handle_error_with_retry(
-                            credential_manager,
-                            status_code,
-                            current_file,
-                            retry_config["retry_enabled"],
-                            retry_attempt,
-                            max_retries,
-                            retry_interval,
-                            mode="primary",
-                        )
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                cooldown_until,
+                                mode="primary",
+                                model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
+                            )
 
-                        if should_retry:
-                            retry_attempt += 1
-                            need_retry = True
-                            break
+                            should_retry = await handle_error_with_retry(
+                                credential_manager,
+                                status_code,
+                                current_file,
+                                retry_config["retry_enabled"],
+                                retry_attempt,
+                                max_retries,
+                                retry_interval,
+                                mode="primary",
+                                defer_sleep=switch_credential_enabled,
+                            )
+
+                            if should_retry:
+                                retry_attempt += 1
+                                need_retry = True
+                                break
+                            else:
+                                log.error(
+                                    "[provider stream] Maximum number of retries reached or should not be retried, returning original error"
+                                )
+                                yield chunk
+                                return
                         else:
                             log.error(
-                                "[provider stream] Maximum number of retries reached or should not be retried, returning original error"
+                                f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
+                            )
+                            await record_api_call_error(
+                                credential_manager,
+                                current_file,
+                                status_code,
+                                None,
+                                mode="primary",
+                                model_name=model_name,
+                                error_message=error_body,
+                                provider=provider_id,
                             )
                             yield chunk
                             return
                     else:
-                        log.error(
-                            f"[provider stream] streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_body[:500] if error_body else 'None'}"
-                        )
-                        await record_api_call_error(
-                            credential_manager,
-                            current_file,
-                            status_code,
-                            None,
-                            mode="primary",
-                            model_name=model_name,
-                            error_message=error_body,
-                            provider=provider_id,
-                        )
+                        if _stream_event_is_heartbeat(chunk):
+                            yield _normalize_sse_frame(chunk)
+                            continue
+                        if isinstance(chunk, (str, bytes)) and not chunk.strip():
+                            continue
+                        if provider_id == XAI:
+                            chunk = xai_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+                        elif provider_id == OPENAI:
+                            if get_credential_provider_variant(credential_data) == OPENAI_PLATFORM:
+                                chunk = openai_stream_line_to_gemini(chunk)
+                            else:
+                                chunk = codex_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+                        elif provider_id == ANTHROPIC:
+                            chunk = anthropic_stream_line_to_gemini(
+                                chunk, stream_id=stream_instance_id
+                            )
+                            if not chunk:
+                                continue
+                        elif provider_id == OLLAMA:
+                            chunk = ollama_stream_line_to_gemini(chunk)
+                            if not chunk:
+                                continue
+
+                        chunk = _normalize_sse_frame(chunk)
+
+                        if not received_content:
+                            received_content = True
+                            mark_request_first_token()
+                            log.debug(
+                                f"[provider stream] started receiving streaming responses, model: {model_name}"
+                            )
+
+                        terminal_received = terminal_received or _stream_event_is_terminal(chunk)
+
+                        chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
+                        stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
+
+                        # Native reasoning and prompt-bearing Meta items stay out of logs.
+                        if provider_id not in {"meta", "muse_code"}:
+                            if isinstance(chunk, bytes):
+                                log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
+                            else:
+                                log.debug(f"[provider stream raw] chunk(str): {chunk}")
+
                         yield chunk
-                        return
-                else:
-                    if _stream_event_is_heartbeat(chunk):
-                        yield _normalize_sse_frame(chunk)
-                        continue
-                    if isinstance(chunk, (str, bytes)) and not chunk.strip():
-                        continue
-                    if provider_id == XAI:
-                        chunk = xai_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-                    elif provider_id == OPENAI:
-                        if get_credential_provider_variant(credential_data) == OPENAI_PLATFORM:
-                            chunk = openai_stream_line_to_gemini(chunk)
-                        else:
-                            chunk = codex_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-                    elif provider_id == ANTHROPIC:
-                        chunk = anthropic_stream_line_to_gemini(
-                            chunk, stream_id=f"{current_file}:{model_name}"
-                        )
-                        if not chunk:
-                            continue
-                    elif provider_id == OLLAMA:
-                        chunk = ollama_stream_line_to_gemini(chunk)
-                        if not chunk:
-                            continue
-
-                    chunk = _normalize_sse_frame(chunk)
-
-                    if not received_content:
-                        received_content = True
-                        log.debug(
-                            f"[provider stream] started receiving streaming responses, model: {model_name}"
-                        )
-
-                    terminal_received = terminal_received or _stream_event_is_terminal(chunk)
-
-                    chunk_token_usage = extract_token_usage_from_stream_chunk(chunk)
-                    stream_token_usage = merge_token_usage(stream_token_usage, chunk_token_usage)
-
-                    # Native reasoning and prompt-bearing Meta items stay out of logs.
-                    if provider_id not in {"meta", "muse_code"}:
-                        if isinstance(chunk, bytes):
-                            log.debug(f"[provider stream raw] chunk(bytes): {chunk}")
-                        else:
-                            log.debug(f"[provider stream raw] chunk(str): {chunk}")
-
-                    yield chunk
+            finally:
+                _stream_tool_blocks.pop(stream_instance_id, None)
 
             if received_content and terminal_received:
                 await record_api_call_success(
@@ -1032,6 +1240,7 @@ async def _stream_request_upstream(
                         f"(attempt {retry_attempt + 1}/{max_retries + 1})."
                     )
 
+                previous_file = current_file
                 if model_route_retry or switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1050,6 +1259,13 @@ async def _stream_request_upstream(
                             media_type="application/json",
                         )
                         return
+                if (
+                    not model_route_retry
+                    and switch_credential_enabled
+                    and current_file == previous_file
+                    and retry_interval > 0
+                ):
+                    await asyncio.sleep(retry_interval)
                 continue
 
         except (asyncio.CancelledError, GeneratorExit):
@@ -1159,7 +1375,7 @@ async def _stream_request_upstream(
                     "[provider stream] retry after abnormality "
                     f"(attempt {retry_attempt + 1}/{max_retries + 1})..."
                 )
-                await asyncio.sleep(retry_interval)
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1172,6 +1388,10 @@ async def _stream_request_upstream(
                             media_type="application/json",
                         )
                         return
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
+                elif retry_interval > 0:
+                    await asyncio.sleep(retry_interval)
                 continue
             else:
                 log.error(f"[provider stream] all retries failed. Last exception: {e}")
@@ -1317,26 +1537,11 @@ async def _non_stream_request_upstream(
         context = await prepare_provider_request(
             credential_data,
             request_body,
-            streaming=False,
+            streaming=(get_credential_provider(credential_data) in EXTENDED_PROVIDERS),
             extra_headers=headers,
         )
     except ValueError as exc:
-        provider_id = get_credential_provider(credential_data)
-        await record_api_call_error(
-            credential_manager,
-            current_file,
-            500,
-            None,
-            mode="primary",
-            model_name=model_name,
-            error_message=str(exc),
-            provider=provider_id,
-        )
-        return Response(
-            content=json.dumps({"error": str(exc)}),
-            status_code=500,
-            media_type="application/json",
-        )
+        return await _request_preparation_error(exc, current_file, credential_data, model_name)
 
     provider_id = context.provider_id
     target_url = context.target_url
@@ -1371,7 +1576,7 @@ async def _non_stream_request_upstream(
             new_context = await prepare_provider_request(
                 credential_data,
                 request_body,
-                streaming=False,
+                streaming=(get_credential_provider(credential_data) in EXTENDED_PROVIDERS),
                 extra_headers=headers,
             )
         except ValueError:
@@ -1390,17 +1595,14 @@ async def _non_stream_request_upstream(
 
         try:
             if provider_id in EXTENDED_PROVIDERS:
-                # Evaluate on every retry: a legacy provider may fall back to a
-                # binary/stream-only provider. Keep the selected lease and route.
-                stream_context = await prepare_provider_request(
-                    credential_data, request_body, streaming=True, extra_headers=headers
-                )
+                # Extended providers use stream collection in non_stream_request; context
+                # is already prepared with streaming=True when provider_id in EXTENDED_PROVIDERS.
                 upstream = stream_extended_request(
                     credential_data,
                     model_name,
-                    url=stream_context.target_url,
-                    body=stream_context.payload,
-                    headers=stream_context.headers,
+                    url=target_url,
+                    body=final_payload,
+                    headers=auth_headers,
                     timeout=await get_upstream_timeout_seconds(),
                     subscription_observer=subscription_observer(current_file, credential_data),
                 )
@@ -1606,12 +1808,16 @@ async def _non_stream_request_upstream(
                     return last_error_response
                 elif _is_retryable_status(status_code, DISABLE_ERROR_CODES):
                     log.warning(
-                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed (status={status_code}), credential={current_file}; upstream body omitted"
                     )
 
                     cooldown_until = None
-                    if (status_code == 429 or status_code == 503) and error_text:
-                        cooldown_until = await parse_and_log_cooldown(error_text, mode="primary")
+                    if status_code == 429 or status_code == 503:
+                        cooldown_until = await parse_and_log_cooldown(
+                            error_text or "",
+                            mode="primary",
+                            headers=dict(response.headers),
+                        )
 
                     await record_api_call_error(
                         credential_manager,
@@ -1633,6 +1839,7 @@ async def _non_stream_request_upstream(
                         max_retries,
                         retry_interval,
                         mode="primary",
+                        defer_sleep=switch_credential_enabled,
                     )
 
                     if should_retry:
@@ -1645,7 +1852,7 @@ async def _non_stream_request_upstream(
                         return last_error_response
                 else:
                     log.error(
-                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}, response={error_text[:500] if error_text else 'None'}"
+                        f"[provider] non-streaming request failed with a non-retryable status (status={status_code}), credential={current_file}; upstream body omitted"
                     )
                     await record_api_call_error(
                         credential_manager,
@@ -1664,6 +1871,7 @@ async def _non_stream_request_upstream(
                     f"[provider] retrying request (attempt {retry_attempt + 1}/{max_retries + 1})."
                 )
 
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1676,6 +1884,8 @@ async def _non_stream_request_upstream(
                             status_code=503,
                             media_type="application/json",
                         )
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
                 continue
 
         except (asyncio.CancelledError, GeneratorExit):
@@ -1707,7 +1917,7 @@ async def _non_stream_request_upstream(
                     "[provider] Retry after exception "
                     f"(attempt {retry_attempt + 1}/{max_retries + 1})..."
                 )
-                await asyncio.sleep(retry_interval)
+                previous_file = current_file
                 if switch_credential_enabled:
                     switched = await _switch_credential_for_retry(
                         refresh_credential_fast=refresh_credential_fast,
@@ -1719,6 +1929,10 @@ async def _non_stream_request_upstream(
                             status_code=503,
                             media_type="application/json",
                         )
+                    if current_file == previous_file and retry_interval > 0:
+                        await asyncio.sleep(retry_interval)
+                elif retry_interval > 0:
+                    await asyncio.sleep(retry_interval)
                 continue
             else:
                 log.error(f"[provider] all retries failed. Last exception: {e}")

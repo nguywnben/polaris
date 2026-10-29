@@ -23,6 +23,7 @@ from core.extended_provider_runtime import (
     prepare_extended_request,
     stream_extended_request,
 )
+from core.provider_registry import EXTENDED_PROVIDERS
 
 from backend.tests.test_kiro import frame
 
@@ -84,12 +85,14 @@ class ExtendedRuntimeTests(unittest.IsolatedAsyncioTestCase):
             await stream.aclose()
         self.assertEqual(closed, [True])
 
-    async def run_wire(self, provider, wire, status=200):
+    async def run_wire(self, provider, wire, status=200, headers=None):
         @asynccontextmanager
         async def client(**kwargs):
             self.assertFalse(kwargs["follow_redirects"])
             async with httpx.AsyncClient(
-                transport=httpx.MockTransport(lambda _: httpx.Response(status, content=wire))
+                transport=httpx.MockTransport(
+                    lambda _: httpx.Response(status, content=wire, headers=headers)
+                )
             ) as value:
                 yield value
 
@@ -97,8 +100,24 @@ class ExtendedRuntimeTests(unittest.IsolatedAsyncioTestCase):
             return [
                 item
                 async for item in stream_extended_request(
-                    {"provider": provider, "api_key": KEY},
-                    "model",
+                    {
+                        "provider": provider,
+                        "api_key": KEY,
+                        **(
+                            {
+                                "credential_type": "oauth",
+                                "access_token": KEY,
+                                "account_id": "0" * 64,
+                            }
+                            if provider == "muse_code"
+                            else {}
+                        ),
+                    },
+                    {
+                        "meta": "muse-spark-1.1",
+                        "muse_code": "muse-code/muse-spark-1.1",
+                        "opencode": "gpt-test",
+                    }.get(provider, "model"),
                     url="https://fixture.invalid",
                     body={},
                     headers={},
@@ -116,6 +135,31 @@ class ExtendedRuntimeTests(unittest.IsolatedAsyncioTestCase):
         result = await self.run_wire("kiro", b"secret upstream key", 429)
         self.assertEqual(result[0].status_code, 429)
         self.assertNotIn(b"secret", result[0].body)
+
+    async def test_all_extended_providers_preserve_safe_throttle_headers_not_secrets(self):
+        for provider in EXTENDED_PROVIDERS:
+            for status in (401, 403, 404, 402, 429, 503, 504):
+                with self.subTest(provider=provider, status=status):
+                    result = await self.run_wire(
+                        provider,
+                        b"secret upstream body",
+                        status,
+                        {
+                            "Retry-After": "37",
+                            "X-Provider-Secret": "secret",
+                            "Set-Cookie": "secret",
+                        },
+                    )
+                    self.assertEqual(result[0].status_code, status)
+                    self.assertEqual(result[0].headers.get("retry-after"), "37")
+                    self.assertNotIn("secret", str(dict(result[0].headers)))
+                    self.assertNotIn(b"secret", result[0].body)
+
+    async def test_untrusted_retry_header_does_not_cross_extended_provider_boundary(self):
+        for retry_after in ("secret", "-1", "9" * 200):
+            with self.subTest(retry_after=retry_after):
+                result = await self.run_wire("kimi", b"secret", 429, {"Retry-After": retry_after})
+                self.assertNotIn("retry-after", result[0].headers)
 
     async def test_malformed_json_or_missing_terminal_is_not_success(self):
         wires = (b"data: broken\n\n", b'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n')
@@ -320,6 +364,38 @@ class ExtendedRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
 
 class PrimaryExtendedIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upstream_failure_bodies_never_enter_stream_or_nonstream_logs(self):
+        secret = "arbitrary-private-upstream-content"
+        for streaming in (False, True):
+            for status in (400, 503):
+                provider = "kiro" if streaming else "google_ai_studio"
+                stack, _ = self.fixtures(
+                    [("model", "fixture.json", {"provider": provider, "api_key": KEY})]
+                )
+
+                async def failed_stream(*args, **kwargs):
+                    yield primary.Response(secret, status_code=status)
+
+                with (
+                    self.subTest(streaming=streaming, status=status),
+                    stack,
+                    patch(
+                        "core.api.primary.post_async",
+                        AsyncMock(return_value=httpx.Response(status, text=secret)),
+                    ),
+                    patch("core.api.primary.stream_extended_request", failed_stream),
+                    patch("core.api.primary.log.error") as error_log,
+                ):
+                    if streaming:
+                        result = [
+                            item
+                            async for item in primary._stream_request_upstream({"model": "model"})
+                        ][-1]
+                    else:
+                        result = await primary._non_stream_request_upstream({"model": "model"})
+                self.assertEqual(result.status_code, status)
+                self.assertNotIn(secret, str(error_log.call_args_list))
+
     async def test_cancelled_nonstream_collection_releases_extended_credential(self):
         async def cancelled(*args, **kwargs):
             raise asyncio.CancelledError

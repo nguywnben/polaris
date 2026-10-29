@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "contract_version": "chat-stream-options-v1",
+  "baseline": "r1-compatibility-v1.json",
+  "change": "Optional nullable stream_options with strict boolean include_usage; non-null requires stream=true. Existing request shapes remain valid.",
+  "request": {
+    "model": "fixture-model",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": true,
+    "stream_options": {"include_usage": true}
+  },
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "semantic_sha256": "299cf275aec42d75320eb31e302d3e5309d1f8e945bc5fa5e277a8033e48e19a"
+    },
+    {
+      "method": "POST",
+      "path": "/vertex/v1/chat/completions",
+      "semantic_sha256": "5e0d17f72637e3035b65203a92fb1115a03d0fd81de7c9b4579fe6bdf21a2964"
+    }
+  ]
+}

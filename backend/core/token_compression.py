@@ -6,7 +6,7 @@ import copy
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from core.token_estimator import estimate_input_tokens
+from core.token_estimator import _estimate_value, estimate_input_tokens
 
 
 @dataclass(frozen=True)
@@ -158,6 +158,12 @@ def compress_gemini_request(
         return _unchanged_result(request, original_estimate, "disabled", settings)
     if "_polaris_meta_responses" in request:
         return _unchanged_result(request, original_estimate, "native_reasoning_history", settings)
+    if any(
+        isinstance(c, dict)
+        and any(isinstance(p, dict) and "cache_control" in p for p in (c.get("parts") or []))
+        for c in (request.get("contents") or [])
+    ):
+        return _unchanged_result(request, original_estimate, "prompt_caching_active", settings)
     if original_estimate <= settings.threshold_tokens:
         return _unchanged_result(request, original_estimate, "below_threshold", settings)
 
@@ -176,16 +182,20 @@ def compress_gemini_request(
     if not cut_candidates:
         return _unchanged_result(request, original_estimate, "no_safe_boundary", settings)
 
-    estimate_cache: Dict[int, int] = {}
-
-    def estimate_after_cut(cut_index: int) -> int:
-        if cut_index not in estimate_cache:
-            candidate = dict(request)
-            candidate["contents"] = contents[cut_index:]
-            estimate_cache[cut_index] = estimate_input_tokens(candidate)
-        return estimate_cache[cut_index]
-
     try:
+        base_candidate = dict(request)
+        base_candidate["contents"] = []
+        base_tokens = estimate_input_tokens(base_candidate)
+        item_tokens = [_estimate_value(item) + 1 for item in contents]
+        suffix_tokens = [0] * (len(contents) + 1)
+        running = 0
+        for idx in range(len(contents) - 1, -1, -1):
+            running += item_tokens[idx]
+            suffix_tokens[idx] = running
+
+        def estimate_after_cut(cut_index: int) -> int:
+            return max(1, base_tokens + suffix_tokens[cut_index])
+
         selected_cut = cut_candidates[-1]
         selected_estimate = estimate_after_cut(selected_cut)
         low = 0

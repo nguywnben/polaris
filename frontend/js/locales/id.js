@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['id'], {
+    "dashboard.cost_unknown": "Biaya belum tersedia",
+    "dashboard.cost_coverage": "{source} · Biaya dihitung untuk {priced}/{total} panggilan berhasil. Estimasi setara harga API, bukan tagihan.",
     "provider.copy.grok_intro": "Tambahkan akun OAuth dan rutekan model Grok Build yang tersedia melalui pool bersama.",
     "provider.copy.grok_authorize": "Otorisasi akun Grok Build dengan PKCE dan simpan langsung ke pool penyedia.",
     "provider.copy.grok_code": "Setelah masuk, salin kode yang ditampilkan di halaman otorisasi Grok Build dan tempel di sini.",
@@ -92,7 +94,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS['id'], {
     "setup_action_enter_setup_token": "Masukkan token penyiapan yang dikonfigurasi operator, lalu jalankan pemeriksaan.",
     "setup_action_configure_setup_token": "Tetapkan SETUP_TOKEN yang kuat (minimal 24 karakter), mulai ulang, lalu coba lagi.",
     "setup_action_fix_base_url": "Perbaiki alamat konsol publik, lalu coba lagi.",
-    "setup_action_use_https": "Sajikan konsol jarak jauh ini melalui HTTPS, lalu coba lagi.",
+    "setup_action_use_https": "Gunakan HTTPS. Untuk menerima risiko HTTP, operator dapat mengatur SETUP_ALLOW_INSECURE_HTTP=true lalu memulai ulang layanan.",
+    "transport_insecure_allowed": "HTTP diizinkan (tanpa enkripsi)",
+    "setup_http_warning": "Peringatan: HTTP tidak mengenkripsi token penyiapan, kata sandi, atau cookie sesi. Data ini dapat disadap atau diubah saat dikirim. HTTPS disarankan.",
     "setup_action_enable_secure_cookie": "Aktifkan cookie sesi aman, lalu coba lagi.",
     "setup_action_use_https_or_auto_cookie": "Gunakan HTTPS atau kembalikan PANEL_COOKIE_SECURE ke mode otomatis.",
     "setup_action_fix_data_permissions": "Izinkan penulisan ke direktori data, lalu coba lagi.",

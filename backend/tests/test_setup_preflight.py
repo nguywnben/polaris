@@ -83,6 +83,103 @@ class SetupPasswordPolicyTests(unittest.TestCase):
 
 
 class SetupPreflightTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        environment = patch.dict(os.environ, {}, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    async def test_remote_http_opt_in_warns_and_still_verifies_the_setup_token(self):
+        request = build_request(client_host="198.51.100.20", hostname="198.51.100.10")
+        storage = FakeStorage()
+        token = "synthetic-strong-setup-token-123"
+        with patch.dict(os.environ, {"SETUP_TOKEN": token, "SETUP_ALLOW_INSECURE_HTTP": "true"}):
+            status = await build_setup_status(
+                request, storage, setup_required=True, authenticated=False
+            )
+            self.assertEqual(status["state"], "fresh")
+            self.assertEqual(status["next_action"], "enter_setup_token")
+            self.assertEqual(
+                status["checks"]["transport"],
+                {"status": "warning", "code": "transport_insecure_allowed"},
+            )
+            for supplied_token in (None, "wrong-token"):
+                with self.assertRaises(HTTPException) as context:
+                    await run_setup_preflight(request, storage, supplied_token=supplied_token)
+                self.assertEqual(context.exception.status_code, 403)
+                self.assertFalse(storage.values)
+            result = await run_setup_preflight(request, storage, supplied_token=token)
+            self.assertEqual(result["state"], "resumed")
+            self.assertEqual(result["checks"]["transport"]["status"], "warning")
+
+    async def test_http_opt_in_cannot_override_token_or_cookie_requirements(self):
+        request = build_request(client_host="198.51.100.20", hostname="198.51.100.10")
+        cases = (
+            ({"SETUP_TOKEN": ""}, "configure_setup_token"),
+            ({"SETUP_TOKEN": "weak"}, "configure_setup_token"),
+            ({"PANEL_COOKIE_SECURE": "true"}, "use_https_or_auto_cookie"),
+        )
+        for overrides, action in cases:
+            with (
+                self.subTest(action=action),
+                patch.dict(
+                    os.environ,
+                    {
+                        "SETUP_ALLOW_INSECURE_HTTP": "true",
+                        "SETUP_TOKEN": "synthetic-strong-setup-token-123",
+                        **overrides,
+                    },
+                ),
+            ):
+                result = await build_setup_status(
+                    request, FakeStorage(), setup_required=True, authenticated=False
+                )
+                self.assertEqual(result["state"], "invalid")
+                self.assertEqual(result["next_action"], action)
+
+    async def test_http_opt_in_does_not_weaken_https_secure_cookies(self):
+        request = build_request(
+            client_host="198.51.100.20", hostname="198.51.100.10", scheme="https"
+        )
+        with patch.dict(
+            os.environ,
+            {
+                "SETUP_TOKEN": "synthetic-strong-setup-token-123",
+                "SETUP_ALLOW_INSECURE_HTTP": "true",
+            },
+        ):
+            result = await build_setup_status(
+                request, FakeStorage(), setup_required=True, authenticated=False
+            )
+            self.assertEqual(result["checks"]["transport"]["code"], "transport_secure")
+            with patch.dict(os.environ, {"PANEL_COOKIE_SECURE": "false"}):
+                result = await build_setup_status(
+                    request, FakeStorage(), setup_required=True, authenticated=False
+                )
+                self.assertEqual(result["next_action"], "enable_secure_cookie")
+
+    async def test_false_or_invalid_opt_in_and_spoofed_headers_do_not_allow_http(self):
+        request = build_request(
+            client_host="198.51.100.20", hostname="198.51.100.10", forwarded_proto="https"
+        )
+        request.scope["query_string"] = b"SETUP_ALLOW_INSECURE_HTTP=true"
+        request.scope["headers"].append((b"setup-allow-insecure-http", b"true"))
+        for setting in ("", "false", "0", "no", "off", "typo"):
+            with (
+                self.subTest(setting=setting),
+                patch.dict(
+                    os.environ,
+                    {
+                        "SETUP_TOKEN": "synthetic-strong-setup-token-123",
+                        "SETUP_ALLOW_INSECURE_HTTP": setting,
+                    },
+                ),
+            ):
+                result = await build_setup_status(
+                    request, FakeStorage(), setup_required=True, authenticated=False
+                )
+                self.assertEqual(result["state"], "invalid")
+                self.assertEqual(result["next_action"], "use_https")
+
     async def test_fresh_local_install_has_one_run_preflight_action(self):
         result = await build_setup_status(
             build_request(),
@@ -152,9 +249,33 @@ class SetupPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["next_action"], "use_https")
         self.assertEqual(result["checks"]["transport"]["status"], "fail")
 
-    async def test_docker_bridge_request_to_loopback_origin_allows_local_http(self):
+    async def test_loopback_host_cannot_bypass_remote_http_consent(self):
+        token = "a-strong-setup-token-value-123"
+        for client in ("198.51.100.20", "172.18.0.1"):
+            for hostname in ("localhost", "127.0.0.1", "[::1]"):
+                with (
+                    self.subTest(client=client, hostname=hostname),
+                    patch.dict(os.environ, {"SETUP_TOKEN": token}),
+                ):
+                    storage = FakeStorage()
+                    result = await run_setup_preflight(
+                        build_request(client_host=client, hostname=hostname),
+                        storage,
+                        supplied_token=token,
+                    )
+                    self.assertEqual(result["state"], "invalid")
+                    self.assertEqual(result["next_action"], "use_https")
+                    self.assertFalse(storage.values)
+
+    async def test_docker_bridge_request_requires_explicit_http_consent(self):
         request = build_request(client_host="172.18.0.1", hostname="127.0.0.1")
-        with patch.dict(os.environ, {"SETUP_TOKEN": "a-strong-setup-token-value-123"}):
+        with patch.dict(
+            os.environ,
+            {
+                "SETUP_TOKEN": "a-strong-setup-token-value-123",
+                "SETUP_ALLOW_INSECURE_HTTP": "true",
+            },
+        ):
             result = await build_setup_status(
                 request,
                 FakeStorage(),
@@ -165,7 +286,8 @@ class SetupPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["state"], "fresh")
         self.assertEqual(result["next_action"], "enter_setup_token")
         self.assertEqual(
-            result["checks"]["transport"], {"status": "pass", "code": "transport_local"}
+            result["checks"]["transport"],
+            {"status": "warning", "code": "transport_insecure_allowed"},
         )
 
     async def test_remote_setup_without_operator_token_fails_closed(self):

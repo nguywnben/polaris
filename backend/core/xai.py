@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import hashlib
 import json
 import os
@@ -464,10 +465,15 @@ def _openai_message_content(parts: List[Dict[str, Any]]) -> Any:
                 or inline_data.get("mime_type")
                 or "application/octet-stream"
             )
+            image_url_payload: Dict[str, Any] = {
+                "url": f"data:{mime_type};base64,{inline_data['data']}"
+            }
+            if part.get("_image_detail"):
+                image_url_payload["detail"] = part["_image_detail"]
             content.append(
                 {
                     "type": "image_url",
-                    "image_url": {"url": f"data:{mime_type};base64,{inline_data['data']}"},
+                    "image_url": image_url_payload,
                 }
             )
             continue
@@ -606,7 +612,13 @@ def gemini_request_to_xai(
 
     response_mime = str(config.get("responseMimeType") or "")
     response_schema = config.get("responseSchema")
-    if response_mime == "application/json" and isinstance(response_schema, dict):
+    passthrough = payload.get("_polaris_openai_passthrough")
+    if not isinstance(passthrough, dict):
+        passthrough = {}
+
+    if isinstance(passthrough.get("response_format"), dict):
+        result["response_format"] = copy.deepcopy(passthrough["response_format"])
+    elif response_mime == "application/json" and isinstance(response_schema, dict):
         result["response_format"] = {
             "type": "json_schema",
             "json_schema": {"name": "response", "schema": response_schema},
@@ -614,12 +626,44 @@ def gemini_request_to_xai(
     elif response_mime == "application/json":
         result["response_format"] = {"type": "json_object"}
 
-    tools = _xai_tools(payload)
-    if tools:
-        result["tools"] = tools
+    if isinstance(passthrough.get("tools"), list) and passthrough["tools"] and payload.get("tools"):
+        result["tools"] = copy.deepcopy(passthrough["tools"])
         tool_choice = _xai_tool_choice(payload)
         if tool_choice is not None:
             result["tool_choice"] = tool_choice
+    else:
+        tools = _xai_tools(payload)
+        if tools:
+            result["tools"] = tools
+            tool_choice = _xai_tool_choice(payload)
+            if tool_choice is not None:
+                result["tool_choice"] = tool_choice
+
+    for passthrough_key in (
+        "logprobs",
+        "top_logprobs",
+        "logit_bias",
+        "prediction",
+        "service_tier",
+        "store",
+        "metadata",
+        "user",
+        "parallel_tool_calls",
+        "prompt_cache_key",
+        "prompt_cache_retention",
+        "web_search_options",
+        "include_reasoning",
+        "modalities",
+        "audio",
+    ):
+        if passthrough.get(passthrough_key) is not None and passthrough_key not in result:
+            result[passthrough_key] = copy.deepcopy(passthrough[passthrough_key])
+
+    extra_body = passthrough.get("extra_body")
+    if isinstance(extra_body, dict):
+        for key, value in extra_body.items():
+            if key not in {"model", "messages", "stream"} and key not in result:
+                result[key] = copy.deepcopy(value)
     return result
 
 
@@ -707,6 +751,7 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
             parts.append({"text": str(reasoning), "thought": True})
         finish = choice.get("finish_reason")
         choice_index = int(choice.get("index") or 0)
+        final_arg_deltas: Dict[int, str] = {}
         if response_id and delta.get("tool_calls"):
             if len(_stream_tool_calls) >= MAX_STREAM_TOOL_CALL_SESSIONS:
                 _stream_tool_calls.pop(next(iter(_stream_tool_calls)), None)
@@ -724,8 +769,23 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
                     pending["id"] = str(tool_call["id"])
                 if function.get("name"):
                     pending["name"] = str(function["name"])
-                if function.get("arguments"):
-                    pending["arguments"] += str(function["arguments"])
+                arg_piece = str(function.get("arguments") or "")
+                if arg_piece:
+                    pending["arguments"] += arg_piece
+                    final_arg_deltas[tool_index] = (
+                        final_arg_deltas.get(tool_index, "") + arg_piece
+                    )
+                if not finish:
+                    parts.append(
+                        {
+                            "functionCallDelta": {
+                                "index": tool_index,
+                                "id": pending["id"] or f"call_tool_{tool_index}",
+                                "name": pending["name"] or "tool",
+                                "arguments_delta": arg_piece,
+                            }
+                        }
+                    )
 
         if response_id and finish and response_id in _stream_tool_calls:
             pending_choices = _stream_tool_calls[response_id]
@@ -735,15 +795,16 @@ def xai_stream_line_to_gemini(line: Any) -> Optional[str]:
                     arguments = json.loads(pending["arguments"] or "{}")
                 except ValueError:
                     arguments = {"raw": pending["arguments"]}
-                parts.append(
-                    {
-                        "functionCall": {
-                            "id": pending["id"] or f"call_tool_{tool_index}",
-                            "name": pending["name"] or "tool",
-                            "args": arguments,
-                        }
-                    }
-                )
+                fc_obj: Dict[str, Any] = {
+                    "id": pending["id"] or f"call_tool_{tool_index}",
+                    "name": pending["name"] or "tool",
+                    "args": arguments,
+                    "_streamed_delta": True,
+                    "_tool_index": tool_index,
+                }
+                if final_arg_deltas.get(tool_index):
+                    fc_obj["_final_arguments_delta"] = final_arg_deltas[tool_index]
+                parts.append({"functionCall": fc_obj})
             if not pending_choices:
                 _stream_tool_calls.pop(response_id, None)
 

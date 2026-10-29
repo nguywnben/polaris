@@ -197,7 +197,7 @@ def main(stage, strict=False, only=None):
                 expect(dialog).to_contain_text(filename)
                 expect(dialog.locator("[data-management-models] .skeleton")).to_have_count(0)
                 capture("credential-" + filename[5:-8])
-                page.keyboard.press("Escape")
+                dialog.locator("[data-dialog-close]").click()
                 expect(dialog).not_to_be_visible()
                 expect(opener).to_be_focused()
 
@@ -214,7 +214,12 @@ def main(stage, strict=False, only=None):
                 dialog = page.get_by_role("dialog").last
                 expect(dialog).to_be_visible()
                 capture(name)
-                page.keyboard.press("Escape")
+                if name == "key-edit":
+                    dialog.locator("[data-virtual-key-cancel]").click()
+                elif name == "identity-create":
+                    dialog.locator('[data-ui-action="identity-create-close"]').click()
+                else:
+                    page.keyboard.press("Escape")
                 expect(dialog).not_to_be_visible()
                 expect(opener).to_be_focused()
 

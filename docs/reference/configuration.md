@@ -17,6 +17,7 @@ Values marked `secret` never expose a default through the Settings API.
 | `API_KEY` | basic | string / secret | `(empty)` | live | access |
 | `PANEL_PASSWORD` | basic | string / secret | `(empty)` | live | access |
 | `SETUP_TOKEN` | basic | string / secret | `(empty)` | read_only | environment |
+| `SETUP_ALLOW_INSECURE_HTTP` | basic | boolean | `false` | read_only | environment |
 | `PANEL_SESSION_TTL_SECONDS` | basic | integer | `86400` | read_only | environment |
 | `PANEL_COOKIE_SECURE` | basic | boolean | `(empty)` | read_only | environment |
 | `PANEL_LOGIN_WINDOW_SECONDS` | basic | integer | `300` | read_only | environment |

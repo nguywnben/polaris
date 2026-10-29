@@ -52,6 +52,14 @@ class SetupConsoleTests(unittest.TestCase):
         for check_id in ("data", "address", "transport", "setupToken", "owner"):
             self.assertIn(f"setupCheck{check_id[0].upper()}{check_id[1:]}", self.elements)
 
+    def test_http_risk_warning_is_localized_and_separate_from_success_messages(self):
+        tag, attributes = self.elements["setupHttpWarning"]
+        self.assertEqual(tag, "p")
+        self.assertEqual(attributes.get("data-i18n"), "setup_http_warning")
+        self.assertIn("hidden", attributes.get("class", ""))
+        self.assertIn("'warning'", self.client)
+        self.assertIn("transport_insecure_allowed", self.client)
+
     def test_owner_fields_are_disabled_until_preflight_and_have_bounded_inputs(self):
         fieldset_tag, fieldset = self.elements["setupOwnerFields"]
         self.assertEqual(fieldset_tag, "fieldset")

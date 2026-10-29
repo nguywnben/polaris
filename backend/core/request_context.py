@@ -18,6 +18,8 @@ _request_compression_policy: ContextVar[str] = ContextVar(
 _operation_replay_required: ContextVar[bool] = ContextVar(
     "operation_replay_required", default=False
 )
+_request_ttft_ms: ContextVar[int] = ContextVar("request_ttft_ms", default=0)
+_request_cache_bypass: ContextVar[bool] = ContextVar("request_cache_bypass", default=False)
 
 
 @contextmanager
@@ -30,9 +32,13 @@ def request_scope(request_id: str) -> Iterator[None]:
     key_compression_token: Token[str] = _key_compression_policy.set("inherit")
     request_compression_token: Token[str] = _request_compression_policy.set("inherit")
     replay_token: Token[bool] = _operation_replay_required.set(False)
+    ttft_token: Token[int] = _request_ttft_ms.set(0)
+    cache_bypass_token: Token[bool] = _request_cache_bypass.set(False)
     try:
         yield
     finally:
+        _request_cache_bypass.reset(cache_bypass_token)
+        _request_ttft_ms.reset(ttft_token)
         _operation_replay_required.reset(replay_token)
         _request_compression_policy.reset(request_compression_token)
         _key_compression_policy.reset(key_compression_token)
@@ -51,6 +57,29 @@ def get_request_elapsed_ms() -> int:
     if not started_at:
         return 0
     return max(0, round((time.perf_counter() - started_at) * 1000))
+
+
+def mark_request_first_token() -> int:
+    """Record Time-To-First-Token (TTFT) in ms on the first streamed chunk."""
+    current = _request_ttft_ms.get()
+    if current > 0:
+        return current
+    elapsed = get_request_elapsed_ms()
+    if elapsed > 0:
+        _request_ttft_ms.set(elapsed)
+    return elapsed
+
+
+def get_request_ttft_ms() -> int:
+    return _request_ttft_ms.get()
+
+
+def set_request_cache_bypass(bypass: bool) -> None:
+    _request_cache_bypass.set(bool(bypass))
+
+
+def is_request_cache_bypass() -> bool:
+    return _request_cache_bypass.get()
 
 
 def set_api_key_id(api_key_id: str) -> None:

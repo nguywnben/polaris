@@ -12,8 +12,9 @@ Provider-specific configuration is edited on **Providers**, never in System Sett
 Existing storage keys and environment overrides are preserved; moving an editor does not
 reset credentials or configuration.
 
-- Antigravity owns its OAuth client, inference endpoint, client identity headers and
-  per-account credit-use controls. Pool shows credit state but does not edit it.
+- Antigravity owns its OAuth client, inference endpoint and client identity headers.
+  Per-account credit-use policy is edited in the credential management dialog with
+  explicit confirmation; provider onboarding does not duplicate it. This does not buy credits.
 - Grok Build owns `xai_oauth_api_url` and its OAuth issuer/client. SpaceXAI Console owns
   `xai_api_url`. Their shared HTTP User-Agent is operator-only configuration.
 - Claude Code owns its OAuth settings (`code` reset scope). Its legacy API endpoint
@@ -78,8 +79,8 @@ The importer recognizes native Codex `tokens`, Claude Code `claudeAiOauth`, and 
 account containers, as well as canonical Polaris credentials and supported CLIProxy xAI
 exports. Ambiguous provider/type declarations are rejected. JWT claims are unverified
 metadata hints only, not proof of identity. Existing size and ZIP-entry limits still apply.
-Offline Codex/Grok imports are marked as imported without provider verification; use the
-Pool's explicit verification/model test before relying on them. The provenance notice
+Offline imports are marked as imported without provider verification; use the
+Credentials page's explicit verification/model test before relying on them. The provenance notice
 describes the import, not the outcome of a later test, and does not change routing eligibility.
 
 The shared HTTP client honors explicitly configured `no_proxy` (preferred) or `NO_PROXY`
@@ -114,6 +115,33 @@ infer support from provider names, credential fields, or another variant of the 
 | Claude Code | OAuth | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | All | Yes | Yes | Yes |
 | Claude Platform | API key | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
 | Ollama | Connection | Yes | Yes | Yes | No | No | Yes | No | Yes | All | Yes | Yes | Yes |
+
+The original nine rows above remain supported. The current catalog additionally contains:
+
+| Provider workspace | Authentication | Quota/account facts | Settings / transport contract |
+| --- | --- | --- | --- |
+| Kimi API Platform | API key | Not provided | Moonshot vendor endpoint / Chat |
+| Kiro | Browser or AWS device OAuth; optional API key | Regional resource/trial/bonus/overage facts when returned | Region and auth-specific fields / AWS EventStream |
+| Cloudflare Workers AI | API token + Account ID | Not provided | Account ID and vendor endpoint / Chat |
+| NVIDIA NIM | API key | Not provided | Hosted vendor endpoint / Chat |
+| OpenCode | API key | Explicit Zen/Go connection plan, not inferred billing | Plan and matching endpoint / known model-family protocols |
+| Poolside Platform | API key | Not provided | Vendor endpoint / Chat |
+| Kimchi Coding | API or service key | Not provided | Vendor endpoint / Chat |
+| Kilo | API key | Not provided | Vendor endpoint and optional organization / Chat |
+| Muse Code | Meta device OAuth | Returned plan, session/weekly usage and resets | Optional label; fixed auth/inference origins / Responses |
+| Meta Model API | API key | Not provided | Fixed origin / stateless Responses |
+| GroqCloud | API key | Not provided | Vendor endpoint / Chat |
+| DeepSeek Platform | API key | Not provided | Vendor endpoint / Chat |
+| Mistral AI Studio | API key | Not provided | Vendor endpoint / Chat |
+| Cerebras Cloud | API key | Not provided | Vendor endpoint / Chat |
+
+All 23 support add, verify, explicit model test, model discovery, managed editing,
+enable/disable, export and delete, subject to permission and environment ownership.
+Muse supports refresh and reauthentication. Kiro reauthentication is OAuth-only;
+its key mode never becomes OAuth merely because usage is available. The runtime registry
+and `/api/providers/capabilities` are authoritative for operation eligibility, while
+the [provider guides](providers/credential-fidelity-audit-2026-09-16.md) describe
+provider-specific facts. Missing quota/plan is not zero use, full allowance or unlimited usage.
 
 `All` means the current normalized ingress families: `openai_chat_completions`,
 `openai_responses`, `anthropic_messages`, `gemini_native`, and `vertex`. This declares routing

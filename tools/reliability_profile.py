@@ -1,6 +1,7 @@
-"""Run a production reliability profile against an exact Git candidate.
+"""Run a production reliability profile against recorded candidate source.
 
-The runner exports ``HEAD`` into a disposable directory, starts one standalone
+The runner exports ``HEAD`` (or an explicit SHA-256 working-tree snapshot) into a
+disposable directory, starts one standalone
 Polaris process with SQLite, and uses one loopback deterministic Ollama
 fixture. The routine profile is release-blocking; the ten-minute soak is optional.
 Neither mode reads ``.env`` or contacts a real provider.
@@ -474,8 +475,33 @@ def _git_output(*arguments: str) -> str:
     return completed.stdout.strip()
 
 
+def snapshot_working_tree(checkout: Path) -> dict[str, Any]:
+    """Freeze tracked and non-ignored source bytes without creating a Git commit."""
+    paths = _git_output("ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    hashes = {}
+    for name in sorted(set(paths.split("\0")) - {""}):
+        source = ROOT / name
+        if not source.exists():
+            continue  # A deleted tracked file must not reappear from HEAD.
+        if source.is_symlink() or not source.resolve().is_relative_to(ROOT.resolve()):
+            raise ValueError(f"Snapshot refuses a source link: {name}")
+        if not source.is_file():
+            raise ValueError(f"Snapshot requires regular source files: {name}")
+        content = source.read_bytes()
+        destination = checkout / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
+        hashes[name] = hashlib.sha256(content).hexdigest()
+    encoded = json.dumps(hashes, sort_keys=True, separators=(",", ":")).encode()
+    return {
+        "sha256": hashlib.sha256(encoded).hexdigest(),
+        "file_count": len(hashes),
+        "files": hashes,
+    }
+
+
 @contextlib.contextmanager
-def candidate_checkout(commit: str) -> Iterator[Path]:
+def candidate_checkout(commit: str, *, working_tree: bool = False) -> Iterator[tuple[Path, dict]]:
     scratch = ROOT / "temp" / "reliability-profile"
     scratch.mkdir(parents=True, exist_ok=True)
     run_root = Path(tempfile.mkdtemp(prefix="candidate-", dir=scratch))
@@ -483,16 +509,20 @@ def candidate_checkout(commit: str) -> Iterator[Path]:
     checkout = run_root / "source"
     checkout.mkdir()
     try:
-        subprocess.run(
-            ["git", "archive", "--format=tar", "-o", str(archive), commit],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            timeout=60,
-        )
-        with tarfile.open(archive, "r") as bundle:
-            bundle.extractall(checkout, filter="data")
-        yield checkout
+        if working_tree:
+            snapshot = snapshot_working_tree(checkout)
+        else:
+            subprocess.run(
+                ["git", "archive", "--format=tar", "-o", str(archive), commit],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                timeout=60,
+            )
+            with tarfile.open(archive, "r") as bundle:
+                bundle.extractall(checkout, filter="data")
+            snapshot = {}
+        yield checkout, snapshot
     finally:
         shutil.rmtree(run_root, ignore_errors=True)
 
@@ -553,6 +583,7 @@ class CandidateRuntime:
             PANEL_PASSWORD="",
             SETUP_TOKEN="",
             POLARIS_RUNTIME_MODE="standalone",
+            PRICING_SYNC_ENABLED="false",
             ENABLE_LOG="0",
             ENABLE_METRICS="0",
             OTEL_EXPORTER_OTLP_ENDPOINT="",
@@ -979,7 +1010,7 @@ def _post_restart_request(base_url: str, api_key: str) -> int:
     return response.status_code
 
 
-def run_profile(profile: ReliabilityProfile) -> dict[str, Any]:
+def run_profile(profile: ReliabilityProfile, *, working_tree: bool = False) -> dict[str, Any]:
     candidate = _git_output("rev-parse", "HEAD")
     started_at = datetime.now(timezone.utc)
     scratch = ROOT / "temp" / "reliability-profile"
@@ -988,7 +1019,7 @@ def run_profile(profile: ReliabilityProfile) -> dict[str, Any]:
     runtime: CandidateRuntime | None = None
     try:
         with (
-            candidate_checkout(candidate) as source,
+            candidate_checkout(candidate, working_tree=working_tree) as (source, snapshot),
             deterministic_provider() as (
                 provider_url,
                 provider,
@@ -1042,7 +1073,8 @@ def run_profile(profile: ReliabilityProfile) -> dict[str, Any]:
             return {
                 "schema_version": "polaris.reliability-result.v1",
                 "candidate_commit": candidate,
-                "source_checkout": "git-archive",
+                "source_checkout": "working-tree-snapshot" if working_tree else "git-archive",
+                "source_snapshot": snapshot,
                 "profile": {
                     "schema_version": profile.schema_version,
                     "sha256": profile.digest,
@@ -1115,10 +1147,15 @@ def main(arguments: Sequence[str] | None = None) -> int:
         type=Path,
         help="Run the fixed profile and write the complete versioned JSON result.",
     )
+    parser.add_argument(
+        "--working-tree",
+        action="store_true",
+        help="Measure a SHA-256 recorded source snapshot, including uncommitted changes, not a release commit.",
+    )
     options = parser.parse_args(arguments)
     try:
         profile = load_profile(PROFILE_PATHS[options.profile])
-        result = run_profile(profile)
+        result = run_profile(profile, working_tree=options.working_tree)
         result["profile"]["name"] = options.profile
         if options.output is not None:
             _write_result(options.output, result)

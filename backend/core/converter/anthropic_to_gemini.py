@@ -335,15 +335,17 @@ def convert_tools(
         input_schema = tool.get("input_schema", {}) or {}
         parameters = clean_json_schema(input_schema)
 
+        decl: Dict[str, Any] = {
+            "name": name,
+            "description": description,
+            "parametersJsonSchema": parameters,
+        }
+        if tool.get("cache_control"):
+            decl["cache_control"] = tool["cache_control"]
+
         gemini_tools.append(
             {
-                "functionDeclarations": [
-                    {
-                        "name": name,
-                        "description": description,
-                        "parametersJsonSchema": parameters,
-                    }
-                ]
+                "functionDeclarations": [decl]
             }
         )
 
@@ -408,16 +410,18 @@ def convert_messages_to_contents(
                     continue
 
                 item_type = item.get("type")
+                item_cache_ctrl = item.get("cache_control")
                 if item_type == "thinking":
                     if include_thinking:
                         signature = item.get("signature") or item.get("thoughtSignature")
-                        parts.append(
-                            {
-                                "text": str(item.get("thinking") or ""),
-                                "thought": True,
-                                "thoughtSignature": signature,
-                            }
-                        )
+                        part_dict: Dict[str, Any] = {
+                            "text": str(item.get("thinking") or ""),
+                            "thought": True,
+                            "thoughtSignature": signature,
+                        }
+                        if item_cache_ctrl:
+                            part_dict["cache_control"] = item_cache_ctrl
+                        parts.append(part_dict)
                 elif item_type == "redacted_thinking":
                     raise ValueError(
                         "Anthropic redacted_thinking blocks cannot be translated safely."
@@ -425,18 +429,22 @@ def convert_messages_to_contents(
                 elif item_type == "text":
                     text = item.get("text", "")
                     if _is_non_whitespace_text(text):
-                        parts.append({"text": str(text)})
+                        part_dict = {"text": str(text)}
+                        if item_cache_ctrl:
+                            part_dict["cache_control"] = item_cache_ctrl
+                        parts.append(part_dict)
                 elif item_type == "image":
                     source = item.get("source", {}) or {}
                     if source.get("type") == "base64":
-                        parts.append(
-                            {
-                                "inlineData": {
-                                    "mimeType": source.get("media_type", "image/png"),
-                                    "data": source.get("data", ""),
-                                }
+                        part_dict = {
+                            "inlineData": {
+                                "mimeType": source.get("media_type", "image/png"),
+                                "data": source.get("data", ""),
                             }
-                        )
+                        }
+                        if item_cache_ctrl:
+                            part_dict["cache_control"] = item_cache_ctrl
+                        parts.append(part_dict)
                     else:
                         raise ValueError("Only base64 Anthropic image inputs are supported.")
                 elif item_type == "tool_use":
@@ -452,6 +460,8 @@ def convert_messages_to_contents(
                     }
 
                     fc_part["thoughtSignature"] = SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                    if item_cache_ctrl:
+                        fc_part["cache_control"] = item_cache_ctrl
 
                     parts.append(fc_part)
                 elif item_type == "tool_result":
@@ -468,15 +478,17 @@ def convert_messages_to_contents(
                     if not func_name:
                         func_name = "unknown_function"
 
-                    parts.append(
-                        {
-                            "functionResponse": {
-                                "id": original_tool_use_id,
-                                "name": func_name,
-                                "response": {"output": output},
-                            }
-                        }
-                    )
+                    fr_obj: Dict[str, Any] = {
+                        "id": original_tool_use_id,
+                        "name": func_name,
+                        "response": {"output": output},
+                    }
+                    if item.get("is_error") is not None:
+                        fr_obj["is_error"] = bool(item["is_error"])
+                    fr_part: Dict[str, Any] = {"functionResponse": fr_obj}
+                    if item_cache_ctrl:
+                        fr_part["cache_control"] = item_cache_ctrl
+                    parts.append(fr_part)
                 else:
                     raise ValueError(f"Unsupported Anthropic content block type: {item_type}.")
         else:
@@ -547,6 +559,8 @@ def convert_tool_choice_to_tool_config(tool_choice: Any) -> Optional[Dict[str, A
 
         if choice_type == "auto":
             return {"functionCallingConfig": {"mode": "AUTO"}}
+        elif choice_type == "none":
+            return {"functionCallingConfig": {"mode": "NONE"}}
         elif choice_type == "any":
             return {"functionCallingConfig": {"mode": "ANY"}}
         elif choice_type == "tool":
@@ -616,6 +630,14 @@ def build_generation_config(payload: Dict[str, Any]) -> Dict[str, Any]:
             log.info(
                 f"[ANTHROPIC2GEMINI] Extended thinking enabled with budget: {thinking_config['thinkingBudget']}"
             )
+        elif thinking_type == "adaptive":
+            is_plan_mode = True
+            effort = (payload.get("output_config") or {}).get("effort", "high")
+            budget_map = {"low": 4096, "medium": 16000, "high": 32000, "max": 64000}
+            config["thinkingConfig"] = {
+                "thinkingBudget": budget_tokens or budget_map.get(effort, 32000),
+                "includeThoughts": True,
+            }
         elif thinking_type == "disabled":
             config["thinkingConfig"] = {"includeThoughts": False}
             log.info("[ANTHROPIC2GEMINI] Extended thinking explicitly disabled")
@@ -811,6 +833,7 @@ async def gemini_stream_to_anthropic_stream(
     current_block_type: Optional[str] = None
     current_block_index = -1
     current_thinking_signature: Optional[str] = None
+    open_tool_blocks: Dict[int, int] = {}
     has_tool_use = False
     input_tokens = 0
     output_tokens = 0
@@ -931,6 +954,8 @@ async def gemini_stream_to_anthropic_stream(
                         continue
                     thinking_text = part.get("text", "")
                     thoughtsignature = part.get("thoughtSignature")
+                    if thoughtsignature == SKIP_THOUGHT_SIGNATURE_VALIDATOR:
+                        thoughtsignature = None
 
                     if current_block_type != "thinking":
                         close_evt = _close_block()
@@ -939,38 +964,15 @@ async def gemini_stream_to_anthropic_stream(
 
                         current_block_index += 1
                         current_block_type = "thinking"
-                        current_thinking_signature = thoughtsignature
+                        current_thinking_signature = None
 
                         block: Dict[str, Any] = {"type": "thinking", "thinking": ""}
-                        if thoughtsignature:
-                            block["thoughtSignature"] = thoughtsignature
                         yield _sse_event(
                             "content_block_start",
                             {
                                 "type": "content_block_start",
                                 "index": current_block_index,
                                 "content_block": block,
-                            },
-                        )
-                    elif thoughtsignature and thoughtsignature != current_thinking_signature:
-                        close_evt = _close_block()
-                        if close_evt:
-                            yield close_evt
-
-                        current_block_index += 1
-                        current_block_type = "thinking"
-                        current_thinking_signature = thoughtsignature
-
-                        block_new: Dict[str, Any] = {"type": "thinking", "thinking": ""}
-                        if thoughtsignature:
-                            block_new["thoughtSignature"] = thoughtsignature
-
-                        yield _sse_event(
-                            "content_block_start",
-                            {
-                                "type": "content_block_start",
-                                "index": current_block_index,
-                                "content_block": block_new,
                             },
                         )
 
@@ -983,6 +985,20 @@ async def gemini_stream_to_anthropic_stream(
                                 "delta": {"type": "thinking_delta", "thinking": thinking_text},
                             },
                         )
+
+                    if thoughtsignature and thoughtsignature != current_thinking_signature:
+                        current_thinking_signature = thoughtsignature
+                        yield _sse_event(
+                            "content_block_delta",
+                            {
+                                "type": "content_block_delta",
+                                "index": current_block_index,
+                                "delta": {
+                                    "type": "signature_delta",
+                                    "signature": str(thoughtsignature),
+                                },
+                            },
+                        )
                     continue
 
                 if "text" in part:
@@ -991,7 +1007,7 @@ async def gemini_stream_to_anthropic_stream(
                     ):
                         continue
                     text = part.get("text", "")
-                    if isinstance(text, str) and not text.strip():
+                    if not text:
                         continue
 
                     if current_block_type != "text":
@@ -1022,7 +1038,69 @@ async def gemini_stream_to_anthropic_stream(
                         )
                     continue
 
+                if "functionCallDelta" in part:
+                    has_tool_use = True
+                    delta_info = part.get("functionCallDelta", {}) or {}
+                    tool_idx = int(delta_info.get("index", 0))
+                    if tool_idx not in open_tool_blocks:
+                        close_evt = _close_block()
+                        if close_evt:
+                            yield close_evt
+                        current_block_index += 1
+                        open_tool_blocks[tool_idx] = current_block_index
+                        current_block_type = "tool_use"
+                        yield _sse_event(
+                            "content_block_start",
+                            {
+                                "type": "content_block_start",
+                                "index": current_block_index,
+                                "content_block": {
+                                    "type": "tool_use",
+                                    "id": str(
+                                        delta_info.get("id") or f"toolu_{uuid.uuid4().hex}"
+                                    ),
+                                    "name": str(delta_info.get("name") or "tool"),
+                                    "input": {},
+                                },
+                            },
+                        )
+                    arg_delta = str(delta_info.get("arguments_delta") or "")
+                    if arg_delta:
+                        yield _sse_event(
+                            "content_block_delta",
+                            {
+                                "type": "content_block_delta",
+                                "index": open_tool_blocks[tool_idx],
+                                "delta": {
+                                    "type": "input_json_delta",
+                                    "partial_json": arg_delta,
+                                },
+                            },
+                        )
+                    continue
+
                 if "functionCall" in part:
+                    fc = part.get("functionCall", {}) or {}
+                    if part.get("_streamed_delta") or fc.get("_streamed_delta"):
+                        has_tool_use = True
+                        if fc.get("_final_arguments_delta") and current_block_type == "tool_use":
+                            yield _sse_event(
+                                "content_block_delta",
+                                {
+                                    "type": "content_block_delta",
+                                    "index": current_block_index,
+                                    "delta": {
+                                        "type": "input_json_delta",
+                                        "partial_json": str(fc["_final_arguments_delta"]),
+                                    },
+                                },
+                            )
+                        close_evt = _close_block()
+                        if close_evt:
+                            yield close_evt
+                        open_tool_blocks.clear()
+                        continue
+
                     close_evt = _close_block()
                     if close_evt:
                         yield close_evt

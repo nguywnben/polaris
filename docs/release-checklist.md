@@ -2,6 +2,10 @@
 
 Use this checklist when preparing a tagged Polaris release.
 
+For the new `1.0.0` line, complete the [version-reset publication checklist](releases/1.0.0-preparation.md)
+first. Existing legacy tag/image names must not silently be reused. Undated release notes
+are intentionally rejected by `python tools/release_preflight.py --tag v1.0.0` before image publication.
+
 ## Automated Gates
 
 - Inspect the immutable release plan with `python tools/quality_gate.py release --dry-run` and resolve

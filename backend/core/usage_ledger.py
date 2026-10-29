@@ -203,6 +203,7 @@ class CredentialUsageAggregate:
     cost_nanos: int
     cache_creation_tokens: int
     reported_usage_calls: int
+    priced_calls: int = 0
 
     def __post_init__(self) -> None:
         _bounded_text(
@@ -221,6 +222,8 @@ class CredentialUsageAggregate:
                 )
         if self.successful_calls + self.failed_calls != self.calls:
             raise ValueError("Usage aggregate call totals are contradictory.")
+        if self.priced_calls > self.successful_calls:
+            raise ValueError("Usage aggregate pricing coverage is contradictory.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -398,6 +401,10 @@ class UsageLedgerEntry:
     api_key_id: str
     cache_creation_tokens: int = 0
     usage_reported: bool = False
+    cost_status: str = "legacy"
+    cost_source: str = ""
+    pricing_model: str = ""
+    pricing_provider: str = ""
 
     def __post_init__(self) -> None:
         if (
@@ -446,6 +453,44 @@ class UsageLedgerEntry:
         if self.compression_reason not in _COMPRESSION_REASONS:
             raise ValueError("Usage compression reason is invalid.")
         _strict_int(self.cost_nanos, "Usage cost", maximum=MAX_COST_NANOS)
+        if self.cost_status not in {
+            "legacy",
+            "unpriced",
+            "estimated",
+            "reported",
+            "free",
+            "unknown_usage",
+        }:
+            raise ValueError("Usage cost status is invalid.")
+        if self.cost_status in {"unpriced", "free", "unknown_usage"} and self.cost_nanos:
+            raise ValueError("Usage cost status contradicts the amount.")
+        if self.cost_source not in {
+            "",
+            "litellm",
+            "builtin",
+            "manual",
+            "provider",
+            "local",
+            "budget",
+            "unsupported",
+        }:
+            raise ValueError("Usage cost source is invalid.")
+        _bounded_text(self.pricing_model, "Pricing model", maximum=256)
+        _bounded_text(self.pricing_provider, "Pricing provider", maximum=64)
+        if self.cost_status == "legacy" and (
+            self.cost_source or self.pricing_model or self.pricing_provider
+        ):
+            raise ValueError("Legacy usage cannot contain pricing provenance.")
+        allowed_sources = {
+            "legacy": {""},
+            "unpriced": {"", "unsupported"},
+            "estimated": {"litellm", "builtin", "manual", "budget"},
+            "reported": {"provider"},
+            "free": {"litellm", "builtin", "manual", "local"},
+            "unknown_usage": {"litellm", "builtin", "manual"},
+        }
+        if self.cost_source not in allowed_sources[self.cost_status]:
+            raise ValueError("Usage cost source contradicts its status.")
         if self.api_key_id and (
             not isinstance(self.api_key_id, str) or not _KEY_ID.fullmatch(self.api_key_id)
         ):
@@ -461,7 +506,11 @@ class UsageLedgerEntry:
         )
 
     def to_record(self) -> dict[str, object]:
-        return {field.name: getattr(self, field.name) for field in fields(self)}
+        result = {field.name: getattr(self, field.name) for field in fields(self)}
+        if self.cost_status == "legacy":
+            for name in ("cost_status", "cost_source", "pricing_model", "pricing_provider"):
+                result.pop(name)
+        return result
 
 
 class BudgetReservationState(StrEnum):
@@ -636,7 +685,14 @@ def _exact_record(record: object, expected: set[str], label: str) -> dict[str, A
 
 def usage_entry_from_record(record: object) -> UsageLedgerEntry:
     expected = {field.name for field in fields(UsageLedgerEntry)}
-    optional_since_r2 = {"cache_creation_tokens", "usage_reported"}
+    optional_since_r2 = {
+        "cache_creation_tokens",
+        "usage_reported",
+        "cost_status",
+        "cost_source",
+        "pricing_model",
+        "pricing_provider",
+    }
     if not isinstance(record, Mapping):
         raise ValueError("Stored usage entry is invalid.")
     unknown = set(record) - expected

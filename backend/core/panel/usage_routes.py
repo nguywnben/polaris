@@ -2,6 +2,7 @@ import asyncio
 from typing import Annotated, Literal
 
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pricing import get_pricing_table_status
 from core.usage_stats import (
     UNASSIGNED_USAGE_FILENAME,
@@ -17,7 +18,7 @@ from log import log
 
 from .utils import INTERNAL_SERVER_ERROR_DETAIL
 
-router = APIRouter(prefix="/api/usage", tags=["usage"])
+router = APIRouter(route_class=CredentialPrivacyRoute, prefix="/api/usage", tags=["usage"])
 
 
 @router.get("/stats")
@@ -170,6 +171,7 @@ async def get_aggregated_stats(
             item.get("compressed_messages", 0) for item in usage_data.values()
         )
         total_cost_usd = round(sum(item.get("cost_usd", 0.0) for item in usage_data.values()), 6)
+        priced_calls = sum(item.get("priced_calls", 0) for item in usage_data.values())
         total_files = credential_counts["total"]
         active_files = credential_counts["active"]
         disabled_files = credential_counts["disabled"]
@@ -218,6 +220,8 @@ async def get_aggregated_stats(
                 "compressed_messages_24h": compressed_messages,
                 "avg_tokens_per_successful_request": avg_tokens,
                 "total_cost_usd": total_cost_usd,
+                "priced_calls": priced_calls,
+                "unpriced_calls": max(0, successful_calls - priced_calls),
                 "pricing": get_pricing_table_status(),
                 "timeline": timeline,
             },

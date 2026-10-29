@@ -177,13 +177,23 @@ async def apply_pre_call_guardrails(
 
 def _is_cacheable_request(body: Dict[str, Any]) -> bool:
     """Only deterministic requests (explicit temperature == 0) are cacheable."""
+    from core.request_context import is_operation_replay_required, is_request_cache_bypass
+
+    if is_request_cache_bypass() and not is_operation_replay_required():
+        return False
     request_body = body.get("request")
     if not isinstance(request_body, dict):
         request_body = body
-    generation_config = request_body.get("generationConfig")
-    if not isinstance(generation_config, dict):
+    if request_body.get("_polaris_no_cache") and not is_operation_replay_required():
         return False
-    temperature = generation_config.get("temperature")
+    if request_body.get("previous_response_id") and not is_operation_replay_required():
+        return False
+    generation_config = request_body.get("generationConfig")
+    temperature = None
+    if isinstance(generation_config, dict) and "temperature" in generation_config:
+        temperature = generation_config.get("temperature")
+    elif "temperature" in request_body:
+        temperature = request_body.get("temperature")
     try:
         return temperature is not None and float(temperature) == 0.0
     except (TypeError, ValueError):

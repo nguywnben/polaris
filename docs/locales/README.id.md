@@ -50,7 +50,21 @@ Alur kerja coding modern sering menggabungkan berbagai klien dan penyedia: alat 
 
 ## Pratinjau Konsol
 
-![Polaris — Pratinjau Konsol](../assets/screenshots/credential-pool.png)
+Tangkapan layar menggunakan data fiktif dari demo luring yang terisolasi.
+
+### Dasbor
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dasbor" />
+</picture>
+
+### Kredensial
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Pratinjau Konsol" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ Lihat [Arsitektur](../architecture.md) untuk batasan modul, alur permintaan, kep
 
 ## Penerapan
 
+[Instalasi Docker sederhana](../docker-install.md) untuk Linux/amd64 tidak memerlukan clone repositori atau penyuntingan `.env`: satu perintah, persetujuan HTTP secara eksplisit untuk VPS, lalu membuat kata sandi melalui web. **Masih disiapkan secara lokal; installer dan image terbaru yang sesuai harus diterbitkan terlebih dahulu.** Docker manual, Compose, dan menjalankan kode sumber tetap tersedia. Docker-run memiliki [panduan cadangan dan pembaruan sendiri](../docker-maintenance.md), bukan melalui pembaru Compose.
+
 Docker Compose pada satu mesin dan satu worker adalah jalur utama. Ikuti [instalasi](../installation.md) dan [matriks dukungan](../installation.md#support-matrix).
 
-Profil dasar tidak memerlukan layanan eksternal dan menyimpan data dalam `polaris-data`. Templat menetapkan `0.1.0-beta.1`; ikuti [pembaruan dan rollback](../updating.md). Fitur lanjutan bersifat opsional melalui `deploy/compose.advanced.yml`.
+Profil dasar tidak memerlukan layanan eksternal dan menyimpan data dalam `polaris-data`. Templat menargetkan `1.0.0`. Instal hanya dengan tag dan image Polaris yang telah dirilis dan memiliki versi sama; untuk kode sumber yang belum dirilis, buat image lokal terpisah sesuai [daftar periksa rilis](../releases/1.0.0-preparation.md). Ikuti [pembaruan dan rollback](../updating.md); fitur lanjutan bersifat opsional melalui `deploy/compose.advanced.yml`.
 
-Lihat [kontrak pengenal](../migrations/polaris.md) dan [pemecahan masalah](../troubleshooting.md). Skrip native, `docker run`, Render, dan Zeabur adalah jalur kompatibilitas tanpa verifikasi instalasi/pemulihan yang setara. Image diterbitkan untuk `linux/amd64`; publikasi `linux/arm64` masih ditangguhkan.
+Lihat [kontrak pengenal](../migrations/polaris.md) dan [pemecahan masalah](../troubleshooting.md). Skrip native, Render, dan Zeabur adalah jalur kompatibilitas tanpa verifikasi instalasi/pemulihan yang setara. Image diterbitkan untuk `linux/amd64`; publikasi `linux/arm64` masih ditangguhkan.
 
 ### Pengembangan atau diagnosis lokal:
 
@@ -178,6 +194,7 @@ Prioritas: variabel lingkungan, konfigurasi tersimpan, lalu nilai bawaan. [Refer
 | `API_KEY` | dibuat otomatis | Kunci API klien dengan awalan `sk-polaris-`. |
 | `PANEL_PASSWORD` | kosong sampai penyiapan | Kata sandi untuk panel kontrol web. |
 | `SETUP_TOKEN` | kosong | Token penyiapan jarak jauh unik minimal 24 karakter; tidak dibuat atau dicatat otomatis. Tidak diperlukan pada localhost langsung. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Izinkan penyiapan jarak jauh melalui HTTP hanya jika menerima risiko kredensial dan sesi tanpa enkripsi. HTTPS disarankan; token penyiapan yang kuat tetap diperlukan. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Masa berlaku sesi konsol web dalam detik. |
 | `PANEL_COOKIE_SECURE` | otomatis | Tetapkan `true` untuk mewajibkan cookie panel hanya melalui HTTPS. Biarkan kosong untuk mendeteksi HTTPS melalui `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Jendela pembatasan laju login dalam detik. |
@@ -415,9 +432,9 @@ Impor massal Google AI Studio menerima file JSON dan arsip ZIP yang berisi file 
 }
 ```
 
-Setiap kunci yang diimpor divalidasi sebelum disimpan. Kunci duplikat dalam impor yang sama dilewati, kunci yang ada divalidasi ulang dan diperbarui, dan entri yang tidak valid dilaporkan tanpa mengekspos nilai kunci.
+Impor berkas dilakukan secara offline: Polaris memeriksa struktur JSON/ZIP, menyimpan kunci baru sebagai `unverified`, dan melewati kunci duplikat atau yang sudah ada tanpa menghubungi Google. Daftar model yang diimpor tidak dianggap terverifikasi. Kesalahan format dilaporkan tanpa mengungkap kunci. Setelah itu, jalankan verifikasi/penemuan model kredensial secara eksplisit; **Test model** memeriksa akses inferensi secara terpisah dan dapat memakai kuota atau menimbulkan biaya.
 
-Grok Build mendukung kredensial PKCE OAuth, sedangkan SpaceXAI Console mendukung kunci API. Kunci SpaceXAI Console divalidasi terhadap katalog model Grok Build sebelum disimpan. Untuk Grok Build OAuth, Polaris menghasilkan tautan otorisasi; setelah otorisasi, salin kode yang ditampilkan pada halaman otorisasi Grok Build dan tempelkan ke dalam formulir Grok Build OAuth. Token akses diperbarui secara otomatis saat refresh token tersedia, dan kedua jenis kredensial hanya mengekspos model Grok Build yang dinyatakan oleh katalog saat ini. Halaman Credentials dapat mengambil penggunaan kredit bulanan dan, ketika xAI menyediakannya, penggunaan mingguan untuk akun Grok Build OAuth. Tampilan penagihan tingkat akun ini tidak tersedia untuk kunci API SpaceXAI Console.
+Grok Build mendukung kredensial PKCE OAuth, sedangkan SpaceXAI Console mendukung kunci API. Kunci SpaceXAI Console divalidasi terhadap katalog model API SpaceXAI Console sebelum disimpan. Untuk Grok Build OAuth, Polaris menghasilkan tautan otorisasi; setelah otorisasi, salin kode yang ditampilkan pada halaman otorisasi Grok Build dan tempelkan ke dalam formulir Grok Build OAuth. Token akses diperbarui secara otomatis saat refresh token tersedia, dan kedua jenis kredensial hanya mengekspos model yang dinyatakan oleh katalog masing-masing. Halaman Credentials dapat mengambil penggunaan kredit bulanan dan, ketika xAI menyediakannya, penggunaan mingguan untuk akun Grok Build OAuth. Tampilan penagihan tingkat akun ini tidak tersedia untuk kunci API SpaceXAI Console.
 
 Codex menggunakan alur otorisasi perangkat OpenAI. Hasilkan kode perangkat dari halaman Providers, buka URL verifikasi yang ditampilkan, masukkan kode, selesaikan proses masuk, dan kembali untuk memeriksa otorisasi. Polaris menyimpan katalog model cakupan akun yang dikembalikan oleh Codex, menyegarkan token akses OAuth saat diperlukan, dan mengirim permintaan yang kompatibel melalui transportasi Codex Responses. OpenAI Platform menggunakan autentikasi kunci API; kunci divalidasi melalui katalog model akun sebelum disimpan di Credentials. Kedua produk mendukung impor JSON dan ZIP dengan validasi khusus penyedia dan deduplikasi.
 
@@ -446,7 +463,7 @@ Nama mode kredensial:
 
 ## Penyimpanan
 
-SQLite direkomendasikan. Compose menyimpan `/app/backend/data` dalam `polaris-data`; pada Docker langsung, mount `/app/backend/data/creds` dan `/app/backend/data/logs` ke direktori persisten seperti `/opt/polaris/creds` dan `/opt/polaris/logs`.
+SQLite direkomendasikan. Compose dan installer Docker menyimpan seluruh `/app/backend/data` dalam `polaris-data`. Pada Docker manual, mount seluruh direktori data juga: hanya menyimpan `creds` dan `logs` tidak mempertahankan SQLite dan konfigurasi.
 
 PostgreSQL opsional; MongoDB dipertahankan untuk kompatibilitas tanpa Redis. Konfigurasikan hanya satu. Kegagalan inisialisasi menghentikan startup tanpa diam-diam kembali ke SQLite. Penyimpanan eksternal tidak menyediakan skala horizontal: tetap satu worker dan satu replika. Cadangan terenkripsi portabel hanya untuk SQLite; migrasi langsung antar-backend tidak didukung.
 

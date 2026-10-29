@@ -13,7 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from core.credential_manager import _CredentialManagerSingleton
-from main import app, lifespan
+from main import _prewarm_model_catalog, app, lifespan
 
 
 class CredentialManagerSingletonTests(unittest.IsolatedAsyncioTestCase):
@@ -54,11 +54,26 @@ class ApplicationLifecycleTests(unittest.IsolatedAsyncioTestCase):
         config_module.has_password_configured = AsyncMock(return_value=True)
         return config_module
 
+    async def test_model_catalog_prewarm_is_best_effort(self) -> None:
+        with patch(
+            "main.model_catalog_service.get_catalog",
+            new=AsyncMock(side_effect=RuntimeError("provider unavailable")),
+        ) as get_catalog:
+            await _prewarm_model_catalog()
+
+        get_catalog.assert_awaited_once_with()
+
     async def test_shutdown_closes_runtime_manager_and_storage(self) -> None:
         config_module = self._configured_module()
         runtime_log_patcher = patch("main.log")
         runtime_log = runtime_log_patcher.start()
         self.addCleanup(runtime_log_patcher.stop)
+        catalog_patcher = patch(
+            "main.model_catalog_service.get_catalog",
+            new=AsyncMock(return_value=[]),
+        )
+        catalog_patcher.start()
+        self.addCleanup(catalog_patcher.stop)
 
         with (
             patch.dict(sys.modules, {"config": config_module}),

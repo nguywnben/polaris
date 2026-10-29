@@ -702,14 +702,13 @@ async def normalize_gemini_request(
             model = model.replace("-thinking", "")
 
             original_model = model
-            if "opus" in model.lower():
+            model_lower = model.lower()
+            if model_lower in {"opus", "claude-opus", "claude-opus-4-6"}:
                 model = "claude-opus-4-6-thinking"
-            elif "sonnet" in model.lower():
+            elif model_lower in {"sonnet", "claude-sonnet", "claude"}:
                 model = "claude-sonnet-4-6"
-            elif "haiku" in model.lower():
+            elif model_lower in {"haiku", "claude-haiku"}:
                 model = "gemini-2.5-flash"
-            elif "claude" in model.lower():
-                model = "claude-sonnet-4-6"
 
             result["model"] = model
             if original_model != model:
@@ -729,10 +728,6 @@ async def normalize_gemini_request(
                 )
                 result["contents"] = contents
 
-        generation_config.pop("presencePenalty", None)
-        generation_config.pop("frequencyPenalty", None)
-        generation_config.pop("stopSequences", None)
-
     if "tools" in result:
         result["tools"] = _normalize_tools_for_internal_api(result.get("tools"))
         # _ensure_empty_tool_schema_for_claude wraps tools in {"custom": ...} which is
@@ -745,8 +740,8 @@ async def normalize_gemini_request(
     else:
         result["safetySettings"] = DEFAULT_SAFETY_SETTINGS
 
-    if generation_config:
-        generation_config["topK"] = 64
+    if generation_config and mode == "code_assist":
+        generation_config.setdefault("topK", 64)
 
     if "contents" in result:
         cleaned_contents = []

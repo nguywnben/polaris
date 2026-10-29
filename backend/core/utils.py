@@ -163,39 +163,66 @@ async def authenticate_flexible(
     token = None
     auth_method = None
 
+    from config import API_KEY_PREFIX, get_api_key
+
+    candidates = []
     if key:
-        token = key
-        auth_method = "URL parameter 'key'"
-
-    elif x_goog_api_key:
-        token = x_goog_api_key
-        auth_method = "x-goog-api-key header"
-
-    elif x_anthropic_auth_token:
-        token = x_anthropic_auth_token
-        auth_method = "x-anthropic-auth-token header"
-
-    elif anthropic_auth_token:
-        token = anthropic_auth_token
-        auth_method = "anthropic-auth-token header"
-
-    elif x_api_key:
-        token = x_api_key
-        auth_method = "x-api-key header"
-
-    elif access_token:
-        token = access_token
-        auth_method = "access_token header"
-
-    elif authorization:
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication scheme. Use 'Bearer <token>'.",
-                headers={"WWW-Authenticate": "Bearer"},
+        candidates.append((key[7:] if key.startswith("Bearer ") else key, "URL parameter 'key'"))
+    if x_goog_api_key:
+        candidates.append(
+            (
+                x_goog_api_key[7:] if x_goog_api_key.startswith("Bearer ") else x_goog_api_key,
+                "x-goog-api-key header",
             )
-        token = authorization[7:]
-        auth_method = "Authorization Bearer header"
+        )
+    if x_anthropic_auth_token:
+        candidates.append(
+            (
+                x_anthropic_auth_token[7:]
+                if x_anthropic_auth_token.startswith("Bearer ")
+                else x_anthropic_auth_token,
+                "x-anthropic-auth-token header",
+            )
+        )
+    if anthropic_auth_token:
+        candidates.append(
+            (
+                anthropic_auth_token[7:]
+                if anthropic_auth_token.startswith("Bearer ")
+                else anthropic_auth_token,
+                "anthropic-auth-token header",
+            )
+        )
+    if x_api_key:
+        candidates.append(
+            (
+                x_api_key[7:] if x_api_key.startswith("Bearer ") else x_api_key,
+                "x-api-key header",
+            )
+        )
+    if access_token:
+        candidates.append(
+            (
+                access_token[7:] if access_token.startswith("Bearer ") else access_token,
+                "access_token header",
+            )
+        )
+    if authorization:
+        if not authorization.startswith("Bearer "):
+            if not candidates:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication scheme. Use 'Bearer <token>'.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        else:
+            candidates.append((authorization[7:], "Authorization Bearer header"))
+
+    if candidates:
+        # Prefer a candidate that matches the Polaris API key prefix when an IDE sends
+        # both a placeholder header (e.g. x-api-key: dummy) and a real Bearer token.
+        matching = [c for c in candidates if c[0].startswith(API_KEY_PREFIX)]
+        token, auth_method = matching[0] if matching else candidates[0]
 
     if not token:
         raise HTTPException(
@@ -204,9 +231,8 @@ async def authenticate_flexible(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    from config import API_KEY_PREFIX, get_api_key
     from core.quality_policy_runtime import compression_policy_from_request_header
-    from core.request_context import set_request_compression_policy
+    from core.request_context import set_request_cache_bypass, set_request_compression_policy
 
     try:
         request_compression_policy = compression_policy_from_request_header(
@@ -215,6 +241,15 @@ async def authenticate_flexible(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     set_request_compression_policy(request_compression_policy)
+
+    cache_control_header = (request.headers.get("cache-control") or "").lower()
+    polaris_cache_header = (request.headers.get("x-polaris-cache") or "").strip().lower()
+    if (
+        "no-cache" in cache_control_header
+        or "no-store" in cache_control_header
+        or polaris_cache_header in {"false", "0", "off", "no-cache", "no-store", "bypass"}
+    ):
+        set_request_cache_bypass(True)
 
     api_key = await get_api_key()
 

@@ -8,6 +8,7 @@ from core.converter.fake_stream import (
 )
 from core.model_pool import ModelPoolError, resolve_model_request
 from core.models import OpenAIChatCompletionRequest, model_to_dict
+from core.router.openai_stream_options import apply_stream_options, sum_attempt_usage
 from core.router.protocol_errors import adapt_protocol_error_response
 from core.router.stream_passthrough import (
     build_streaming_response_or_error,
@@ -22,7 +23,7 @@ from core.utils import (
     is_anti_truncation_model,
     is_fake_streaming_model,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from log import log
 
@@ -30,6 +31,8 @@ router = APIRouter()
 
 
 @router.post("/v1/chat/completions")
+@router.post("/chat/completions", include_in_schema=False)
+@router.post("/v1/v1/chat/completions", include_in_schema=False)
 async def chat_completions(
     openai_request: OpenAIChatCompletionRequest, token: str = Depends(authenticate_bearer)
 ):
@@ -168,6 +171,11 @@ async def chat_completions(
             chunks = build_openai_fake_stream_chunks(
                 content, reasoning_content, finish_reason, response_model, images
             )
+            from core.converter.openai_to_gemini import convert_gemini_to_openai_response
+
+            usage = convert_gemini_to_openai_response(gemini_response, response_model).get("usage")
+            if chunks and usage:
+                chunks[-1]["usage"] = usage
             for idx, chunk in enumerate(chunks):
                 chunk_json = json.dumps(chunk)
                 log.debug(f"[FAKE_STREAM] Yielding chunk #{idx + 1}: {chunk_json[:200]}")
@@ -251,6 +259,7 @@ async def chat_completions(
 
         response_id = str(uuid.uuid4())
 
+        attempt_usage = {}
         processor_stream = processor.process_stream()
         anti_owned_streams.append(processor_stream)
         async for chunk in processor_stream:
@@ -280,6 +289,11 @@ async def chat_completions(
                     )
 
                     if openai_chunk_str:
+                        event = json.loads(openai_chunk_str[6:])
+                        if event.get("usage") is not None:
+                            attempt_usage[processor.current_attempt] = event["usage"]
+                            event["usage"] = sum_attempt_usage(list(attempt_usage.values()))
+                            openai_chunk_str = f"data: {json.dumps(event)}\n\n"
                         yield openai_chunk_str.encode("utf-8")
 
                 except Exception as e:
@@ -365,17 +379,119 @@ async def chat_completions(
         yield "data: [DONE]\n\n".encode("utf-8")
 
     if use_fake_streaming:
-        return await build_streaming_response_or_error(
-            fake_stream_generator(), error_protocol="openai"
-        )
+        stream = fake_stream_generator()
     elif use_anti_truncation:
         log.info("Enabling anti-truncation streaming feature")
-        return await build_streaming_response_or_error(
-            cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams),
-            error_protocol="openai",
+        stream = cascade_close_async_iterator(anti_truncation_generator(), anti_owned_streams)
+    else:
+        stream = cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams)
+    return await build_streaming_response_or_error(
+        apply_stream_options(
+            stream,
+            include_usage=bool(
+                openai_request.stream_options and openai_request.stream_options.include_usage
+            ),
+        ),
+        error_protocol="openai",
+    )
+
+
+@router.post("/v1/completions", include_in_schema=False)
+@router.post("/completions", include_in_schema=False)
+@router.post("/v1/v1/completions", include_in_schema=False)
+async def legacy_completions(
+    request: Request, token: str = Depends(authenticate_bearer)
+):
+    """Legacy OpenAI completions shim for IDE tab-autocomplete / FIM clients."""
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON request body.") from exc
+    if not isinstance(payload, dict) or not payload.get("model"):
+        raise HTTPException(status_code=400, detail="Missing required field: model.")
+
+    prompt = payload.get("prompt", "")
+    if isinstance(prompt, list):
+        prompt_text = "\n".join(str(item) for item in prompt)
+    else:
+        prompt_text = str(prompt or "")
+    suffix = payload.get("suffix")
+    if isinstance(suffix, str) and suffix:
+        user_content = (
+            f"Complete the following text between <prefix> and <suffix>. "
+            f"Return only the middle completion.\n<prefix>{prompt_text}</prefix>"
+            f"<suffix>{suffix}</suffix>"
         )
     else:
-        return await build_streaming_response_or_error(
-            cascade_close_async_iterator(normal_stream_generator(), normal_owned_streams),
-            error_protocol="openai",
+        user_content = prompt_text or " "
+
+    chat_req = OpenAIChatCompletionRequest(
+        model=str(payload["model"]),
+        messages=[{"role": "user", "content": user_content}],
+        stream=bool(payload.get("stream", False)),
+        temperature=payload.get("temperature"),
+        top_p=payload.get("top_p"),
+        max_tokens=payload.get("max_tokens"),
+        stop=payload.get("stop"),
+        frequency_penalty=payload.get("frequency_penalty"),
+        presence_penalty=payload.get("presence_penalty"),
+        seed=payload.get("seed"),
+    )
+    response = await chat_completions(chat_req, token=token)
+    if not chat_req.stream or not isinstance(response, StreamingResponse):
+        if getattr(response, "status_code", 200) >= 400:
+            return response
+        body = json.loads(response.body.decode("utf-8"))
+        choices = [
+            {
+                "text": (choice.get("message") or {}).get("content") or "",
+                "index": choice.get("index", 0),
+                "logprobs": None,
+                "finish_reason": choice.get("finish_reason", "stop"),
+            }
+            for choice in body.get("choices") or []
+        ]
+        return JSONResponse(
+            content={
+                "id": f"cmpl-{body.get('id', '')}",
+                "object": "text_completion",
+                "created": body.get("created", 0),
+                "model": body.get("model", chat_req.model),
+                "choices": choices,
+                **({"usage": body["usage"]} if "usage" in body else {}),
+            }
         )
+
+    async def _completion_stream():
+        async for chunk in response.body_iterator:
+            text = chunk.decode("utf-8", errors="ignore") if isinstance(chunk, bytes) else str(chunk)
+            for line in text.splitlines():
+                if not line.startswith("data: "):
+                    continue
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    yield b"data: [DONE]\n\n"
+                    continue
+                try:
+                    event = json.loads(data_str)
+                except Exception:
+                    continue
+                comp_choices = [
+                    {
+                        "text": (c.get("delta") or {}).get("content") or "",
+                        "index": c.get("index", 0),
+                        "logprobs": None,
+                        "finish_reason": c.get("finish_reason"),
+                    }
+                    for c in event.get("choices") or []
+                ]
+                out = {
+                    "id": f"cmpl-{event.get('id', '')}",
+                    "object": "text_completion",
+                    "created": event.get("created", 0),
+                    "model": event.get("model", chat_req.model),
+                    "choices": comp_choices,
+                }
+                yield f"data: {json.dumps(out)}\n\n".encode("utf-8")
+
+    return StreamingResponse(_completion_stream(), media_type="text/event-stream")

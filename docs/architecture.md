@@ -227,6 +227,13 @@ ADR-002 remains the release authority for this boundary.
 
 Production dependencies are compiled into `requirements.lock` with hashes. `requirements.txt` remains the human-maintained input, and CI rejects stale lock output.
 
+Credential inventory includes an opaque `quota_cache_scope` for display caches. It is a
+process-keyed digest of provider/account identity and connection scope, not a credential or
+authorization token. Browser plan snapshots and quota previews are isolated by this scope;
+replacement accounts and late responses cannot reuse another account's cached display. Unknown
+identities do not restore persisted plans. A server restart invalidates these optional snapshots
+until fresh quota metadata arrives; it does not change stored credentials or subscriptions.
+
 ## Change Policy
 
 Public SDK routes and payload contracts require compatibility tests. Storage schema changes require forward migration and rollback notes. Provider-specific changes must remain behind provider capability boundaries. Architectural decisions that are expensive to reverse should be recorded under `docs/decisions/` as ADRs.

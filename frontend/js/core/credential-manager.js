@@ -428,13 +428,16 @@ function createCredsManager(type) {
                             credential_label: item.credential_label,
 
                             credential_type: item.credential_type,
+                            quota_cache_scope: item.quota_cache_scope,
+                            api_key_hint: item.api_key_hint,
                             validation_status: item.validation_status === 'unverified' ? 'unverified' : null,
 
                             provider: item.provider,
 
                             provider_variant: item.provider_variant,
 
-                            model_count: Number.isFinite(Number(item.model_count)) ? Number(item.model_count) : 0,
+                            model_count: item.model_count,
+                            model_count_known: item.model_count_known,
 
                             model_cooldowns: item.model_cooldowns || {},
 

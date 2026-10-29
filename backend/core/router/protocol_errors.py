@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
+from core.http_headers import retry_after_headers
 from fastapi import Response
 from fastapi.responses import JSONResponse
 from log import redact_text
@@ -12,7 +13,6 @@ from log import redact_text
 ProtocolName = Literal["openai", "anthropic", "gemini"]
 
 _SAFE_RESPONSE_HEADERS = {
-    "retry-after",
     "www-authenticate",
     "x-request-id",
     "request-id",
@@ -21,9 +21,20 @@ _SAFE_RESPONSE_HEADERS = {
 
 def protocol_for_path(path: str) -> ProtocolName | None:
     """Return the public SDK protocol represented by a request path."""
-    if path.startswith("/v1/messages"):
+    if path.startswith(("/v1/messages", "/messages", "/v1/v1/messages")):
         return "anthropic"
-    if path.startswith("/v1beta/models/") or path == "/v1beta/models":
+    if (
+        path.startswith("/v1beta/models/")
+        or path == "/v1beta/models"
+        or (
+            path.startswith("/v1/models/")
+            and (
+                ":generateContent" in path
+                or ":streamGenerateContent" in path
+                or ":countTokens" in path
+            )
+        )
+    ):
         return "gemini"
     if (
         path == "/vertex/v1beta/models"
@@ -35,6 +46,17 @@ def protocol_for_path(path: str) -> ProtocolName | None:
         path.startswith("/v1/")
         or path == "/vertex/v1/models"
         or path.startswith("/vertex/v1/chat/completions")
+        or path.startswith(
+            (
+                "/chat/completions",
+                "/v1/v1/chat/completions",
+                "/responses",
+                "/v1/v1/responses",
+                "/completions",
+                "/v1/v1/completions",
+                "/models/",
+            )
+        )
     ):
         return "openai"
     return None
@@ -211,6 +233,7 @@ def adapt_protocol_error_response(
         for key, value in response.headers.items()
         if key.lower() in _SAFE_RESPONSE_HEADERS
     }
+    headers.update(retry_after_headers(response.headers))
     return protocol_error_response(
         protocol,
         response.status_code,

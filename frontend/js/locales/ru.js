@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['ru'], {
+    "dashboard.cost_unknown": "Стоимость не определена",
+    "dashboard.cost_coverage": "{source} · Оценено {priced}/{total} успешных вызовов. Оценка по тарифам API, не сумма счёта.",
     "provider.copy.grok_intro": "Добавьте учётные записи OAuth и направляйте запросы к доступным моделям Grok Build через общий пул.",
     "provider.copy.grok_authorize": "Авторизуйте учётную запись Grok Build с помощью PKCE и сохраните её прямо в пул провайдера.",
     "provider.copy.grok_code": "После входа скопируйте код со страницы авторизации Grok Build и вставьте его здесь.",
@@ -95,7 +97,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS['ru'], {
     "setup_action_enter_setup_token": "Введите токен настройки, заданный администратором, затем запустите проверку.",
     "setup_action_configure_setup_token": "Задайте надёжный SETUP_TOKEN (не менее 24 символов), перезапустите сервис и повторите попытку.",
     "setup_action_fix_base_url": "Исправьте публичный адрес консоли и повторите попытку.",
-    "setup_action_use_https": "Настройте HTTPS для удалённой консоли и повторите попытку.",
+    "setup_action_use_https": "Используйте HTTPS. Чтобы принять риски HTTP, администратор может задать SETUP_ALLOW_INSECURE_HTTP=true и перезапустить службу.",
+    "transport_insecure_allowed": "HTTP разрешён (без шифрования)",
+    "setup_http_warning": "Внимание: HTTP не шифрует токены настройки, пароли и файлы cookie сеанса. Их могут перехватить или изменить при передаче. Рекомендуется HTTPS.",
     "setup_action_enable_secure_cookie": "Включите защищённые cookie сеанса и повторите попытку.",
     "setup_action_use_https_or_auto_cookie": "Используйте HTTPS или верните PANEL_COOKIE_SECURE в автоматический режим.",
     "setup_action_fix_data_permissions": "Разрешите запись в каталог данных и повторите попытку.",

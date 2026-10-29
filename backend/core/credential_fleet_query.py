@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import hmac
 import json
 import os
 import secrets
@@ -23,6 +24,9 @@ from core.provider_registry import (
 
 SELECTION_TOKEN_TTL_SECONDS = 300
 MAX_SELECTION_TOKENS = 256
+# A UI cache namespace, not an authentication token. Restarting safely invalidates
+# browser snapshots; a keyed digest avoids exposing or guess-checking account data.
+_QUOTA_CACHE_SALT = secrets.token_bytes(32)
 
 
 @dataclass(frozen=True)
@@ -159,6 +163,50 @@ def _derive_quota_state(
     return "available"
 
 
+def _masked_api_key_hint(value: Any) -> str | None:
+    """Expose only a bounded identifier, never a complete or nearly complete key."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    if not value or not value.isascii() or not value.isprintable():
+        return None
+    if len(value) < 20:
+        return "••••"
+    return f"{value[:6]}…{value[-4:]}"
+
+
+def _quota_cache_scope(data: dict[str, Any]) -> str | None:
+    identity = next(
+        (
+            (field, data[field])
+            for field in (
+                "account_id",
+                "account_fingerprint",
+                "user_email",
+                "email",
+                "account_email",
+                "refresh_token",
+                "api_key",
+                "token",
+                "access_token",
+            )
+            if isinstance(data.get(field), str) and data[field].strip()
+        ),
+        None,
+    )
+    if identity is None:
+        return None
+    material = json.dumps(
+        [
+            get_credential_provider_variant(data),
+            identity,
+            *[data.get(field) for field in ("base_url", "organization_id", "project_id", "region")],
+        ],
+        sort_keys=True,
+    ).encode("utf-8")
+    return hmac.new(_QUOTA_CACHE_SALT, material, hashlib.sha256).hexdigest()
+
+
 def enrich_credential_summary(
     summary: dict[str, Any],
     credential_data: dict[str, Any],
@@ -175,26 +223,46 @@ def enrich_credential_summary(
         model_cooldowns = {}
     disabled = bool(summary.get("disabled"))
     has_cooldown = bool(model_cooldowns)
-    credential_kind = str(credential_data.get("credential_type") or "oauth").strip().lower()
+    declared_credential_kind = str(credential_data.get("credential_type") or "").strip().lower()
+    credential_kind = declared_credential_kind
     if credential_kind not in {"oauth", "api_key", "connection"}:
-        credential_kind = "oauth"
+        # A few legacy hosted-provider records predate the explicit type field.
+        # An API key is still detectable without exposing its value, so classify
+        # those records consistently for the public credential card.
+        credential_kind = "api_key" if credential_data.get("api_key") else "oauth"
     source = "environment" if credential_data.get("source") == "environment" else "managed"
     provider = get_credential_provider(credential_data)
+    user_email = summary.get("user_email")
+    if provider == "muse_code" and credential_kind == "oauth":
+        from core.muse_oauth import account_email
+
+        # Muse refresh stores account metadata in the credential payload, while
+        # older records can have an empty or stale email in their state column.
+        user_email = account_email(credential_data.get("user_email")) or account_email(user_email)
     tier = (
         str(summary.get("tier") or "pro").strip().lower()
         if provider == GOOGLE_ANTIGRAVITY
         else "not_applicable"
     )
 
+    from core.credential_privacy import mask_account_email, mask_email_text
+
     item: dict[str, Any] = {
         "filename": os.path.basename(str(summary.get("filename") or "")),
-        "user_email": summary.get("user_email"),
-        "credential_label": credential_data.get("credential_label"),
+        "user_email": mask_account_email(user_email),
+        "credential_label": mask_email_text(credential_data.get("credential_label")),
         "credential_type": credential_kind,
+        "quota_cache_scope": _quota_cache_scope(credential_data),
+        "api_key_hint": (
+            _masked_api_key_hint(credential_data.get("api_key"))
+            if credential_kind == "api_key"
+            else None
+        ),
         "credential_kind": credential_kind,
         "provider": provider,
         "provider_variant": get_credential_provider_variant(credential_data),
         "model_count": len(get_declared_credential_models(credential_data)),
+        "model_count_known": isinstance(credential_data.get("model_ids"), list),
         "disabled": disabled,
         "error_codes": error_codes,
         "last_success": summary.get("last_success"),

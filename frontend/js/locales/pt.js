@@ -1,5 +1,7 @@
 // Contextual interface translations. Product names and protocol identifiers stay exact.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["pt"], {
+    "dashboard.cost_unknown": "Custo indisponível",
+    "dashboard.cost_coverage": "{source} · Custo calculado para {priced}/{total} chamadas bem-sucedidas. Estimativas com preços de API, não faturas.",
     "provider": "Provedor",
     "status_filter_suffix": " Filtro: {filter}.",
     "setup_preflight_title": "Verificações da instalação",
@@ -42,7 +44,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["pt"], {
     "setup_action_enter_setup_token": "Insira o token de configuração definido pelo operador e execute as verificações.",
     "setup_action_configure_setup_token": "Defina um SETUP_TOKEN forte com pelo menos 24 caracteres, reinicie e tente novamente.",
     "setup_action_fix_base_url": "Corrija o endereço público do console e tente novamente.",
-    "setup_action_use_https": "Disponibilize este console remoto por HTTPS e tente novamente.",
+    "setup_action_use_https": "Use HTTPS. Para aceitar os riscos de HTTP, o operador pode definir SETUP_ALLOW_INSECURE_HTTP=true e reiniciar o serviço.",
+    "transport_insecure_allowed": "HTTP permitido (sem criptografia)",
+    "setup_http_warning": "Aviso: HTTP não criptografa tokens de configuração, senhas ou cookies de sessão. Eles podem ser interceptados ou alterados em trânsito. HTTPS é recomendado.",
     "setup_action_enable_secure_cookie": "Ative os cookies de sessão seguros e tente novamente.",
     "setup_action_use_https_or_auto_cookie": "Use HTTPS ou volte a definir PANEL_COOKIE_SECURE no modo automático.",
     "setup_action_fix_data_permissions": "Permita a gravação no diretório de dados e tente novamente.",

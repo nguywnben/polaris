@@ -690,6 +690,11 @@ class SQLiteUsageLedgerRepository:
                            {detail_columns},
                            SUM(total_tokens) AS total_tokens,
                            SUM(cost_nanos) AS cost_nanos,
+                           SUM(CASE WHEN success = 1 AND
+                               json_extract(payload, CASE kind WHEN 'usage'
+                                   THEN '$.cost_status' ELSE '$.usage.cost_status' END)
+                                   IN ('estimated', 'reported', 'free')
+                               THEN 1 ELSE 0 END) AS priced_calls,
                            SUM(CASE WHEN success = 1
                                THEN {self._usage_payload_integer("usage_reported")}
                                ELSE 0 END) AS reported_usage_calls,
@@ -723,29 +728,48 @@ class SQLiteUsageLedgerRepository:
                 int(row["cost_nanos"]),
                 int(row["cache_creation_tokens"]),
                 int(row["reported_usage_calls"]),
+                int(row["priced_calls"]),
             )
             for row in rows
         ]
 
     async def aggregate_providers(self) -> list[ProviderUsageAggregate]:
-        entries = await self._committed_entries()
-        grouped: dict[str, list[int]] = {}
-        for entry in entries:
-            provider = entry.provider or "unknown"
-            totals = grouped.setdefault(provider, [0] * 6)
-            values = (
-                1,
-                1 if entry.success else 0,
-                0 if entry.success else 1,
-                entry.total_tokens,
-                entry.latency_ms,
-                entry.cost_nanos,
-            )
-            for index, value in enumerate(values):
-                totals[index] = self._checked_sum(totals[index], value)
+        latency_expr = self._usage_payload_integer("latency_ms")
+        async with self._connection() as db:
+            rows = await (
+                await db.execute(
+                    f"""
+                    WITH committed AS (
+                        SELECT *, COUNT(*) OVER () AS source_rows
+                        FROM durable_usage_ledger
+                        WHERE occurred_at IS NOT NULL
+                    )
+                    SELECT COALESCE(NULLIF(provider, ''), 'unknown') AS provider_key,
+                           COUNT(*) AS calls,
+                           SUM(success) AS successful_calls,
+                           COUNT(*) - SUM(success) AS failed_calls,
+                           SUM(total_tokens) AS total_tokens,
+                           SUM({latency_expr}) AS latency_ms,
+                           SUM(cost_nanos) AS cost_nanos,
+                           MAX(source_rows) AS source_rows
+                    FROM committed
+                    GROUP BY provider_key
+                    ORDER BY provider_key
+                    """
+                )
+            ).fetchall()
+        self._ensure_report_row_bound(rows)
         return [
-            ProviderUsageAggregate(provider, *totals)
-            for provider, totals in sorted(grouped.items())
+            ProviderUsageAggregate(
+                str(row["provider_key"]),
+                int(row["calls"]),
+                int(row["successful_calls"]),
+                int(row["failed_calls"]),
+                int(row["total_tokens"]),
+                int(row["latency_ms"]),
+                int(row["cost_nanos"]),
+            )
+            for row in rows
         ]
 
     async def aggregate_time_series(

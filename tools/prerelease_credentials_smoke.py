@@ -25,6 +25,25 @@ def main():
             page.goto(base + "/credentials", wait_until="networkidle")
             page.locator("#primaryProviderFilter").select_option("google_antigravity")
             expect(page.locator(".cred-card")).to_have_count(7)
+            page.wait_for_load_state("networkidle")
+            badge = page.locator(".subscription-badge:visible").first
+            tooltip = badge.locator(".credential-badge-tooltip")
+            badge.focus()
+            expect(tooltip).to_be_visible()
+            page.keyboard.press("Escape")
+            expect(tooltip).to_be_hidden()
+            expect(badge).to_be_focused()
+            page.keyboard.press("Tab")
+            page.keyboard.press("Shift+Tab")
+            expect(tooltip).to_be_visible()
+            page.keyboard.press("Escape")
+            page.locator("#primaryProviderFilter").focus()
+            badge.hover()
+            expect(tooltip).to_be_visible()
+            tooltip.hover()
+            expect(tooltip).to_be_visible()
+            page.keyboard.press("Escape")
+            expect(tooltip).to_be_hidden()
             card = page.locator('[data-filename="demo-google_antigravity-01.json"]').locator(
                 "xpath=ancestor::div[contains(@class,'cred-card')][1]"
             )
@@ -50,7 +69,8 @@ def main():
             assert not failures, failures
             wide = measurements[0]
             assert abs(wide["quotaWidth"] - wide["bodyWidth"]) <= 1, wide
-            page.keyboard.press("Escape")
+            measurements.append({"badgeHint": "focus, hover, Escape, reopen"})
+            page.locator(".credential-management-modal [data-dialog-close]").click()
             page.set_viewport_size({"width": 1440, "height": 900})
             page.locator("#primaryProviderFilter").select_option("muse_code")
             page.locator('[data-filename="demo-muse_code-01.json"]').locator(
@@ -81,7 +101,7 @@ def main():
             page.set_viewport_size({"width": 360, "height": 800})
             page.emulate_media(color_scheme="dark")
             page.screenshot(path=str(output / "muse-code-mobile-dark.png"))
-            page.keyboard.press("Escape")
+            page.locator(".credential-management-modal [data-dialog-close]").click()
             page.set_viewport_size({"width": 1440, "height": 900})
             for theme in ("dark", "light"):
                 page.emulate_media(color_scheme=theme)
@@ -97,7 +117,7 @@ def main():
                         provider,
                         theme,
                     )
-                    page.keyboard.press("Escape")
+                    page.locator(".credential-management-modal [data-dialog-close]").click()
             for role, permissions in (
                 ("viewer", ["credentials.read"]),
                 ("operator", ["credentials.read", "credentials.operate"]),
@@ -141,7 +161,7 @@ def main():
                 expect(dialog.locator("[data-management-configuration]")).to_have_count(
                     int(can_manage)
                 )
-                page.keyboard.press("Escape")
+                page.locator(".credential-management-modal [data-dialog-close]").click()
                 for control in page.locator('[data-ui-action="select-credentials-archive"]').all():
                     expect(control).to_be_enabled(enabled=can_manage)
                 expect(page.locator('[data-ui-action="download-credentials"]')).to_be_enabled(

@@ -10,6 +10,7 @@ from core.model_blacklist import (
     get_credential_model_blacklist_pairs,
     get_model_blacklist_pairs,
 )
+from core.provider_connection_diagnostics import classify_provider_response
 from core.provider_registry import (
     ANTHROPIC,
     CLAUDE_CODE,
@@ -292,7 +293,7 @@ class CredentialManager:
         self, credential_name: str, state_updates: Dict[str, Any], mode: str = "code_assist"
     ):
         log.debug(
-            f"[CredMgr] update_credential_state Start: credential_name = {credential_name}, state_updates = {state_updates}, mode = {mode}"
+            f"[CredMgr] update_credential_state Start: credential_name = {credential_name}, mode = {mode}"
         )
         log.debug("[credential-manager] Ensuring storage is initialized.")
         await self._ensure_initialized()
@@ -422,7 +423,13 @@ class CredentialManager:
             elif error_code:
                 error_messages = {}
                 if error_message:
-                    error_messages[str(error_code)] = error_message
+                    diagnostic = classify_provider_response(error_code, error_message)
+                    # Inference does not share the connection test's fixed deadline.
+                    error_messages[str(error_code)] = (
+                        f"HTTP {diagnostic.provider_status}"
+                        if diagnostic.category in {"upstream", "timeout"}
+                        else diagnostic.message
+                    )
 
                 state_updates = {
                     "error_codes": [error_code],

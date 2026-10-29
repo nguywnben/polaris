@@ -8,7 +8,7 @@ SKIP_THOUGHT_SIGNATURE_PLACEHOLDER_TEXT = "..."
 def is_internal_placeholder_text(text: Any) -> bool:
     if not isinstance(text, str):
         return False
-    return text.strip() in (SKIP_THOUGHT_SIGNATURE_PLACEHOLDER_TEXT, "")
+    return text == "" or text.strip() == SKIP_THOUGHT_SIGNATURE_PLACEHOLDER_TEXT
 
 
 def is_skip_thought_signature_placeholder(part: Mapping[str, Any]) -> bool:
@@ -19,7 +19,8 @@ def is_skip_thought_signature_placeholder(part: Mapping[str, Any]) -> bool:
         return False
     if "functionCall" in part or "function_call" in part or "functionResponse" in part:
         return False
-    return is_internal_placeholder_text(part.get("text"))
+    text = part.get("text")
+    return isinstance(text, str) and text.strip() in (SKIP_THOUGHT_SIGNATURE_PLACEHOLDER_TEXT, "")
 
 
 def encode_tool_id_with_signature(tool_id: str, signature: Optional[str]) -> str:

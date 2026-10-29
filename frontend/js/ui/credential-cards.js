@@ -1,3 +1,22 @@
+function initCredentialBadgeHints() {
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const hints = document.querySelectorAll('.credential-badge-hint:not([data-hint-dismissed]):is(:hover, :focus-visible)');
+        if (!hints.length) return;
+        hints.forEach(badge => { badge.dataset.hintDismissed = 'true'; });
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+    document.addEventListener('pointerover', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge && !badge.contains(event.relatedTarget)) delete badge.dataset.hintDismissed;
+    });
+    document.addEventListener('focusin', event => {
+        const badge = event.target.closest('.credential-badge-hint');
+        if (badge) delete badge.dataset.hintDismissed;
+    });
+}
+
 function getAuthHeaders(includeContentType = true) {
 
     const headers = {'Accept-Language': getActiveLocale()};
@@ -233,7 +252,7 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
     if (kind === 'provider_tier' || kind === 'provider_plan') {
         if (!rawValue || rawValue.length > 128 || /[\u0000-\u001f\u007f-\u009f]/.test(rawValue)
             || ['unknown', 'not_applicable', 'n/a', 'none'].includes(rawValue.toLowerCase())) return null;
-        return {label: rawValue, kind: kind === 'provider_plan' ? 'plan' : 'tier', badgeClass: 'muted'};
+        return {label: rawValue, kind: kind === 'provider_plan' ? 'plan' : 'tier', badgeClass: 'info'};
     }
     if (!rawValue || rawValue.toLowerCase() === 'unknown' || rawValue.length > 48) return null;
 
@@ -246,13 +265,40 @@ function normalizeCredentialSubscriptionPlan(value, kind = 'plan') {
     if (!displayValue) return null;
 
     const label = displayValue.replace(/\b\w/g, (character) => character.toUpperCase());
-    const normalizedLabel = label.toLowerCase();
-    const badgeClass = normalizedLabel === 'free'
-        ? 'tier-free'
-        : (normalizedLabel === 'ultra' || normalizedLabel === 'enterprise' ? 'tier-ultra' : 'tier-pro');
+    return { label, kind: normalizedKind, badgeClass: 'info' };
 
-    return { label, kind: normalizedKind, badgeClass };
+}
 
+function credentialSubscriptionSnapshot(pathId, provider, value, kind = 'plan', scope = '') {
+    const storageKey = 'polaris_credential_plan_snapshots';
+    // Never restore legacy filename-only snapshots for a new or unknown account.
+    const key = JSON.stringify([provider, pathId, scope]);
+    const persist = typeof scope === 'string' && /^[a-f0-9]{64}$/.test(scope);
+    let entries = [];
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored)) entries = stored.filter(item => item && typeof item.key === 'string').slice(-256);
+    } catch { /* Plan display still works when browser storage is unavailable. */ }
+    if (typeof value === 'string' && normalizeCredentialSubscriptionPlan(value, kind)) {
+        const snapshot = {key, value, kind};
+        entries = entries.filter(item => item.key !== key);
+        entries.push(snapshot);
+        try { if (persist) sessionStorage.setItem(storageKey, JSON.stringify(entries.slice(-256))); }
+        catch { /* Keep the live provider value even if persistence is blocked. */ }
+        return snapshot;
+    }
+    const previous = persist && entries.find(item => item.key === key);
+    return previous && typeof previous.value === 'string'
+        && ['plan', 'provider_plan', 'provider_tier'].includes(previous.kind)
+        && normalizeCredentialSubscriptionPlan(previous.value, previous.kind) ? previous : null;
+}
+
+function cacheCredentialQuota(pathId, filename, scope, cached) {
+    // A late response from a replaced card must not populate the new account.
+    const context = AppState.credentialCardIndex[pathId];
+    if (!context || context.quotaCacheScope !== scope) return false;
+    AppState.quotaPreviewCache[filename] = {...cached, scope};
+    return true;
 }
 
 function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
@@ -262,12 +308,7 @@ function renderCredentialSubscriptionBadge(pathId, value, kind = 'plan') {
         return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge muted" hidden></span>`;
     }
 
-    const badgeLabel = plan.kind === 'tier'
-        ? t('credential_badge_tier', {tier: escapeHtml(plan.label)})
-        : t('credential_badge_plan', {plan: escapeHtml(plan.label)});
-    const title = t(plan.kind === 'tier' ? 'credential_badge_tier' : 'credential_badge_plan', {tier: plan.label, plan: plan.label});
-
-    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}" title="${escapeAttribute(title)}">${badgeLabel}</span>`;
+    return `<span id="subscription-plan-${pathId}" class="status-badge subscription-badge ${plan.badgeClass}"><span class="credential-badge-label">${escapeHtml(plan.label)}</span></span>`;
 
 }
 
@@ -285,10 +326,10 @@ function getCredentialAuthenticationType(providerMeta, credInfo) {
 
 }
 
-function renderCredentialAuthenticationBadge(providerMeta, credInfo) {
+function renderCredentialAuthenticationBadge(providerMeta, credInfo, {compact = false} = {}) {
 
     const authenticationType = getCredentialAuthenticationType(providerMeta, credInfo);
-    if (!authenticationType) return '';
+    if (!authenticationType || (compact && authenticationType === 'OAuth')) return '';
 
     const label = authenticationType === 'Connection' ? t('pool.kind.connection')
         : authenticationType === 'API key' ? t('credentials.workspace.api_key') : authenticationType;
@@ -296,14 +337,74 @@ function renderCredentialAuthenticationBadge(providerMeta, credInfo) {
 
 }
 
+function maskCredentialEmailText(value) {
+    return String(value || '').replace(/[^\s<>()"',;:@/\\]+@[^\s<>()"',;:@/\\]+/gu, email => {
+        const [local, domain] = email.split('@');
+        if (local.includes('***')) return email;
+        const chars = Array.from(local);
+        const masked = chars.length > 4 ? `${chars.slice(0, 2).join('')}***${chars.slice(-2).join('')}`
+            : `${chars.length > 2 ? chars[0] : ''}***`;
+        return `${masked}@${domain}`;
+    });
+}
+
+function getCredentialApiKeyEnding(credInfo) {
+    const hint = String(credInfo?.api_key_hint || '').trim();
+    if (!hint || hint === '••••') return '';
+    const match = hint.match(/(?:…|\.\.\.)([^\s…]{4})$/u);
+    return match ? match[1] : '';
+}
+
 function getCredentialAccountLabel(credInfo) {
-    const label = String(credInfo.credential_label || '').trim();
-    if (label) return label;
     const kind = String(credInfo.credential_type || 'oauth').toLowerCase();
+    if (kind === 'api_key' || credInfo.api_key_hint) {
+        const ending = getCredentialApiKeyEnding(credInfo);
+        return ending
+            ? t('credentials.workspace.api_key_ending', {ending})
+            : t('credentials.workspace.api_key');
+    }
+    const label = String(credInfo.credential_label || '').trim();
+    if (label) return maskCredentialEmailText(label);
     const email = kind === 'oauth' ? String(credInfo.user_email || '').trim() : '';
-    if (email) return email;
+    if (email) return maskCredentialEmailText(email);
     // Filenames are existing public inventory identifiers, not token/key fragments.
-    return String(credInfo.filename || '').replace(/\.json$/i, '') || t('credential_details_title');
+    return maskCredentialEmailText(String(credInfo.filename || '').replace(/\.json$/i, '')) || t('credential_details_title');
+}
+
+function renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel) {
+    const kind = getCredentialAuthenticationType(providerMeta, credInfo);
+    const subtitle = kind === 'OAuth' && credInfo.credential_label && credInfo.user_email !== accountLabel
+        ? credInfo.user_email : '';
+    if (!subtitle) return '';
+    return `<div class="cred-email">${escapeHtml(maskCredentialEmailText(subtitle))}</div>`;
+}
+
+function credentialModelCount(credInfo, previous = {}) {
+    const count = credInfo.model_count;
+    if (credInfo.model_count_known !== false && Number.isSafeInteger(count) && count >= 0) return count;
+    const scope = credInfo.quota_cache_scope;
+    if (typeof scope === 'string' && /^[a-f0-9]{64}$/.test(scope)
+        && scope === previous.quotaCacheScope
+        && Number.isSafeInteger(previous.modelCount) && previous.modelCount >= 0) return previous.modelCount;
+    return null;
+}
+
+function credentialModelCountLabel(count) {
+    return t('credentials.workspace.models', {count: count === null ? '—' : formatConsoleNumber(count)});
+}
+
+function updateCredentialModelCount(pathId, filename, scope, count, manager) {
+    const context = AppState.credentialCardIndex[pathId];
+    const info = manager.data[filename];
+    if (typeof scope !== 'string' || !/^[a-f0-9]{64}$/.test(scope)
+        || !context || !info || context.quotaCacheScope !== scope || info.quota_cache_scope !== scope
+        || !Number.isSafeInteger(count) || count < 0) return false;
+    context.modelCount = count;
+    info.model_count = count;
+    info.model_count_known = true;
+    const metric = document.getElementById(`credential-model-count-${pathId}`);
+    if (metric) metric.textContent = credentialModelCountLabel(count);
+    return true;
 }
 
 function createCredCard(credInfo, manager) {
@@ -314,10 +415,13 @@ function createCredCard(credInfo, manager) {
 
     const managerType = manager.type;
     const providerMeta = getCredentialProviderMeta(credInfo, managerType);
-    const isAntigravity = providerMeta.id === 'google_antigravity';
     const isMuseOAuth = providerMeta.id === 'muse_code' && credInfo.credential_type === 'oauth';
     const isManagedCredential = credInfo.source !== 'environment';
     const pathId = (managerType === 'primary' ? 'primary_' : '') + btoa(encodeURIComponent(filename)).replace(/[+/=]/g, '_');
+    const quotaCacheScope = credInfo.quota_cache_scope;
+    if (AppState.quotaPreviewCache[filename]?.scope !== quotaCacheScope) {
+        delete AppState.quotaPreviewCache[filename];
+    }
     const supportsQuotaPreview = managerType === 'primary'
         && manager.credentialSupportsOperation(credInfo, 'quota');
     const supportsDisable = manager.credentialSupportsOperation(credInfo, 'disable');
@@ -334,149 +438,39 @@ function createCredCard(credInfo, manager) {
 
     if (shouldAutoLoadQuota) {
 
-        AppState.quotaPreviewCache[filename] = { loading: true };
+        AppState.quotaPreviewCache[filename] = { loading: true, scope: quotaCacheScope };
 
     }
 
     const accountLabel = getCredentialAccountLabel(credInfo);
-    const modelCount = Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0;
+    const modelCount = credentialModelCount(credInfo, AppState.credentialCardIndex[pathId]);
 
     div.className = status.disabled ? 'cred-card disabled' : 'cred-card';
 
-    let statusBadges = '';
     let contextBadges = '';
+    const statusText = t(status.disabled ? 'status_disabled' : 'status_enabled');
+    const statusIndicator = `<span class="credential-state-indicator ${status.disabled ? 'is-disabled' : 'is-enabled'}" role="img" aria-label="${escapeAttribute(statusText)}"></span>`;
 
-    statusBadges += status.disabled
-
-        ? `<span class="status-badge disabled">${t('status_disabled')}</span>`
-
-        : `<span class="status-badge enabled">${t('status_enabled')}</span>`;
-
-    if (status.error_codes && status.error_codes.length > 0) {
-
-        statusBadges += `<span class="error-codes">${t('error_code_prefix')} ${escapeHtml(status.error_codes.join(', '))}</span>`;
-
-        const autoBan = status.error_codes.filter(c => c === 400 || c === 403);
-
-        if (autoBan.length > 0 && status.disabled) {
-
-            statusBadges += `<span class="status-badge danger">${t('credential_badge_auto_disabled')}</span>`;
-
-        }
-
-    }
-
-    if (managerType !== 'primary' && credInfo.preview) {
-
-        statusBadges += `<span class="status-badge success" title="${t('preview_supported_title')}">${t('credential_badge_preview', {state: t('credential_state_on')})}</span>`;
-
-    }
-
-    statusBadges += renderCredentialAuthenticationBadge(providerMeta, credInfo);
-
-    if (!isManagedCredential) {
-        statusBadges += `<span class="status-badge muted" title="${escapeAttribute(t('settings.managed_environment'))}">${t('credential_badge_environment')}</span>`;
-    }
-
-    if (isAntigravity) {
-
-        contextBadges += renderCredentialSubscriptionBadge(pathId, credInfo.tier, 'plan');
-
-    } else if (isMuseOAuth) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan || AppState.quotaPreviewCache[filename]?.data?.subscription_tier,
-            AppState.quotaPreviewCache[filename]?.data?.plan ? 'provider_plan' : 'provider_tier'
-        );
-
-    } else if (supportsQuotaPreview) {
-
-        contextBadges += renderCredentialSubscriptionBadge(
-            pathId,
-            AppState.quotaPreviewCache[filename]?.data?.plan,
-            'plan'
-        );
-
-    } else if (managerType !== 'primary' && credInfo.tier) {
-
-        const tier = credInfo.tier.toString().toLowerCase();
-
-        const tierLabel = tier.toUpperCase();
-
-        const tierClass = tier === 'ultra' ? 'tier-ultra' : (tier === 'free' ? 'tier-free' : 'tier-pro');
-
-        contextBadges += `<span class="status-badge ${tierClass}" title="${escapeAttribute(`${t('tier_badge_title')}: ${tierLabel}`)}">${tierLabel}</span>`;
-
-    }
-
-    if (managerType === 'primary' && isAntigravity && credInfo.enable_credit) {
-
-        contextBadges += `<span class="status-badge credit-on" title="${t('credit_enabled_title')}">${t('credential_badge_credits', {state: t('credential_state_on')})}</span>`;
-
-    }
-
-    if (credInfo.model_cooldowns && Object.keys(credInfo.model_cooldowns).length > 0) {
-
-        const currentTime = Date.now() / 1000;
-
-        const activeCooldowns = Object.entries(credInfo.model_cooldowns)
-
-            .filter(([, until]) => until > currentTime)
-
-            .map(([model, until]) => {
-
-                const remaining = Math.max(0, Math.floor(until - currentTime));
-
-                const shortModel = model.replace('gemini-', '').replace('-exp', '')
-
-                    .replace('2.0-', '2-').replace('1.5-', '1.5-');
-
-                return {
-
-                    model: shortModel,
-
-                    time: formatCooldownTime(remaining).replace(/s$/, '').replace(/ /g, ''),
-
-                    fullModel: model
-
-                };
-
-            });
-
-        if (activeCooldowns.length > 0) {
-
-            activeCooldowns.slice(0, 2).forEach(item => {
-
-                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('model_title')}: ${item.fullModel}`)}">${t('credential_badge_cooldown', {model: escapeHtml(item.model), time: escapeHtml(item.time)})}</span>`;
-
-            });
-
-            if (activeCooldowns.length > 2) {
-
-                const remaining = activeCooldowns.length - 2;
-
-                const remainingModels = activeCooldowns.slice(2).map(i => `${i.fullModel}: ${i.time}`).join('\n');
-
-                contextBadges += `<span class="cooldown-badge" title="${escapeAttribute(`${t('other_models_title')}: ${remainingModels}`)}">+${remaining}</span>`;
-
-            }
-
-        }
-
-    }
+    const quotaData = AppState.quotaPreviewCache[filename]?.data;
+    const subscription = credentialSubscriptionSnapshot(
+        pathId, providerMeta.id,
+        quotaData?.plan || (isMuseOAuth ? quotaData?.subscription_tier : null),
+        isMuseOAuth ? (quotaData?.plan ? 'provider_plan' : 'provider_tier') : 'plan', quotaCacheScope
+    );
+    contextBadges += renderCredentialSubscriptionBadge(pathId, subscription?.value, subscription?.kind);
 
     AppState.credentialCardIndex[pathId] = {
         filename,
+        quotaCacheScope,
         managerType,
         email: credInfo.user_email || '',
         accountLabel,
         providerName: providerMeta.name,
         providerVariant: providerMeta.id,
         credentialSource: credInfo.source || 'managed',
-        modelCount: Number.isFinite(Number(credInfo.model_count)) ? Number(credInfo.model_count) : 0,
-        subscriptionPlan: isAntigravity ? credInfo.tier : '',
-        subscriptionKind: isAntigravity ? 'plan' : '',
+        modelCount,
+        subscriptionPlan: subscription?.value || '',
+        subscriptionKind: subscription?.kind || '',
     };
 
     const primaryActionButtons = `
@@ -502,26 +496,27 @@ function createCredCard(credInfo, manager) {
 
         <div class="cred-header">
 
+            ${statusIndicator}
+
             <div class="cred-title-row">
 
                 <input type="checkbox" class="${escapeAttribute(checkboxClass)}" data-filename="${escapeAttribute(filename)}" data-credential-select aria-label="${escapeAttribute(t('credentials.workspace.select', {name: accountLabel}))}">
 
-                <div class="cred-identity" title="${escapeAttribute(filename)}">
+                <div class="cred-identity">
                     <div class="cred-identity-copy">
                         <h3 class="cred-account-name" title="${escapeAttribute(accountLabel)}">${escapeHtml(accountLabel)}</h3>
-                        ${credInfo.credential_label && getCredentialAuthenticationType(providerMeta, credInfo) === 'OAuth' && credInfo.user_email && credInfo.user_email !== accountLabel ? `<div class="cred-email" title="${escapeAttribute(credInfo.user_email)}">${escapeHtml(credInfo.user_email)}</div>` : ''}
+                        ${renderCredentialIdentitySubtitle(providerMeta, credInfo, accountLabel)}
                     </div>
                 </div>
 
             </div>
 
-            <div class="cred-status">${statusBadges}</div>
-            <div class="cred-status cred-context">${contextBadges}</div>
+            <div class="cred-status cred-summary">${contextBadges}</div>
 
         </div>
 
         <div class="cred-metrics">
-            <span>${escapeHtml(t('credentials.workspace.models', {count: formatConsoleNumber(modelCount)}))}</span>
+            <span id="credential-model-count-${pathId}">${escapeHtml(credentialModelCountLabel(modelCount))}</span>
             ${quotaPreview}
         </div>
 

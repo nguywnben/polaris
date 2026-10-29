@@ -50,7 +50,21 @@ Fluxos de trabalho de desenvolvimento modernos costumam misturar múltiplos clie
 
 ## Prévia do Console
 
-![Polaris — Prévia do Console](../assets/screenshots/credential-pool.png)
+As capturas usam dados fictícios de uma demonstração offline isolada.
+
+### Painel
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Painel" />
+</picture>
+
+### Credenciais
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Prévia do Console" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ Consulte [Arquitetura](../architecture.md) para saber mais sobre limites de mód
 
 ## Implantação
 
+A [instalação simplificada com Docker](../docker-install.md) para Linux/amd64 dispensa clonar o repositório ou editar `.env`: um comando, consentimento explícito para HTTP no VPS e criação da senha pela web. **Preparada localmente; o instalador e a imagem atualizados correspondentes precisam ser publicados primeiro.** Docker manual, Compose e execução pelo código-fonte continuam disponíveis. Docker-run tem seu [próprio procedimento de backup e atualização](../docker-maintenance.md), sem usar o atualizador Compose.
+
 Docker Compose é a opção principal para uma máquina e um worker. Siga a [instalação](../installation.md) e a [matriz de suporte](../installation.md#support-matrix).
 
-O perfil básico dispensa serviços externos e mantém dados em `polaris-data`. O modelo fixa `0.1.0-beta.1`; siga [atualização e reversão](../updating.md). Recursos avançados são opcionais via `deploy/compose.advanced.yml`.
+O perfil básico dispensa serviços externos e mantém dados em `polaris-data`. O modelo tem como alvo `1.0.0`. Instale apenas tags e imagens publicadas do Polaris da mesma versão; para código ainda não publicado, crie uma imagem local separada conforme a [lista de publicação](../releases/1.0.0-preparation.md). Siga [atualização e reversão](../updating.md); recursos avançados são opcionais via `deploy/compose.advanced.yml`.
 
-Consulte [identificadores](../migrations/polaris.md) e [solução de problemas](../troubleshooting.md). Scripts nativos, `docker run`, Render e Zeabur são caminhos de compatibilidade sem as mesmas verificações. Imagens para `linux/amd64`; publicação `linux/arm64` suspensa.
+Consulte [identificadores](../migrations/polaris.md) e [solução de problemas](../troubleshooting.md). Scripts nativos, Render e Zeabur são caminhos de compatibilidade sem as mesmas verificações. Imagens para `linux/amd64`; publicação `linux/arm64` suspensa.
 
 ### Desenvolvimento ou diagnóstico local:
 
@@ -178,6 +194,7 @@ Prioridade: ambiente, configuração salva, padrões. A [referência gerada](../
 | `API_KEY` | gerado automaticamente | Chave API cliente com prefixo `sk-polaris-`. |
 | `PANEL_PASSWORD` | vazio até configurar | Senha para o painel de controle web. |
 | `SETUP_TOKEN` | vazio | Token remoto único de ao menos 24 caracteres, não gerado nem registrado. Dispensado no localhost direto. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Permite a configuração remota por HTTP somente ao aceitar credenciais e sessões sem criptografia. HTTPS é recomendado; um token de configuração forte continua obrigatório. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Duração da sessão do console web em segundos. |
 | `PANEL_COOKIE_SECURE` | automático | Defina como `true` para exigir cookies seguros apenas via HTTPS. Deixe vazio para detectar HTTPS via `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Janela de limitação de taxa de login em segundos. |
@@ -415,9 +432,9 @@ A importação em lote do Google AI Studio aceita arquivos JSON e arquivos ZIP c
 }
 ```
 
-Cada chave importada é validada antes de ser armazenada. Chaves duplicadas no mesmo lote são desconsideradas, chaves existentes são revalidadas e atualizadas e entradas inválidas são informadas sem expor o valor da chave.
+A importação de arquivos é offline: o Polaris verifica a estrutura JSON/ZIP, salva novas chaves como `unverified` e ignora chaves duplicadas ou existentes sem contatar o Google. As listas de modelos importadas não são consideradas verificadas. Erros de formato são informados sem expor as chaves. Depois, execute explicitamente a verificação/descoberta de modelos da credencial; **Test model** verifica o acesso à inferência separadamente e pode consumir cota ou gerar cobrança.
 
-O Grok Build suporta autenticação OAuth PKCE, enquanto o SpaceXAI Console aceita chaves de API. Chaves do SpaceXAI Console são validadas contra o catálogo do Grok Build antes de serem salvas. Para o Grok Build OAuth, o gateway gera um link de autorização; ao concluir, copie o código exibido na página do Grok Build e cole no formulário do console. Tokens de acesso são renovados automaticamente quando um refresh token estiver disponível, e ambos os tipos de credencial expõem somente os modelos declarados em seus catálogos. A página Credentials permite consultar o consumo mensal e semanal (se fornecido pela xAI) para contas Grok Build OAuth. Esse detalhamento em nível de conta não se aplica a chaves de API do SpaceXAI Console.
+O Grok Build suporta autenticação OAuth PKCE, enquanto o SpaceXAI Console aceita chaves de API. Chaves do SpaceXAI Console são validadas contra o catálogo da API SpaceXAI Console antes de serem salvas. Para o Grok Build OAuth, o gateway gera um link de autorização; ao concluir, copie o código exibido na página do Grok Build e cole no formulário do console. Tokens de acesso são renovados automaticamente quando um refresh token estiver disponível, e ambos os tipos de credencial expõem somente os modelos declarados em seus catálogos. A página Credentials permite consultar o consumo mensal e semanal (se fornecido pela xAI) para contas Grok Build OAuth. Esse detalhamento em nível de conta não se aplica a chaves de API do SpaceXAI Console.
 
 O Codex utiliza o fluxo de autorização de dispositivos da OpenAI. Gere o código de dispositivo na página Providers, acesse a URL indicada, insira o código, conclua a autenticação e retorne para checar a autorização. O Polaris persiste o catálogo de modelos retornado pelo Codex, renova tokens OAuth conforme necessário e envia requisições compatíveis via transporte Codex Responses. A OpenAI Platform utiliza autenticação por chave de API; as chaves são validadas no catálogo da conta antes de serem salvas em Credentials. Ambos os produtos suportam importação de arquivos JSON e ZIP com validação e desduplicação específicas por provedor.
 
@@ -446,7 +463,7 @@ Nomes dos modos de credencial (Credential mode names):
 
 ## Armazenamento
 
-SQLite é recomendado. Compose persiste `/app/backend/data` em `polaris-data`; no Docker direto monte `/app/backend/data/creds` e `/app/backend/data/logs` em diretórios duráveis, como `/opt/polaris/creds` e `/opt/polaris/logs`.
+SQLite é recomendado. Compose e o instalador Docker persistem todo `/app/backend/data` em `polaris-data`. No Docker manual, monte também o diretório completo: salvar apenas `creds` e `logs` não preserva SQLite nem a configuração.
 
 PostgreSQL é opcional; MongoDB permanece por compatibilidade, sem Redis. Configure apenas um. Erros de inicialização interrompem o serviço sem fallback silencioso para SQLite. Continue com um worker e uma réplica: não há escala horizontal. Backup portátil criptografado somente para SQLite; migração ao vivo entre backends não é suportada.
 

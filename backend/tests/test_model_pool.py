@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import unittest
@@ -342,6 +343,43 @@ class ModelPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(recovered, initial)
         self.assertEqual(diagnostics["entries"], 1)
         self.assertEqual(diagnostics["last_refresh_error"], "provider unavailable")
+
+    async def test_expired_catalog_returns_stale_entries_while_refreshing_in_background(self):
+        now = [0.0]
+        refresh_started = asyncio.Event()
+        release_refresh = asyncio.Event()
+        calls = 0
+
+        async def load_models():
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return {"google_ai_studio": ["gemini-2.5-flash"]}
+            refresh_started.set()
+            await release_refresh.wait()
+            return {"google_ai_studio": ["gemini-3-flash"]}
+
+        service = ModelCatalogService(
+            loader=load_models,
+            ttl_seconds=60,
+            clock=lambda: now[0],
+        )
+
+        initial = await service.get_catalog()
+        now[0] = 61.0
+
+        stale = await service.get_catalog()
+        self.assertEqual(stale, initial)
+        await asyncio.wait_for(refresh_started.wait(), timeout=1.0)
+
+        release_refresh.set()
+        refreshed = await service.get_catalog(force_refresh=True)
+
+        self.assertEqual(
+            [entry.model_id for entry in refreshed],
+            ["gemini-3-flash"],
+        )
+        self.assertEqual(calls, 2)
 
     async def test_provider_catalog_unions_models_from_all_enabled_credentials(self):
         storage = FakeCredentialStorage()

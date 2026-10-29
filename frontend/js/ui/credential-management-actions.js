@@ -30,6 +30,42 @@ function bindCredentialManagementActions(state) {
             return;
         }
         if (action === 'hide') { hidePayload(); button('reveal').focus(); return; }
+        if (action === 'hide-email') {
+            modal.querySelector('[data-management-email]').textContent = maskCredentialEmailText(manager.data[filename]?.user_email);
+            button('hide-email').hidden = true;
+            button('reveal-email').hidden = false;
+            button('reveal-email').focus();
+            return;
+        }
+        if (action === 'reveal-email') {
+            const emailRegion = trigger.closest('.credential-management-email');
+            trigger.disabled = true;
+            emailRegion?.setAttribute('aria-busy', 'true');
+            result.classList.remove('hidden');
+            result.classList.remove('credential-management-error');
+            result.textContent = t('loading');
+            result.setAttribute('aria-busy', 'true');
+            try {
+                const data = await read(`./api/credentials/email/${encodeURIComponent(filename)}?${manager.getModeParam()}`, {cache: 'no-store'});
+                if (state.isClosed()) return;
+                if (!data.user_email) throw new Error(t('credentials.management.email_unavailable'));
+                modal.querySelector('[data-management-email]').textContent = data.user_email;
+                button('hide-email').hidden = false;
+                button('reveal-email').hidden = true;
+                result.classList.add('hidden');
+            } catch (error) {
+                if (!state.isClosed()) {
+                    result.textContent = error.message || t('unknown_error');
+                    result.classList.add('credential-management-error');
+                }
+            } finally {
+                trigger.disabled = false;
+                emailRegion?.removeAttribute('aria-busy');
+                result.removeAttribute('aria-busy');
+                if (!state.isClosed() && button('reveal-email').hidden) button('hide-email').focus();
+            }
+            return;
+        }
         if (action === 'reauthenticate') { await close(); reauthenticateCredentialByContext(context); return; }
         if (action === 'download') {
             if (manager.type === 'primary') downloadPrimaryCred(filename);
@@ -91,6 +127,7 @@ function bindCredentialManagementActions(state) {
             result.removeAttribute('aria-busy');
             controls.forEach(node => { node.disabled = false; });
             if (!state.isClosed() && action === 'reveal' && button('reveal').hidden) button('hide').focus();
+            if (!state.isClosed() && action === 'reveal-email' && button('reveal-email').hidden) button('hide-email').focus();
         }
     });
 }

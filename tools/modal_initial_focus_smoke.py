@@ -10,7 +10,7 @@ def main():
     failures = []
     with disposable_runtime() as base, sync_playwright() as p:
         browser = p.chromium.launch()
-        context = browser.new_context(reduced_motion="reduce")
+        context = browser.new_context(reduced_motion="reduce", has_touch=True)
         context.route("https://**", lambda route: route.abort())
         page = context.new_page()
         errors = []
@@ -21,6 +21,18 @@ def main():
         page.locator("#setupSubmitButton").click()
         expect(page).to_have_url(base + "/dashboard")
         cases = [
+            (
+                "confirm",
+                "/access",
+                "void showConfirmModal('Test', {title:'Confirm', confirmLabel:'Yes'})",
+                ".message-modal",
+            ),
+            (
+                "identity-confirm",
+                "/identity",
+                "void showIdentityConfirmation({title:'Confirm', message:'Test', confirmLabel:'Yes'})",
+                "#identityConfirmDialog",
+            ),
             ("identity", "/identity", "openIdentityCreateDialog()", "#identityCreateDialog"),
             ("prompt", "/access", "void showPromptModal('Test')", ".message-modal"),
             (
@@ -100,15 +112,52 @@ def main():
                 page.evaluate("el => el.focus()", initial)
                 page.keyboard.press("Tab")
                 assert modal.evaluate("el => el.contains(document.activeElement)"), name
+                draft = modal.locator(
+                    'input:not([readonly]):not([type="checkbox"]):not([type="hidden"])'
+                ).first
+                if draft.count():
+                    draft.fill("draft-kept")
                 page.keyboard.press("Escape")
+                expect(modal).to_be_visible()
+                page.mouse.click(2, 2)
+                expect(modal).to_be_visible()
+                if draft.count():
+                    expect(draft).to_have_value("draft-kept")
+                close_selectors = {
+                    "confirm": "[data-dialog-cancel]",
+                    "identity-confirm": '[data-ui-action="identity-confirm-cancel"]',
+                    "identity": '[data-ui-action="identity-create-close"]',
+                    "prompt": "[data-dialog-cancel]",
+                    "model": "[data-dialog-cancel]",
+                    "key-create": "[data-virtual-key-cancel]",
+                    "key-edit": "[data-virtual-key-cancel]",
+                    "key-secret": "[data-virtual-key-secret-close]",
+                    "credential": "[data-credential-edit-cancel]",
+                }
+                modal.locator(close_selectors[name]).click()
                 expect(modal).not_to_be_visible()
                 expect(page.locator("#focusTestTrigger")).to_be_focused()
+            # Informational custom overlays support pointer/touch dismissal and Escape.
+            page.evaluate("void showMessageModal('Read only', 'Synthetic information')")
+            info = page.locator(".message-modal")
+            expect(info).to_be_visible()
+            info.locator("h3").click()
+            expect(info).to_be_visible()
+            if width == 360:
+                page.touchscreen.tap(2, 2)
+            else:
+                page.mouse.click(2, 2)
+            expect(info).not_to_be_visible()
+            page.evaluate("void showMessageModal('Read only', 'Synthetic information')")
+            expect(info).to_be_visible()
+            page.keyboard.press("Escape")
+            expect(info).not_to_be_visible()
         context.close()
         browser.close()
     assert not errors, errors
     assert not failures, failures
     print(
-        "PASS: 7 modal entry paths at desktop/mobile; no transient field focus; keyboard/return focus preserved"
+        "PASS: 9 explicit-close modal paths at desktop/mobile; backdrop/Escape blocked; focus preserved"
     )
 
 

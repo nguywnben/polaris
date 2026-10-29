@@ -189,6 +189,18 @@ def subscription_usage(value) -> dict | None:
         return None
 
 
+def account_email(value: object) -> str | None:
+    """Keep only the bounded, printable email used by Muse account identity."""
+    if (
+        isinstance(value, str)
+        and 3 <= len(value) <= 320
+        and "@" in value
+        and all(c.isprintable() and not c.isspace() for c in value)
+    ):
+        return value
+    return None
+
+
 async def mint_key(access_token: str) -> dict:
     """Obtain the account's inference key without switching to pay-as-you-go."""
     status, data = await _request(KEY_ENDPOINT, {}, access_token=access_token)
@@ -204,13 +216,8 @@ async def mint_key(access_token: str) -> dict:
         )
     if data.get("base_url") != API_BASE:
         raise MuseOAuthError("Muse Code returned an unsupported API endpoint.")
-    email = data.get("user_email")
-    if (
-        not isinstance(email, str)
-        or not 3 <= len(email) <= 320
-        or "@" not in email
-        or any(c.isspace() or not c.isprintable() for c in email)
-    ):
+    email = account_email(data.get("user_email"))
+    if email is None:
         raise MuseOAuthError("Muse Code returned incomplete account information.")
     return {
         "provider": "muse_code",
@@ -219,6 +226,7 @@ async def mint_key(access_token: str) -> dict:
         "api_key": _secret(data.get("api_key")),
         "base_url": API_BASE,
         "account_id": hashlib.sha256(email.casefold().encode()).hexdigest(),
+        "user_email": email,
         "subscription_plan": subscription_label(data.get("subs_tier_name")),
         "subscription_usage": subscription_usage(data.get("subs_usage")),
     }

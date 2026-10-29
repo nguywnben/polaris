@@ -28,6 +28,19 @@ class PlaceholderParser(HTMLParser):
 
 
 class PlaceholderContractTests(unittest.TestCase):
+    def test_activity_dates_keep_native_picker_and_translated_labels(self):
+        source = (FRONTEND / "fragments" / "pages" / "activity.html").read_text(encoding="utf-8")
+        for field, key in (
+            ("activityStartedAfter", "activity.from_time"),
+            ("activityStartedBefore", "activity.to_time"),
+        ):
+            self.assertIn(f'for="{field}" data-i18n="{key}"', source)
+            control = re.search(rf'<input\b[^>]*\bid="{field}"[^>]*>', source)
+            self.assertIsNotNone(control)
+            self.assertIn('type="datetime-local"', control[0])
+            # Native date/time pickers own their locale-specific input hint.
+            self.assertNotIn("placeholder=", control[0])
+
     def test_static_fields_have_nonblank_placeholders(self):
         missing = []
         for path in (FRONTEND / "fragments").rglob("*.html"):

@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["ko"], {
+    "dashboard.cost_unknown": "비용을 확인할 수 없음",
+    "dashboard.cost_coverage": "{source} · 성공한 호출 {total}건 중 {priced}건의 비용 계산 완료. API 요금 기준 추정치이며 청구 금액이 아닙니다.",
     "setup_preflight_title": "설치 확인",
     "setup_preflight_copy": "소유자 계정을 만들기 전에 저장소, 주소, 연결을 확인합니다.",
     "run_preflight": "확인 실행",
@@ -40,7 +42,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["ko"], {
     "setup_action_enter_setup_token": "운영자가 지정한 설정 토큰을 입력한 후 확인을 실행하세요.",
     "setup_action_configure_setup_token": "강력한 SETUP_TOKEN(24자 이상)을 설정하고 다시 시작한 후 재시도하세요.",
     "setup_action_fix_base_url": "공개 콘솔 주소를 수정한 후 재시도하세요.",
-    "setup_action_use_https": "이 원격 콘솔을 HTTPS로 제공한 후 재시도하세요.",
+    "setup_action_use_https": "HTTPS를 사용하세요. HTTP의 위험을 감수하려면 관리자가 SETUP_ALLOW_INSECURE_HTTP=true를 설정하고 서비스를 다시 시작할 수 있습니다.",
+    "transport_insecure_allowed": "HTTP 허용됨 (암호화 없음)",
+    "setup_http_warning": "경고: HTTP는 설정 토큰, 비밀번호, 세션 쿠키를 암호화하지 않습니다. 전송 중 탈취되거나 변조될 수 있습니다. HTTPS를 권장합니다.",
     "setup_action_enable_secure_cookie": "보안 세션 쿠키를 활성화한 후 재시도하세요.",
     "setup_action_use_https_or_auto_cookie": "HTTPS를 사용하거나 PANEL_COOKIE_SECURE를 자동 모드로 되돌리세요.",
     "setup_action_fix_data_permissions": "데이터 디렉터리에 쓰기 권한을 부여한 후 재시도하세요.",

@@ -763,7 +763,7 @@ class MongoDBUsageLedgerRepository:
         grouped: dict[str, list[int]] = {}
         providers: dict[str, str] = {}
         for entry in entries:
-            totals = grouped.setdefault(entry.credential_ref, [0] * 16)
+            totals = grouped.setdefault(entry.credential_ref, [0] * 17)
             providers[entry.credential_ref] = max(
                 providers.get(entry.credential_ref, ""), entry.provider
             )
@@ -784,6 +784,7 @@ class MongoDBUsageLedgerRepository:
                 entry.cost_nanos,
                 entry.cache_creation_tokens,
                 int(entry.success and entry.usage_reported),
+                int(entry.success and entry.cost_status in {"estimated", "reported", "free"}),
             )
             for index, item in enumerate(values):
                 totals[index] = cls._checked(totals[index], item)

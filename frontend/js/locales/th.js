@@ -1,5 +1,7 @@
 // Context-specific UI translations; loaded after the shared catalogs.
 Object.assign(PAGE_LOCALE_TRANSLATIONS['th'], {
+    "dashboard.cost_unknown": "ยังไม่ทราบค่าใช้จ่าย",
+    "dashboard.cost_coverage": "{source} · คำนวณแล้ว {priced}/{total} ครั้งที่สำเร็จ เป็นค่าประมาณตามราคา API ไม่ใช่ยอดเรียกเก็บเงินจริง",
     "provider.copy.grok_intro": "เพิ่มบัญชี OAuth และกำหนดเส้นทางไปยังโมเดล Grok Build ที่พร้อมใช้งานผ่านพูลร่วม",
     "provider.copy.grok_authorize": "อนุญาตบัญชี Grok Build ด้วย PKCE และบันทึกลงในพูลผู้ให้บริการโดยตรง",
     "provider.copy.grok_code": "หลังเข้าสู่ระบบ ให้คัดลอกรหัสที่แสดงบนหน้าอนุญาต Grok Build แล้ววางที่นี่",
@@ -92,7 +94,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS['th'], {
     "setup_action_enter_setup_token": "ป้อนโทเค็นการตั้งค่าที่ผู้ดูแลระบบกำหนด แล้วเรียกใช้การตรวจสอบ",
     "setup_action_configure_setup_token": "กำหนด SETUP_TOKEN ที่คาดเดายาก (อย่างน้อย 24 อักขระ) เริ่มระบบใหม่ แล้วลองอีกครั้ง",
     "setup_action_fix_base_url": "แก้ไขที่อยู่คอนโซลสาธารณะ แล้วลองอีกครั้ง",
-    "setup_action_use_https": "ให้บริการคอนโซลระยะไกลนี้ผ่าน HTTPS แล้วลองอีกครั้ง",
+    "setup_action_use_https": "ใช้ HTTPS หากยอมรับความเสี่ยงของ HTTP ผู้ดูแลสามารถตั้งค่า SETUP_ALLOW_INSECURE_HTTP=true แล้วเริ่มบริการใหม่",
+    "transport_insecure_allowed": "อนุญาต HTTP (ไม่เข้ารหัส)",
+    "setup_http_warning": "คำเตือน: HTTP ไม่เข้ารหัสโทเค็นตั้งค่า รหัสผ่าน หรือคุกกี้เซสชัน ข้อมูลเหล่านี้อาจถูกดักอ่านหรือแก้ไขระหว่างส่ง แนะนำให้ใช้ HTTPS",
     "setup_action_enable_secure_cookie": "เปิดใช้คุกกี้เซสชันที่ปลอดภัย แล้วลองอีกครั้ง",
     "setup_action_use_https_or_auto_cookie": "ใช้ HTTPS หรือเปลี่ยน PANEL_COOKIE_SECURE กลับเป็นโหมดอัตโนมัติ",
     "setup_action_fix_data_permissions": "อนุญาตให้เขียนลงในไดเรกทอรีข้อมูล แล้วลองอีกครั้ง",

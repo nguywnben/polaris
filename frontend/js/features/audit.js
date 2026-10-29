@@ -588,6 +588,7 @@ async function saveAuditRetention(event) {
 }
 
 function initAuditBindings() {
+    configureModalDismissal(auditElement('auditDetailDialog'), 'outside', closeAuditDetail);
     restoreAuditSafeFilters();
     AuditConsoleState.filters = readAuditFilters();
     auditElement('auditFilterForm')?.addEventListener('submit', applyAuditFilters);

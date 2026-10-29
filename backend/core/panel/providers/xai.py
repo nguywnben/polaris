@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple
 import config
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ConfigSaveRequest, XaiCredentialRequest, XaiOAuthCodeRequest
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import PoolImportError, classify_pool_credential, restore_xai_credential
 from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import XAI, api_key_fingerprint
@@ -33,7 +34,7 @@ from .import_utils import (
     _safe_import_name,
 )
 
-router = APIRouter(tags=["provider-xai"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-xai"])
 
 XAI_CONFIG_KEYS = {
     "xai_api_url",

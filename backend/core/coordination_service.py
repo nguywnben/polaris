@@ -47,6 +47,11 @@ from core.security_coordination import (
 )
 
 _Result = TypeVar("_Result")
+# Enough batches for the store's 10,000 sessions plus 100,000 replay records.
+# The hard bound also prevents starvation if new work arrives during recovery.
+_MAX_SESSION_MAINTENANCE_BATCHES = 512
+# Covers the bounded 100,000-entry replay store, with a yield between batches.
+_MAX_REPLAY_MAINTENANCE_BATCHES = 512
 
 _BACKENDS = frozenset({"in_memory", "unknown"})
 _OPERATIONS = frozenset(
@@ -64,6 +69,7 @@ _OPERATIONS = frozenset(
         "mark_epoch_ready",
         "complete_admission_drain",
         "compare_and_set",
+        "prune_expired_coordination_replays",
         "read_cas",
         "invalidate",
         "read_invalidation_generation",
@@ -75,6 +81,7 @@ _OPERATIONS = frozenset(
         "rotate_security_session",
         "revoke_security_sessions",
         "list_security_sessions",
+        "prune_expired_security_sessions",
         "reserve_security_attempt",
         "clear_security_attempts",
         "create_oidc_transaction",
@@ -292,13 +299,43 @@ class CoordinationService:
         )
 
     async def compare_and_set(self, request: CasRequest) -> CasResult:
-        return await self._run("compare_and_set", self._store.compare_and_set, request)
+        return await self._run_replay_operation(
+            "compare_and_set", self._store.compare_and_set, request
+        )
 
     async def read_cas(self, key: str, *, epoch: int) -> CasSnapshot:
         return await self._run("read_cas", self._store.read_cas, key, epoch=epoch)
 
     async def invalidate(self, request: InvalidationRequest) -> InvalidationResult:
-        return await self._run("invalidate", self._store.invalidate, request)
+        return await self._run_replay_operation("invalidate", self._store.invalidate, request)
+
+    async def _run_replay_operation(
+        self,
+        operation_name: str,
+        operation: Callable[..., Awaitable[_Result]],
+        request: CasRequest | InvalidationRequest,
+    ) -> _Result:
+        async def run_with_maintenance() -> _Result:
+            for attempt in range(_MAX_REPLAY_MAINTENANCE_BATCHES + 1):
+                try:
+                    return await operation(request)
+                except CoordinationReconciliationRequiredError:
+                    prune = getattr(self._store, "prune_expired_coordination_replays", None)
+                    if (
+                        attempt == _MAX_REPLAY_MAINTENANCE_BATCHES
+                        or prune is None
+                        or not await self._run(
+                            "prune_expired_coordination_replays",
+                            lambda: prune(epoch=request.epoch, operation=operation_name),
+                        )
+                    ):
+                        raise
+                # Keep the same operation ID and let other requests run between batches.
+                await asyncio.sleep(0)
+            raise AssertionError("Coordination maintenance retry bound exhausted.")
+
+        # Health must reflect the final mutation, not a successful no-op cleanup.
+        return await self._run(operation_name, run_with_maintenance)
 
     async def read_invalidation_generation(self, scope: str) -> InvalidationGeneration:
         return await self._run(
@@ -314,30 +351,66 @@ class CoordinationService:
     async def release_quota(self, reservation_id: str, **kwargs: object) -> bool:
         return await self._run("release_quota", self._store.release_quota, reservation_id, **kwargs)
 
+    async def _run_session_operation(
+        self,
+        operation_name: str,
+        operation: Callable[..., Awaitable[_Result]],
+        request: SessionIssueRequest
+        | SessionResolveRequest
+        | SessionRotateRequest
+        | SessionRevokeRequest
+        | SessionListRequest,
+    ) -> _Result:
+        for attempt in range(_MAX_SESSION_MAINTENANCE_BATCHES + 1):
+            error = None
+            try:
+                result = await self._run(operation_name, operation, request)
+            except CoordinationReconciliationRequiredError as exc:
+                error = exc
+            else:
+                if getattr(result, "reason", None) != "reconciliation_required":
+                    return result
+
+            prune = getattr(self._store, "prune_expired_security_sessions", None)
+            if (
+                attempt == _MAX_SESSION_MAINTENANCE_BATCHES
+                or prune is None
+                or not await self._run(
+                    "prune_expired_security_sessions", prune, epoch=request.fencing_epoch
+                )
+            ):
+                if error is not None:
+                    raise error
+                return result
+            # Release the backend lock and yield between bounded batches. Retry
+            # the original operation ID; never manufacture a successful decision.
+            await asyncio.sleep(0)
+        raise AssertionError("Session maintenance retry bound exhausted.")
+
     async def issue_security_session(self, request: SessionIssueRequest) -> SessionMutationResult:
-        return await self._run(
+        return await self._run_session_operation(
             "issue_security_session", self._store.issue_security_session, request
         )
 
     async def resolve_security_session(
         self, request: SessionResolveRequest
     ) -> SessionResolveResult:
-        return await self._run(
+        return await self._run_session_operation(
             "resolve_security_session", self._store.resolve_security_session, request
         )
 
     async def rotate_security_session(self, request: SessionRotateRequest) -> SessionMutationResult:
-        return await self._run(
+        return await self._run_session_operation(
             "rotate_security_session", self._store.rotate_security_session, request
         )
 
     async def revoke_security_sessions(self, request: SessionRevokeRequest) -> SessionRevokeResult:
-        return await self._run(
+        return await self._run_session_operation(
             "revoke_security_sessions", self._store.revoke_security_sessions, request
         )
 
     async def list_security_sessions(self, request: SessionListRequest) -> SessionPage:
-        return await self._run(
+        return await self._run_session_operation(
             "list_security_sessions", self._store.list_security_sessions, request
         )
 

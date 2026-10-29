@@ -8,6 +8,7 @@ from typing import Annotated, Literal
 from core.audit_service import get_audit_service
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.management_audit import ManagementMutation
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.request_trace import (
     MAX_TRACE_RETENTION_COUNT,
     MAX_TRACE_RETENTION_DAYS,
@@ -29,7 +30,9 @@ from fastapi.responses import StreamingResponse
 from log import log
 from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(prefix="/api/traces", tags=["request traces"])
+router = APIRouter(
+    route_class=CredentialPrivacyRoute, prefix="/api/traces", tags=["request traces"]
+)
 
 
 class TraceFilterParams(BaseModel):

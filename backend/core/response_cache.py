@@ -13,6 +13,7 @@ import time
 from typing import Any, Dict, Optional, Tuple
 
 from core.coordination import CoordinationError
+from core.reasoning_control import REASONING_EFFORT_KEY
 from core.routing_coordination import (
     CACHE_SCOPE_EXACT,
     CacheKind,
@@ -27,26 +28,76 @@ def generate_cache_key(
     stream: bool = False,
 ) -> str:
     """Generate a deterministic SHA-256 hash key for a given request payload."""
+    from core.request_context import get_api_key_id
+
     request_payload = payload.get("request")
     if not isinstance(request_payload, dict):
         request_payload = payload
-    normalized_data = {
+    normalized_data: Dict[str, Any] = {
         "model": str(model).strip().lower(),
         "stream": bool(stream),
         "messages": request_payload.get("messages", []),
         "contents": request_payload.get("contents", []),
         "prompt": request_payload.get("prompt", ""),
         "system_instruction": request_payload.get("system_instruction")
-        or request_payload.get("systemInstruction"),
+        or request_payload.get("systemInstruction")
+        or request_payload.get("system"),
         "temperature": request_payload.get("temperature"),
         "top_p": request_payload.get("top_p"),
-        "max_tokens": request_payload.get("max_tokens") or request_payload.get("max_output_tokens"),
+        "max_tokens": request_payload.get("max_tokens")
+        or request_payload.get("max_completion_tokens")
+        or request_payload.get("max_output_tokens"),
         "generation_config": request_payload.get("generationConfig"),
         "tools": request_payload.get("tools"),
     }
 
+    # Include protocol-specific and semantic fields so /v1/responses, /v1/messages,
+    # and structured-output requests never collide on cache keys.
+    for extra_key in (
+        "input",
+        "instructions",
+        "previous_response_id",
+        "conversation",
+        "toolConfig",
+        "tool_choice",
+        "response_format",
+        "text",
+        "thinking",
+        "reasoning",
+        "seed",
+        "stop",
+        "frequency_penalty",
+        "presence_penalty",
+        "logit_bias",
+        "modalities",
+        "n",
+        "parallel_tool_calls",
+        "web_search_options",
+        "prediction",
+        "_polaris_openai_passthrough",
+    ):
+        value = request_payload.get(extra_key)
+        if value is None and isinstance(payload, dict):
+            value = payload.get(extra_key)
+        if value is not None:
+            normalized_data[extra_key] = value
+
+    if request_payload.get(REASONING_EFFORT_KEY) is not None:
+        normalized_data[REASONING_EFFORT_KEY] = request_payload[REASONING_EFFORT_KEY]
+    elif isinstance(payload, dict) and payload.get(REASONING_EFFORT_KEY) is not None:
+        normalized_data[REASONING_EFFORT_KEY] = payload[REASONING_EFFORT_KEY]
+
+    # Isolate cache entries by virtual key / tenant scope when present.
+    cache_scope = (
+        request_payload.get("_polaris_cache_scope")
+        or (payload.get("_polaris_cache_scope") if isinstance(payload, dict) else None)
+        or get_api_key_id()
+    )
+    if cache_scope:
+        normalized_data["_cache_scope"] = str(cache_scope)
+
     # Dump deterministically sorted JSON string
-    serialized = json.dumps(normalized_data, sort_keys=True, separators=(",", ":"))
+    serialized = json.dumps(normalized_data, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
@@ -71,6 +122,8 @@ class ResponseCache:
             self._cache.pop(key, None)
             self.misses += 1
             return None
+        # Promote accessed key to most-recently-used position for true LRU eviction.
+        self._cache[key] = self._cache.pop(key)
         self.hits += 1
         return data
 
@@ -83,8 +136,9 @@ class ResponseCache:
         )
         expires_at = time.time() + ttl
 
-        # Evict oldest entry if capacity is reached
-        if len(self._cache) >= self.max_entries and key not in self._cache:
+        if key in self._cache:
+            self._cache.pop(key, None)
+        elif len(self._cache) >= self.max_entries:
             first_key = next(iter(self._cache))
             self._cache.pop(first_key, None)
 

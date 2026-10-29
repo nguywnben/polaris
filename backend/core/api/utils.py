@@ -1,6 +1,9 @@
 import asyncio
 import json
+import re
+import time
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Optional
 
 from config import (
@@ -16,6 +19,7 @@ from core.request_context import (
     get_api_key_id,
     get_request_elapsed_ms,
     get_request_id,
+    get_request_ttft_ms,
     get_virtual_key_reservation_id,
 )
 from core.request_trace_service import trace_decision
@@ -129,6 +133,8 @@ async def handle_error_with_retry(
     max_retries: int,
     retry_interval: float,
     mode: str = "code_assist",
+    *,
+    defer_sleep: bool = False,
 ) -> bool:
 
     should_auto_disable = await check_should_auto_disable(status_code)
@@ -141,7 +147,8 @@ async def handle_error_with_retry(
                 f"[{mode.upper()} RETRY] Retrying with next credential after auto-disable "
                 f"(status {status_code}, attempt {attempt + 1}/{max_retries})"
             )
-            await asyncio.sleep(retry_interval)
+            if not defer_sleep:
+                await asyncio.sleep(retry_interval)
             trace_decision(
                 category="retry",
                 action="scheduled",
@@ -158,7 +165,8 @@ async def handle_error_with_retry(
             f"[{mode.upper()} RETRY] {status_code} error encountered, retrying "
             f"(attempt {attempt + 1}/{max_retries})"
         )
-        await asyncio.sleep(retry_interval)
+        if not defer_sleep:
+            await asyncio.sleep(retry_interval)
         trace_decision(
             category="retry",
             action="scheduled",
@@ -195,6 +203,9 @@ async def _record_success_usage(
     tokens = normalize_token_usage(token_usage)
     metrics = dict(request_metrics or {})
     metrics.setdefault("latency_ms", get_request_elapsed_ms())
+    ttft_ms = get_request_ttft_ms()
+    if ttft_ms > 0:
+        metrics.setdefault("ttft_ms", ttft_ms)
     actual_cost_usd = 0.0
     cost_override_usd = None
     durable_cost_recorded = False
@@ -471,24 +482,141 @@ async def record_response_cache_hit(*, model_name: str, status_code: int = 200) 
     )
 
 
-async def parse_and_log_cooldown(error_text: str, mode: str = "code_assist") -> Optional[float]:
+_DURATION_TOKEN_RE = re.compile(
+    r"^\s*(?:(\d+(?:\.\d+)?)h)?\s*(?:(\d+(?:\.\d+)?)m(?!s))?\s*(?:(\d+(?:\.\d+)?)s)?\s*(?:(\d+(?:\.\d+)?)ms)?\s*$",
+    re.IGNORECASE,
+)
+MAX_HEADER_COOLDOWN_SECONDS = 24 * 3600
+
+
+def _parse_reset_value(raw_value: Any, now: float) -> Optional[float]:
+    text = str(raw_value or "").strip()
+    if not text:
+        return None
+
+    # 1. Numeric value (delta seconds or Unix epoch seconds/ms)
     try:
-        error_data = json.loads(error_text)
-        cooldown_until = parse_quota_reset_timestamp(error_data)
-        if cooldown_until:
-            log.info(
-                f"[{mode.upper()}] Quota cooldown detected: "
-                f"{datetime.fromtimestamp(cooldown_until, timezone.utc).isoformat()}"
+        numeric = float(text)
+        if numeric <= 0:
+            return None
+        if numeric > 1_000_000_000_000:
+            # Millisecond epoch timestamp
+            target = numeric / 1000.0
+            return target if target > now else None
+        if numeric > 1_000_000_000:
+            # Second epoch timestamp
+            return numeric if numeric > now else None
+        return now + min(numeric, MAX_HEADER_COOLDOWN_SECONDS)
+    except ValueError:
+        pass
+
+    # 2. Go-style duration (e.g. "6m0s", "250ms", "1.5s", "1h30m")
+    match = _DURATION_TOKEN_RE.match(text)
+    if match and any(match.groups()):
+        hours = float(match.group(1) or 0.0)
+        minutes = float(match.group(2) or 0.0)
+        seconds = float(match.group(3) or 0.0)
+        milliseconds = float(match.group(4) or 0.0)
+        delta = hours * 3600.0 + minutes * 60.0 + seconds + milliseconds / 1000.0
+        if delta > 0:
+            return now + min(delta, MAX_HEADER_COOLDOWN_SECONDS)
+
+    # 3. ISO-8601 timestamp (e.g. "2026-10-24T13:05:00Z")
+    try:
+        iso_str = text[:-1] + "+00:00" if text.endswith("Z") else text
+        dt = datetime.fromisoformat(iso_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        target = dt.astimezone(timezone.utc).timestamp()
+        if target > now:
+            return min(target, now + MAX_HEADER_COOLDOWN_SECONDS)
+    except ValueError:
+        pass
+
+    # 4. HTTP-date format (e.g. "Wed, 21 Oct 2026 07:28:00 GMT")
+    try:
+        dt = parsedate_to_datetime(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        target = dt.astimezone(timezone.utc).timestamp()
+        if target > now:
+            return min(target, now + MAX_HEADER_COOLDOWN_SECONDS)
+    except (TypeError, ValueError):
+        pass
+
+    return None
+
+
+def parse_rate_limit_headers(
+    headers: Optional[Dict[str, Any]],
+    *,
+    now: Optional[float] = None,
+) -> Optional[float]:
+    """Extract a cooldown timestamp from standard HTTP rate-limit headers."""
+    if not headers or not isinstance(headers, dict):
+        return None
+    current_time = float(now if now is not None else time.time())
+    lower_headers = {
+        str(k).strip().lower(): v for k, v in headers.items() if k is not None and v is not None
+    }
+
+    if "retry-after-ms" in lower_headers:
+        try:
+            ms = float(str(lower_headers["retry-after-ms"]).strip())
+            if ms > 0:
+                return current_time + min(ms / 1000.0, MAX_HEADER_COOLDOWN_SECONDS)
+        except ValueError:
+            pass
+
+    for header_name in (
+        "retry-after",
+        "x-ratelimit-reset-requests",
+        "x-ratelimit-reset-tokens",
+        "anthropic-ratelimit-requests-reset",
+        "anthropic-ratelimit-tokens-reset",
+        "x-ratelimit-reset",
+    ):
+        raw = lower_headers.get(header_name)
+        if raw is None:
+            continue
+        parsed = _parse_reset_value(raw, current_time)
+        if parsed is not None and parsed > current_time:
+            return parsed
+
+    return None
+
+
+async def parse_and_log_cooldown(
+    error_text: str,
+    mode: str = "code_assist",
+    headers: Optional[Dict[str, Any]] = None,
+) -> Optional[float]:
+    cooldown_until: Optional[float] = None
+    if error_text:
+        try:
+            error_data = json.loads(error_text)
+            if isinstance(error_data, dict):
+                cooldown_until = parse_quota_reset_timestamp(error_data)
+        except (AttributeError, TypeError, ValueError) as parse_err:
+            log.debug(
+                f"[{mode.upper()}] failed to parse cooldown time ({type(parse_err).__name__})"
             )
-            trace_decision(
-                category="cooldown",
-                action="applied",
-                result="succeeded",
-                reason="quota_cooldown",
-            )
-            return cooldown_until
-    except (AttributeError, TypeError, ValueError) as parse_err:
-        log.debug(f"[{mode.upper()}] failed to parse cooldown time ({type(parse_err).__name__})")
+
+    if cooldown_until is None and headers:
+        cooldown_until = parse_rate_limit_headers(headers)
+
+    if cooldown_until:
+        log.info(
+            f"[{mode.upper()}] Quota cooldown detected: "
+            f"{datetime.fromtimestamp(cooldown_until, timezone.utc).isoformat()}"
+        )
+        trace_decision(
+            category="cooldown",
+            action="applied",
+            result="succeeded",
+            reason="quota_cooldown",
+        )
+        return cooldown_until
     return None
 
 
@@ -514,6 +642,7 @@ async def collect_streaming_response(stream_generator) -> Response:
 
     collected_text = []
     collected_thought_text = []
+    collected_thought_signature = None
     collected_other_parts = []
     collected_tool_parts_count = 0
     has_data = False
@@ -612,15 +741,28 @@ async def collect_streaming_response(stream_generator) -> Response:
                     if not isinstance(part, dict):
                         continue
 
+                    if "functionCallDelta" in part:
+                        continue
+
                     if (
                         "functionCall" in part
                         or "functionResponse" in part
                         or "function_call" in part
                     ):
-                        collected_other_parts.append(part)
+                        clean_part = dict(part)
+                        if isinstance(clean_part.get("functionCall"), dict):
+                            fc_copy = dict(clean_part["functionCall"])
+                            fc_copy.pop("_streamed_delta", None)
+                            fc_copy.pop("_final_arguments_delta", None)
+                            fc_copy.pop("_tool_index", None)
+                            clean_part["functionCall"] = fc_copy
+                        collected_other_parts.append(clean_part)
                         collected_tool_parts_count += 1
                         log.debug(f"[STREAM COLLECTOR] Collected tool part: {list(part.keys())}")
                         continue
+
+                    if part.get("thought", False) and part.get("thoughtSignature"):
+                        collected_thought_signature = part["thoughtSignature"]
 
                     text = part.get("text", "")
                     if text:
@@ -700,7 +842,10 @@ async def collect_streaming_response(stream_generator) -> Response:
     final_parts = []
 
     if collected_thought_text:
-        final_parts.append({"text": "".join(collected_thought_text), "thought": True})
+        thought_part = {"text": "".join(collected_thought_text), "thought": True}
+        if collected_thought_signature:
+            thought_part["thoughtSignature"] = collected_thought_signature
+        final_parts.append(thought_part)
 
     if collected_text:
         final_parts.append({"text": "".join(collected_text)})

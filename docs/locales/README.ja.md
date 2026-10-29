@@ -50,7 +50,21 @@
 
 ## コンソールプレビュー
 
-![Polaris — コンソールプレビュー](../assets/screenshots/credential-pool.png)
+スクリーンショットには、隔離されたオフラインデモの架空データを使用しています。
+
+### ダッシュボード
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — ダッシュボード" />
+</picture>
+
+### 認証情報
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — コンソールプレビュー" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ docs/          アーキテクチャ設計書およびプロジェクト保守�
 
 ## デプロイ
 
+Linux/amd64 向けの[簡単 Docker インストール](../docker-install.md)では、リポジトリの clone や `.env` の手動編集は不要です。コマンドを1つ実行し、VPS で HTTP を使う場合は明示的に同意した後、Web でパスワードを作成します。**現在はローカルで準備中です。対応する新しいインストーラーとイメージの公開が必要です。** 手動 Docker、Compose、ソースからの実行も引き続き利用できます。Docker-run では Compose 更新ツールではなく[専用のバックアップ・更新手順](../docker-maintenance.md)を使います。
+
 単一マシン・単一 worker の Docker Compose が推奨経路です。[インストール](../installation.md)と[対応表](../installation.md#support-matrix)に従ってください。
 
-基本構成は外部サービス不要で、データを `polaris-data` に保存します。テンプレートの固定バージョンは `0.1.0-beta.1` です。[更新・ロールバック手順](../updating.md)に従い、高度な機能は `deploy/compose.advanced.yml` で任意に追加します。
+基本構成は外部サービス不要で、データを `polaris-data` に保存します。テンプレートの対象は `1.0.0` です。公開済みの同一バージョンの Polaris タグとイメージでインストールしてください。未公開のソースを使う場合は、[リリースチェックリスト](../releases/1.0.0-preparation.md)に従って別のローカルイメージをビルドしてください。[更新・ロールバック手順](../updating.md)を参照し、高度な機能は `deploy/compose.advanced.yml` で任意に追加します。
 
-[識別子の契約](../migrations/polaris.md)と[トラブルシューティング](../troubleshooting.md)も参照してください。ネイティブスクリプト、`docker run`、Render、Zeabur は互換経路であり、同等の導入・復旧検証対象ではありません。公開イメージは `linux/amd64` 用で、`linux/arm64` の公開は停止中です。
+[識別子の契約](../migrations/polaris.md)と[トラブルシューティング](../troubleshooting.md)も参照してください。ネイティブスクリプト、Render、Zeabur は互換経路であり、同等の導入・復旧検証対象ではありません。公開イメージは `linux/amd64` 用で、`linux/arm64` の公開は停止中です。
 
 ### ローカル開発・診断：
 
@@ -178,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自動生成 | 接頭辞 `sk-polaris-` のクライアント API キー。 |
 | `PANEL_PASSWORD` | 初期設定まで空 | Web コントロールパネルのアクセスパスワード。 |
 | `SETUP_TOKEN` | 空 | リモート初期設定用の一意な 24 文字以上のトークン。生成・ログ出力しない。直接 localhost では不要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 認証情報やセッションが暗号化されないリスクを受け入れる場合のみ、HTTP によるリモートセットアップを許可します。HTTPS を推奨し、強力なセットアップトークンは引き続き必要です。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web コントロールパネルセッションの有効期間（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自動 | `true` に設定すると Cookie の送信を HTTPS に強制します。空の場合は `X-Forwarded-Proto` から自動検出します。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | ログインレート制限ウィンドウ（秒）。 |
@@ -415,9 +432,9 @@ Google AI Studio の一括インポートは、JSON ファイルおよび JSON �
 }
 ```
 
-インポートされた各キーは保存前に厳格に検証されます。同一バッチ内の重複キーはスキップされ、既存のキーは再検証されて更新され、無効なレコードはキーの平文を漏洩することなく個別に報告されます。
+ファイルのインポートはオフラインで行います。Polaris は JSON/ZIP の構造を確認し、新しいキーを `unverified` として保存します。重複キーや既存のキーはスキップし、Google には接続しません。インポートされたモデル一覧は検証済みとして扱いません。形式エラーはキーを公開せずに報告します。その後、認証情報の検証・モデル検出を明示的に実行してください。**Test model** は推論権限を別途確認する操作であり、クォータの消費や課金が発生する場合があります。
 
-Grok Build は PKCE OAuth 認証情報をサポートし、SpaceXAI Console は API キーをサポートします。SpaceXAI Console キーは保存前に Grok Build モデルカタログと照合して検証されます。Grok Build OAuth の場合、Polaris は認可リンクを生成します。認可完了後、認可画面に表示されたコードをコピーしてフォームに貼り付けてください。リフレッシュトークンが存在する場合はアクセストークンが自動更新され、両方の認証情報タイプともに現在のカタログで宣言された Grok Build モデルのみを公開します。Credentials 画面では、Grok Build OAuth アカウントの月間クレジット消費量、および xAI から提供されている場合は週間使用量を確認できます。このアカウントレベルの請求ビューは SpaceXAI Console API キーでは利用できません。
+Grok Build は PKCE OAuth 認証情報をサポートし、SpaceXAI Console は API キーをサポートします。SpaceXAI Console キーは保存前に SpaceXAI Console API モデルカタログと照合して検証されます。Grok Build OAuth の場合、Polaris は認可リンクを生成します。認可完了後、認可画面に表示されたコードをコピーしてフォームに貼り付けてください。リフレッシュトークンが存在する場合はアクセストークンが自動更新され、両方の認証情報タイプともにそれぞれの現在のカタログで宣言されたモデルのみを公開します。Credentials 画面では、Grok Build OAuth アカウントの月間クレジット消費量、および xAI から提供されている場合は週間使用量を確認できます。このアカウントレベルの請求ビューは SpaceXAI Console API キーでは利用できません。
 
 Codex は OpenAI デバイス認可フローを使用します。プロバイダー画面でデバイスコードを生成し、表示された検証 URL を開き、コードを入力してログインを完了した後、認可状態を確認します。Polaris は Codex が返したアカウントスコープのモデルカタログを保存し、必要に応じて OAuth アクセストークンを更新し、Codex Responses トランスポートを通じて互換リクエストを転送します。OpenAI Platform は API キー認証を使用し、キーはアカウントモデルカタログを通じて検証された後にCredentials へ追加されます。両製品ともに JSON および ZIP インポートをサポートし、プロバイダー固有の検証と重複排除が行われます。
 
@@ -446,7 +463,7 @@ Google Antigravity 認証情報は `google-antigravity-{account_fingerprint}.jso
 
 ## データストレージ
 
-SQLite を推奨します。Compose は `/app/backend/data` を `polaris-data` に永続化します。直接 Docker を使う場合は `/app/backend/data/creds` と `/app/backend/data/logs` を `/opt/polaris/creds`、`/opt/polaris/logs` などにマウントします。
+SQLite を推奨します。Compose と Docker インストーラーは `/app/backend/data` 全体を `polaris-data` に永続化します。手動 Docker でもデータディレクトリ全体をマウントしてください。`creds` と `logs` だけでは SQLite と設定を保持できません。
 
 PostgreSQL は任意、MongoDB は互換用で Redis 不要です。外部 DB は一方だけ設定してください。初期化失敗時は停止し、SQLite に黙って戻りません。外部 DB でも水平拡張はできず、worker・レプリカは各 1 つです。可搬な暗号化バックアップは SQLite のみで、バックエンド間のライブ移行は非対応です。
 

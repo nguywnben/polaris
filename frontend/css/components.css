@@ -491,16 +491,31 @@
 }
 
 .cred-header {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
 }
+
+.credential-state-indicator {
+    position: absolute;
+    inset-inline-end: 2px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.credential-state-indicator.is-enabled { background: var(--success); }
+.credential-state-indicator.is-disabled { background: var(--danger); }
 
 .cred-title-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 10px;
+    padding-inline-end: 18px;
 }
 
 .cred-identity {
@@ -644,6 +659,83 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+}
+
+.cred-context:not(:has(> :not([hidden]))) { display: none; }
+.cred-context .subscription-badge { max-width: 100%; }
+.cred-context .cooldown-badge { text-align: left; justify-content: flex-start; }
+
+.cred-summary {
+    position: relative;
+    flex-wrap: nowrap;
+    align-items: center;
+    min-width: 0;
+}
+
+.cred-summary:has(> .subscription-badge[hidden]:only-child) {
+    display: none;
+}
+
+.cred-summary > :not([hidden]) {
+    flex: 0 1 auto;
+    white-space: nowrap;
+}
+
+.cred-summary > .credit-on {
+    flex-shrink: 0;
+}
+
+.cred-summary > .error-codes {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cred-summary .subscription-badge {
+    display: inline-flex;
+    overflow: visible;
+}
+
+.credential-badge-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.credential-badge-tooltip {
+    display: none;
+    position: absolute;
+    inset-inline: 0;
+    bottom: calc(100% + 6px);
+    z-index: 2;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: start;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.credential-badge-tooltip::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: 6px;
+}
+
+.credential-badge-hint:not([data-hint-dismissed]):is(:hover, :focus-visible) .credential-badge-tooltip {
+    display: block;
+}
+
+.credential-badge-hint:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .cred-context:not(:has(> :not([hidden]))) { display: none; }

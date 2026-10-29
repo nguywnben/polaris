@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,10 +32,56 @@ from log import log
 from paths import DEFAULT_CREDENTIALS_DIR
 
 PRICING_OVERRIDES_FILENAME = "model_pricing.json"
+PRICING_ALIASES_FILENAME = "model_pricing_aliases.json"
 BUILTIN_PRICING_REVIEWED_AT = "2026-08-21"
 
 # Providers whose inference is local/self-hosted and therefore free.
 ZERO_COST_PROVIDERS = frozenset({"ollama"})
+
+# Explicit pricing identities, not inference rewrites. No wildcard suffix removal.
+# Gemini API / Antigravity model metadata reviewed 2026-09-20.
+MODEL_PRICING_ALIASES = {
+    ("google_antigravity", "gemini-3.8-flash-tiered"): ("gemini", "gemini-3.8-flash"),
+}
+
+# Polaris keeps some routing providers separate from the namespace LiteLLM uses
+# for its catalog. These are pricing-only identity bridges; request routing and
+# credential handling continue to use the real Polaris provider.
+LITELLM_PRICING_PROVIDER_ALIASES = {
+    "muse_code": "meta",
+    "kimi": "moonshot",
+    # LiteLLM currently publishes Poolside's OpenRouter catalogue entries as
+    # ``openrouter/poolside/<model>``. The direct Poolside API exposes the same
+    # model IDs without that catalogue prefix, so add it only for pricing.
+    "poolside": "openrouter",
+}
+LITELLM_PRICING_MODEL_PREFIXES = {"muse_code": ("muse-code/",)}
+LITELLM_PRICING_MODEL_TARGET_PREFIXES = {"poolside": ("poolside/",)}
+
+
+@dataclass(frozen=True)
+class PricingResolution:
+    pricing: ModelPricing | None
+    model: str
+    provider: str
+    source: str = "unknown"
+
+
+def _pricing_aliases_path() -> Path:
+    return _pricing_overrides_path().with_name(PRICING_ALIASES_FILENAME)
+
+
+@dataclass(frozen=True)
+class ModelCapabilities:
+    """Context window limits and feature support metadata for a model family."""
+
+    max_input_tokens: Optional[int] = None
+    max_output_tokens: Optional[int] = None
+    supports_vision: bool = False
+    supports_function_calling: bool = False
+    supports_prompt_caching: bool = False
+    supports_reasoning: bool = False
+    supports_response_schema: bool = False
 
 
 @dataclass(frozen=True)
@@ -46,6 +93,7 @@ class ModelPricing:
     cache_read_per_million: Optional[float] = None
     reasoning_per_million: Optional[float] = None
     cache_creation_per_million: Optional[float] = None
+    supported: bool = True
 
     def effective_cache_read(self) -> float:
         if self.cache_read_per_million is not None:
@@ -143,6 +191,26 @@ BUILTIN_MODEL_PRICING: Dict[str, ModelPricing] = {
     "grok-2": ModelPricing(2.00, 10.00),
 }
 
+BUILTIN_MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
+    "gemini-3-pro": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-3-flash": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.5-pro": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.5-flash": ModelCapabilities(1_048_576, 65_536, True, True, True, True, True),
+    "gemini-2.0-flash": ModelCapabilities(1_048_576, 8_192, True, True, True, False, True),
+    "gpt-5": ModelCapabilities(400_000, 128_000, True, True, True, True, True),
+    "gpt-4.1": ModelCapabilities(1_047_576, 32_768, True, True, True, False, True),
+    "gpt-4o": ModelCapabilities(128_000, 16_384, True, True, True, False, True),
+    "o3": ModelCapabilities(200_000, 100_000, True, True, True, True, True),
+    "o4-mini": ModelCapabilities(200_000, 100_000, True, True, True, True, True),
+    "claude-opus-4": ModelCapabilities(200_000, 32_000, True, True, True, True, True),
+    "claude-sonnet-4": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-haiku-4": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-3-7-sonnet": ModelCapabilities(200_000, 64_000, True, True, True, True, True),
+    "claude-3-5-sonnet": ModelCapabilities(200_000, 8_192, True, True, True, False, True),
+    "grok-4": ModelCapabilities(256_000, 32_768, True, True, True, True, True),
+    "grok-3": ModelCapabilities(131_072, 32_768, True, True, True, True, True),
+}
+
 
 def _pricing_overrides_path() -> Path:
     credentials_dir = Path(os.getenv("CREDENTIALS_DIR", str(DEFAULT_CREDENTIALS_DIR))).expanduser()
@@ -153,13 +221,61 @@ class _PricingTable:
     """Thread-safe manual, synchronized, and built-in pricing resolver."""
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._overrides: Dict[str, ModelPricing] = {}
         self._dynamic: Dict[tuple[str, str], ModelPricing] = {}
+        self._capabilities: Dict[tuple[str, str], ModelCapabilities] = {}
         self._overrides_mtime: Optional[float] = None
         self._dynamic_fetched_at: Optional[str] = None
         self._dynamic_state = "not_loaded"
         self._dynamic_last_error: Optional[str] = None
+        self._aliases = dict(MODEL_PRICING_ALIASES)
+        self._aliases_mtime: int | None = None
+
+    def _load_aliases_locked(self) -> None:
+        path = _pricing_aliases_path()
+        try:
+            stamp = path.stat().st_mtime_ns if path.exists() else None
+            if stamp == self._aliases_mtime:
+                return
+            aliases = dict(MODEL_PRICING_ALIASES)
+            if stamp is not None:
+                if path.stat().st_size > 1_048_576:
+                    raise ValueError("alias file too large")
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(raw, dict):
+                    raise ValueError("alias providers must be an object")
+                for provider, models in raw.items():
+                    if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", provider) or not isinstance(
+                        models, dict
+                    ):
+                        raise ValueError("invalid alias provider")
+                    for model, target in models.items():
+                        if not isinstance(target, dict) or set(target) != {"provider", "model"}:
+                            raise ValueError("invalid alias target")
+                        target_provider = str(target["provider"])
+                        names = (model, target["model"])
+                        if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", target_provider) or any(
+                            not isinstance(name, str)
+                            or not name
+                            or len(name) > 256
+                            or any(ord(char) < 33 for char in name)
+                            for name in names
+                        ):
+                            raise ValueError("invalid alias identity")
+                        aliases[
+                            (provider.lower().replace("-", "_"), _normalize_model_name(model))
+                        ] = (
+                            _normalize_dynamic_provider(target_provider),
+                            _normalize_model_name(target["model"]),
+                        )
+                        if len(aliases) > 4096:
+                            raise ValueError("too many pricing aliases")
+            self._aliases = aliases
+            self._aliases_mtime = stamp
+        except (OSError, ValueError, TypeError):
+            # Bad operator configuration does not invent prices or interrupt inference.
+            self._aliases = dict(MODEL_PRICING_ALIASES)
 
     def _load_overrides_locked(self) -> None:
         path = _pricing_overrides_path()
@@ -191,7 +307,7 @@ class _PricingTable:
     def _longest_prefix(table: Dict[str, ModelPricing], normalized: str) -> Optional[ModelPricing]:
         best_key = ""
         for key in table:
-            if normalized.startswith(key) and len(key) > len(best_key):
+            if (normalized == key or normalized.startswith(key + "-")) and len(key) > len(best_key):
                 best_key = key
         return table.get(best_key) if best_key else None
 
@@ -201,13 +317,36 @@ class _PricingTable:
         *,
         fetched_at: str,
         state: str = "current",
+        capabilities: Optional[Dict[tuple[str, str], ModelCapabilities]] = None,
     ) -> None:
         """Atomically replace the in-memory synchronized catalog."""
         with self._lock:
             self._dynamic = dict(entries)
+            if capabilities is not None:
+                self._capabilities = dict(capabilities)
             self._dynamic_fetched_at = fetched_at
             self._dynamic_state = state if state in {"current", "cached"} else "current"
             self._dynamic_last_error = None
+
+    def lookup_capabilities(self, model: str, provider: str = "") -> Optional[ModelCapabilities]:
+        normalized = _normalize_model_name(model)
+        dynamic_provider = _normalize_dynamic_provider(provider)
+        if not normalized:
+            return None
+        with self._lock:
+            if dynamic_provider and (dynamic_provider, normalized) in self._capabilities:
+                return self._capabilities[(dynamic_provider, normalized)]
+            if not dynamic_provider:
+                for (_prov, mod), cap in self._capabilities.items():
+                    if mod == normalized:
+                        return cap
+            best_key = ""
+            for key in BUILTIN_MODEL_CAPABILITIES:
+                if (normalized == key or normalized.startswith(key + "-")) and len(key) > len(
+                    best_key
+                ):
+                    best_key = key
+            return BUILTIN_MODEL_CAPABILITIES.get(best_key) if best_key else None
 
     def mark_dynamic_failure(self, error_code: str) -> None:
         """Record a bounded failure code while retaining the last good snapshot."""
@@ -216,28 +355,47 @@ class _PricingTable:
             self._dynamic_last_error = str(error_code)[:80]
 
     def lookup(self, model: str, provider: str = "") -> Optional[ModelPricing]:
+        rates = self.resolve(model, provider).pricing
+        return rates if rates is not None and rates.supported else None
+
+    def resolve(self, model: str, provider: str = "") -> PricingResolution:
+        result = self._resolve(model, provider)
+        if result.pricing is not None and not result.pricing.supported:
+            return PricingResolution(None, result.model, result.provider, "unsupported")
+        return result
+
+    def _resolve(
+        self, model: str, provider: str = "", *, follow_aliases: bool = True
+    ) -> PricingResolution:
         normalized = _normalize_model_name(model)
+        raw_provider = str(provider or "").strip().lower().replace("-", "_")
+        dynamic_provider = _normalize_dynamic_provider(provider)
         if not normalized:
-            return None
+            return PricingResolution(None, normalized, dynamic_provider)
         with self._lock:
             self._load_overrides_locked()
-            override = self._longest_prefix(self._overrides, normalized)
-            if override is not None:
-                return override
-
-            dynamic_provider = _normalize_dynamic_provider(provider)
-            if dynamic_provider:
-                dynamic = self._dynamic.get((dynamic_provider, normalized))
-                if dynamic is not None:
-                    return dynamic
-            else:
-                candidates = {
-                    entry
-                    for (entry_provider, entry_model), entry in self._dynamic.items()
-                    if entry_model == normalized
+            self._load_aliases_locked()
+            if not raw_provider:
+                # Admission runs before routing selects a provider. Include explicit
+                # aliases and scoped overrides in its conservative price envelope.
+                providers = {
+                    key_provider
+                    for key_provider, key_model in (*self._dynamic, *self._aliases)
+                    if key_model == normalized
                 }
-                if candidates:
-                    return ModelPricing(
+                providers.update(
+                    key.split("/", 1)[0]
+                    for key in self._overrides
+                    if "/" in key and key.split("/", 1)[1] == normalized
+                )
+                if providers:
+                    resolutions = [self._resolve(normalized, name) for name in sorted(providers)]
+                    if any(
+                        item.pricing is None or not item.pricing.supported for item in resolutions
+                    ):
+                        return PricingResolution(None, normalized, "", "unsupported")
+                    candidates = [item.pricing for item in resolutions]
+                    rates = ModelPricing(
                         input_per_million=max(entry.input_per_million for entry in candidates),
                         output_per_million=max(entry.output_per_million for entry in candidates),
                         cache_read_per_million=max(
@@ -250,8 +408,100 @@ class _PricingTable:
                             entry.effective_cache_creation() for entry in candidates
                         ),
                     )
+                    return PricingResolution(rates, normalized, "", resolutions[0].source)
+                # A public provider namespace can still identify a LiteLLM
+                # catalog entry before routing selects a credential. Preserve
+                # manual override precedence before using that catalog price.
+                mapped_identity = _litellm_pricing_identity(normalized, "")
+                if mapped_identity is not None:
+                    mapped_provider, mapped_model = mapped_identity
+                    mapped_override = self._overrides.get(f"{mapped_provider}/{mapped_model}")
+                    if mapped_override is None:
+                        mapped_override = self._longest_prefix(
+                            {
+                                key: value
+                                for key, value in self._overrides.items()
+                                if "/" not in key
+                            },
+                            mapped_model,
+                        )
+                    if mapped_override is not None:
+                        return PricingResolution(
+                            mapped_override, mapped_model, mapped_provider, "manual"
+                        )
+                    mapped_pricing = self._dynamic.get(mapped_identity)
+                    if mapped_pricing is not None:
+                        return PricingResolution(mapped_pricing, normalized, "", "litellm")
+            override = self._overrides.get(f"{raw_provider}/{normalized}") if raw_provider else None
+            if override is None:
+                override = self._longest_prefix(
+                    {key: value for key, value in self._overrides.items() if "/" not in key},
+                    normalized,
+                )
+            if override is not None:
+                return PricingResolution(override, normalized, raw_provider, "manual")
 
-            return self._longest_prefix(BUILTIN_MODEL_PRICING, normalized)
+            if dynamic_provider:
+                dynamic = self._dynamic.get((dynamic_provider, normalized))
+                if dynamic is not None:
+                    return PricingResolution(dynamic, normalized, dynamic_provider, "litellm")
+                alias = self._aliases.get((raw_provider, normalized)) if follow_aliases else None
+                if alias is not None:
+                    alias_provider, alias_model = alias
+                    return self._resolve(alias_model, alias_provider, follow_aliases=False)
+
+            # Muse Code OAuth is intentionally a separate routing provider, while
+            # LiteLLM publishes its model prices under ``meta``. Resolve this
+            # pricing-only identity after native provider/alias matches so
+            # operator overrides remain authoritative.
+            mapped_identity = _litellm_pricing_identity(normalized, raw_provider)
+            if mapped_identity is not None:
+                mapped_provider, mapped_model = mapped_identity
+                mapped_override = (
+                    self._overrides.get(f"{raw_provider}/{mapped_model}") if raw_provider else None
+                )
+                if mapped_override is None:
+                    mapped_override = self._overrides.get(f"{mapped_provider}/{mapped_model}")
+                if mapped_override is None:
+                    mapped_override = self._longest_prefix(
+                        {key: value for key, value in self._overrides.items() if "/" not in key},
+                        mapped_model,
+                    )
+                if mapped_override is not None:
+                    return PricingResolution(
+                        mapped_override, mapped_model, mapped_provider, "manual"
+                    )
+                mapped_pricing = self._dynamic.get(mapped_identity)
+                if mapped_pricing is not None:
+                    return PricingResolution(
+                        mapped_pricing, mapped_model, mapped_provider, "litellm"
+                    )
+
+            # Built-in retail families must not leak to an unrelated provider.
+            family = next(
+                (
+                    vendor
+                    for prefix, vendor in (
+                        ("gemini-", "gemini"),
+                        ("claude-", "anthropic"),
+                        ("grok-", "xai"),
+                        ("gpt-", "openai"),
+                        ("o3", "openai"),
+                        ("o4", "openai"),
+                        ("codex-", "openai"),
+                    )
+                    if normalized.startswith(prefix)
+                ),
+                "",
+            )
+            builtin = (
+                self._longest_prefix(BUILTIN_MODEL_PRICING, normalized)
+                if (not raw_provider or dynamic_provider == family)
+                else None
+            )
+            return PricingResolution(
+                builtin, normalized, dynamic_provider, "builtin" if builtin else "unknown"
+            )
 
     def status(self) -> Dict[str, Any]:
         with self._lock:
@@ -259,13 +509,13 @@ class _PricingTable:
                 "dynamic_source": "LiteLLM",
                 "dynamic_state": self._dynamic_state,
                 "dynamic_fetched_at": self._dynamic_fetched_at,
-                "dynamic_model_count": len(self._dynamic),
+                "dynamic_model_count": sum(entry.supported for entry in self._dynamic.values()),
                 "dynamic_last_error": self._dynamic_last_error,
             }
 
 
 def _parse_override_entry(entry: Any) -> Optional[ModelPricing]:
-    if not isinstance(entry, dict):
+    if not isinstance(entry, dict) or "input" not in entry or "output" not in entry:
         return None
     try:
         parsed = ModelPricing(
@@ -280,7 +530,10 @@ def _parse_override_entry(entry: Any) -> Optional[ModelPricing]:
             cache_creation_per_million=(
                 float(entry["cache_creation"]) if entry.get("cache_creation") is not None else None
             ),
+            supported=entry.get("supported", True),
         )
+        if type(parsed.supported) is not bool:
+            return None
         prices = (
             parsed.input_per_million,
             parsed.output_per_million,
@@ -299,9 +552,6 @@ def _normalize_model_name(model: Any) -> str:
     name = str(model or "").strip().lower()
     if name.startswith("models/"):
         name = name[len("models/") :]
-    # Strip local-model tag suffixes such as ``llama3:8b``.
-    if ":" in name:
-        name = name.split(":", 1)[0]
     return name
 
 
@@ -321,7 +571,36 @@ def _normalize_dynamic_provider(provider: Any) -> str:
         return "anthropic"
     if normalized in {"xai", "grok", "xai_console"}:
         return "xai"
-    return ""
+    return normalized
+
+
+def _litellm_pricing_identity(model: str, provider: str) -> tuple[str, str] | None:
+    """Return a provider/model identity used by the LiteLLM price catalog.
+
+    Some Polaris providers intentionally expose a namespaced public model ID
+    while LiteLLM stores the same model under the upstream vendor namespace.
+    Keep this translation explicit and limited to pricing so it cannot affect
+    request routing or provider authentication.
+    """
+
+    raw_provider = str(provider or "").strip().lower().replace("-", "_")
+    normalized_model = _normalize_model_name(model)
+    if not normalized_model:
+        return None
+    catalog_provider = LITELLM_PRICING_PROVIDER_ALIASES.get(raw_provider)
+    if catalog_provider is None:
+        if normalized_model.startswith("muse-code/"):
+            return "meta", normalized_model.removeprefix("muse-code/")
+        return None
+    for prefix in LITELLM_PRICING_MODEL_PREFIXES.get(raw_provider, ()):
+        if normalized_model.startswith(prefix):
+            normalized_model = normalized_model[len(prefix) :]
+            break
+    for prefix in LITELLM_PRICING_MODEL_TARGET_PREFIXES.get(raw_provider, ()):
+        if not normalized_model.startswith(prefix):
+            normalized_model = f"{prefix}{normalized_model}"
+        break
+    return catalog_provider, normalized_model
 
 
 _pricing_table = _PricingTable()
@@ -330,6 +609,15 @@ _pricing_table = _PricingTable()
 def find_model_pricing(model: str, provider: str = "") -> Optional[ModelPricing]:
     """Return the pricing entry for ``model`` or ``None`` when unpriced."""
     return _pricing_table.lookup(model, provider=provider)
+
+
+def get_model_capabilities(model: str, provider: str = "") -> Optional[ModelCapabilities]:
+    """Return the context window and capability metadata for ``model`` or ``None``."""
+    return _pricing_table.lookup_capabilities(model, provider=provider)
+
+
+def resolve_model_pricing(model: str, provider: str = "") -> PricingResolution:
+    return _pricing_table.resolve(model, provider=provider)
 
 
 def get_pricing_table_status() -> Dict[str, Any]:
@@ -378,6 +666,26 @@ def calculate_cost_usd(
     if pricing is None:
         return 0.0
 
+    return calculate_priced_cost(
+        pricing,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cached_tokens=cached_tokens,
+        cache_creation_tokens=cache_creation_tokens,
+        reasoning_tokens=reasoning_tokens,
+    )
+
+
+def calculate_priced_cost(
+    pricing: ModelPricing,
+    *,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cached_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+    reasoning_tokens: int = 0,
+) -> float:
+    """Calculate against one resolved snapshot, without reloading operator settings."""
     safe_input = max(0, int(input_tokens or 0))
     safe_output = max(0, int(output_tokens or 0))
     safe_cached = min(max(0, int(cached_tokens or 0)), safe_input)

@@ -50,7 +50,21 @@
 
 ## 控制台預覽
 
-![Polaris — 控制台預覽](../assets/screenshots/credential-pool.png)
+螢幕截圖使用隔離的離線示範環境中的虛構資料。
+
+### 儀表板
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 儀表板" />
+</picture>
+
+### 憑證
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 控制台預覽" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ docs/          架構設計說明與專案維護文檔
 
 ## 部署
 
+Linux/amd64 的[簡易 Docker 安裝](../docker-install.md)不必複製儲存庫或手動編輯 `.env`：執行一個命令，在 VPS 使用 HTTP 時明確同意風險，再於網頁建立密碼。**目前僅在本機準備，須先發布配套的新安裝指令碼與映像。** 手動 Docker、Compose 與原始碼執行方式仍然保留。Docker-run 使用[獨立的備份與更新流程](../docker-maintenance.md)，不使用 Compose 更新工具。
+
 單機、單 worker 的 Docker Compose 是主要部署方式。請遵循[安裝指南](../installation.md)與[支援矩陣](../installation.md#support-matrix)。
 
-基本設定不需外部服務，資料保存在 `polaris-data`。範本固定使用 `0.1.0-beta.1`；升級或回復請遵循[更新指南](../updating.md)。進階功能可透過 `deploy/compose.advanced.yml` 選用。
+基本設定不需外部服務，資料保存在 `polaris-data`。範本面向 `1.0.0`。僅使用已發布且版本一致的 Polaris 標籤和映像安裝；若使用尚未發布的原始碼，請依[發布清單](../releases/1.0.0-preparation.md)建置獨立的本機映像。升級或回復請遵循[更新指南](../updating.md)，進階功能可透過 `deploy/compose.advanced.yml` 選用。
 
-參閱[識別名稱約定](../migrations/polaris.md)及[疑難排解](../troubleshooting.md)。原生指令碼、`docker run`、Render 與 Zeabur 屬相容路徑，未具備同等安裝及復原驗證。映像發布支援 `linux/amd64`；`linux/arm64` 仍暫停發布。
+參閱[識別名稱約定](../migrations/polaris.md)及[疑難排解](../troubleshooting.md)。原生指令碼、Render 與 Zeabur 屬相容路徑，未具備同等安裝及復原驗證。映像發布支援 `linux/amd64`；`linux/arm64` 仍暫停發布。
 
 ### 本機開發或疑難排解：
 
@@ -178,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自動產生 | 用戶端 API 金鑰，前綴為 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 設定前為空白 | Web 控制面板的造訪密碼。 |
 | `SETUP_TOKEN` | 空白 | 遠端初始設定所需的唯一權杖，至少 24 字元；不自動產生或記錄。直接 localhost 存取不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 僅在接受憑證和工作階段未加密的風險後，才啟用遠端 HTTP 設定。建議使用 HTTPS；仍然需要強式設定權杖。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台工作階段有效時間（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自動 | 設為 `true` 強制僅在 HTTPS 下傳輸 Cookie。留空時透過 `X-Forwarded-Proto` 自動偵測。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登入頻率限制時間窗口（秒）。 |
@@ -415,9 +432,9 @@ Google AI Studio 批次匯入支援 JSON 檔案及包含 JSON 檔案的 ZIP 壓�
 }
 ```
 
-每個匯入的金鑰在入庫前均經過嚴格校驗。同批次內的重複金鑰將被略過，已存在的金鑰將重新校驗並更新，無效記錄將直接報錯且不會洩漏金鑰明文。
+檔案匯入是離線操作：Polaris 檢查 JSON/ZIP 結構，將新金鑰儲存為 `unverified`，略過重複或已存在的金鑰，不連線至 Google。匯入的模型清單不視為已驗證。格式錯誤會個別回報，不洩漏金鑰。之後請主動執行憑證驗證/模型探索；**Test model** 另外檢查推論權限，可能消耗配額或產生費用。
 
-Grok Build 支援 PKCE OAuth 憑證，而 SpaceXAI Console 支援 API 金鑰。SpaceXAI Console 金鑰在儲存前會對照 Grok Build 模型目錄進行驗證。對於 Grok Build OAuth，Polaris 會產生授權連結；授權完成後，複製授權頁面展示的授權碼並貼至表單中。當存在 Refresh Token 時系統會自動重新整理存取權杖，且兩種憑證類型均僅暴露其目前目錄宣告的 Grok Build 模型。在「憑證」頁面，可查詢 Grok Build OAuth 帳戶的月度額度消耗情況，以及 xAI 提供時的週度使用量。該帳戶級帳單檢視不支援 SpaceXAI Console API 金鑰。
+Grok Build 支援 PKCE OAuth 憑證，而 SpaceXAI Console 支援 API 金鑰。SpaceXAI Console 金鑰在儲存前會對照 SpaceXAI Console API 模型目錄進行驗證。對於 Grok Build OAuth，Polaris 會產生授權連結；授權完成後，複製授權頁面展示的授權碼並貼至表單中。當存在 Refresh Token 時系統會自動重新整理存取權杖，且兩種憑證類型均僅暴露各自目前目錄宣告的模型。在「憑證」頁面，可查詢 Grok Build OAuth 帳戶的月度額度消耗情況，以及 xAI 提供時的週度使用量。該帳戶級帳單檢視不支援 SpaceXAI Console API 金鑰。
 
 Codex 使用 OpenAI 裝置授權流程。在「供應商」頁面產生裝置代碼，開啟展示的驗證網址，輸入代碼完成登入，然後返回檢查授權狀態。Polaris 將儲存 Codex 回傳的帳戶級模型目錄，在需要時自動重新整理 OAuth 存取權杖，並透過 Codex Responses 傳輸協定轉發相容請求。OpenAI Platform 使用 API 金鑰認證；金鑰在儲存前均透過帳戶模型目錄進行有效性校驗。兩款產品均支援 JSON 與 ZIP 匯入，並具備供應商特定的校驗與去重能力。
 
@@ -446,7 +463,7 @@ Google Antigravity 憑證命名為 `google-antigravity-{account_fingerprint}.jso
 
 ## 資料儲存
 
-建議使用 SQLite。Compose 將 `/app/backend/data` 保存在 `polaris-data`；直接使用 Docker 時，將 `/app/backend/data/creds` 與 `/app/backend/data/logs` 掛載至 `/opt/polaris/creds`、`/opt/polaris/logs` 等持久目錄。
+建議使用 SQLite。Compose 與 Docker 安裝指令碼將整個 `/app/backend/data` 保存在 `polaris-data` 中。手動執行 Docker 時也必須掛載完整的資料目錄：僅保存 `creds` 和 `logs` 無法保留 SQLite 資料庫與設定。
 
 PostgreSQL 為選用；MongoDB 保留相容支援，可直接運作，不需 Redis。兩者只能設定一個。初始化失敗會阻止啟動，不會靜默退回 SQLite。外部資料庫不提供水平擴充：仍僅支援一個 worker、一個副本。可攜式加密備份僅支援 SQLite，不支援儲存後端間的線上遷移。
 

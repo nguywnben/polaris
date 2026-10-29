@@ -6,7 +6,8 @@ import secrets
 import time
 from typing import Any, Dict, List, Optional
 
-from core.pricing import calculate_cost_usd
+from core.credential_privacy import mask_account_email, mask_email_text
+from core.pricing import ZERO_COST_PROVIDERS, calculate_priced_cost, resolve_model_pricing
 from core.provider_registry import (
     GOOGLE_ANTIGRAVITY,
     get_credential_provider,
@@ -136,8 +137,8 @@ def get_usage_time_window(
 def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
     provider_id = normalize_provider_id(metadata.get("provider") or GOOGLE_ANTIGRAVITY)
     return {
-        "user_email": metadata.get("user_email", ""),
-        "credential_label": metadata.get("credential_label", ""),
+        "user_email": mask_account_email(metadata.get("user_email")) or "",
+        "credential_label": mask_email_text(metadata.get("credential_label", "")),
         "credential_type": metadata.get("credential_type", ""),
         "provider": provider_id,
         "provider_name": metadata.get("provider_name")
@@ -160,6 +161,8 @@ def _empty_usage_record(metadata: Dict[str, Any]) -> Dict[str, Any]:
         "average_latency_ms": 0,
         "retry_count": 0,
         "cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
         "calls_24h": 0,
         "successful_calls_24h": 0,
         "failed_calls_24h": 0,
@@ -199,11 +202,12 @@ def _usage_record(
     total_latency_ms: int,
     retry_count: int,
     cost_usd: float = 0.0,
+    priced_calls: int = 0,
 ) -> Dict[str, Any]:
     provider_id = normalize_provider_id(existing.get("provider") or provider or GOOGLE_ANTIGRAVITY)
     record = {
-        "user_email": existing.get("user_email", ""),
-        "credential_label": existing.get("credential_label", ""),
+        "user_email": mask_account_email(existing.get("user_email")) or "",
+        "credential_label": mask_email_text(existing.get("credential_label", "")),
         "credential_type": existing.get("credential_type", ""),
         "provider": provider_id,
         "provider_name": existing.get("provider_name")
@@ -226,6 +230,8 @@ def _usage_record(
         "average_latency_ms": round(total_latency_ms / successful_calls) if successful_calls else 0,
         "retry_count": retry_count,
         "cost_usd": round(float(cost_usd or 0.0), 6),
+        "priced_calls": priced_calls,
+        "unpriced_calls": max(0, successful_calls - priced_calls),
     }
     record.update(
         {
@@ -424,6 +430,7 @@ async def record_call(
     api_key_id: str = "",
     cost_override_usd: Optional[float] = None,
     durable_reservation_id: str = "",
+    reported_cost_usd: Optional[float] = None,
 ) -> bool:
     filename = os.path.basename(filename)
     if not filename:
@@ -432,20 +439,51 @@ async def record_call(
     tokens = normalize_token_usage(token_usage)
     request_metrics = request_metrics or {}
     quality_decision = normalize_quality_decision(request_metrics)
-    if cost_override_usd is None:
-        cost_usd = calculate_cost_usd(
-            model,
+    resolution = resolve_model_pricing(model, provider=provider)
+    cost_source = resolution.source if resolution.source != "unknown" else ""
+    cost_status = "unpriced"
+    cost_usd = 0.0
+    if str(provider or "").strip().lower() in ZERO_COST_PROVIDERS:
+        cost_status, cost_source = "free", "local"
+    elif resolution.pricing is not None and tokens["usage_reported"]:
+        cost_status = "estimated"
+        cost_usd = calculate_priced_cost(
+            resolution.pricing,
             input_tokens=tokens["input_tokens"],
             output_tokens=tokens["output_tokens"],
             cached_tokens=tokens["cached_tokens"],
             cache_creation_tokens=tokens["cache_creation_tokens"],
             reasoning_tokens=tokens["reasoning_tokens"],
-            provider=provider,
         )
-    else:
-        cost_usd = float(cost_override_usd)
-        if not math.isfinite(cost_usd) or cost_usd < 0:
+        if all(
+            value == 0
+            for value in (
+                resolution.pricing.input_per_million,
+                resolution.pricing.output_per_million,
+                resolution.pricing.effective_cache_read(),
+                resolution.pricing.effective_reasoning(),
+                resolution.pricing.effective_cache_creation(),
+            )
+        ):
+            cost_status = "free"
+    elif resolution.pricing is not None:
+        cost_status = "unknown_usage"
+    if cost_override_usd is not None:
+        override = float(cost_override_usd)
+        if isinstance(cost_override_usd, bool) or not math.isfinite(override) or override < 0:
             raise ValueError("Cost override must be a finite non-negative amount.")
+        # Virtual keys normally return the same resolved estimate. Only an
+        # actual fallback/different amount replaces its original provenance.
+        if (cost_status in {"estimated", "free"} and override != cost_usd) or (
+            cost_status not in {"estimated", "free"} and override > 0
+        ):
+            cost_status, cost_source = "estimated", "budget"
+        cost_usd = override
+    if reported_cost_usd is not None:
+        cost_usd = float(reported_cost_usd)
+        if isinstance(reported_cost_usd, bool) or not math.isfinite(cost_usd) or cost_usd < 0:
+            raise ValueError("Reported cost must be a finite non-negative amount.")
+        cost_status, cost_source = "reported", "provider"
     try:
         occurred_at = time.time()
         reservation_id = str(durable_reservation_id or "")
@@ -478,6 +516,10 @@ async def record_call(
             latency_ms=_int_value(request_metrics.get("latency_ms")),
             retry_count=_int_value(request_metrics.get("retry_count")),
             cost_nanos=usd_to_nanos(cost_usd),
+            cost_status=cost_status,
+            cost_source=cost_source,
+            pricing_model=resolution.model,
+            pricing_provider=resolution.provider,
             api_key_id=str(api_key_id or "")[:64],
             cache_creation_tokens=tokens["cache_creation_tokens"],
             usage_reported=bool(success and tokens["usage_reported"]),
@@ -678,6 +720,7 @@ async def _load_stats_for_period(
             cache_creation_tokens=row.cache_creation_tokens,
             reasoning_tokens=row.reasoning_tokens,
             reported_usage_calls=row.reported_usage_calls,
+            priced_calls=row.priced_calls,
             estimated_input_tokens=row.estimated_input_tokens,
             estimated_tokens_saved=row.estimated_tokens_saved,
             compressed_messages=row.compressed_messages,

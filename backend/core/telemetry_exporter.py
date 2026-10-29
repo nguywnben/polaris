@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, Optional
 
-import httpx
+from core.httpx_client import http_client
 
 
 class TelemetryExporter:
@@ -71,7 +71,7 @@ class TelemetryExporter:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with http_client.get_client(timeout=3.0, destination_url=url) as client:
                 res = await client.post(
                     url,
                     json=event_payload,

@@ -16,6 +16,7 @@ from core.anthropic import (
 )
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ClaudeOAuthCodeRequest, ClaudePlatformCredentialRequest, ConfigSaveRequest
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import PoolImportError, restore_anthropic_credential
 from core.provider_import_normalization import normalize_provider_import
 from core.provider_registry import ANTHROPIC, CLAUDE_CODE, CLAUDE_PLATFORM, api_key_fingerprint
@@ -33,7 +34,7 @@ from .import_utils import (
     _safe_import_name,
 )
 
-router = APIRouter(tags=["provider-anthropic"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-anthropic"])
 
 ANTHROPIC_CONFIG_KEYS = {
     "anthropic_api_url",

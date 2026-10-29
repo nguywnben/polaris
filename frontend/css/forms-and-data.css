@@ -350,21 +350,12 @@ button.endpoint-code-card:hover {
     flex: 0 0 auto;
 }
 
-.health-status-trigger {
+.health-status-indicator {
     display: grid;
     place-items: center;
     width: var(--control-height);
     height: var(--control-height);
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    cursor: help;
-}
-
-.health-status-trigger:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
+    pointer-events: none;
 }
 
 .health-status-dot {
@@ -376,23 +367,6 @@ button.endpoint-code-card:hover {
 .status-healthy .health-status-dot { background: var(--success); }
 .status-idle .health-status-dot { background: var(--warning); }
 .status-error .health-status-dot { background: var(--danger); }
-
-.health-status-tooltip {
-    position: absolute;
-    inset-inline-end: 0;
-    top: 100%;
-    z-index: 10;
-    width: max-content;
-    max-width: min(220px, calc(100vw - 64px));
-    padding: 8px 10px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text);
-    font-size: var(--type-meta);
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-}
 
 .health-item-stats {
     display: flex;

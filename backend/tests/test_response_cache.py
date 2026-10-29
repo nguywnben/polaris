@@ -62,6 +62,52 @@ class ResponseCacheTests(unittest.TestCase):
         self.assertIsNone(self.cache.get("k0"))
         self.assertEqual(self.cache.get("k5"), "v5")
 
+    def test_cache_lru_promotes_recently_accessed_key(self) -> None:
+        for i in range(5):
+            self.cache.set(f"k{i}", f"v{i}")
+
+        # Access k0 so it becomes most recently used; k1 is now least recently used
+        self.assertEqual(self.cache.get("k0"), "v0")
+        self.cache.set("k5", "v5")
+        self.assertEqual(self.cache.get("k0"), "v0")
+        self.assertIsNone(self.cache.get("k1"))
+
+    def test_cache_key_differentiates_responses_input_anthropic_system_and_tools(self) -> None:
+        from core.gateway_pipeline import _is_cacheable_request
+        from core.request_context import request_scope, set_api_key_id, set_request_cache_bypass
+
+        resp_a = {"input": "What is 2+2?", "instructions": "Be brief", "temperature": 0.0}
+        resp_b = {"input": "What is 3+3?", "instructions": "Be brief", "temperature": 0.0}
+        resp_c = {"input": "What is 2+2?", "instructions": "Be verbose", "temperature": 0.0}
+        self.assertNotEqual(
+            generate_cache_key("gpt-4o", resp_a),
+            generate_cache_key("gpt-4o", resp_b),
+        )
+        self.assertNotEqual(
+            generate_cache_key("gpt-4o", resp_a),
+            generate_cache_key("gpt-4o", resp_c),
+        )
+
+        anth_a = {"messages": [{"role": "user", "content": "hi"}], "system": "Sys A"}
+        anth_b = {"messages": [{"role": "user", "content": "hi"}], "system": "Sys B"}
+        self.assertNotEqual(
+            generate_cache_key("claude-sonnet-4-6", anth_a),
+            generate_cache_key("claude-sonnet-4-6", anth_b),
+        )
+
+        with request_scope("req-1"):
+            set_api_key_id("tenant-a")
+            key_tenant_a = generate_cache_key("gpt-4o", resp_a)
+        with request_scope("req-2"):
+            set_api_key_id("tenant-b")
+            key_tenant_b = generate_cache_key("gpt-4o", resp_a)
+        self.assertNotEqual(key_tenant_a, key_tenant_b)
+
+        with request_scope("req-3"):
+            self.assertTrue(_is_cacheable_request({"model": "gpt-4o", **resp_a}))
+            set_request_cache_bypass(True)
+            self.assertFalse(_is_cacheable_request({"model": "gpt-4o", **resp_a}))
+
 
 class CoordinatedResponseCacheTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:

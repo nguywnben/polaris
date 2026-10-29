@@ -13,6 +13,10 @@ GEMINI.md
 # Local agent workspace files
 .agents/
 /skills-lock.json
+# Private operator notes; keep shared plans and reproducible evidence tracked.
+/tasks/local/
+/tasks/oracle-*-update.md
+/docs/evidence/local/
 
 # Databases
 *.db
@@ -20,6 +24,7 @@ GEMINI.md
 *.sqlite
 *.sqlite3
 *.sqlite-*
+*.sqlite3-*
 
 # Environment configuration
 .env
@@ -78,7 +83,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Generated test output only; keep backend/tests/ and its fixtures tracked.
 htmlcov/
 .tox/
 .nox/
@@ -91,6 +96,10 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+pytest-cache-files-*/
+.pytest_tmp/
+.pytest-tmp/
+.benchmarks/
 .mypy_cache/
 .ruff_cache/
 .pyre/
@@ -112,11 +121,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 coverage/
+.nyc_output/
+/coverage.json
+/lcov.info
+/test-results/
+/playwright-report/
+/blob-report/
+playwright/.cache/
 *.tsbuildinfo
 
 # Docker local overrides
 docker-compose.override.yml
 compose.override.yml
+compose.override.yaml
+docker-compose.override.yaml
+/compose.local.yml
+/compose.local.yaml
+/deploy/compose.local.yml
+/deploy/compose.local.yaml
 
 # IDE
 .vscode/
@@ -151,3 +173,17 @@ backend/logs/
 *.bak
 tmp/
 temp/
+
+# Local exports, deployment bundles and screenshots (not documentation assets).
+# Root anchoring keeps intentional fixtures/assets elsewhere eligible for Git.
+/artifacts/
+/reports/
+/screenshots/
+/backups/
+/exports/
+/*.tar
+/*.tar.gz
+/*.tgz
+/*.zip
+/*.7z
+/*.sql

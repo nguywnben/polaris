@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["zh-CN"], {
+    "dashboard.cost_unknown": "费用尚未确定",
+    "dashboard.cost_coverage": "{source} · 已计算 {priced}/{total} 次成功调用的费用。按 API 价格估算，并非实际账单。",
     "setup_preflight_title": "安装检查",
     "setup_preflight_copy": "创建所有者账户前，检查存储、地址和连接。",
     "run_preflight": "运行检查",
@@ -40,7 +42,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["zh-CN"], {
     "setup_action_enter_setup_token": "请输入运维人员配置的设置令牌，然后运行检查。",
     "setup_action_configure_setup_token": "请设置高强度 SETUP_TOKEN（至少 24 个字符），重启后重试。",
     "setup_action_fix_base_url": "请更正公开控制台地址后重试。",
-    "setup_action_use_https": "请通过 HTTPS 提供此远程控制台，然后重试。",
+    "setup_action_use_https": "请使用 HTTPS。如果接受 HTTP 风险，管理员可设置 SETUP_ALLOW_INSECURE_HTTP=true 并重启服务。",
+    "transport_insecure_allowed": "已允许 HTTP（未加密）",
+    "setup_http_warning": "警告：HTTP 不会加密设置令牌、密码或会话 Cookie。这些信息在传输途中可能被窃取或篡改。建议使用 HTTPS。",
     "setup_action_enable_secure_cookie": "请启用安全会话 Cookie 后重试。",
     "setup_action_use_https_or_auto_cookie": "请使用 HTTPS，或将 PANEL_COOKIE_SECURE 恢复为自动模式。",
     "setup_action_fix_data_permissions": "请允许写入数据目录后重试。",

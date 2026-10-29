@@ -124,6 +124,7 @@ function initStaticUiBindings() {
     document.addEventListener('click', handleConsoleLinkClick);
     initControlPointerHover();
     initControlValidationFeedback();
+    initCredentialBadgeHints();
     initBackupBindings();
     const clickHandlers = {
         'toggle-mobile-menu': () => toggleMobileMenu(),

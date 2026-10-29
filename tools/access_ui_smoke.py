@@ -85,6 +85,25 @@ def main():
             ]
             page.locator('[data-ui-action="virtual-key-refresh"]').click()
             expect(page.locator(".virtual-key-card")).to_have_count(1)
+            page.route(
+                "**/api/virtual-keys/fixture/usage",
+                lambda route: route.fulfill(json={"success": True, "data": {}}),
+            )
+            usage_trigger = page.locator('[data-ui-action="virtual-key-usage"]')
+            for dismiss in ("outside", "escape", "button"):
+                usage_trigger.click()
+                usage = page.locator(".message-modal")
+                expect(usage).to_be_visible()
+                usage.locator("h3").click()
+                expect(usage).to_be_visible()
+                if dismiss == "outside":
+                    page.mouse.click(2, 2)
+                elif dismiss == "escape":
+                    page.keyboard.press("Escape")
+                else:
+                    usage.locator("[data-virtual-key-usage-close]").click()
+                expect(usage).not_to_be_visible()
+                expect(usage_trigger).to_be_focused()
             page.locator("#virtualKeySearch").fill("not-found")
             expect(page.locator(".virtual-key-filtered-copy")).to_be_visible()
             state["records"] = []
@@ -127,6 +146,8 @@ def main():
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             page.screenshot(path=str(output / "modal-mobile.png"), full_page=True)
             page.keyboard.press("Escape")
+            expect(page.locator("#virtualKeyForm")).to_be_visible()
+            page.locator("[data-virtual-key-cancel]").click()
             expect(page.locator("#virtualKeyForm")).to_have_count(0)
             page.emulate_media(color_scheme="dark")
             page.screenshot(path=str(output / "access-dark-mobile.png"), full_page=True)

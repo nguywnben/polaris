@@ -1,11 +1,134 @@
 # Changelog
 
 All notable user-facing changes are documented in this file. Polaris follows
-[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta.1` after the
-project-wide rename; earlier product tags remain below for release provenance. Breaking
-changes are permitted throughout the Polaris `0.x` beta series.
+[Semantic Versioning](https://semver.org/). Its version line restarted at `0.1.0-beta` after the
+project-wide rename (formerly `0.1.0-beta.1`); Omni Gateway tags are archived under
+`omni-gateway/`. See the [tag migration record](docs/releases/tag-migration-2026-09-18.md). Breaking
+changes were permitted throughout the Polaris `0.x` beta series. This source targets Polaris
+`1.0.0`; verify matching release/tag/image publication before installing from a development
+checkout. The legacy release with the same number is labeled separately
+below. See the [publication collision checklist](docs/releases/1.0.0-preparation.md).
 
 ## [Unreleased]
+
+_No changes yet._
+
+## [1.0.0] - 2026-09-19
+
+Final local candidate prepared; publication and registry verification remain
+separate release actions.
+
+### Changed
+
+- Mask credential account emails by default and reveal them only through an
+  authorized management action. Use opaque console references for legacy filenames
+  containing email addresses without renaming stored credentials. See the
+  [privacy and API compatibility notes](docs/credential-email-privacy.md).
+- Resolve token prices by provider and explicit model aliases; preserve pricing
+  provenance and distinguish missing cost coverage from free usage on the dashboard.
+  Existing usage amounts are not recalculated. See [pricing and rollback notes](docs/pricing.md).
+- Model discovery lists provider models and configured aliases without automatically
+  adding `fake-streaming/` and `streaming-anti-truncation/` copies. Existing prefixed
+  inference IDs remain accepted for manual opt-in use; provider model variants are retained.
+
+### Fixed
+
+- Recover credential routing and cache invalidation after an idle backlog of expired
+  coordination replay records, using bounded cleanup without discarding live evidence.
+- Keep browser-native page scrollbars; apply compact themed scrollbars only to
+  inner scrolling regions such as dialogs, lists, and tables.
+- Classify dialog dismissal consistently: read-only details support outside click
+  and Escape; forms, confirmations, credential management, and one-time secrets
+  require an explicit action button, protecting drafts from accidental dismissal.
+- Replace the trace-detail header's X icon with a translated Close button in the
+  footer, keeping Escape dismissal and return focus.
+- Keep trace and credential-management dialog frames stable during delayed requests.
+- Match Identity summary skeletons to their fact layout, preserve expanded permissions
+  on refresh, and retain last loaded lists during transient refresh errors without
+  retaining protected data after authorization loss.
+- Use compact, theme-aware horizontal and vertical scrollbars throughout the console,
+  while preserving system controls in forced-colors mode.
+- Clarify trace-detail dialog hierarchy and close control; keep header/actions visible
+  while scrolling a lighter decision list, and reset scrolling when reopening a trace.
+- Keep unknown credential model counts distinct from zero, retain same-account counts
+  during incomplete refreshes, and synchronize cards after model discovery in management.
+- Use one consistent blue information color for all credential subscription-plan badges.
+
+- Recover dashboard login after a large session-expiry backlog without restarting Polaris;
+  preserve active sessions and continue rejecting expired or revoked sessions.
+
+Prepared refresh, not yet published. This candidate includes the guided installation,
+mobile interaction, client compatibility, credential identity and dependency fixes.
+The verified source revision and image digest identify its exact contents; operators
+with an earlier 1.0.0 image must explicitly pull the refreshed image after publication.
+The historical Omni Gateway 1.0.0 is separate.
+
+### Security
+
+- Update AnyIO to 4.14.2 to resolve the three reported dependency advisories.
+- Synchronize the runtime lock with the already-declared Pydantic 2.13.5 minimum.
+
+### Changed
+
+- Remove the masked API-key subtitle from credential cards.
+- Restore the last provider-reported credential plan when reloading the same browser tab;
+  keep unknown plans hidden instead of displaying internal default tiers.
+- Keep credential plan badges stable during quota refresh, remove their hover tooltips,
+  and show only enabled/disabled state and the known plan in compact credential cards.
+
+### Fixed
+
+- Bind saved credential plans and quota previews to an opaque account scope,
+  preventing a replaced account from inheriting the previous account's badge.
+  Discard late quota responses after account replacement or deletion.
+- Classify invalid stored Meta/Muse credentials as provider preparation failures,
+  while preserving HTTP 400 for unsupported client request options.
+- Retain Muse Code account email through sign-in, import and refresh, and show it
+  on credential cards instead of falling back to the credential filename.
+- Preserve Chat Completions tool-call history when routing to Muse Code / Meta,
+  ignoring only the internal Gemini tool-call placeholder, not real signed reasoning.
+  Return typed request-validation errors as HTTP 400 without penalizing credential health.
+- Shorten the virtual-key secret dialog's copy button label.
+- Accept Chat Completions `stream_options.include_usage` used by VS Code and OpenCode.
+  Emit requested usage once before `[DONE]`, preserve tool-call deltas and upstream errors,
+  and retain usage-only provider frames, including fake streams and continuation attempts.
+  Preserve `tool_calls` finish reasons when providers send the stop marker separately.
+- Preserve streamed usage totals in the translated Responses API.
+
+### Installation and mobile improvements
+
+- Reject remote HTTP setup with a forged loopback Host header unless the operator
+  explicitly allows HTTP. Guided local installation retains its loopback-only bind.
+- Reserve space for password visibility buttons only while the input has content,
+  so empty setup and sign-in fields use their full placeholder width.
+- Shorten setup-code placeholders in all 15 languages for mobile screens and remove
+  native tap-highlight overlays while preserving keyboard focus and text selection.
+
+- Add a guided Linux/amd64 Docker installer: no repository clone or manual `.env` editing,
+  generated setup codes, explicit public HTTP consent, readiness checks, and preservation
+  of existing containers/data. Keep manual Docker, Compose, and source-run paths available.
+- Add an explicit, disabled-by-default `SETUP_ALLOW_INSECURE_HTTP` option for remote first-run
+  setup, with persistent unencrypted-transport warnings in all 15 console languages.
+  Setup-token, password, storage and secure-cookie requirements remain enforced.
+
+### Release preparation
+
+- Prepare runtime, Compose and documentation for Polaris 1.0.0 while preserving legacy
+  release history. Legacy tags are archived and the target registry version names are
+  available. Publish only the exact verified commit after the required gates pass.
+- Validate unique, dated release notes and matching version metadata before publishing
+  container images, not only before creating the GitHub release.
+- Keep manually dispatched candidate CI verification-only. Explicitly mark future stable
+  releases as latest so the archived Omni Gateway version line cannot outrank Polaris.
+- Isolate browser-test configuration from operator secrets. Allow reliability checks to
+  measure a SHA-256-recorded uncommitted source snapshot without claiming a release commit.
+- Omit raw update-check exceptions from debug logs; correct setup-token and offline-import
+  documentation, including all 15 README languages.
+- Preserve validated `Retry-After` values on extended-provider failures without forwarding
+  arbitrary upstream headers. Store safe inference-failure diagnostics rather than raw
+  provider bodies, and omit those bodies and credential-state values from runtime logs.
+- Credential plan/credit hints can be dismissed with Escape without moving keyboard focus;
+  pointer users can move into the hint across its visual gap.
 
 ### Provider conformance fixes
 
@@ -19,6 +142,8 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 ### Added
 
+- Current Dashboard and Credentials previews in light and dark themes across all
+  15 README languages, captured from an isolated demo with fictional data.
 - Repository README translations in all 15 supported languages, with language navigation,
   the current 23-provider catalog, configuration reference, and credential/deployment workflows.
 - New providers show the same persistent credential-save result and pool shortcut
@@ -79,7 +204,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
   Providers; routing-wide stream conversion and retry credential switching are in Settings.
   Claude and xAI shared fields have a single editor, and Grok's OAuth inference endpoint
   is editable independently from SpaceXAI Console. Saved values and environment locks remain intact.
-- Antigravity credit controls moved from Pool to Providers, with bounded account selection
+- Antigravity credit controls belong to credential management, with capability checks
   and confirmation. Offline imports distinguish stored credentials from verified credentials.
 - Native Codex, Claude Code and Grok credential files are normalized with bounded,
   provider-specific validation. Foreign OAuth tokens are not sent to Google for email discovery.
@@ -162,7 +287,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
   inputs, visible only while populated, with keyboard support and labels in all supported console
   languages.
 
-## [0.1.0-beta.1] - 2026-09-14
+## [0.1.0-beta] - 2026-09-14
 
 ### Added
 
@@ -530,7 +655,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 
 - Scoped account deduplication by provider so OAuth accounts that share an email address across different providers remain independent.
 
-## [1.0.0] - 2026-07-13
+## [1.0.0 (legacy)] - 2026-07-13
 
 ### Added
 
@@ -592,7 +717,7 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Prevented release tags from generating invalid branch-prefixed container tags.
 - Gated GitHub Releases on verified container publication and sourced release notes from this changelog.
 
-## [0.1.0-beta] - 2026-07-08
+## [0.1.0-beta (legacy)] - 2026-07-08
 
 ### Added
 
@@ -600,20 +725,21 @@ changes are permitted throughout the Polaris `0.x` beta series.
 - Provider credential pool, virtual model routing, context optimization, usage visibility, and the management console.
 - Docker Hub and GitHub Container Registry publishing.
 
-[Unreleased]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta.1...HEAD
-[0.1.0-beta.1]: https://github.com/nguywnben/polaris/compare/v1.4.0...v0.1.0-beta.1
-[1.5.0]: https://github.com/nguywnben/polaris/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/nguywnben/polaris/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/nguywnben/polaris/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/nguywnben/polaris/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/nguywnben/polaris/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/nguywnben/polaris/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/nguywnben/polaris/compare/v1.1.4...v1.2.0
-[1.1.4]: https://github.com/nguywnben/polaris/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/nguywnben/polaris/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/nguywnben/polaris/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/nguywnben/polaris/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/nguywnben/polaris/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nguywnben/polaris/compare/v0.2.0-beta...v1.0.0
-[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/v0.1.0-beta...v0.2.0-beta
-[0.1.0-beta]: https://github.com/nguywnben/polaris/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/nguywnben/polaris/compare/v1.0.0...HEAD
+[0.1.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.4.0...v0.1.0-beta
+[1.5.0]: docs/evidence/p5.6-release-candidate-handoff.md
+[1.4.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.2...omni-gateway/v1.4.0
+[1.3.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.1...omni-gateway/v1.3.2
+[1.3.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.3.0...omni-gateway/v1.3.1
+[1.3.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.1...omni-gateway/v1.3.0
+[1.2.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.2.0...omni-gateway/v1.2.1
+[1.2.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.4...omni-gateway/v1.2.0
+[1.1.4]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.3...omni-gateway/v1.1.4
+[1.1.3]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.2...omni-gateway/v1.1.3
+[1.1.2]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.1...omni-gateway/v1.1.2
+[1.1.1]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.1.0...omni-gateway/v1.1.1
+[1.1.0]: https://github.com/nguywnben/polaris/compare/omni-gateway/v1.0.0...omni-gateway/v1.1.0
+[1.0.0]: docs/releases/1.0.0-preparation.md
+[1.0.0 (legacy)]: https://github.com/nguywnben/polaris/compare/9e858310c9567bb7447ea6482610e5b6b8ab22f5...36ef7651ef9bed073be0f0aa90bd02827c3cf833
+[0.2.0-beta]: https://github.com/nguywnben/polaris/compare/omni-gateway/v0.1.0-beta...omni-gateway/v0.2.0-beta
+[0.1.0-beta (legacy)]: https://github.com/nguywnben/polaris/releases/tag/omni-gateway/v0.1.0-beta

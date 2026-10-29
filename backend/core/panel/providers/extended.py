@@ -4,6 +4,7 @@ from typing import Literal
 
 from core.extended_provider_runtime import discover_extended_models, normalize_extended_credential
 from core.i18n import LocalizedJSONResponse as JSONResponse
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.pool_import import PoolImportError
 from core.provider_registry import EXTENDED_PROVIDERS
 from core.provider_scoped_import import import_provider_files
@@ -12,7 +13,7 @@ from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-router = APIRouter(tags=["provider-extended"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-extended"])
 
 
 @router.post("/api/providers/extended/{provider_id}/credentials/import")

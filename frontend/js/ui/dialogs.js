@@ -54,27 +54,17 @@ function showConfirmModal(message, options = {}) {
 
             settled = true;
 
-            modal.removeEventListener('keydown', escHandler);
-
             void unmountModal(modal).then(() => resolve(value));
-
-        };
-
-        const escHandler = (event) => {
-
-            if (event.key === 'Escape') close(false);
 
         };
 
         modal.addEventListener('click', (event) => {
 
-            if (event.target === modal || event.target.closest('[data-dialog-cancel]')) close(false);
+            if (event.target.closest('[data-dialog-cancel]')) close(false);
 
             if (event.target.closest('[data-dialog-confirm]')) close(true);
 
         });
-
-        modal.addEventListener('keydown', escHandler);
 
         void mountModal(modal);
 
@@ -142,21 +132,13 @@ function showPromptModal(message, options = {}) {
 
             settled = true;
 
-            modal.removeEventListener('keydown', escHandler);
-
             void unmountModal(modal).then(() => resolve(value));
-
-        };
-
-        const escHandler = (event) => {
-
-            if (event.key === 'Escape') close(null);
 
         };
 
         modal.addEventListener('click', (event) => {
 
-            if (event.target === modal || event.target.closest('[data-dialog-cancel]')) close(null);
+            if (event.target.closest('[data-dialog-cancel]')) close(null);
 
             if (event.target.closest('[data-dialog-confirm]')) close(input()?.value || '');
 
@@ -167,8 +149,6 @@ function showPromptModal(message, options = {}) {
             if (event.key === 'Enter' && event.target === input()) close(input()?.value || '');
 
         });
-
-        modal.addEventListener('keydown', escHandler);
 
         void mountModal(modal);
 
@@ -237,7 +217,6 @@ function showModelTestModal(message, options = {}) {
             settled = true;
             activeController?.abort();
             activeController = null;
-            modal.removeEventListener('keydown', escHandler);
             void unmountModal(modal).then(() => resolve());
         };
 
@@ -335,12 +314,8 @@ function showModelTestModal(message, options = {}) {
             }
         };
 
-        const escHandler = (event) => {
-            if (event.key === 'Escape') close();
-        };
-
         modal.addEventListener('click', (event) => {
-            if (event.target === modal || event.target.closest('[data-dialog-cancel], [data-dialog-close]')) {
+            if (event.target.closest('[data-dialog-cancel], [data-dialog-close]')) {
                 close();
                 return;
             }
@@ -351,7 +326,6 @@ function showModelTestModal(message, options = {}) {
             if (event.target.closest('[data-dialog-confirm]')) runTest();
         });
 
-        modal.addEventListener('keydown', escHandler);
         void mountModal(modal);
         renderSelection();
 

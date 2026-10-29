@@ -187,7 +187,7 @@ def main(base, directory, data_only=False):
                     page.wait_for_load_state("networkidle")
                     page.screenshot(path=str(output / f"{provider}-management.png"))
                     report["dialogs"].append(provider)
-                    page.keyboard.press("Escape")
+                    page.locator(".credential-management-modal [data-dialog-close]").click()
                 assert not report["errors"], report["errors"]
                 assert not report["network_errors"], report["network_errors"]
                 print(json.dumps(report["reconciled"]))
@@ -228,7 +228,12 @@ def main(base, directory, data_only=False):
                 page.locator(selector).first.click()
                 expect(page.get_by_role("dialog").last).to_be_visible()
                 capture(name + "-dialog")
-                page.keyboard.press("Escape")
+                if name == "credential":
+                    page.locator(".credential-management-modal [data-dialog-close]").click()
+                elif name == "key-edit":
+                    page.locator("[data-virtual-key-cancel]").click()
+                else:
+                    page.keyboard.press("Escape")
                 report["dialogs"].append(name)
 
             # The isolated database does not authorize inference or replace its

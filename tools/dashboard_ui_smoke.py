@@ -10,34 +10,14 @@ from playwright.sync_api import expect, sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def verify_health_status_hint(page):
+def verify_health_status_indicator(page):
     indicator = page.locator("#providerHealthGrid .health-status").first
-    trigger = indicator.locator("button")
-    hint = indicator.locator('[role="tooltip"]')
     expect(page.locator("#providerHealthGrid .health-badge")).to_have_count(0)
-    expect(trigger).to_have_accessible_name("OpenAI Platform")
-    expect(trigger).to_have_accessible_description("Hoạt động tốt")
-    expect(hint).to_be_hidden()
-    trigger.hover()
-    expect(hint).to_be_visible()
-    box = hint.bounding_box()
-    assert box["x"] >= 0 and box["x"] + box["width"] <= page.viewport_size["width"]
-    hint.hover()
-    expect(hint).to_be_visible()
-    # Escape must dismiss even when the hint was opened only by a pointer.
-    page.keyboard.press("Escape")
-    expect(hint).to_be_hidden()
-    page.mouse.move(0, 0)
-    trigger.focus()
-    expect(hint).to_be_visible()
-    assert trigger.evaluate("el => getComputedStyle(el).outlineStyle") != "none"
-    trigger.press("Escape")
-    expect(hint).to_be_hidden()
-    expect(trigger).to_be_focused()
-    trigger.press("Space")
-    expect(hint).to_be_visible()
-    trigger.press("Tab")
-    expect(hint).to_be_hidden()
+    expect(indicator.locator(".health-status-indicator")).to_have_attribute(
+        "aria-label", "Hoạt động tốt"
+    )
+    expect(indicator.locator('[role="tooltip"]')).to_have_count(0)
+    expect(indicator.locator("button.health-status-trigger")).to_have_count(0)
     dot = indicator.locator(".health-status-dot")
     bounds = dot.bounding_box()
     assert bounds["width"] == bounds["height"] == 8, bounds
@@ -302,7 +282,7 @@ def main():
                         animations="disabled",
                     )
                     if mode == "populated":
-                        verify_health_status_hint(page)
+                        verify_health_status_indicator(page)
                         for index in (0, 11, 23):
                             bar = page.locator(".timeline-bar-col").nth(index)
                             page.keyboard.press("Tab")
@@ -332,10 +312,10 @@ def main():
             touch_page.locator("#loginPassword").fill(PASSWORD)
             touch_page.locator("#loginSubmitButton").click()
             touch_indicator = touch_page.locator("#providerHealthGrid .health-status").first
-            touch_indicator.locator("button").tap()
-            expect(touch_indicator.locator('[role="tooltip"]')).to_be_visible()
-            touch_page.locator("#providerHealthCard h2").tap()
-            expect(touch_indicator.locator('[role="tooltip"]')).to_be_hidden()
+            expect(touch_indicator.locator(".health-status-indicator")).to_have_attribute(
+                "aria-label", "Hoạt động tốt"
+            )
+            expect(touch_indicator.locator('[role="tooltip"]')).to_have_count(0)
             touch_context.close()
             state["mode"] = "idle"
             page.locator("#usagePeriodSelect").select_option("7d")
@@ -382,7 +362,7 @@ def main():
                         "historical_page_independent": True,
                         "page_errors": errors,
                         "overflows": overflows,
-                        "health_status_hints": "hover, keyboard, Escape, touch, described status",
+                        "health_status_hints": "disabled; status remains accessible",
                         "usage_requests": usage_requests,
                     },
                     indent=2,
@@ -392,7 +372,7 @@ def main():
             print(
                 "PASS: overview empty/populated/idle/error/recovery, row101 server pagination, "
                 "independent history and complete provider totals, period and keyboard navigation; "
-                "health dots and hover/keyboard/Escape/touch hints; 320–1440px, light/dark"
+                "health dots without hover/focus/click tooltips; 320–1440px, light/dark"
             )
             print(f"Evidence: {screenshots}")
         finally:

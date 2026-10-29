@@ -67,7 +67,21 @@ Modern coding workflows often mix clients and providers: OpenAI-compatible tools
 
 ## Console Preview
 
-![Polaris credentials](docs/assets/screenshots/credential-pool.png)
+Screenshots use fictional data from an isolated offline demo.
+
+### Dashboard
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/dashboard-dark.png" />
+  <img src="docs/assets/screenshots/dashboard-light.png" alt="Polaris dashboard" />
+</picture>
+
+### Credentials
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/credentials-dark.png" />
+  <img src="docs/assets/screenshots/credentials-light.png" alt="Polaris credentials" />
+</picture>
 
 ## Supported Providers
 
@@ -134,6 +148,14 @@ See [Architecture](docs/architecture.md) for module boundaries, request flow, st
 
 ## Deployment
 
+For a guided Docker installation on Linux or Windows without cloning the repository or editing `.env`,
+see [Simple Docker installation](docs/docker-install.md): choose Bash or PowerShell, run one
+installer command, then create your password on the web. Public HTTP requires explicit consent.
+**The new PowerShell entry point is source-ready and must be published before its download
+command can be used.** The runtime is Linux/amd64; Intel macOS verification is pending. Manual
+Docker, Compose and source development remain available; Docker-run uses its own
+[backup/update procedure](docs/docker-maintenance.md), not the Compose updater.
+
 Docker Compose is the canonical production deployment path for the supported single-machine,
 single-worker profile. Follow the [Canonical installation guide](docs/installation.md) from host
 checks through the first authenticated Dashboard; its
@@ -141,7 +163,9 @@ checks through the first authenticated Dashboard; its
 Linux, macOS, and architecture status without implying unsupported ARM64 coverage.
 
 The default profile needs no external service and stores all application data in the
-`polaris-data` named volume. Its minimal environment template pins release `0.1.0-beta.1`; production
+`polaris-data` named volume. Its minimal environment template targets `1.0.0`. Install using
+matching published Polaris tags and images; for an unpublished source checkout, follow the
+[release preparation checklist](docs/releases/1.0.0-preparation.md) and build a separate local image. Production
 updates use the encrypted, health-checked [Compose update and rollback guide](docs/updating.md).
 External storage, Team access, proxy, guardrails, cache, and telemetry remain opt-in through
 `deploy/compose.advanced.yml` after the base installation is healthy.
@@ -154,7 +178,7 @@ For diagnosis and safe recovery, use the [Production troubleshooting guide](docs
 It starts with health and readiness checks, preserves the data volume, and records the exact
 information needed for a redacted support bundle.
 
-Compatibility-only native scripts under `deploy/scripts`, direct `docker run`, Render, and Zeabur
+Compatibility-only native scripts under `deploy/scripts`, Render, and Zeabur
 do not carry the full install/update/rollback evidence of the canonical path. The production image
 is published for `linux/amd64`; native `linux/arm64` publication remains paused until the complete
 locked dependency stack has equivalent build and runtime evidence.
@@ -212,6 +236,7 @@ name; likely misspelled `POLARIS_*` variables produce a warning.
 | `API_KEY` | generated automatically | Preferred key for public client API requests. Must start with `sk-polaris-`. |
 | `PANEL_PASSWORD` | empty until setup | Password for the web control panel. |
 | `SETUP_TOKEN` | empty | Required before remote first-run setup; use a unique value of at least 24 characters. It is never generated or printed by the application. Direct localhost setup does not require it. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Opt in to remote HTTP setup only after accepting unencrypted credentials and sessions. HTTPS is recommended; a strong setup token is still required. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web console session lifetime in seconds. |
 | `PANEL_COOKIE_SECURE` | automatic | Set `true` to require HTTPS-only panel cookies. Leave empty to detect HTTPS through `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Login rate-limit window in seconds. |
@@ -403,10 +428,23 @@ Model discovery is provider-aware: a shared model can be backed by multiple prov
 
 When an upstream returns `404` for a concrete model, Polaris records an unavailable route for that credential and model rather than suppressing the entire provider. The route is temporarily avoided immediately and remains visible under **Unavailable Model Routes** until it is removed or the credential is revalidated. This prevents one account's subscription or regional entitlement from affecting other accounts at the same provider. If no enabled credential declares or can infer support for a requested concrete model, the gateway returns a clear no-compatible-credential error instead of sending the request to a random provider.
 
-Polaris recognizes feature prefixes and suffixes in model names:
+`GET /v1/models` and `GET /v1beta/models` advertise concrete provider models and enabled,
+configured aliases without automatically creating feature-prefixed copies. Provider-returned
+variants, including thinking models, remain listed. Clients that refresh their model picker
+will no longer see synthetic copies; saved or manually entered feature IDs remain accepted.
 
-- `fake-streaming/{model}` or the configured pseudo-streaming prefix for clients that require SSE output.
-- `streaming-anti-truncation/{model}` or the configured anti-truncation prefix for long-form streaming recovery.
+### Advanced model features (opt-in)
+
+Choose these modes explicitly by entering the prefixed model ID in your client with
+`stream: true`; no discovery flag or global enable switch is required:
+
+- `fake-streaming/{model}` waits for a non-streaming upstream response and emits SSE output.
+- `streaming-anti-truncation/{model}` enables streaming continuation, which can make additional
+  upstream calls and increase latency and usage. The AI Quality attempt limit bounds this mode;
+  changing that limit alone does not enable it.
+
+Polaris also recognizes supported suffixes in model names:
+
 - Thinking suffixes such as `-high`, `-medium`, `-low`, `-minimal`, and `-max` for supported Gemini-family models.
 - Search suffixes such as `-search` for models that support Google Search grounding.
 
@@ -414,7 +452,9 @@ Provider adapters normalize these feature names before sending upstream requests
 
 ## Usage and Cost Visibility
 
-Polaris records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates direct OpenAI, Anthropic, Gemini, and xAI entries, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
+Polaris records provider-attempt volume, success rate, credential attribution, provider-reported token usage, estimated context-compression savings, and an estimated USD cost per call. Retries and failovers are separate provider attempts, while request traces preserve the final logical request outcome. Token totals distinguish normal input, cache reads, cache writes, output, and reasoning when the provider reports them; the dashboard identifies successful attempts whose usage was not reported instead of treating missing usage as an exact zero. Dashboard periods and chart buckets use fixed clock boundaries in the browser's current timezone, so refreshing at a different minute does not shift the reporting buckets. The one-day view covers the current local calendar day and labels its hourly buckets from 00:00 through 23:00. At startup and every 24 hours by default, the gateway refreshes the public [LiteLLM model-price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json), validates provider-qualified token-price entries across catalog providers, and atomically caches the last valid snapshot. A failed refresh never blocks inference. Override or extend any price by placing a `model_pricing.json` file in the credentials directory; manual prices take precedence and are expressed in USD per one million tokens. Aggregates are available on the dashboard, per virtual key through the `/api/virtual-keys` management API, and through Prometheus `/metrics`. Compression savings and costs remain estimates because provider tokenizers and billing rules are authoritative.
+
+See [pricing identities, configuration, coverage and rollback](docs/pricing.md) for exact aliases and the distinction between unknown and free usage.
 
 Virtual API keys let one gateway serve multiple clients under separate limits. Each key carries optional daily and monthly USD budgets enforced from the cost ledger, requests-per-minute and tokens-per-minute sliding windows, an expiry timestamp, and a model allowlist with glob patterns. Keys are stored as SHA-256 hashes; the plaintext secret is shown exactly once at creation time.
 
@@ -443,9 +483,9 @@ Google AI Studio batch import accepts JSON files and ZIP archives containing JSO
 }
 ```
 
-Every imported key is validated before storage. Duplicate keys within the same import are skipped, existing keys are revalidated and updated, and invalid entries are reported without exposing the key value.
+File import is offline: Polaris checks the JSON/ZIP structure, stores new keys as `unverified`, and skips duplicate or existing keys without contacting Google. Imported model lists are not trusted. Malformed entries are reported without exposing key values. Use the explicit credential verification/model-discovery action afterwards; use **Test model** separately to check inference access (which can consume quota or incur charges).
 
-Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the Grok Build model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only the Grok Build models declared by their current catalog. The Credentials page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
+Grok Build supports PKCE OAuth credentials, while SpaceXAI Console supports API keys. SpaceXAI Console keys are validated against the SpaceXAI Console API model catalog before storage. For Grok Build OAuth, Polaris generates an authorization link; after authorization, copy the code displayed on the Grok Build authorization page and paste it into the Grok Build OAuth form. Access tokens are refreshed automatically when a refresh token is available, and both credential types expose only models declared by their respective current catalogs. The Credentials page can retrieve monthly credit usage and, when xAI provides it, weekly usage for Grok Build OAuth accounts. This account-level billing view is not available for SpaceXAI Console API keys.
 
 Codex uses OpenAI's device authorization flow. Generate a device code from the Providers page, open the displayed verification URL, enter the code, finish sign-in, and return to check authorization. Polaris stores the account-scoped model catalog returned by Codex, refreshes OAuth access tokens when needed, and sends compatible requests through the Codex Responses transport. OpenAI Platform uses API-key authentication; keys are validated through the account model catalog before being saved to Credentials. Both products support JSON and ZIP import with provider-specific validation and deduplication.
 
@@ -461,6 +501,8 @@ Credential imports and Google Antigravity batch imports accept archives up to 10
 
 The **Credentials** page (`/credentials`) groups connected accounts and API keys by provider. Each credential's management dialog shows its identity, models, status, and provider-supported actions. OAuth providers can report different quota windows, per-model limits, plans, or credit controls; unavailable information is shown as unavailable. API keys do not imply access to account email, subscription, or billing data.
 
+Account emails are masked by default. **Manage → Show email** requires credential-export permission and forgets the revealed value when hidden or the dialog closes. Legacy email-containing filenames use opaque console references without renaming stored files. See [email privacy and API compatibility](docs/credential-email-privacy.md).
+
 `Download ZIP` exports credentials, and `Import ZIP` imports mixed-provider archives using provider-specific identification and validation. OAuth identity and API-key fingerprints are deduplicated within their provider and connection context. Unsupported or malformed entries are reported individually. Validation and discovery depend on the provider; an imported credential or visible model catalog does not by itself prove inference access. Use **Test model** for an explicit inference check, which may consume allowance or incur charges.
 
 Credential archives contain secrets. A credential ZIP is not a full application backup: use the encrypted SQLite backup/restore workflow in **Settings** to transfer supported application data and configuration.
@@ -474,10 +516,10 @@ Credential mode names:
 
 ## Storage
 
-Single-instance deployments use SQLite-backed storage in the application data directory. Docker
-Compose persists all of `/app/backend/data` in the `polaris-data` named volume. Direct
-`docker run` deployments must mount `/app/backend/data/creds` and `/app/backend/data/logs` to
-durable host paths such as `/opt/polaris/creds` and `/opt/polaris/logs`.
+Single-instance deployments use SQLite-backed storage in the application data directory.
+Compose and the Docker installer persist all of `/app/backend/data` in the `polaris-data`
+named volume. Manual `docker run` deployments must also persist the entire data directory:
+mounting only `creds` and `logs` does not preserve SQLite and configuration.
 
 SQLite is the Core storage authority and the recommended production default. PostgreSQL is an
 Advanced option for operators who manage their own database lifecycle. MongoDB is retained as a

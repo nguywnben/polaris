@@ -77,6 +77,7 @@ class ConfigurationSchemaTests(unittest.TestCase):
             ({"PORT": "zero"}, "PORT", "integer"),
             ({"PORT": "70000"}, "PORT", "between 1 and 65535"),
             ({"TRUST_PROXY_HEADERS": "sometimes"}, "TRUST_PROXY_HEADERS", "boolean"),
+            ({"SETUP_ALLOW_INSECURE_HTTP": "sometimes"}, "SETUP_ALLOW_INSECURE_HTTP", "boolean"),
             ({"ROUTING_STRATEGY": "random"}, "ROUTING_STRATEGY", "one of"),
         )
         for environ, name, guidance in cases:

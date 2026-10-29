@@ -7,6 +7,7 @@ from core.google_endpoint_validation import (
 )
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ConfigSaveRequest
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.storage_adapter import get_storage_adapter
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,7 +15,7 @@ from log import log
 
 from ..utils import get_env_locked_keys, internal_server_error
 
-router = APIRouter(tags=["provider-antigravity"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-antigravity"])
 
 ANTIGRAVITY_CONFIG_KEYS = {
     "antigravity_client_id",

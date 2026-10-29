@@ -75,7 +75,7 @@ _PROTOCOL_CONVERSIONS: dict[str, dict[str, Any]] = {
     },
     "openai_chat_to_gemini": {
         "family": "openai_chat_completions",
-        "features": _OPENAI_TRANSLATED_FEATURES,
+        "features": _TRANSLATED_FEATURES,
     },
     "openai_responses_to_chat": {
         "family": "openai_responses",
@@ -87,11 +87,11 @@ _PROTOCOL_CONVERSIONS: dict[str, dict[str, Any]] = {
     },
     "vertex_openai_to_gemini": {
         "family": "vertex",
-        "features": _OPENAI_TRANSLATED_FEATURES,
+        "features": _TRANSLATED_FEATURES,
     },
 }
 
 
 def list_protocol_conversions() -> dict[str, dict[str, Any]]:
-    """Return an isolated copy of the immutable R1 protocol conversion matrix."""
+    """Return the R1 conversion matrix with documented additive extensions."""
     return deepcopy(_PROTOCOL_CONVERSIONS)

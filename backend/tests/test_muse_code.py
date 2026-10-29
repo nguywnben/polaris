@@ -126,7 +126,21 @@ class MuseCredentialTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["provider"], "muse_code")
         self.assertNotIn("model_ids", result)
         self.assertNotIn("subscription_usage", result)
-        self.assertNotIn("user_email", result)
+        self.assertEqual(result["user_email"], "fixture@example.test")
+
+    def test_email_is_preserved_without_changing_identity_or_inference_material(self):
+        source = credential(user_email="fixture@example.test", user_full_name="Not retained")
+        result = muse.normalize_credential(source)
+        self.assertEqual(result["user_email"], source["user_email"])
+        self.assertEqual(result["account_id"], source["account_id"])
+        self.assertNotIn("user_full_name", result)
+        self.assertNotIn("user_email", muse._inference_credential(result))
+        self.assertNotIn("user_email", muse.quota_view(result))
+        for email in (None, "", "invalid", "x@\nexample.test", "x@ example.test", 42):
+            with self.subTest(email=email):
+                result = muse.normalize_credential(credential(user_email=email))
+                self.assertNotIn("user_email", result)
+                self.assertEqual(result["account_id"], "a" * 64)
 
     def test_import_rejects_conflicting_account_or_provider_material(self):
         for changes in (
@@ -189,12 +203,18 @@ class MuseCredentialTests(unittest.IsolatedAsyncioTestCase):
     async def test_refresh_mints_for_same_account_without_conventional_refresh_grant(self):
         source = credential(model_ids=["muse-spark-1.3"], credential_label="Work")
         with patch.object(
-            muse, "mint_key", AsyncMock(return_value=credential(api_key="new-key"))
+            muse,
+            "mint_key",
+            AsyncMock(
+                return_value=credential(api_key="new-key", user_email="fixture@example.test")
+            ),
         ) as mint:
             result = await muse.refresh_credential(source)
         mint.assert_awaited_once_with("oauth-secret")
         self.assertEqual(result["api_key"], "new-key")
         self.assertEqual(result["credential_label"], "Work")
+        self.assertEqual(result["user_email"], "fixture@example.test")
+        self.assertEqual(result["account_id"], source["account_id"])
         self.assertEqual(source["api_key"], "inference-secret")
 
     async def test_forged_imported_account_identity_cannot_replace_another_account(self):

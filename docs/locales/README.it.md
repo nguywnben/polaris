@@ -50,7 +50,21 @@ I moderni flussi di lavoro di sviluppo combinano spesso molteplici client e prov
 
 ## Anteprima della console
 
-![Polaris — Anteprima della console](../assets/screenshots/credential-pool.png)
+Le schermate mostrano dati fittizi di una demo offline isolata.
+
+### Dashboard
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Dashboard" />
+</picture>
+
+### Credenziali
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Anteprima della console" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ Consultare [Architettura](../architecture.md) per i confini dei moduli, il fluss
 
 ## Distribuzione
 
+L'[installazione Docker semplificata](../docker-install.md) per Linux/amd64 non richiede di clonare il repository o modificare `.env`: un comando, consenso esplicito a HTTP sul VPS e creazione della password sul web. **Preparata localmente; occorre prima pubblicare installer e immagine aggiornati corrispondenti.** Restano disponibili Docker manuale, Compose e l'esecuzione dal sorgente. Docker-run ha una [guida dedicata a backup e aggiornamenti](../docker-maintenance.md), senza usare l'aggiornamento Compose.
+
 Docker Compose è il percorso principale su una macchina con un worker. Seguire [installazione](../installation.md) e [matrice di supporto](../installation.md#support-matrix).
 
-Il profilo base non richiede servizi esterni e conserva i dati in `polaris-data`. Il modello fissa `0.1.0-beta.1`; seguire [aggiornamento e rollback](../updating.md). Le opzioni avanzate si attivano tramite `deploy/compose.advanced.yml`.
+Il profilo base non richiede servizi esterni e conserva i dati in `polaris-data`. Il modello è destinato a `1.0.0`. Installare solo tag e immagini Polaris pubblicati della stessa versione; per codice non ancora pubblicato, creare un’immagine locale separata seguendo la [checklist di rilascio](../releases/1.0.0-preparation.md). Consultare [aggiornamento e rollback](../updating.md); le opzioni avanzate si attivano tramite `deploy/compose.advanced.yml`.
 
-Consultare [identificatori](../migrations/polaris.md) e [risoluzione dei problemi](../troubleshooting.md). Script nativi, `docker run`, Render e Zeabur sono percorsi di compatibilità senza le stesse garanzie di verifica. Immagini pubblicate per `linux/amd64`; `linux/arm64` è sospeso.
+Consultare [identificatori](../migrations/polaris.md) e [risoluzione dei problemi](../troubleshooting.md). Script nativi, Render e Zeabur sono percorsi di compatibilità senza le stesse garanzie di verifica. Immagini pubblicate per `linux/amd64`; `linux/arm64` è sospeso.
 
 ### Sviluppo o diagnosi locale:
 
@@ -178,6 +194,7 @@ Priorità: ambiente, configurazione salvata, valori predefiniti. La [referenza g
 | `API_KEY` | generato automaticamente | Chiave API client con prefisso `sk-polaris-`. |
 | `PANEL_PASSWORD` | vuoto fino alla configurazione | Password per l'accesso al pannello di controllo web. |
 | `SETUP_TOKEN` | vuoto | Token di configurazione remota univoco di almeno 24 caratteri; mai generato o registrato. Non richiesto su localhost diretto. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Consente la configurazione remota via HTTP solo accettando credenziali e sessioni non cifrate. HTTPS è consigliato; serve comunque un token di configurazione robusto. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Durata della sessione della console web in secondi. |
 | `PANEL_COOKIE_SECURE` | automatico | Impostare su `true` per forzare cookie solo su HTTPS. Lasciare vuoto per rilevamento automatico tramite `X-Forwarded-Proto`. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Finestra del limitatore di frequenza di login in secondi. |
@@ -415,9 +432,9 @@ L'importazione massiva di Google AI Studio accetta file JSON e archivi ZIP conte
 }
 ```
 
-Ogni chiave importata viene convalidata prima del salvataggio. Le chiavi duplicate all'interno dello stesso lotto vengono ignorate, le chiavi esistenti vengono verificate nuovamente e aggiornate, e le voci non valide vengono segnalate senza mostrare il testo in chiaro della chiave.
+L’importazione dei file avviene offline: Polaris controlla la struttura JSON/ZIP, salva le nuove chiavi come `unverified` e ignora quelle duplicate o già presenti senza contattare Google. Gli elenchi di modelli importati non sono considerati verificati. Gli errori di formato vengono segnalati senza esporre le chiavi. Eseguire poi la verifica/rilevazione dei modelli della credenziale; **Test model** verifica separatamente l’accesso all’inferenza e può consumare quota o comportare addebiti.
 
-Grok Build supporta credenziali OAuth PKCE, mentre SpaceXAI Console supporta chiavi API. Le chiavi SpaceXAI Console vengono convalidate rispetto al catalogo modelli di Grok Build prima di essere memorizzate. Per Grok Build OAuth, Polaris genera un link di autorizzazione; completata l'autorizzazione, copiare il codice mostrato nella pagina di Grok Build e incollarlo nel form. I token di accesso vengono rinnovati automaticamente in presenza di un refresh token, ed entrambi i tipi di credenziali espongono solo i modelli Grok Build dichiarati nei rispettivi cataloghi correnti. La pagina Credentials consente di consultare l'utilizzo mensile dei crediti e l'utilizzo settimanale (quando fornito da xAI) per gli account Grok Build OAuth. Questa visualizzazione di fatturazione a livello di account non è disponibile per le API key di SpaceXAI Console.
+Grok Build supporta credenziali OAuth PKCE, mentre SpaceXAI Console supporta chiavi API. Le chiavi SpaceXAI Console vengono convalidate rispetto al catalogo modelli dell’API SpaceXAI Console prima di essere memorizzate. Per Grok Build OAuth, Polaris genera un link di autorizzazione; completata l'autorizzazione, copiare il codice mostrato nella pagina di Grok Build e incollarlo nel form. I token di accesso vengono rinnovati automaticamente in presenza di un refresh token, ed entrambi i tipi di credenziali espongono solo i modelli dichiarati nei rispettivi cataloghi correnti. La pagina Credentials consente di consultare l'utilizzo mensile dei crediti e l'utilizzo settimanale (quando fornito da xAI) per gli account Grok Build OAuth. Questa visualizzazione di fatturazione a livello di account non è disponibile per le API key di SpaceXAI Console.
 
 Codex adotta il flusso di autorizzazione dispositivi di OpenAI. Generare un codice dispositivo dalla pagina Provider, aprire l'URL di verifica mostrato, digitare il codice, completare il login e tornare per verificare l'autorizzazione. Polaris memorizza il catalogo modelli associato all'account restituito da Codex, rinnova i token di accesso OAuth quando necessario e inoltra le richieste compatibili tramite il trasporto Codex Responses. OpenAI Platform utilizza l'autenticazione tramite API Key; le chiavi sono convalidate tramite il catalogo modelli dell'account prima di essere salvate in Credentials. Entrambi i prodotti supportano importazioni JSON e ZIP con convalida e deduplicazione specifiche per provider.
 
@@ -446,7 +463,7 @@ Nomi delle modalità credenziali (Credential mode names):
 
 ## Archiviazione dei dati
 
-SQLite è consigliato. Compose conserva `/app/backend/data` nel volume `polaris-data`; con Docker diretto montare `/app/backend/data/creds` e `/app/backend/data/logs` in directory persistenti come `/opt/polaris/creds` e `/opt/polaris/logs`.
+SQLite è consigliato. Compose e l'installer Docker conservano tutto `/app/backend/data` nel volume `polaris-data`. Anche con Docker manuale montare l'intera directory: salvare solo `creds` e `logs` non conserva SQLite e la configurazione.
 
 PostgreSQL è opzionale; MongoDB è mantenuto per compatibilità e funziona senza Redis. Configurarne uno solo. Errori di inizializzazione interrompono l'avvio senza ripiego silenzioso su SQLite. Restano necessari un worker e una replica: nessuno scaling orizzontale. Backup portabile cifrato solo per SQLite; nessuna migrazione live fra backend supportata.
 

@@ -303,9 +303,12 @@ async function openTraceDetail(element) {
     TraceConsoleState.detailAbortController = controller;
     TraceConsoleState.selectedTrace = null;
     clearTraceDetail();
+    traceElement('traceDetailTitle').textContent = traceId;
     dialog.setAttribute('aria-busy', 'true');
     setRegionBusy('traceDecisionList', true);
     TraceConsoleState.detailReturnFocus = element; if (traceElement('traceDetailStatus')) traceElement('traceDetailStatus').textContent = t('trace.loading'); dialog.showModal();
+    const detailBody = dialog.querySelector('.trace-detail-body');
+    if (detailBody) detailBody.scrollTop = 0;
     try {
         const response = await fetch(`./api/traces/${encodeURIComponent(traceId)}`, { signal: controller.signal }); if (!response.ok) throw new Error('trace-detail');
         const trace = normalizeRequestTrace(await response.json()); if (!trace) throw new TypeError('trace-detail-shape');
@@ -382,10 +385,7 @@ function initTraceBindings() {
     restoreTraceSafeFilters(); TraceConsoleState.filters = readTraceFilters(); traceElement('traceFilterForm')?.addEventListener('submit', applyTraceFilters); traceElement('traceRetentionForm')?.addEventListener('submit', saveTraceRetention);
     const dialog = traceElement('traceDetailDialog');
     dialog?.addEventListener('close', () => TraceConsoleState.detailReturnFocus?.focus());
-    dialog?.addEventListener('cancel', (event) => { event.preventDefault(); closeTraceDetail(); });
-    dialog?.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') { event.preventDefault(); closeTraceDetail(); }
-    });
+    configureModalDismissal(dialog, 'outside', closeTraceDetail);
 }
 document.addEventListener('DOMContentLoaded', initTraceBindings);
 document.addEventListener('polaris:locale-change', () => { if (TraceConsoleState.loaded) { renderTraces(); if (TraceConsoleState.selectedTrace) renderTraceDetail(TraceConsoleState.selectedTrace); } });

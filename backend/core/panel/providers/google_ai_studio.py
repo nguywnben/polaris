@@ -14,6 +14,7 @@ from core.google_ai_studio import (
 )
 from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.models import ConfigSaveRequest, GoogleAIStudioCredentialRequest
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.provider_registry import GOOGLE_AI_STUDIO, api_key_fingerprint
 from core.provider_store import store_google_ai_studio_credential, store_imported_connection
 from core.storage_adapter import get_storage_adapter
@@ -29,7 +30,7 @@ from .import_utils import (
     _safe_import_name,
 )
 
-router = APIRouter(tags=["provider-google-ai-studio"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-google-ai-studio"])
 
 GOOGLE_AI_STUDIO_CONFIG_KEYS = {"google_ai_studio_api_url"}
 

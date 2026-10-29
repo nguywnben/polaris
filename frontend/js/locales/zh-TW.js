@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["zh-TW"], {
+    "dashboard.cost_unknown": "費用尚未確定",
+    "dashboard.cost_coverage": "{source} · 已計算 {priced}/{total} 次成功呼叫的費用。依 API 價格估算，並非實際帳單。",
     "setup_preflight_title": "安裝檢查",
     "setup_preflight_copy": "建立擁有者帳戶前，檢查儲存空間、位址和連線。",
     "run_preflight": "執行檢查",
@@ -40,7 +42,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["zh-TW"], {
     "setup_action_enter_setup_token": "請輸入維運人員設定的設定權杖，然後執行檢查。",
     "setup_action_configure_setup_token": "請設定高強度 SETUP_TOKEN（至少 24 個字元），重新啟動後再試。",
     "setup_action_fix_base_url": "請更正公開控制台位址後再試。",
-    "setup_action_use_https": "請透過 HTTPS 提供此遠端控制台，然後再試。",
+    "setup_action_use_https": "請使用 HTTPS。如果接受 HTTP 風險，管理者可設定 SETUP_ALLOW_INSECURE_HTTP=true 並重新啟動服務。",
+    "transport_insecure_allowed": "已允許 HTTP（未加密）",
+    "setup_http_warning": "警告：HTTP 不會加密設定權杖、密碼或工作階段 Cookie。這些資訊在傳輸途中可能被竊取或竄改。建議使用 HTTPS。",
     "setup_action_enable_secure_cookie": "請啟用安全工作階段 Cookie 後再試。",
     "setup_action_use_https_or_auto_cookie": "請使用 HTTPS，或將 PANEL_COOKIE_SECURE 恢復為自動模式。",
     "setup_action_fix_data_permissions": "請允許寫入資料目錄後再試。",

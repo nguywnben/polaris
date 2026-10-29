@@ -28,6 +28,7 @@ from core.models import (
     SetupPreflightRequest,
     SetupRequest,
 )
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.passwords import hash_password
 from core.storage_adapter import get_storage_adapter
 from core.utils import (
@@ -55,7 +56,7 @@ from .setup_preflight import SETUP_CHECKPOINT_KEY, build_setup_status, run_setup
 from .setup_security import validate_owner_password
 from .utils import internal_server_error, validate_mode
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(route_class=CredentialPrivacyRoute, prefix="/api/auth", tags=["auth"])
 _SETUP_CREATION_LOCK = asyncio.Lock()
 
 

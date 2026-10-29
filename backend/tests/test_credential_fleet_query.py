@@ -54,6 +54,127 @@ def _item(
 
 
 class CredentialFleetQueryTests(unittest.TestCase):
+    def test_model_count_distinguishes_unknown_from_confirmed_empty_catalog(self):
+        for data, expected_count, expected_known in (
+            ({}, 0, False),
+            ({"model_ids": None}, 0, False),
+            ({"model_ids": []}, 0, True),
+            ({"model_ids": ["models/a", "a", "b"]}, 2, True),
+        ):
+            with self.subTest(data=data):
+                item = enrich_credential_summary({}, data, backend_type="sqlite", mode="primary")
+                self.assertEqual(item["model_count"], expected_count)
+                self.assertIs(item.get("model_count_known"), expected_known)
+
+    def test_quota_cache_scope_tracks_account_not_mutable_metadata(self):
+        def scope(data):
+            return enrich_credential_summary(
+                {"filename": "same.json"}, data, backend_type="sqlite", mode="primary"
+            ).get("quota_cache_scope")
+
+        original = {
+            "provider": "muse_code",
+            "credential_type": "oauth",
+            "account_id": "a" * 64,
+            "access_token": "private-oauth",
+        }
+        key = scope(original)
+        self.assertRegex(key or "", r"^[a-f0-9]{64}$")
+        self.assertEqual(key, scope({**original, "api_key": "rotated", "subscription_plan": "Pro"}))
+        self.assertNotEqual(key, scope({**original, "account_id": "b" * 64}))
+        self.assertNotEqual(key, scope({**original, "provider": "openai"}))
+        self.assertNotIn("private-oauth", key)
+        first = {"provider": "google_antigravity", "refresh_token": "private-first"}
+        self.assertNotEqual(scope(first), scope({**first, "refresh_token": "private-second"}))
+        self.assertIsNone(scope({"provider": "google_antigravity"}))
+
+    def test_muse_email_comes_from_refreshed_payload_without_state_migration(self):
+        credential = {
+            "provider": "muse_code",
+            "credential_type": "oauth",
+            "account_id": "a" * 64,
+            "user_email": "fixture@example.test",
+            "access_token": "must-never-leak",
+            "api_key": "must-never-leak",
+        }
+        for stored_email in (None, "old@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json", "user_email": stored_email},
+                credential,
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertEqual(item["user_email"], "fi***re@example.test")
+            self.assertNotIn("must-never-leak", repr(item))
+        for email in (None, "invalid", "bad@\nexample.test", "x" * 321 + "@example.test"):
+            item = enrich_credential_summary(
+                {"filename": "muse.json"},
+                {**credential, "user_email": email},
+                backend_type="sqlite",
+                mode="primary",
+            )
+            self.assertIsNone(item["user_email"])
+
+    def test_api_key_hint_is_masked_at_the_public_boundary(self):
+        key = "sample-prefix-private-middle-suffix"
+        credential = {
+            "provider": "openai",
+            "credential_type": "api_key",
+            "api_key": key,
+            "token": "oauth-secret",
+            "refresh_token": "refresh-secret",
+        }
+        item = enrich_credential_summary(
+            {"filename": "key.json", "api_key_hint": key},
+            credential,
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(item["api_key_hint"], "sample…ffix")
+        self.assertNotIn(key, repr(item))
+        self.assertNotIn("private-middle", repr(item))
+        self.assertNotIn("api_key", item)
+        self.assertNotIn("token", item)
+        for value, expected in [
+            ("short-key", "••••"),
+            ("", None),
+            (None, None),
+            (123, None),
+            ("invalid\nkey", None),
+        ]:
+            with self.subTest(value=value):
+                result = enrich_credential_summary(
+                    {},
+                    {**credential, "api_key": value},
+                    backend_type="sqlite",
+                    mode="primary",
+                )
+                self.assertEqual(result.get("api_key_hint"), expected)
+        oauth = enrich_credential_summary(
+            {},
+            {**credential, "credential_type": "oauth"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertIsNone(oauth.get("api_key_hint"))
+        updated = enrich_credential_summary(
+            {},
+            {**credential, "api_key": "rotated-prefix-private-value-last"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(updated["api_key_hint"], "rotate…last")
+
+    def test_legacy_api_key_without_declared_type_is_classified_as_api_key(self):
+        item = enrich_credential_summary(
+            {"filename": "poolside-legacy.json"},
+            {"provider": "poolside", "api_key": "prefix-private-middle-hE8A"},
+            backend_type="sqlite",
+            mode="primary",
+        )
+        self.assertEqual(item["credential_type"], "api_key")
+        self.assertEqual(item["api_key_hint"], "prefix…hE8A")
+
     def setUp(self) -> None:
         self.registry = CredentialSelectionRegistry(ttl_seconds=300, max_entries=8)
 

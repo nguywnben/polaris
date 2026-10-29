@@ -50,7 +50,21 @@
 
 ## 控制台预览
 
-![Polaris — 控制台预览](../assets/screenshots/credential-pool.png)
+截图使用隔离的离线演示环境中的虚构数据。
+
+### 仪表盘
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — 仪表盘" />
+</picture>
+
+### 凭据
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — 控制台预览" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ docs/          架构设计说明与项目维护文档
 
 ## 部署
 
+Linux/amd64 的[简易 Docker 安装](../docker-install.md)无需克隆仓库或手动编辑 `.env`：运行一条命令，使用 VPS HTTP 时明确确认风险，然后在网页创建密码。**目前仅在本地准备，须先发布配套的新安装脚本和镜像。** 手动 Docker、Compose 和源码运行方式仍然保留。Docker-run 使用[独立的备份与更新流程](../docker-maintenance.md)，不使用 Compose 更新工具。
+
 单机、单 worker 的 Docker Compose 是主要部署路径。请按照[安装指南](../installation.md)及[支持矩阵](../installation.md#support-matrix)操作。
 
-基础配置不依赖外部服务，数据保存在 `polaris-data`。模板固定使用 `0.1.0-beta.1`；升级或回滚遵循[更新指南](../updating.md)。通过 `deploy/compose.advanced.yml` 按需启用高级选项。
+基础配置不依赖外部服务，数据保存在 `polaris-data`。模板面向 `1.0.0`。仅使用已发布且版本一致的 Polaris 标签和镜像安装；若使用尚未发布的源码，请按[发布清单](../releases/1.0.0-preparation.md)构建独立的本地镜像。升级或回滚遵循[更新指南](../updating.md)，通过 `deploy/compose.advanced.yml` 按需启用高级选项。
 
-参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、`docker run`、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
+参见[标识符约定](../migrations/polaris.md)和[故障排查](../troubleshooting.md)。原生脚本、Render 和 Zeabur 是兼容路径，不具备同等安装及恢复验证。发布镜像支持 `linux/amd64`；`linux/arm64` 发布仍暂停。
 
 ### 本地开发或排查：
 
@@ -178,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | 自动生成 | 客户端 API 密钥，前缀为 `sk-polaris-`。 |
 | `PANEL_PASSWORD` | 设置前为空 | Web 控制面板的访问密码。 |
 | `SETUP_TOKEN` | 空 | 远程首次设置所需的唯一令牌，至少 24 字符；不自动生成或记录。直接 localhost 访问不需要。 |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | 仅在接受凭据和会话未加密的风险后，才启用远程 HTTP 设置。建议使用 HTTPS；仍然需要强设置令牌。 |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Web 控制台会话有效期（秒）。 |
 | `PANEL_COOKIE_SECURE` | 自动 | 设为 `true` 强制仅在 HTTPS 下传输 Cookie。留空时通过 `X-Forwarded-Proto` 自动检测。 |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | 登录频率限制时间窗口（秒）。 |
@@ -415,9 +432,9 @@ Google AI Studio 批量导入支持 JSON 文件及包含 JSON 文件的 ZIP 压�
 }
 ```
 
-每个导入的密钥在入库前均经过严格校验。同批次内的重复密钥将被跳过，已存在的密钥将重新校验并更新，无效记录将直接报错且不会泄露密钥明文。
+文件导入是离线操作：Polaris 检查 JSON/ZIP 结构，将新密钥保存为 `unverified`，跳过重复或已存在的密钥，不连接 Google。导入的模型列表不视为已验证。格式错误会单独报告，不泄露密钥。之后请主动执行凭证验证/模型发现；**Test model** 单独检查推理权限，可能消耗配额或产生费用。
 
-Grok Build 支持 PKCE OAuth 凭据，而 SpaceXAI Console 支持 API 密钥。SpaceXAI Console 密钥在保存前会对照 Grok Build 模型目录进行验证。对于 Grok Build OAuth，Polaris 会生成授权链接；授权完成后，复制授权页面展示的授权码并粘贴至表单中。当存在 Refresh Token 时系统会自动刷新访问令牌，且两种凭据类型均仅暴露其当前目录声明的 Grok Build 模型。在“凭据池”页面，可查询 Grok Build OAuth 账户的月度额度消耗情况，以及 xAI 提供时的周度使用量。该账户级账单视图不支持 SpaceXAI Console API 密钥。
+Grok Build 支持 PKCE OAuth 凭据，而 SpaceXAI Console 支持 API 密钥。SpaceXAI Console 密钥在保存前会对照 SpaceXAI Console API 模型目录进行验证。对于 Grok Build OAuth，Polaris 会生成授权链接；授权完成后，复制授权页面展示的授权码并粘贴至表单中。当存在 Refresh Token 时系统会自动刷新访问令牌，且两种凭据类型均仅暴露各自当前目录声明的模型。在“凭据”页面，可查询 Grok Build OAuth 账户的月度额度消耗情况，以及 xAI 提供时的周度使用量。该账户级账单视图不支持 SpaceXAI Console API 密钥。
 
 Codex 使用 OpenAI 设备授权流程。在“供应商”页面生成设备代码，打开展示的验证网址，输入代码完成登录，然后返回检查授权状态。Polaris 将保存 Codex 返回的账户级模型目录，在需要时自动刷新 OAuth 访问令牌，并通过 Codex Responses 传输协议转发兼容请求。OpenAI Platform 使用 API 密钥认证；密钥在保存前均通过账户模型目录进行有效性校验。两款产品均支持 JSON 和 ZIP 导入，并具备供应商特定的校验与去重能力。
 
@@ -446,7 +463,7 @@ Google Antigravity 凭据命名为 `google-antigravity-{account_fingerprint}.jso
 
 ## 数据存储
 
-推荐使用 SQLite。Compose 将 `/app/backend/data` 保存在 `polaris-data`；直接使用 Docker 时，将 `/app/backend/data/creds` 和 `/app/backend/data/logs` 挂载到 `/opt/polaris/creds`、`/opt/polaris/logs` 等持久目录。
+推荐使用 SQLite。Compose 和 Docker 安装脚本将整个 `/app/backend/data` 保存在 `polaris-data` 中。手动运行 Docker 时也必须挂载完整的数据目录：仅保存 `creds` 和 `logs` 无法保留 SQLite 数据库和配置。
 
 PostgreSQL 为可选项；MongoDB 保留兼容支持，直接工作，无需 Redis。二者只配置一个。初始化失败会阻止启动，不会静默回退 SQLite。外部数据库不提供横向扩容：仍仅支持一个 worker、一个副本。可移植加密备份仅支持 SQLite，不支持后端间在线迁移。
 

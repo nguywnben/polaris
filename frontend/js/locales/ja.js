@@ -1,5 +1,7 @@
 // Complete contextual operator copy. Product names and protocol identifiers stay unchanged.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["ja"], {
+    "dashboard.cost_unknown": "費用は未確定です",
+    "dashboard.cost_coverage": "{source} · 成功した呼び出し {total} 件中 {priced} 件の費用を算出。API料金に基づく推定であり、請求額ではありません。",
     "setup_preflight_title": "インストールの確認",
     "setup_preflight_copy": "所有者を作成する前に、ストレージ、アドレス、通信を確認します。",
     "run_preflight": "確認を実行",
@@ -40,7 +42,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["ja"], {
     "setup_action_enter_setup_token": "運用担当者が設定したセットアップトークンを入力してから、確認を実行してください。",
     "setup_action_configure_setup_token": "強力な SETUP_TOKEN（24 文字以上）を設定し、再起動してから再試行してください。",
     "setup_action_fix_base_url": "公開コンソールのアドレスを修正してから再試行してください。",
-    "setup_action_use_https": "このリモートコンソールを HTTPS で提供してから再試行してください。",
+    "setup_action_use_https": "HTTPS を使用してください。HTTP のリスクを受け入れる場合、管理者が SETUP_ALLOW_INSECURE_HTTP=true を設定し、サービスを再起動できます。",
+    "transport_insecure_allowed": "HTTP を許可（暗号化なし）",
+    "setup_http_warning": "警告：HTTP ではセットアップトークン、パスワード、セッション Cookie が暗号化されず、通信中に盗まれたり改ざんされたりする可能性があります。HTTPS を推奨します。",
     "setup_action_enable_secure_cookie": "セキュアなセッション Cookie を有効にしてから再試行してください。",
     "setup_action_use_https_or_auto_cookie": "HTTPS を使用するか、PANEL_COOKIE_SECURE を自動モードに戻してください。",
     "setup_action_fix_data_permissions": "データディレクトリを書き込み可能にしてから再試行してください。",

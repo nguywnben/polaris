@@ -68,27 +68,17 @@ function showMessageModal(title, message, type = 'info', options = {}) {
 
         closed = true;
 
-        modal.removeEventListener('keydown', escHandler);
-
         void unmountModal(modal);
 
     };
 
     modal.addEventListener('click', function(e) {
 
-        if (e.target === modal || e.target.closest('[data-dialog-close]')) close();
+        if (e.target.closest('[data-dialog-close]')) close();
 
     });
 
-    const escHandler = function(e) {
-
-        if (e.key === 'Escape') close();
-
-    };
-
-    modal.addEventListener('keydown', escHandler);
-
-    void mountModal(modal);
+    void mountModal(modal, { dismissal: 'outside', onDismiss: close });
 
     return modal;
 

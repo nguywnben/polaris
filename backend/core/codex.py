@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import copy
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -558,6 +559,56 @@ def gemini_request_to_codex(payload: Dict[str, Any], model: str, streaming: bool
     if instructions:
         result["instructions"] = instructions
 
+    config = payload.get("generationConfig") or {}
+    passthrough = payload.get("_polaris_openai_passthrough")
+    if not isinstance(passthrough, dict):
+        passthrough = {}
+
+    if config.get("temperature") is not None:
+        result["temperature"] = config["temperature"]
+    if config.get("topP") is not None:
+        result["top_p"] = config["topP"]
+    if config.get("maxOutputTokens") is not None:
+        result["max_output_tokens"] = config["maxOutputTokens"]
+
+    response_mime = str(config.get("responseMimeType") or "")
+    response_schema = config.get("responseSchema")
+    raw_response_format = passthrough.get("response_format")
+    if isinstance(raw_response_format, dict) and raw_response_format.get("type") == "json_schema":
+        js = raw_response_format.get("json_schema") or {}
+        if isinstance(js, dict) and isinstance(js.get("schema"), dict):
+            fmt: Dict[str, Any] = {
+                "type": "json_schema",
+                "name": str(js.get("name") or "response"),
+                "schema": copy.deepcopy(js["schema"]),
+            }
+            if js.get("strict") is not None:
+                fmt["strict"] = bool(js["strict"])
+            if js.get("description"):
+                fmt["description"] = str(js["description"])
+            result["text"] = {"format": fmt}
+    elif response_mime == "application/json" and isinstance(response_schema, dict):
+        result["text"] = {
+            "format": {
+                "type": "json_schema",
+                "name": "response",
+                "schema": response_schema,
+            }
+        }
+    elif response_mime == "application/json":
+        result["text"] = {"format": {"type": "json_object"}}
+
+    if passthrough.get("parallel_tool_calls") is not None:
+        result["parallel_tool_calls"] = bool(passthrough["parallel_tool_calls"])
+
+    passthrough_tools_by_name: Dict[str, Dict[str, Any]] = {}
+    if isinstance(passthrough.get("tools"), list):
+        for raw_tool in passthrough["tools"]:
+            if isinstance(raw_tool, dict) and isinstance(raw_tool.get("function"), dict):
+                fn = raw_tool["function"]
+                if fn.get("name"):
+                    passthrough_tools_by_name[str(fn["name"])] = fn
+
     tools: List[Dict[str, Any]] = []
     for tool_group in payload.get("tools") or []:
         if not isinstance(tool_group, dict):
@@ -565,15 +616,23 @@ def gemini_request_to_codex(payload: Dict[str, Any], model: str, streaming: bool
         for declaration in tool_group.get("functionDeclarations") or []:
             if not isinstance(declaration, dict) or not declaration.get("name"):
                 continue
+            decl_name = str(declaration["name"])[:128]
+            raw_fn = passthrough_tools_by_name.get(decl_name) or {}
             tool: Dict[str, Any] = {
                 "type": "function",
-                "name": str(declaration["name"])[:128],
-                "parameters": declaration.get("parametersJsonSchema")
-                or declaration.get("parameters")
-                or {"type": "object", "properties": {}},
+                "name": decl_name,
+                "parameters": copy.deepcopy(raw_fn["parameters"])
+                if isinstance(raw_fn.get("parameters"), dict)
+                else (
+                    declaration.get("parametersJsonSchema")
+                    or declaration.get("parameters")
+                    or {"type": "object", "properties": {}}
+                ),
             }
             if declaration.get("description"):
                 tool["description"] = str(declaration["description"])
+            if raw_fn.get("strict") is not None:
+                tool["strict"] = bool(raw_fn["strict"])
             tools.append(tool)
     if tools:
         result["tools"] = tools

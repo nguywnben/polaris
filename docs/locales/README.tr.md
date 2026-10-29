@@ -50,7 +50,21 @@ Modern kodlama iş akışları genellikle istemcileri ve sağlayıcıları bir a
 
 ## Konsol Önizlemesi
 
-![Polaris — Konsol Önizlemesi](../assets/screenshots/credential-pool.png)
+Ekran görüntülerinde yalıtılmış çevrimdışı demodan alınan kurgusal veriler kullanılır.
+
+### Gösterge Paneli
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/dashboard-dark.png" />
+  <img src="../assets/screenshots/dashboard-light.png" alt="Polaris — Gösterge Paneli" />
+</picture>
+
+### Kimlik Bilgileri
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/credentials-dark.png" />
+  <img src="../assets/screenshots/credentials-light.png" alt="Polaris — Konsol Önizlemesi" />
+</picture>
 
 <a id="supported-providers"></a>
 
@@ -125,11 +139,13 @@ Modül sınırları, istek akışı, durum sahipliği ve mevcut sürüm kısıtl
 
 ## Dağıtım
 
+Linux/amd64 için [kolay Docker kurulumu](../docker-install.md), depoyu klonlamayı veya `.env` dosyasını elle düzenlemeyi gerektirmez: tek komut, VPS üzerinde HTTP için açık onay, ardından web üzerinden parola oluşturma. **Yerel olarak hazırlanmıştır; önce eşleşen güncel kurulum betiği ve imaj yayımlanmalıdır.** Elle Docker, Compose ve kaynak koddan çalıştırma seçenekleri korunur. Docker-run, Compose güncelleyicisi yerine [ayrı yedekleme ve güncelleme adımlarını](../docker-maintenance.md) kullanır.
+
 Tek makine ve tek worker için ana yol Docker Compose'dur. [Kurulum](../installation.md) ve [destek tablosunu](../installation.md#support-matrix) izleyin.
 
-Temel profil dış hizmet gerektirmez; veriler `polaris-data` içinde saklanır. Şablon `0.1.0-beta.1` sürümüne sabitlenmiştir. [Güncelleme ve geri dönüş](../updating.md) sürecini izleyin; gelişmiş özellikler `deploy/compose.advanced.yml` ile isteğe bağlıdır.
+Temel profil dış hizmet gerektirmez; veriler `polaris-data` içinde saklanır. Şablon `1.0.0` sürümünü hedefler. Yalnızca aynı sürümün yayımlanmış Polaris etiket ve imajlarıyla kurulum yapın; yayımlanmamış kaynak kod için [yayın kontrol listesine](../releases/1.0.0-preparation.md) göre ayrı bir yerel imaj oluşturun. [Güncelleme ve geri dönüş](../updating.md) sürecini izleyin; gelişmiş özellikler `deploy/compose.advanced.yml` ile isteğe bağlıdır.
 
-[Adlandırma sözleşmesi](../migrations/polaris.md) ve [sorun giderme](../troubleshooting.md) kılavuzlarına bakın. Yerel betikler, `docker run`, Render ve Zeabur eşdeğer kurulum/kurtarma doğrulamasına sahip olmayan uyumluluk yollarıdır. İmajlar `linux/amd64` için yayımlanır; `linux/arm64` yayını duraklatılmıştır.
+[Adlandırma sözleşmesi](../migrations/polaris.md) ve [sorun giderme](../troubleshooting.md) kılavuzlarına bakın. Yerel betikler, Render ve Zeabur eşdeğer kurulum/kurtarma doğrulamasına sahip olmayan uyumluluk yollarıdır. İmajlar `linux/amd64` için yayımlanır; `linux/arm64` yayını duraklatılmıştır.
 
 ### Yerel geliştirme veya tanılama:
 
@@ -178,6 +194,7 @@ http://127.0.0.1:4283
 | `API_KEY` | otomatik üretilir | `sk-polaris-` önekli istemci API anahtarı. |
 | `PANEL_PASSWORD` | kuruluma kadar boş | Web kontrol paneli şifresi. |
 | `SETUP_TOKEN` | boş | Uzak kurulum için en az 24 karakterli benzersiz belirteç; üretilmez veya kaydedilmez. Doğrudan localhost için gerekmez. |
+| `SETUP_ALLOW_INSECURE_HTTP` | `false` | Yalnızca kimlik bilgileri ve oturumların şifrelenmemesi riskini kabul ediyorsanız uzak HTTP kurulumuna izin verir. HTTPS önerilir; güçlü bir kurulum belirteci yine gereklidir. |
 | `PANEL_SESSION_TTL_SECONDS` | `86400` | Saniye cinsinden web konsolu oturum ömrü. |
 | `PANEL_COOKIE_SECURE` | otomatik | Yalnızca HTTPS panel çerezleri gerektirmek için `true` yapın. HTTPS'yi `X-Forwarded-Proto` üzerinden algılamak için boş bırakın. |
 | `PANEL_LOGIN_WINDOW_SECONDS` | `300` | Saniye cinsinden giriş hız sınırlama penceresi. |
@@ -415,9 +432,9 @@ Google AI Studio toplu içe aktarma, JSON dosyalarını ve JSON dosyaları içer
 }
 ```
 
-İçe aktarılan her anahtar saklanmadan önce doğrulanır. Aynı içe aktarma içindeki yinelenen anahtarlar atlanır, mevcut anahtarlar yeniden doğrulanır ve güncellenir; geçersiz girişler anahtar değeri açığa çıkarılmadan raporlanır.
+Dosya içe aktarma çevrimdışıdır: Polaris JSON/ZIP yapısını denetler, yeni anahtarları `unverified` olarak kaydeder ve Google'a bağlanmadan yinelenen veya mevcut anahtarları atlar. İçe aktarılan model listeleri doğrulanmış sayılmaz. Biçim hataları anahtarlar açığa çıkarılmadan bildirilir. Ardından kimlik bilgisinin doğrulama/model keşfi işlemini açıkça çalıştırın; **Test model** çıkarım erişimini ayrıca denetler ve kota tüketebilir veya ücret doğurabilir.
 
-Grok Build, PKCE OAuth kimlik bilgilerini desteklerken SpaceXAI Console, API anahtarlarını destekler. SpaceXAI Console anahtarları saklanmadan önce Grok Build model kataloğuna karşı doğrulanır. Grok Build OAuth için Polaris bir yetkilendirme bağlantısı oluşturur; yetkilendirmeden sonra Grok Build yetkilendirme sayfasında görüntülenen kodu kopyalayın ve Grok Build OAuth formuna yapıştırın. Erişim belirteçleri bir yenileme belirteci (refresh token) mevcut olduğunda otomatik olarak yenilenir ve her iki kimlik bilgisi türü de yalnızca mevcut katalogları tarafından bildirilen Grok Build modellerini sunar. Credentials sayfası, Grok Build OAuth hesapları için aylık kredi kullanımını ve xAI sağladığında haftalık kullanımı alabilir. Bu hesap düzeyinde faturalandırma görünümü SpaceXAI Console API anahtarları için kullanılamaz.
+Grok Build, PKCE OAuth kimlik bilgilerini desteklerken SpaceXAI Console, API anahtarlarını destekler. SpaceXAI Console anahtarları saklanmadan önce SpaceXAI Console API model kataloğuna karşı doğrulanır. Grok Build OAuth için Polaris bir yetkilendirme bağlantısı oluşturur; yetkilendirmeden sonra Grok Build yetkilendirme sayfasında görüntülenen kodu kopyalayın ve Grok Build OAuth formuna yapıştırın. Erişim belirteçleri bir yenileme belirteci (refresh token) mevcut olduğunda otomatik olarak yenilenir ve her iki kimlik bilgisi türü de yalnızca mevcut katalogları tarafından bildirilen modelleri sunar. Credentials sayfası, Grok Build OAuth hesapları için aylık kredi kullanımını ve xAI sağladığında haftalık kullanımı alabilir. Bu hesap düzeyinde faturalandırma görünümü SpaceXAI Console API anahtarları için kullanılamaz.
 
 Codex, OpenAI'nin cihaz yetkilendirme akışını kullanır. Providers sayfasından bir cihaz kodu oluşturun, görüntülenen doğrulama URL'sini açın, kodu girin, oturum açmayı tamamlayın ve yetkilendirmeyi kontrol etmek için geri dönün. Polaris, Codex tarafından döndürülen hesap kapsamlı model kataloğunu saklar, gerektiğinde OAuth erişim belirteçlerini yeniler ve uyumlu istekleri Codex Responses aktarımı üzerinden gönderir. OpenAI Platform, API anahtarı kimlik doğrulaması kullanır; anahtarlar Credentials alanına girmeden önce hesap model kataloğu üzerinden doğrulanır. Her iki ürün de sağlayıcıya özel doğrulama ve tekilleştirme ile JSON ve ZIP içe aktarmayı destekler.
 
@@ -446,7 +463,7 @@ Kimlik bilgisi modu adları:
 
 ## Depolama
 
-SQLite önerilir. Compose `/app/backend/data` verisini `polaris-data` içinde saklar. Doğrudan Docker için `/app/backend/data/creds` ve `/app/backend/data/logs` yollarını `/opt/polaris/creds` ve `/opt/polaris/logs` gibi kalıcı dizinlere bağlayın.
+SQLite önerilir. Compose ve Docker kurucusu `/app/backend/data` dizininin tamamını `polaris-data` içinde saklar. Elle Docker kullanırken de tüm veri dizinini bağlayın: yalnızca `creds` ve `logs` saklamak SQLite ve yapılandırmayı korumaz.
 
 PostgreSQL isteğe bağlıdır; MongoDB Redis olmadan uyumluluk için korunur. Yalnız birini yapılandırın. Başlatma hatası sessizce SQLite'a dönmek yerine süreci durdurur. Dış depolama yatay ölçekleme sağlamaz: tek worker, tek replika. Taşınabilir şifreli yedek yalnız SQLite içindir; arka uçlar arası canlı geçiş desteklenmez.
 

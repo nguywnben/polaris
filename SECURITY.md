@@ -2,6 +2,12 @@
 
 ## Supported Versions
 
+This policy covers the Polaris `1.0.0` release line. Development checkouts are not
+security-supported releases; follow the [publication checklist](docs/releases/1.0.0-preparation.md)
+before deploying an unpublished candidate. The following policy applies to published
+Polaris releases, not to older
+pre-rename tags merely because their numeric version starts with `1`.
+
 | Version | Supported |
 | --- | --- |
 | Latest `1.x` release | Yes |
@@ -23,7 +29,7 @@ After a fix is available, coordinate public disclosure through the advisory. Cre
 - Use a separate `API_KEY` beginning with `sk-polaris-` for client traffic.
 - Keep the service behind TLS when exposed outside localhost.
 - Keep `MAX_REQUEST_BODY_MB` bounded and configure an equal or lower request-body limit at the reverse proxy.
-- Protect the bootstrap token printed for remote first-run setup, or preconfigure `PANEL_PASSWORD` for non-interactive deployment.
+- Configure a unique `SETUP_TOKEN` of at least 24 characters before remote first-run setup, or preconfigure `PANEL_PASSWORD` for non-interactive deployment. The application never generates or prints the setup token; direct loopback setup does not require it.
 - Restrict browser cross-origin access with `CORS_ORIGINS`.
 - Preserve `Host` and trust forwarded headers only when a controlled reverse proxy overwrites them.
 - Run exactly one worker and one application replica for the 1.x series, regardless of storage backend.

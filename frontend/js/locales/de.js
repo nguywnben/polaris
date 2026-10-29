@@ -1,5 +1,7 @@
 // Contextual interface translations. Product names and protocol identifiers stay exact.
 Object.assign(PAGE_LOCALE_TRANSLATIONS["de"], {
+    "dashboard.cost_unknown": "Kosten nicht verfügbar",
+    "dashboard.cost_coverage": "{source} · {priced}/{total} erfolgreiche Aufrufe berechnet. API-basierte Schätzungen, keine Rechnungen.",
     "provider": "Anbieter",
     "status_filter_suffix": " Filter: {filter}.",
     "setup_preflight_title": "Installationsprüfung",
@@ -42,7 +44,9 @@ Object.assign(PAGE_LOCALE_TRANSLATIONS["de"], {
     "setup_action_enter_setup_token": "Das vom Betreiber konfigurierte Einrichtungstoken eingeben und die Prüfung starten.",
     "setup_action_configure_setup_token": "Ein starkes SETUP_TOKEN mit mindestens 24 Zeichen festlegen, neu starten und erneut versuchen.",
     "setup_action_fix_base_url": "Öffentliche Konsolenadresse korrigieren und erneut versuchen.",
-    "setup_action_use_https": "Diese Remote-Konsole über HTTPS bereitstellen und erneut versuchen.",
+    "setup_action_use_https": "Verwenden Sie HTTPS. Um die HTTP-Risiken zu akzeptieren, kann der Betreiber SETUP_ALLOW_INSECURE_HTTP=true setzen und den Dienst neu starten.",
+    "transport_insecure_allowed": "HTTP erlaubt (unverschlüsselt)",
+    "setup_http_warning": "Warnung: HTTP verschlüsselt weder Einrichtungstoken noch Passwörter oder Sitzungscookies. Sie können unterwegs abgefangen oder verändert werden. HTTPS wird empfohlen.",
     "setup_action_enable_secure_cookie": "Sichere Sitzungscookies aktivieren und erneut versuchen.",
     "setup_action_use_https_or_auto_cookie": "HTTPS verwenden oder PANEL_COOKIE_SECURE auf den automatischen Modus zurücksetzen.",
     "setup_action_fix_data_permissions": "Schreibzugriff auf das Datenverzeichnis ermöglichen und erneut versuchen.",

@@ -11,13 +11,14 @@ from core.i18n import LocalizedJSONResponse as JSONResponse
 from core.kiro import KiroError
 from core.kiro_device_login import cancel_login, poll_login, start_login
 from core.management_audit import ManagementMutation, record_classified_management_response
+from core.panel.credential_privacy_route import CredentialPrivacyRoute
 from core.request_context import get_request_id
 from core.utils import verify_panel_token
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(tags=["provider-kiro"])
+router = APIRouter(route_class=CredentialPrivacyRoute, tags=["provider-kiro"])
 
 
 class KiroLoginRequest(BaseModel):

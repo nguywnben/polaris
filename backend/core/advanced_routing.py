@@ -28,6 +28,25 @@ def provider_cost_rank(provider_id: Any) -> int:
     return PROVIDER_COST_RANKS.get(str(provider_id or "").strip().lower(), DEFAULT_COST_RANK)
 
 
+def model_cost_rank(provider_id: Any, model_name: Optional[str] = None) -> float:
+    """Return a composite cost rank combining provider billing tier and per-token pricing."""
+    normalized_provider = str(provider_id or "").strip().lower()
+    tier = float(provider_cost_rank(normalized_provider))
+    if not model_name or tier == 0.0:
+        return tier
+    try:
+        from core.pricing import find_model_pricing
+
+        rates = find_model_pricing(str(model_name), provider=normalized_provider)
+        if rates is not None:
+            blended = max(0.0, float(rates.input_per_million) + float(rates.output_per_million))
+            if blended > 0:
+                return tier + min(0.999999, blended / 100_000.0)
+    except Exception:
+        pass
+    return tier
+
+
 def weighted_order(
     items: Sequence[Tuple[Any, float]],
     *,
